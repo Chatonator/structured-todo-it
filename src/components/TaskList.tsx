@@ -1,13 +1,24 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG } from '@/types/task';
-import { Clock } from 'lucide-react';
+import { Clock, X, ArrowUpDown, GripVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface TaskListProps {
   tasks: Task[];
+  onRemoveTask: (taskId: string) => void;
+  onReorderTasks: (startIndex: number, endIndex: number) => void;
+  onSortTasks: (sortBy: 'name' | 'duration' | 'category') => void;
 }
 
-const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
+const TaskList: React.FC<TaskListProps> = ({ 
+  tasks, 
+  onRemoveTask, 
+  onReorderTasks, 
+  onSortTasks 
+}) => {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
   // Formater la durée pour l'affichage
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) {
@@ -33,105 +44,144 @@ const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
     }
   };
 
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+      onReorderTasks(draggedIndex, dropIndex);
+    }
+    setDraggedIndex(null);
+  };
+
   if (tasks.length === 0) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-8">
         <div className="text-gray-400 mb-2">
-          <Clock className="w-12 h-12 mx-auto mb-3" />
+          <Clock className="w-8 h-8 mx-auto mb-2" />
         </div>
-        <h3 className="text-lg font-medium text-gray-500 mb-1">Aucune tâche</h3>
-        <p className="text-gray-400">Créez votre première tâche pour commencer !</p>
+        <h3 className="text-sm font-medium text-gray-500 mb-1">Aucune tâche</h3>
+        <p className="text-xs text-gray-400">Créez votre première tâche !</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Mes tâches ({tasks.length})
+      {/* En-tête avec tri */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-800">
+          Tâches ({tasks.length})
         </h2>
+        <Select onValueChange={(value) => onSortTasks(value as 'name' | 'duration' | 'category')}>
+          <SelectTrigger className="w-32 h-7 text-xs">
+            <ArrowUpDown className="w-3 h-3 mr-1" />
+            <SelectValue placeholder="Trier" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Par nom</SelectItem>
+            <SelectItem value="duration">Par durée</SelectItem>
+            <SelectItem value="category">Par catégorie</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="space-y-2">
-        {tasks.map((task) => {
+      {/* Liste des tâches */}
+      <div className="space-y-1">
+        {tasks.map((task, index) => {
           const categoryConfig = CATEGORY_CONFIG[task.category];
           
           return (
             <div
               key={task.id}
-              className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, index)}
+              className={`
+                group flex items-center p-2 bg-white border border-gray-200 rounded-md 
+                hover:shadow-sm transition-all cursor-move
+                ${categoryConfig.pattern}
+                ${draggedIndex === index ? 'opacity-50' : ''}
+              `}
             >
-              {/* Informations principales */}
+              {/* Poignée de glissement */}
+              <div className="mr-2 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                <GripVertical className="w-3 h-3" />
+              </div>
+
+              {/* Icône de catégorie pour l'accessibilité */}
+              <div className="mr-2 text-sm">
+                {categoryConfig.icon}
+              </div>
+
+              {/* Contenu principal */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-3">
-                  {/* Nom de la tâche */}
-                  <h3 className="text-base font-medium text-gray-900 truncate">
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-sm font-medium text-gray-900 truncate">
                     {task.name}
                   </h3>
-                  
-                  {/* Badge catégorie */}
                   <span className={`
-                    inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                    ${categoryConfig.color}
+                    inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                    ${categoryConfig.color} ${categoryConfig.shape}
                   `}>
                     {task.category}
                   </span>
                 </div>
                 
-                {/* Méta-informations */}
-                <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
+                <div className="flex items-center space-x-2 mt-0.5 text-xs text-gray-500">
                   <span className="flex items-center">
                     <Clock className="w-3 h-3 mr-1" />
                     {formatDuration(task.estimatedTime)}
                   </span>
-                  <span>
-                    {formatCreatedAt(task.createdAt)}
-                  </span>
+                  <span>•</span>
+                  <span>{formatCreatedAt(task.createdAt)}</span>
                 </div>
               </div>
 
-              {/* Indicateur visuel de durée */}
-              <div className="flex-shrink-0 ml-4">
-                <div className={`
-                  w-2 h-8 rounded-full
-                  ${task.estimatedTime <= 5 ? 'bg-green-400' : 
-                    task.estimatedTime <= 30 ? 'bg-yellow-400' : 
-                    'bg-red-400'}
-                `} title={`${task.estimatedTime} minutes`} />
-              </div>
+              {/* Bouton de suppression */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onRemoveTask(task.id)}
+                className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <X className="w-3 h-3" />
+              </Button>
             </div>
           );
         })}
       </div>
 
-      {/* Statistiques rapides */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          {Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
-            const count = tasks.filter(task => task.category === category).length;
-            const totalTime = tasks
-              .filter(task => task.category === category)
-              .reduce((sum, task) => sum + task.estimatedTime, 0);
-            
-            return (
-              <div key={category} className="space-y-1">
-                <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${config.color}`}>
-                  {category}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {count} tâche{count !== 1 ? 's' : ''}
-                </div>
-                {totalTime > 0 && (
-                  <div className="text-xs text-gray-500">
-                    {formatDuration(totalTime)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      {/* Statistiques compactes */}
+      {tasks.length > 0 && (
+        <div className="mt-4 p-2 bg-gray-50 rounded text-xs">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">
+              Temps total : {Math.round(tasks.reduce((sum, task) => sum + task.estimatedTime, 0))} min
+            </span>
+            <div className="flex space-x-2">
+              {Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
+                const count = tasks.filter(task => task.category === category).length;
+                if (count === 0) return null;
+                
+                return (
+                  <span key={category} className="flex items-center space-x-1">
+                    <span>{config.icon}</span>
+                    <span className="text-gray-600">{count}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

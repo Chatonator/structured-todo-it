@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,109 +62,101 @@ const TaskForm: React.FC<TaskFormProps> = ({ onAddTask }) => {
 
   if (!isOpen) {
     return (
-      <Button 
-        onClick={() => setIsOpen(true)}
-        className="mb-6 bg-blue-600 hover:bg-blue-700 text-white"
-        size="sm"
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Nouvelle tâche
-      </Button>
+      <div className="mb-4">
+        <Button 
+          onClick={() => setIsOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+          size="sm"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nouvelle tâche
+        </Button>
+      </div>
     );
   }
 
   return (
-    <div className="mb-6 p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-medium text-blue-900">Créer une nouvelle tâche</h3>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {/* Nom de la tâche */}
-        <div>
-          <Label htmlFor="task-name" className="text-sm font-medium text-gray-700">
-            Nom de la tâche *
-          </Label>
-          <Input
-            id="task-name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Que devez-vous faire ?"
-            className="mt-1"
-            autoFocus
-          />
-        </div>
-
-        {/* Catégorie */}
-        <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2 block">
-            Catégorie *
-          </Label>
-          <div className="grid grid-cols-2 gap-2">
-            {Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
-              <label
-                key={cat}
-                className={`
-                  flex items-center space-x-2 p-2 border rounded cursor-pointer transition-all
-                  ${category === cat 
-                    ? `${config.color} border-current` 
-                    : 'bg-white border-gray-200 hover:bg-gray-50'
-                  }
-                `}
-              >
-                <input
-                  type="radio"
-                  name="category"
-                  value={cat}
-                  checked={category === cat}
-                  onChange={(e) => setCategory(e.target.value as TaskCategory)}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm font-medium">{cat}</span>
-              </label>
-            ))}
+    <div className="mb-4 w-full max-w-md">
+      <div className="p-3 border-2 border-blue-200 rounded-lg bg-blue-50 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-blue-900">Nouvelle tâche</h3>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-3 h-3" />
+            </Button>
           </div>
-        </div>
 
-        {/* Temps estimé */}
-        <div>
-          <Label htmlFor="estimated-time" className="text-sm font-medium text-gray-700">
-            Temps estimé *
-          </Label>
-          <Select value={estimatedTime.toString()} onValueChange={(value) => setEstimatedTime(Number(value))}>
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Combien de temps ?" />
-            </SelectTrigger>
-            <SelectContent>
-              {TIME_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value.toString()}>
-                  {option.label}
-                </SelectItem>
+          {/* Nom de la tâche - compact */}
+          <div>
+            <Input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nom de la tâche..."
+              className="text-sm h-8"
+              autoFocus
+            />
+          </div>
+
+          {/* Catégorie - boutons compacts avec icônes */}
+          <div>
+            <Label className="text-xs text-gray-700 mb-1 block">
+              Catégorie
+            </Label>
+            <div className="grid grid-cols-2 gap-1">
+              {Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setCategory(cat as TaskCategory)}
+                  className={`
+                    flex items-center space-x-1 p-1.5 text-xs border rounded transition-all
+                    ${category === cat 
+                      ? `${config.color} border-current` 
+                      : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  <span className="text-sm">{config.icon}</span>
+                  <span className="font-medium truncate">{cat}</span>
+                </button>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
+            </div>
+          </div>
 
-        {/* Boutons d'action */}
-        <div className="flex space-x-2 pt-2">
-          <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white">
-            Ajouter la tâche
-          </Button>
-          <Button type="button" variant="outline" onClick={handleCancel}>
-            Annuler
-          </Button>
-        </div>
-      </form>
+          {/* Temps estimé - compact */}
+          <div>
+            <Select value={estimatedTime.toString()} onValueChange={(value) => setEstimatedTime(Number(value))}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Temps estimé..." />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Boutons d'action - compacts */}
+          <div className="flex space-x-2 pt-1">
+            <Button type="submit" size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs h-7">
+              Ajouter
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={handleCancel} className="text-xs h-7">
+              Annuler
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

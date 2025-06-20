@@ -49,16 +49,49 @@ export const useTasks = () => {
     return newTask;
   };
 
-  // Supprimer une tâche (pour évolution future)
+  // Supprimer une tâche
   const removeTask = (taskId: string) => {
     setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
     console.log('Tâche supprimée:', taskId);
+  };
+
+  // Réorganiser les tâches (glisser-déposer)
+  const reorderTasks = (startIndex: number, endIndex: number) => {
+    setTasks(prevTasks => {
+      const result = Array.from(prevTasks);
+      const [removed] = result.splice(startIndex, 1);
+      result.splice(endIndex, 0, removed);
+      console.log('Tâches réorganisées');
+      return result;
+    });
+  };
+
+  // Trier les tâches
+  const sortTasks = (sortBy: 'name' | 'duration' | 'category') => {
+    setTasks(prevTasks => {
+      const sorted = [...prevTasks].sort((a, b) => {
+        switch (sortBy) {
+          case 'name':
+            return a.name.localeCompare(b.name);
+          case 'duration':
+            return a.estimatedTime - b.estimatedTime;
+          case 'category':
+            return a.category.localeCompare(b.category);
+          default:
+            return 0;
+        }
+      });
+      console.log('Tâches triées par:', sortBy);
+      return sorted;
+    });
   };
 
   return {
     tasks,
     addTask,
     removeTask,
+    reorderTasks,
+    sortTasks,
     tasksCount: tasks.length
   };
 };
