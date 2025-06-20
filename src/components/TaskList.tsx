@@ -1,23 +1,39 @@
+
 import React, { useState } from 'react';
-import { Task, CATEGORY_CONFIG } from '@/types/task';
-import { Clock, X, ArrowUpDown, GripVertical } from 'lucide-react';
+import { Task, CATEGORY_CONFIG, TASK_LEVELS } from '@/types/task';
+import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Plus, Divide3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import TaskModal from './TaskModal';
 
 interface TaskListProps {
   tasks: Task[];
+  mainTasks: Task[];
   onRemoveTask: (taskId: string) => void;
   onReorderTasks: (startIndex: number, endIndex: number) => void;
   onSortTasks: (sortBy: 'name' | 'duration' | 'category') => void;
+  onToggleExpansion: (taskId: string) => void;
+  onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  getSubTasks: (parentId: string) => Task[];
+  calculateTotalTime: (task: Task) => number;
+  canHaveSubTasks: (task: Task) => boolean;
 }
 
 const TaskList: React.FC<TaskListProps> = ({ 
-  tasks, 
+  tasks,
+  mainTasks,
   onRemoveTask, 
   onReorderTasks, 
-  onSortTasks 
+  onSortTasks,
+  onToggleExpansion,
+  onAddTask,
+  getSubTasks,
+  calculateTotalTime,
+  canHaveSubTasks
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
+  const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
 
   // Formater la durée pour l'affichage
   const formatDuration = (minutes: number): string => {
@@ -60,7 +76,117 @@ const TaskList: React.FC<TaskListProps> = ({
     setDraggedIndex(null);
   };
 
-  if (tasks.length === 0) {
+  const handleCreateSubTasks = (parentTask: Task) => {
+    setSelectedParentTask(parentTask);
+    setIsSubTaskModalOpen(true);
+  };
+
+  const renderTask = (task: Task, depth: number = 0): React.ReactNode => {
+    const categoryConfig = CATEGORY_CONFIG[task.category];
+    const levelConfig = TASK_LEVELS[task.level];
+    const subTasks = getSubTasks(task.id);
+    const hasSubTasks = subTasks.length > 0;
+    const totalTime = calculateTotalTime(task);
+
+    return (
+      <div key={task.id} className={levelConfig.indent}>
+        <div
+          className={`
+            group flex items-center p-2 border border-gray-200 rounded-md 
+            hover:shadow-sm transition-all cursor-move mb-1
+            ${categoryConfig.pattern} ${levelConfig.bgColor}
+          `}
+        >
+          {/* Bouton d'expansion pour les tâches avec sous-tâches */}
+          {hasSubTasks && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onToggleExpansion(task.id)}
+              className="h-6 w-6 p-0 mr-1 text-gray-500"
+            >
+              {task.isExpanded ? 
+                <ChevronDown className="w-3 h-3" /> : 
+                <ChevronRight className="w-3 h-3" />
+              }
+            </Button>
+          )}
+
+          {/* Poignée de glissement */}
+          <div className="mr-2 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+            <GripVertical className="w-3 h-3" />
+          </div>
+
+          {/* Symbole de niveau */}
+          <div className="mr-2 text-gray-600 font-bold">
+            {levelConfig.symbol}
+          </div>
+
+          {/* Icône de catégorie */}
+          <div className="mr-2 text-sm">
+            {categoryConfig.icon}
+          </div>
+
+          {/* Contenu principal */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2">
+              <h3 className="text-sm font-medium text-gray-900 truncate">
+                {task.name}
+              </h3>
+              <span className={`
+                inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                ${categoryConfig.color} ${categoryConfig.shape}
+              `}>
+                {task.category}
+              </span>
+            </div>
+            
+            <div className="flex items-center space-x-2 mt-0.5 text-xs text-gray-500">
+              <span className="flex items-center">
+                <Clock className="w-3 h-3 mr-1" />
+                {formatDuration(totalTime)}
+                {hasSubTasks && ` (${subTasks.length} sous-tâche${subTasks.length > 1 ? 's' : ''})`}
+              </span>
+              <span>•</span>
+              <span>{formatCreatedAt(task.createdAt)}</span>
+            </div>
+          </div>
+
+          {/* Bouton pour créer des sous-tâches */}
+          {canHaveSubTasks(task) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleCreateSubTasks(task)}
+              className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-all mr-1"
+              title="Diviser en sous-tâches"
+            >
+              <Divide3 className="w-3 h-3" />
+            </Button>
+          )}
+
+          {/* Bouton de suppression */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemoveTask(task.id)}
+            className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+
+        {/* Affichage des sous-tâches */}
+        {hasSubTasks && task.isExpanded && (
+          <div className="ml-4 mt-1">
+            {subTasks.map(subTask => renderTask(subTask, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (mainTasks.length === 0) {
     return (
       <div className="text-center py-8">
         <div className="text-gray-400 mb-2">
@@ -92,71 +218,9 @@ const TaskList: React.FC<TaskListProps> = ({
         </Select>
       </div>
 
-      {/* Liste des tâches */}
+      {/* Liste des tâches principales */}
       <div className="space-y-1">
-        {tasks.map((task, index) => {
-          const categoryConfig = CATEGORY_CONFIG[task.category];
-          
-          return (
-            <div
-              key={task.id}
-              draggable
-              onDragStart={() => handleDragStart(index)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, index)}
-              className={`
-                group flex items-center p-2 bg-white border border-gray-200 rounded-md 
-                hover:shadow-sm transition-all cursor-move
-                ${categoryConfig.pattern}
-                ${draggedIndex === index ? 'opacity-50' : ''}
-              `}
-            >
-              {/* Poignée de glissement */}
-              <div className="mr-2 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                <GripVertical className="w-3 h-3" />
-              </div>
-
-              {/* Icône de catégorie pour l'accessibilité */}
-              <div className="mr-2 text-sm">
-                {categoryConfig.icon}
-              </div>
-
-              {/* Contenu principal */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2">
-                  <h3 className="text-sm font-medium text-gray-900 truncate">
-                    {task.name}
-                  </h3>
-                  <span className={`
-                    inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
-                    ${categoryConfig.color} ${categoryConfig.shape}
-                  `}>
-                    {task.category}
-                  </span>
-                </div>
-                
-                <div className="flex items-center space-x-2 mt-0.5 text-xs text-gray-500">
-                  <span className="flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {formatDuration(task.estimatedTime)}
-                  </span>
-                  <span>•</span>
-                  <span>{formatCreatedAt(task.createdAt)}</span>
-                </div>
-              </div>
-
-              {/* Bouton de suppression */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemoveTask(task.id)}
-                className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-          );
-        })}
+        {mainTasks.map(task => renderTask(task))}
       </div>
 
       {/* Statistiques compactes */}
@@ -164,7 +228,7 @@ const TaskList: React.FC<TaskListProps> = ({
         <div className="mt-4 p-2 bg-gray-50 rounded text-xs">
           <div className="flex justify-between items-center">
             <span className="text-gray-600">
-              Temps total : {Math.round(tasks.reduce((sum, task) => sum + task.estimatedTime, 0))} min
+              Temps total projet : {formatDuration(mainTasks.reduce((sum, task) => sum + calculateTotalTime(task), 0))}
             </span>
             <div className="flex space-x-2">
               {Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
@@ -182,6 +246,17 @@ const TaskList: React.FC<TaskListProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modale pour créer des sous-tâches */}
+      <TaskModal
+        isOpen={isSubTaskModalOpen}
+        onClose={() => {
+          setIsSubTaskModalOpen(false);
+          setSelectedParentTask(null);
+        }}
+        onAddTask={onAddTask}
+        parentTask={selectedParentTask || undefined}
+      />
     </div>
   );
 };

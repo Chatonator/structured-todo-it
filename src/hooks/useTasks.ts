@@ -13,10 +13,12 @@ export const useTasks = () => {
       const savedTasks = localStorage.getItem(STORAGE_KEY);
       if (savedTasks) {
         const parsedTasks = JSON.parse(savedTasks);
-        // Convertir les dates string en objets Date
+        // Convertir les dates string en objets Date et ajouter les nouveaux champs
         const tasksWithDates = parsedTasks.map((task: any) => ({
           ...task,
-          createdAt: new Date(task.createdAt)
+          createdAt: new Date(task.createdAt),
+          level: task.level ?? 0,
+          isExpanded: task.isExpanded ?? true
         }));
         setTasks(tasksWithDates);
         console.log('Tâches chargées depuis localStorage:', tasksWithDates.length);
@@ -49,10 +51,55 @@ export const useTasks = () => {
     return newTask;
   };
 
-  // Supprimer une tâche
+  // Supprimer une tâche et toutes ses sous-tâches
   const removeTask = (taskId: string) => {
-    setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+    setTasks(prevTasks => {
+      const taskToRemove = prevTasks.find(t => t.id === taskId);
+      if (!taskToRemove) return prevTasks;
+
+      // Supprimer la tâche et toutes ses sous-tâches récursivement
+      const removeTaskAndChildren = (id: string): string[] => {
+        const children = prevTasks.filter(t => t.parentId === id);
+        const childrenIds = children.flatMap(child => removeTaskAndChildren(child.id));
+        return [id, ...childrenIds];
+      };
+
+      const idsToRemove = removeTaskAndChildren(taskId);
+      return prevTasks.filter(task => !idsToRemove.includes(task.id));
+    });
     console.log('Tâche supprimée:', taskId);
+  };
+
+  // Basculer l'état d'expansion d'une tâche
+  const toggleTaskExpansion = (taskId: string) => {
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId 
+          ? { ...task, isExpanded: !task.isExpanded }
+          : task
+      )
+    );
+  };
+
+  // Obtenir les sous-tâches d'une tâche donnée
+  const getSubTasks = (parentId: string) => {
+    return tasks.filter(task => task.parentId === parentId);
+  };
+
+  // Calculer le temps total d'une tâche (incluant ses sous-tâches)
+  const calculateTotalTime = (task: Task): number => {
+    const subTasks = getSubTasks(task.id);
+    if (subTasks.length === 0) {
+      return task.estimatedTime;
+    }
+    return subTasks.reduce((total, subTask) => total + calculateTotalTime(subTask), 0);
+  };
+
+  // Vérifier si une tâche peut avoir des sous-tâches (max 3 par niveau)
+  const canHaveSubTasks = (task: Task) => {
+    if (task.level >= 2) return false; // Pas de sous-sous-sous-tâches
+    const subTasks = getSubTasks(task.id);
+    return subTasks.length < 3;
   };
 
   // Réorganiser les tâches (glisser-déposer)
@@ -74,7 +121,7 @@ export const useTasks = () => {
           case 'name':
             return a.name.localeCompare(b.name);
           case 'duration':
-            return a.estimatedTime - b.estimatedTime;
+            return calculateTotalTime(a) - calculateTotalTime(b);
           case 'category':
             return a.category.localeCompare(b.category);
           default:
@@ -86,12 +133,24 @@ export const useTasks = () => {
     });
   };
 
+  // Obtenir les tâches principales (niveau 0)
+  const mainTasks = tasks.filter(task => task.level === 0);
+  
+  // Calculer le temps total du projet
+  const totalProjectTime = mainTasks.reduce((total, task) => total + calculateTotalTime(task), 0);
+
   return {
     tasks,
+    mainTasks,
     addTask,
     removeTask,
     reorderTasks,
     sortTasks,
-    tasksCount: tasks.length
+    toggleTaskExpansion,
+    getSubTasks,
+    calculateTotalTime,
+    canHaveSubTasks,
+    tasksCount: tasks.length,
+    totalProjectTime
   };
 };

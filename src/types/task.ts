@@ -5,6 +5,9 @@ export interface Task {
   category: 'Obligation' | 'Envie' | 'Quotidien' | 'Autres';
   estimatedTime: number; // en minutes
   createdAt: Date;
+  parentId?: string; // ID de la tâche parente si c'est une sous-tâche
+  level: 0 | 1 | 2; // 0: tâche, 1: sous-tâche, 2: sous-sous-tâche
+  isExpanded?: boolean; // pour replier/déplier les sous-tâches
 }
 
 export type TaskCategory = Task['category'];
@@ -49,4 +52,11 @@ export const CATEGORY_CONFIG = {
     pattern: 'border-l-4 border-l-gray-500',
     shape: 'rounded-lg'
   }
+} as const;
+
+// Configuration des niveaux de tâches
+export const TASK_LEVELS = {
+  0: { symbol: '•', bgColor: 'bg-white', indent: 'ml-0' },
+  1: { symbol: '◦', bgColor: 'bg-gray-50', indent: 'ml-6' },
+  2: { symbol: '▫', bgColor: 'bg-gray-100', indent: 'ml-12' }
 } as const;
