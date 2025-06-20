@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Check } from 'lucide-react';
-import { Task, TaskCategory, TIME_OPTIONS, CATEGORY_CONFIG } from '@/types/task';
+import { Plus, Check, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Task, TaskCategory, SubTaskCategory, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -18,16 +19,17 @@ interface TaskModalProps {
 interface TaskDraft {
   name: string;
   category: TaskCategory | '';
+  subCategory: SubTaskCategory | '';
   estimatedTime: number | '';
 }
 
 const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, parentTask }) => {
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([
-    { name: '', category: '', estimatedTime: '' }
+    { name: '', category: '', subCategory: '', estimatedTime: '' }
   ]);
 
   const resetModal = () => {
-    setTaskDrafts([{ name: '', category: '', estimatedTime: '' }]);
+    setTaskDrafts([{ name: '', category: '', subCategory: '', estimatedTime: '' }]);
   };
 
   const handleClose = () => {
@@ -36,7 +38,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
   };
 
   const addNewTaskDraft = () => {
-    setTaskDrafts([...taskDrafts, { name: '', category: '', estimatedTime: '' }]);
+    setTaskDrafts([...taskDrafts, { name: '', category: '', subCategory: '', estimatedTime: '' }]);
   };
 
   const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number) => {
@@ -53,7 +55,10 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
 
   const handleFinish = () => {
     const validTasks = taskDrafts.filter(draft => 
-      draft.name.trim() && draft.category && draft.estimatedTime
+      draft.name.trim() && 
+      draft.category && 
+      draft.estimatedTime &&
+      (parentTask ? draft.subCategory : true) // Sous-tâches doivent avoir une sous-catégorie
     );
 
     validTasks.forEach(draft => {
@@ -62,6 +67,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
       onAddTask({
         name: draft.name.trim(),
         category: draft.category as TaskCategory,
+        subCategory: parentTask ? draft.subCategory as SubTaskCategory : undefined,
         estimatedTime: Number(draft.estimatedTime),
         parentId: parentTask?.id,
         level,
@@ -73,9 +79,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
   };
 
   const isTaskValid = (task: TaskDraft) => 
-    task.name.trim() && task.category && task.estimatedTime;
+    task.name.trim() && 
+    task.category && 
+    task.estimatedTime &&
+    (parentTask ? task.subCategory : true);
 
   const hasValidTasks = taskDrafts.some(isTaskValid);
+  const allTasksValid = taskDrafts.every(isTaskValid);
+  const showLimitWarning = parentTask && taskDrafts.length > 3;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -90,8 +101,18 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Avertissement dépassement limite */}
+          {showLimitWarning && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Vous avez dépassé la limite recommandée de 3 sous-tâches. Cela peut nuire à la lisibilité.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {taskDrafts.map((draft, index) => (
-            <div key={index} className="p-3 border rounded-lg bg-gray-50 space-y-3">
+            <div key={index} className={`p-3 border rounded-lg space-y-3 ${!isTaskValid(draft) ? 'border-red-300 bg-red-50' : 'bg-gray-50 border-gray-200'}`}>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">
                   Tâche {index + 1}
@@ -116,33 +137,55 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                   value={draft.name}
                   onChange={(e) => updateTaskDraft(index, 'name', e.target.value)}
                   placeholder="Nom de la tâche..."
-                  className="text-sm"
+                  className={`text-sm ${!draft.name.trim() && !isTaskValid(draft) ? 'border-red-300' : ''}`}
                 />
               </div>
 
-              {/* Catégorie */}
+              {/* Catégories principales ou sous-catégories */}
               <div>
                 <Label className="text-xs text-gray-700 mb-1 block">
-                  Catégorie
+                  {parentTask ? 'Sous-catégorie' : 'Catégorie'}
                 </Label>
                 <div className="grid grid-cols-2 gap-1">
-                  {Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => updateTaskDraft(index, 'category', cat)}
-                      className={`
-                        flex items-center space-x-1 p-1.5 text-xs border rounded transition-all
-                        ${draft.category === cat 
-                          ? `${config.color} border-current` 
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
-                        }
-                      `}
-                    >
-                      <span className="text-sm">{config.icon}</span>
-                      <span className="font-medium truncate">{cat}</span>
-                    </button>
-                  ))}
+                  {parentTask ? (
+                    // Sous-catégories pour les sous-tâches
+                    Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => (
+                      <button
+                        key={subCat}
+                        type="button"
+                        onClick={() => updateTaskDraft(index, 'subCategory', subCat)}
+                        className={`
+                          flex items-center space-x-1 p-1.5 text-xs border rounded transition-all
+                          ${draft.subCategory === subCat 
+                            ? `${config.color} border-current` 
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        <span className="text-sm">{config.icon}</span>
+                        <span className="font-medium truncate">{subCat}</span>
+                      </button>
+                    ))
+                  ) : (
+                    // Catégories principales pour les tâches principales
+                    Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => updateTaskDraft(index, 'category', cat)}
+                        className={`
+                          flex items-center space-x-1 p-1.5 text-xs border rounded transition-all
+                          ${draft.category === cat 
+                            ? `${config.color} border-current` 
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        <span className="text-sm">{config.icon}</span>
+                        <span className="font-medium truncate">{cat}</span>
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -152,7 +195,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                   value={draft.estimatedTime.toString()} 
                   onValueChange={(value) => updateTaskDraft(index, 'estimatedTime', Number(value))}
                 >
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className={`h-8 text-sm ${!draft.estimatedTime && !isTaskValid(draft) ? 'border-red-300' : ''}`}>
                     <SelectValue placeholder="Temps estimé..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -181,7 +224,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
               variant="outline"
               onClick={addNewTaskDraft}
               className="text-xs"
-              disabled={taskDrafts.length >= 3 && !!parentTask} // Limite à 3 sous-tâches
             >
               <Plus className="w-3 h-3 mr-1" />
               Ajouter une tâche
@@ -199,11 +241,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
               <Button
                 type="button"
                 onClick={handleFinish}
-                disabled={!hasValidTasks}
+                disabled={!allTasksValid}
                 className="text-xs bg-green-600 hover:bg-green-700"
               >
                 <Check className="w-3 h-3 mr-1" />
-                Terminer
+                Terminer ({taskDrafts.filter(isTaskValid).length})
               </Button>
             </div>
           </div>

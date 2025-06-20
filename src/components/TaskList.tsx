@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
-import { Task, CATEGORY_CONFIG, TASK_LEVELS } from '@/types/task';
-import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Plus, Divide } from 'lucide-react';
+import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, TASK_LEVELS } from '@/types/task';
+import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Divide } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskModal from './TaskModal';
@@ -59,12 +60,14 @@ const TaskList: React.FC<TaskListProps> = ({
     }
   };
 
-  const handleDragStart = (index: number) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
@@ -82,6 +85,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
   const renderTask = (task: Task, depth: number = 0): React.ReactNode => {
     const categoryConfig = CATEGORY_CONFIG[task.category];
+    const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
     const levelConfig = TASK_LEVELS[task.level];
     const subTasks = getSubTasks(task.id);
     const hasSubTasks = subTasks.length > 0;
@@ -90,10 +94,16 @@ const TaskList: React.FC<TaskListProps> = ({
     return (
       <div key={task.id} className={levelConfig.indent}>
         <div
+          draggable={task.level === 0} // Seules les tâches principales sont déplaçables
+          onDragStart={(e) => task.level === 0 && handleDragStart(e, mainTasks.findIndex(t => t.id === task.id))}
+          onDragOver={task.level === 0 ? handleDragOver : undefined}
+          onDrop={(e) => task.level === 0 && handleDrop(e, mainTasks.findIndex(t => t.id === task.id))}
           className={`
             group flex items-center p-2 border border-gray-200 rounded-md 
-            hover:shadow-sm transition-all cursor-move mb-1
+            hover:shadow-sm transition-all mb-1
             ${categoryConfig.pattern} ${levelConfig.bgColor}
+            ${task.level === 0 ? 'cursor-move' : ''}
+            ${draggedIndex === mainTasks.findIndex(t => t.id === task.id) ? 'opacity-50' : ''}
           `}
         >
           {/* Bouton d'expansion pour les tâches avec sous-tâches */}
@@ -111,10 +121,12 @@ const TaskList: React.FC<TaskListProps> = ({
             </Button>
           )}
 
-          {/* Poignée de glissement */}
-          <div className="mr-2 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-            <GripVertical className="w-3 h-3" />
-          </div>
+          {/* Poignée de glissement pour les tâches principales */}
+          {task.level === 0 && (
+            <div className="mr-2 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+              <GripVertical className="w-3 h-3" />
+            </div>
+          )}
 
           {/* Symbole de niveau */}
           <div className="mr-2 text-gray-600 font-bold">
@@ -138,6 +150,15 @@ const TaskList: React.FC<TaskListProps> = ({
               `}>
                 {task.category}
               </span>
+              {/* Affichage de la sous-catégorie pour les sous-tâches */}
+              {subCategoryConfig && (
+                <span className={`
+                  inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                  ${subCategoryConfig.color} ${subCategoryConfig.shape}
+                `}>
+                  {subCategoryConfig.icon} {task.subCategory}
+                </span>
+              )}
             </div>
             
             <div className="flex items-center space-x-2 mt-0.5 text-xs text-gray-500">
@@ -218,9 +239,19 @@ const TaskList: React.FC<TaskListProps> = ({
       </div>
 
       {/* Liste des tâches principales */}
-      <div className="space-y-1">
-        {mainTasks.map(task => renderTask(task))}
-      </div>
+      {mainTasks.length === 0 ? (
+        <div className="text-center py-8">
+          <div className="text-gray-400 mb-2">
+            <Clock className="w-8 h-8 mx-auto mb-2" />
+          </div>
+          <h3 className="text-sm font-medium text-gray-500 mb-1">Aucune tâche</h3>
+          <p className="text-xs text-gray-400">Créez votre première tâche !</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {mainTasks.map(task => renderTask(task))}
+        </div>
+      )}
 
       {/* Statistiques compactes */}
       {tasks.length > 0 && (

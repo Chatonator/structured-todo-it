@@ -3,6 +3,7 @@ export interface Task {
   id: string;
   name: string;
   category: 'Obligation' | 'Envie' | 'Quotidien' | 'Autres';
+  subCategory?: 'Essentielle' | 'Complémentaire' | 'Dépendance' | 'Automatique'; // Pour sous-tâches uniquement
   estimatedTime: number; // en minutes
   createdAt: Date;
   parentId?: string; // ID de la tâche parente si c'est une sous-tâche
@@ -11,6 +12,7 @@ export interface Task {
 }
 
 export type TaskCategory = Task['category'];
+export type SubTaskCategory = Task['subCategory'];
 
 // Configuration des durées disponibles
 export const TIME_OPTIONS = [
@@ -22,7 +24,7 @@ export const TIME_OPTIONS = [
   }))
 ];
 
-// Configuration des catégories avec couleurs, icônes et motifs pour l'accessibilité
+// Configuration des catégories principales avec couleurs, icônes et motifs pour l'accessibilité
 export const CATEGORY_CONFIG = {
   Obligation: {
     color: 'bg-red-100 text-red-800 border-red-200',
@@ -51,6 +53,38 @@ export const CATEGORY_CONFIG = {
     icon: '📝',
     pattern: 'border-l-4 border-l-gray-500',
     shape: 'rounded-lg'
+  }
+} as const;
+
+// Configuration des sous-catégories (pour sous-tâches et sous-sous-tâches)
+export const SUB_CATEGORY_CONFIG = {
+  Essentielle: {
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    colorDark: 'bg-purple-800 text-purple-100',
+    icon: '⭐',
+    pattern: 'border-l-4 border-l-purple-500',
+    shape: 'rounded-none'
+  },
+  Complémentaire: {
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    colorDark: 'bg-yellow-800 text-yellow-100',
+    icon: '➕',
+    pattern: 'border-l-4 border-l-yellow-500',
+    shape: 'rounded-md'
+  },
+  Dépendance: {
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    colorDark: 'bg-orange-800 text-orange-100',
+    icon: '🔗',
+    pattern: 'border-l-4 border-l-orange-500',
+    shape: 'rounded-lg'
+  },
+  Automatique: {
+    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    colorDark: 'bg-cyan-800 text-cyan-100',
+    icon: '⚙️',
+    pattern: 'border-l-4 border-l-cyan-500',
+    shape: 'rounded-full'
   }
 } as const;
 
