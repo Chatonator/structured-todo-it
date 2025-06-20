@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, TASK_LEVELS } from '@/types/task';
-import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Plus, Divide3 } from 'lucide-react';
+import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Plus, Divide } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskModal from './TaskModal';
@@ -161,7 +160,7 @@ const TaskList: React.FC<TaskListProps> = ({
               className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-all mr-1"
               title="Diviser en sous-tâches"
             >
-              <Divide3 className="w-3 h-3" />
+              <Divide className="w-3 h-3" />
             </Button>
           )}
 
