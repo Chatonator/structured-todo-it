@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -180,7 +181,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
               variant="outline"
               onClick={addNewTaskDraft}
               className="text-xs"
-              disabled={taskDrafts.length >= 3 && parentTask} // Limite à 3 sous-tâches
+              disabled={taskDrafts.length >= 3 && !!parentTask} // Limite à 3 sous-tâches
             >
               <Plus className="w-3 h-3 mr-1" />
               Ajouter une tâche
