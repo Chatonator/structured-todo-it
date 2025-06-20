@@ -18,7 +18,8 @@ export const useTasks = () => {
           ...task,
           createdAt: new Date(task.createdAt),
           level: task.level ?? 0,
-          isExpanded: task.isExpanded ?? true
+          isExpanded: task.isExpanded ?? true,
+          isCompleted: task.isCompleted ?? false
         }));
         setTasks(tasksWithDates);
         console.log('Tâches chargées depuis localStorage:', tasksWithDates.length);
@@ -43,7 +44,8 @@ export const useTasks = () => {
     const newTask: Task = {
       ...taskData,
       id: crypto.randomUUID(),
-      createdAt: new Date()
+      createdAt: new Date(),
+      isCompleted: false
     };
     
     setTasks(prevTasks => [newTask, ...prevTasks]);
@@ -68,6 +70,17 @@ export const useTasks = () => {
       return prevTasks.filter(task => !idsToRemove.includes(task.id));
     });
     console.log('Tâche supprimée:', taskId);
+  };
+
+  // Basculer l'état de completion d'une tâche
+  const toggleTaskCompletion = (taskId: string) => {
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId 
+          ? { ...task, isCompleted: !task.isCompleted }
+          : task
+      )
+    );
   };
 
   // Basculer l'état d'expansion d'une tâche
@@ -133,11 +146,29 @@ export const useTasks = () => {
     });
   };
 
+  // Filtrer les tâches par catégorie
+  const filterTasksByCategory = (category: string) => {
+    if (category === 'all') return tasks;
+    return tasks.filter(task => task.category === category);
+  };
+
+  // Rechercher des tâches
+  const searchTasks = (query: string) => {
+    if (!query.trim()) return tasks;
+    return tasks.filter(task => 
+      task.name.toLowerCase().includes(query.toLowerCase())
+    );
+  };
+
   // Obtenir les tâches principales (niveau 0)
   const mainTasks = tasks.filter(task => task.level === 0);
   
   // Calculer le temps total du projet
   const totalProjectTime = mainTasks.reduce((total, task) => total + calculateTotalTime(task), 0);
+
+  // Statistiques de completion
+  const completedTasks = tasks.filter(task => task.isCompleted).length;
+  const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
   return {
     tasks,
@@ -147,10 +178,15 @@ export const useTasks = () => {
     reorderTasks,
     sortTasks,
     toggleTaskExpansion,
+    toggleTaskCompletion,
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
+    filterTasksByCategory,
+    searchTasks,
     tasksCount: tasks.length,
-    totalProjectTime
+    totalProjectTime,
+    completedTasks,
+    completionRate
   };
 };

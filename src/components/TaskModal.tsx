@@ -54,12 +54,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
   };
 
   const handleFinish = () => {
-    const validTasks = taskDrafts.filter(draft => 
-      draft.name.trim() && 
-      draft.category && 
-      draft.estimatedTime &&
-      (parentTask ? draft.subCategory : true) // Sous-tâches doivent avoir une sous-catégorie
-    );
+    const validTasks = taskDrafts.filter(draft => isTaskValid(draft));
 
     validTasks.forEach(draft => {
       const level = parentTask ? (parentTask.level + 1) as 0 | 1 | 2 : 0;
@@ -71,20 +66,20 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
         estimatedTime: Number(draft.estimatedTime),
         parentId: parentTask?.id,
         level,
-        isExpanded: true
+        isExpanded: true,
+        isCompleted: false
       });
     });
 
     handleClose();
   };
 
-  const isTaskValid = (task: TaskDraft) => 
-    task.name.trim() && 
-    task.category && 
-    task.estimatedTime &&
-    (parentTask ? task.subCategory : true);
+  const isTaskValid = (task: TaskDraft) => {
+    const hasBasicFields = task.name.trim() && task.category && task.estimatedTime;
+    const hasSubCategory = parentTask ? task.subCategory : true;
+    return hasBasicFields && hasSubCategory;
+  };
 
-  const hasValidTasks = taskDrafts.some(isTaskValid);
   const allTasksValid = taskDrafts.every(isTaskValid);
   const showLimitWarning = parentTask && taskDrafts.length > 3;
 
@@ -137,14 +132,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                   value={draft.name}
                   onChange={(e) => updateTaskDraft(index, 'name', e.target.value)}
                   placeholder="Nom de la tâche..."
-                  className={`text-sm ${!draft.name.trim() && !isTaskValid(draft) ? 'border-red-300' : ''}`}
+                  className={`text-sm ${!draft.name.trim() ? 'border-red-300' : ''}`}
                 />
               </div>
 
               {/* Catégories principales ou sous-catégories */}
               <div>
                 <Label className="text-xs text-gray-700 mb-1 block">
-                  {parentTask ? 'Sous-catégorie' : 'Catégorie'}
+                  {parentTask ? 'Priorité' : 'Catégorie'}
                 </Label>
                 <div className="grid grid-cols-2 gap-1">
                   {parentTask ? (
@@ -195,7 +190,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                   value={draft.estimatedTime.toString()} 
                   onValueChange={(value) => updateTaskDraft(index, 'estimatedTime', Number(value))}
                 >
-                  <SelectTrigger className={`h-8 text-sm ${!draft.estimatedTime && !isTaskValid(draft) ? 'border-red-300' : ''}`}>
+                  <SelectTrigger className={`h-8 text-sm ${!draft.estimatedTime ? 'border-red-300' : ''}`}>
                     <SelectValue placeholder="Temps estimé..." />
                   </SelectTrigger>
                   <SelectContent>
