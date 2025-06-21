@@ -32,15 +32,15 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
         return task; // Feuille de l'arbre
       }
 
-      // Chercher les sous-tâches prioritaires
-      const essentialSubTasks = subTasks.filter(st => st.subCategory === 'Essentielle');
+      // Chercher les sous-tâches prioritaires (Le plus important)
+      const essentialSubTasks = subTasks.filter(st => st.subCategory === 'Le plus important');
       
       if (essentialSubTasks.length > 0) {
-        // Descendre dans les sous-tâches essentielles
+        // Descendre dans les sous-tâches les plus importantes
         const randomEssential = essentialSubTasks[Math.floor(Math.random() * essentialSubTasks.length)];
         return exploreHierarchy(randomEssential);
       } else {
-        // Pas de sous-tâche essentielle, prendre une sous-tâche au hasard
+        // Pas de sous-tâche "Le plus important", prendre une sous-tâche au hasard
         const randomSubTask = subTasks[Math.floor(Math.random() * subTasks.length)];
         return exploreHierarchy(randomSubTask);
       }
@@ -54,7 +54,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
 
     // Séparer par critères
     const obligations = allEligibleTasks.filter(task => 
-      task.category === 'Obligation' || task.subCategory === 'Essentielle'
+      task.category === 'Obligation' || task.subCategory === 'Le plus important'
     );
     const mediumTasks = allEligibleTasks.filter(task => 
       calculateTotalTime(task) >= 15 && calculateTotalTime(task) <= 60 &&
