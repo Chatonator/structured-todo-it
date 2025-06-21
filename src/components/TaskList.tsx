@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, TASK_LEVELS } from '@/types/task';
-import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Divide, CheckSquare, Square } from 'lucide-react';
+import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Divide, CheckSquare, Square, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import TaskModal from './TaskModal';
 
 interface TaskListProps {
@@ -18,6 +19,8 @@ interface TaskListProps {
   getSubTasks: (parentId: string) => Task[];
   calculateTotalTime: (task: Task) => number;
   canHaveSubTasks: (task: Task) => boolean;
+  selectedTasks: string[];
+  onToggleSelection: (taskId: string) => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({ 
@@ -31,7 +34,9 @@ const TaskList: React.FC<TaskListProps> = ({
   onAddTask,
   getSubTasks,
   calculateTotalTime,
-  canHaveSubTasks
+  canHaveSubTasks,
+  selectedTasks,
+  onToggleSelection
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
@@ -76,32 +81,37 @@ const TaskList: React.FC<TaskListProps> = ({
     const subTasks = getSubTasks(task.id);
     const hasSubTasks = subTasks.length > 0;
     const totalTime = calculateTotalTime(task);
+    const isSelected = selectedTasks.includes(task.id);
+
+    // Réduction de l'indentation
+    const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-3' : 'ml-6';
 
     return (
-      <div key={task.id} className={levelConfig.indent}>
+      <div key={task.id} className={indentClass}>
         <div
           draggable={task.level === 0}
           onDragStart={(e) => task.level === 0 && handleDragStart(e, mainTasks.findIndex(t => t.id === task.id))}
           onDragOver={task.level === 0 ? handleDragOver : undefined}
           onDrop={(e) => task.level === 0 && handleDrop(e, mainTasks.findIndex(t => t.id === task.id))}
           className={`
-            group flex items-center p-2 border border-gray-200 rounded-md 
+            group flex items-center p-2 border rounded-md 
             hover:shadow-sm transition-all mb-1 text-xs
             ${categoryConfig.pattern} ${levelConfig.bgColor}
             ${task.level === 0 ? 'cursor-move' : ''}
             ${draggedIndex === mainTasks.findIndex(t => t.id === task.id) ? 'opacity-50' : ''}
             ${task.isCompleted ? 'opacity-60 bg-gray-100' : ''}
+            ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50' : 'border-gray-200'}
           `}
         >
-          {/* Bouton de completion */}
+          {/* Bouton de sélection */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onToggleCompletion(task.id)}
-            className="h-4 w-4 p-0 mr-1 text-gray-500 hover:text-green-600"
+            onClick={() => onToggleSelection(task.id)}
+            className="h-4 w-4 p-0 mr-1 text-gray-500 hover:text-blue-600"
           >
-            {task.isCompleted ? 
-              <CheckSquare className="w-3 h-3 text-green-600" /> : 
+            {isSelected ? 
+              <CheckSquare className="w-3 h-3 text-blue-600" /> : 
               <Square className="w-3 h-3" />
             }
           </Button>
@@ -174,6 +184,16 @@ const TaskList: React.FC<TaskListProps> = ({
                 <Divide className="w-2 h-2" />
               </Button>
             )}
+            {/* Nouveau bouton Terminer */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onToggleCompletion(task.id)}
+              className="h-4 w-4 p-0 text-green-500 hover:text-green-700"
+              title="Terminer"
+            >
+              <CheckSquare className="w-2 h-2" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -187,7 +207,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
         {/* Sous-tâches */}
         {hasSubTasks && task.isExpanded && (
-          <div className="ml-3 mt-1">
+          <div className="mt-1">
             {subTasks.map(subTask => renderTask(subTask, depth + 1))}
           </div>
         )}
@@ -197,39 +217,47 @@ const TaskList: React.FC<TaskListProps> = ({
 
   if (mainTasks.length === 0) {
     return (
-      <div className="text-center py-4">
-        <div className="text-gray-400 mb-2">
-          <Clock className="w-6 h-6 mx-auto mb-2" />
+      <div className="flex flex-col h-full">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center py-4">
+            <div className="text-gray-400 mb-2">
+              <Clock className="w-6 h-6 mx-auto mb-2" />
+            </div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Aucune tâche</h3>
+            <p className="text-xs text-gray-400">Créez votre première tâche !</p>
+          </div>
         </div>
-        <h3 className="text-sm font-medium text-gray-500 mb-1">Aucune tâche</h3>
-        <p className="text-xs text-gray-400">Créez votre première tâche !</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {/* En-tête compact avec tri */}
-      <div className="flex items-center justify-between pb-2 border-b">
+    <div className="flex flex-col h-full space-y-2">
+      {/* En-tête avec tri et actions */}
+      <div className="flex items-center justify-between pb-2 border-b bg-white px-1">
         <h2 className="text-sm font-semibold text-gray-800">
           Tâches ({tasks.length})
         </h2>
-        <Select onValueChange={(value) => onSortTasks(value as 'name' | 'duration' | 'category')}>
-          <SelectTrigger className="w-16 h-6 text-xs">
-            <ArrowUpDown className="w-2 h-2" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name">Nom</SelectItem>
-            <SelectItem value="duration">Durée</SelectItem>
-            <SelectItem value="category">Catégorie</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center space-x-1">
+          <Select onValueChange={(value) => onSortTasks(value as 'name' | 'duration' | 'category')}>
+            <SelectTrigger className="w-16 h-6 text-xs">
+              <ArrowUpDown className="w-2 h-2" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Nom</SelectItem>
+              <SelectItem value="duration">Durée</SelectItem>
+              <SelectItem value="category">Catégorie</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Liste des tâches */}
-      <div className="space-y-1">
-        {mainTasks.map(task => renderTask(task))}
-      </div>
+      {/* Liste des tâches avec scroll */}
+      <ScrollArea className="flex-1">
+        <div className="space-y-1 p-1">
+          {mainTasks.map(task => renderTask(task))}
+        </div>
+      </ScrollArea>
 
       {/* Modale pour sous-tâches */}
       <TaskModal
