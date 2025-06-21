@@ -13,7 +13,6 @@ export const useTasks = () => {
       const savedTasks = localStorage.getItem(STORAGE_KEY);
       if (savedTasks) {
         const parsedTasks = JSON.parse(savedTasks);
-        // Convertir les dates string en objets Date et ajouter les nouveaux champs
         const tasksWithDates = parsedTasks.map((task: any) => ({
           ...task,
           createdAt: new Date(task.createdAt),
@@ -59,7 +58,6 @@ export const useTasks = () => {
       const taskToRemove = prevTasks.find(t => t.id === taskId);
       if (!taskToRemove) return prevTasks;
 
-      // Supprimer la tâche et toutes ses sous-tâches récursivement
       const removeTaskAndChildren = (id: string): string[] => {
         const children = prevTasks.filter(t => t.parentId === id);
         const childrenIds = children.flatMap(child => removeTaskAndChildren(child.id));
@@ -81,6 +79,7 @@ export const useTasks = () => {
           : task
       )
     );
+    console.log('Tâche completion togglee:', taskId);
   };
 
   // Basculer l'état d'expansion d'une tâche
@@ -110,7 +109,7 @@ export const useTasks = () => {
 
   // Vérifier si une tâche peut avoir des sous-tâches (max 3 par niveau)
   const canHaveSubTasks = (task: Task) => {
-    if (task.level >= 2) return false; // Pas de sous-sous-sous-tâches
+    if (task.level >= 2) return false;
     const subTasks = getSubTasks(task.id);
     return subTasks.length < 3;
   };
@@ -118,18 +117,25 @@ export const useTasks = () => {
   // Réorganiser les tâches (glisser-déposer)
   const reorderTasks = (startIndex: number, endIndex: number) => {
     setTasks(prevTasks => {
-      const result = Array.from(prevTasks);
+      const mainTasksOnly = prevTasks.filter(t => t.level === 0);
+      const otherTasks = prevTasks.filter(t => t.level > 0);
+      
+      const result = Array.from(mainTasksOnly);
       const [removed] = result.splice(startIndex, 1);
       result.splice(endIndex, 0, removed);
+      
       console.log('Tâches réorganisées');
-      return result;
+      return [...result, ...otherTasks];
     });
   };
 
   // Trier les tâches
   const sortTasks = (sortBy: 'name' | 'duration' | 'category') => {
     setTasks(prevTasks => {
-      const sorted = [...prevTasks].sort((a, b) => {
+      const mainTasksOnly = prevTasks.filter(t => t.level === 0);
+      const otherTasks = prevTasks.filter(t => t.level > 0);
+      
+      const sorted = [...mainTasksOnly].sort((a, b) => {
         switch (sortBy) {
           case 'name':
             return a.name.localeCompare(b.name);
@@ -142,22 +148,8 @@ export const useTasks = () => {
         }
       });
       console.log('Tâches triées par:', sortBy);
-      return sorted;
+      return [...sorted, ...otherTasks];
     });
-  };
-
-  // Filtrer les tâches par catégorie
-  const filterTasksByCategory = (category: string) => {
-    if (category === 'all') return tasks;
-    return tasks.filter(task => task.category === category);
-  };
-
-  // Rechercher des tâches
-  const searchTasks = (query: string) => {
-    if (!query.trim()) return tasks;
-    return tasks.filter(task => 
-      task.name.toLowerCase().includes(query.toLowerCase())
-    );
   };
 
   // Obtenir les tâches principales (niveau 0)
@@ -182,8 +174,6 @@ export const useTasks = () => {
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
-    filterTasksByCategory,
-    searchTasks,
     tasksCount: tasks.length,
     totalProjectTime,
     completedTasks,

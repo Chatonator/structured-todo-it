@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -57,11 +56,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
     const validTasks = taskDrafts.filter(draft => isTaskValid(draft));
 
     validTasks.forEach(draft => {
-      const level = parentTask ? (parentTask.level + 1) as 0 | 1 | 2 : 0;
+      const level = parentTask ? Math.min((parentTask.level + 1), 2) as 0 | 1 | 2 : 0;
       
       onAddTask({
         name: draft.name.trim(),
-        category: draft.category as TaskCategory,
+        category: parentTask ? parentTask.category : draft.category as TaskCategory,
         subCategory: parentTask ? draft.subCategory as SubTaskCategory : undefined,
         estimatedTime: Number(draft.estimatedTime),
         parentId: parentTask?.id,
@@ -74,23 +73,20 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
     handleClose();
   };
 
-  // Validation corrigée pour les sous-tâches et sous-sous-tâches
   const isTaskValid = (task: TaskDraft): boolean => {
     const hasName = task.name.trim().length > 0;
     const hasEstimatedTime = task.estimatedTime !== '' && Number(task.estimatedTime) > 0;
     
     if (parentTask) {
-      // Pour les sous-tâches : nom + sous-catégorie + temps
       const hasSubCategory = task.subCategory !== '';
       return hasName && hasSubCategory && hasEstimatedTime;
     } else {
-      // Pour les tâches principales : nom + catégorie + temps
       const hasCategory = task.category !== '';
       return hasName && hasCategory && hasEstimatedTime;
     }
   };
 
-  const allTasksValid = taskDrafts.every(draft => isTaskValid(draft));
+  const allTasksValid = taskDrafts.length > 0 && taskDrafts.every(draft => isTaskValid(draft));
   const validTasksCount = taskDrafts.filter(draft => isTaskValid(draft)).length;
   const showLimitWarning = parentTask && taskDrafts.length > 3;
 
@@ -138,7 +134,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                   )}
                 </div>
 
-                {/* Nom de la tâche */}
                 <div>
                   <Input
                     type="text"
@@ -149,14 +144,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                   />
                 </div>
 
-                {/* Catégories principales ou sous-catégories */}
                 <div>
                   <Label className="text-xs text-gray-700 mb-1 block">
                     {parentTask ? 'Priorité' : 'Catégorie'}
                   </Label>
                   <div className="grid grid-cols-2 gap-1">
                     {parentTask ? (
-                      // Sous-catégories pour les sous-tâches
                       Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => (
                         <button
                           key={subCat}
@@ -175,7 +168,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                         </button>
                       ))
                     ) : (
-                      // Catégories principales pour les tâches principales
                       Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
                         <button
                           key={cat}
@@ -197,7 +189,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                   </div>
                 </div>
 
-                {/* Temps estimé */}
                 <div>
                   <Select 
                     value={draft.estimatedTime.toString()} 
@@ -226,7 +217,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
             );
           })}
 
-          {/* Boutons d'action */}
           <div className="flex justify-between pt-2">
             <Button
               type="button"

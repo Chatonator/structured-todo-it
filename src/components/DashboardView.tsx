@@ -17,37 +17,39 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
   const totalTime = mainTasks.reduce((sum, task) => sum + calculateTotalTime(task), 0);
   const averageTime = totalTasks > 0 ? Math.round(totalTime / totalTasks) : 0;
 
-  // Répartition par catégories principales
-  const categoryStats = Object.keys(CATEGORY_CONFIG).map(category => {
+  // Répartition par catégories principales - corrigée
+  const categoryStats = Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
     const categoryTasks = tasks.filter(task => task.category === category);
     const categoryTime = categoryTasks.reduce((sum, task) => sum + task.estimatedTime, 0);
     return {
       name: category,
       count: categoryTasks.length,
       time: categoryTime,
-      color: CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG].color,
-      icon: CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG].icon
+      color: config.color,
+      icon: config.icon
     };
   }).filter(stat => stat.count > 0);
 
   // Répartition par sous-catégories (pour les sous-tâches)
-  const subCategoryStats = Object.keys(SUB_CATEGORY_CONFIG).map(subCategory => {
+  const subCategoryStats = Object.entries(SUB_CATEGORY_CONFIG).map(([subCategory, config]) => {
     const subCategoryTasks = tasks.filter(task => task.subCategory === subCategory);
     const subCategoryTime = subCategoryTasks.reduce((sum, task) => sum + task.estimatedTime, 0);
     return {
       name: subCategory,
       count: subCategoryTasks.length,
       time: subCategoryTime,
-      color: SUB_CATEGORY_CONFIG[subCategory as keyof typeof SUB_CATEGORY_CONFIG].color,
-      icon: SUB_CATEGORY_CONFIG[subCategory as keyof typeof SUB_CATEGORY_CONFIG].icon
+      color: config.color,
+      icon: config.icon
     };
   }).filter(stat => stat.count > 0);
 
-  // Données pour les graphiques
+  // Données pour les graphiques - avec couleurs fixes
+  const CHART_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+  
   const pieData = categoryStats.map((stat, index) => ({
     name: stat.name,
     value: stat.count,
-    fill: `hsl(${index * 60}, 70%, 60%)`
+    fill: CHART_COLORS[index % CHART_COLORS.length]
   }));
 
   const barData = categoryStats.map(stat => ({
@@ -152,7 +154,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
-                  <RechartsPieChart
+                  {/* Changement ici pour corriger le problème */}
+                  <RechartsPieChart.Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
@@ -162,7 +165,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                     {pieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
-                  </RechartsPieChart>
+                  </RechartsPieChart.Pie>
                   <Tooltip />
                 </RechartsPieChart>
               </ResponsiveContainer>

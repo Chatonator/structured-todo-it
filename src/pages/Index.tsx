@@ -7,11 +7,14 @@ import PriorityView from '@/components/PriorityView';
 import DashboardView from '@/components/DashboardView';
 import EisenhowerView from '@/components/EisenhowerView';
 import CalendarView from '@/components/CalendarView';
+import CompletedTasksView from '@/components/CompletedTasksView';
 import { useTasks } from '@/hooks/useTasks';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckSquare } from 'lucide-react';
+import { CATEGORY_CONFIG } from '@/types/task';
 
 const Index = () => {
   const { 
@@ -22,31 +25,52 @@ const Index = () => {
     reorderTasks, 
     sortTasks,
     toggleTaskExpansion,
+    toggleTaskCompletion,
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
     tasksCount,
-    totalProjectTime
+    totalProjectTime,
+    completedTasks,
+    completionRate
   } = useTasks();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState('priority');
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [showCompleted, setShowCompleted] = useState(false);
 
   // Navigation items
   const navigationItems = [
     { key: 'priority', title: 'Vue 1-3-5', icon: '🎲' },
     { key: 'dashboard', title: 'Dashboard', icon: '📊' },
     { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
-    { key: 'calendar', title: 'Calendrier', icon: '📅' }
+    { key: 'calendar', title: 'Calendrier', icon: '📅' },
+    { key: 'completed', title: 'Tâches terminées', icon: '✅' }
   ];
+
+  // Filtrer les tâches selon les critères
+  const filteredTasks = tasks.filter(task => {
+    const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
+    const matchesCompletion = currentView === 'completed' ? task.isCompleted : !showCompleted || !task.isCompleted;
+    return matchesSearch && matchesCategory && matchesCompletion;
+  });
+
+  const filteredMainTasks = mainTasks.filter(task => {
+    const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
+    const matchesCompletion = currentView === 'completed' ? task.isCompleted : !showCompleted || !task.isCompleted;
+    return matchesSearch && matchesCategory && matchesCompletion;
+  });
 
   const renderCurrentView = () => {
     switch (currentView) {
       case 'priority':
         return (
           <PriorityView 
-            tasks={tasks}
+            tasks={filteredTasks}
             getSubTasks={getSubTasks}
             calculateTotalTime={calculateTotalTime}
           />
@@ -54,15 +78,17 @@ const Index = () => {
       case 'dashboard':
         return (
           <DashboardView 
-            tasks={tasks}
-            mainTasks={mainTasks}
+            tasks={filteredTasks}
+            mainTasks={filteredMainTasks}
             calculateTotalTime={calculateTotalTime}
           />
         );
       case 'eisenhower':
-        return <EisenhowerView tasks={tasks} />;
+        return <EisenhowerView tasks={filteredTasks} />;
       case 'calendar':
-        return <CalendarView tasks={tasks} />;
+        return <CalendarView tasks={filteredTasks} />;
+      case 'completed':
+        return <CompletedTasksView tasks={tasks.filter(t => t.isCompleted)} />;
       default:
         return <div>Vue non trouvée</div>;
     }
@@ -117,44 +143,59 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Contenu principal avec layout 30/70 */}
+        {/* Contenu principal avec layout 20/80 */}
         <main className="flex-1 flex">
-          {/* Colonne gauche : Liste des tâches (30%) */}
-          <div className="w-[30%] bg-white border-r flex flex-col">
-            <div className="p-4 border-b">
-              <div className="relative mb-4">
+          {/* Colonne gauche : Liste des tâches (20%) */}
+          <div className="w-[20%] bg-white border-r flex flex-col">
+            <div className="p-3 border-b">
+              <div className="relative mb-3">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   type="text"
-                  placeholder="Rechercher une tâche..."
+                  placeholder="Rechercher..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 text-sm"
+                  className="pl-10 text-sm h-8"
                 />
               </div>
               
+              {/* Filtres améliorés */}
+              <div className="space-y-2">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-7 text-xs">
+                    <Filter className="w-3 h-3 mr-1" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes catégories</SelectItem>
+                    {Object.entries(CATEGORY_CONFIG).map(([category, config]) => (
+                      <SelectItem key={category} value={category}>
+                        {config.icon} {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               {/* Statistiques compactes */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-1 gap-1 mt-3 text-xs">
                 <div className="bg-blue-50 p-2 rounded text-center">
                   <div className="font-bold text-blue-600">{tasksCount}</div>
                   <div className="text-gray-600">tâches</div>
-                </div>
-                <div className="bg-green-50 p-2 rounded text-center">
-                  <div className="font-bold text-green-600">{Math.round(totalProjectTime)}min</div>
-                  <div className="text-gray-600">total</div>
                 </div>
               </div>
             </div>
 
             {/* Liste des tâches avec scroll */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-3">
               <TaskList 
-                tasks={tasks}
-                mainTasks={mainTasks}
+                tasks={filteredTasks}
+                mainTasks={filteredMainTasks}
                 onRemoveTask={removeTask}
                 onReorderTasks={reorderTasks}
                 onSortTasks={sortTasks}
                 onToggleExpansion={toggleTaskExpansion}
+                onToggleCompletion={toggleTaskCompletion}
                 onAddTask={addTask}
                 getSubTasks={getSubTasks}
                 calculateTotalTime={calculateTotalTime}
@@ -163,7 +204,7 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Section droite : Vue courante (70%) */}
+          {/* Section droite : Vue courante (80%) */}
           <div className="flex-1 p-6 overflow-y-auto">
             <div className="bg-white rounded-lg shadow-sm border p-6 h-full">
               {renderCurrentView()}

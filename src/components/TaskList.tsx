@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, TASK_LEVELS } from '@/types/task';
-import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Divide } from 'lucide-react';
+import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Divide, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskModal from './TaskModal';
@@ -12,6 +13,7 @@ interface TaskListProps {
   onReorderTasks: (startIndex: number, endIndex: number) => void;
   onSortTasks: (sortBy: 'name' | 'duration' | 'category') => void;
   onToggleExpansion: (taskId: string) => void;
+  onToggleCompletion: (taskId: string) => void;
   onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
   getSubTasks: (parentId: string) => Task[];
   calculateTotalTime: (task: Task) => number;
@@ -25,6 +27,7 @@ const TaskList: React.FC<TaskListProps> = ({
   onReorderTasks, 
   onSortTasks,
   onToggleExpansion,
+  onToggleCompletion,
   onAddTask,
   getSubTasks,
   calculateTotalTime,
@@ -34,7 +37,6 @@ const TaskList: React.FC<TaskListProps> = ({
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
 
-  // Formater la durée pour l'affichage
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) {
       return `${minutes} min`;
@@ -42,21 +44,6 @@ const TaskList: React.FC<TaskListProps> = ({
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
-  };
-
-  // Formater la date de création
-  const formatCreatedAt = (date: Date): string => {
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) {
-      return 'À l\'instant';
-    } else if (diffInHours < 24) {
-      return `Il y a ${diffInHours}h`;
-    } else {
-      const diffInDays = Math.floor(diffInHours / 24);
-      return `Il y a ${diffInDays} jour${diffInDays > 1 ? 's' : ''}`;
-    }
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -93,7 +80,7 @@ const TaskList: React.FC<TaskListProps> = ({
     return (
       <div key={task.id} className={levelConfig.indent}>
         <div
-          draggable={task.level === 0} // Seules les tâches principales sont déplaçables
+          draggable={task.level === 0}
           onDragStart={(e) => task.level === 0 && handleDragStart(e, mainTasks.findIndex(t => t.id === task.id))}
           onDragOver={task.level === 0 ? handleDragOver : undefined}
           onDrop={(e) => task.level === 0 && handleDrop(e, mainTasks.findIndex(t => t.id === task.id))}
@@ -106,13 +93,26 @@ const TaskList: React.FC<TaskListProps> = ({
             ${task.isCompleted ? 'opacity-60 bg-gray-100' : ''}
           `}
         >
+          {/* Bouton de completion */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onToggleCompletion(task.id)}
+            className="h-4 w-4 p-0 mr-1 text-gray-500 hover:text-green-600"
+          >
+            {task.isCompleted ? 
+              <CheckSquare className="w-3 h-3 text-green-600" /> : 
+              <Square className="w-3 h-3" />
+            }
+          </Button>
+
           {/* Bouton d'expansion */}
           {hasSubTasks && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onToggleExpansion(task.id)}
-              className="h-5 w-5 p-0 mr-1 text-gray-500"
+              className="h-4 w-4 p-0 mr-1 text-gray-500"
             >
               {task.isExpanded ? 
                 <ChevronDown className="w-2 h-2" /> : 
@@ -141,7 +141,7 @@ const TaskList: React.FC<TaskListProps> = ({
           {/* Contenu principal */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-1">
-              <h3 className="text-xs font-medium text-gray-900 truncate">
+              <h3 className={`text-xs font-medium truncate ${task.isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
                 {task.name}
               </h3>
               {subCategoryConfig && (
@@ -168,7 +168,7 @@ const TaskList: React.FC<TaskListProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => handleCreateSubTasks(task)}
-                className="h-5 w-5 p-0 text-blue-500 hover:text-blue-700"
+                className="h-4 w-4 p-0 text-blue-500 hover:text-blue-700"
                 title="Diviser"
               >
                 <Divide className="w-2 h-2" />
@@ -178,7 +178,7 @@ const TaskList: React.FC<TaskListProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => onRemoveTask(task.id)}
-              className="h-5 w-5 p-0 text-gray-400 hover:text-red-500"
+              className="h-4 w-4 p-0 text-gray-400 hover:text-red-500"
             >
               <X className="w-2 h-2" />
             </Button>
@@ -215,7 +215,7 @@ const TaskList: React.FC<TaskListProps> = ({
           Tâches ({tasks.length})
         </h2>
         <Select onValueChange={(value) => onSortTasks(value as 'name' | 'duration' | 'category')}>
-          <SelectTrigger className="w-20 h-6 text-xs">
+          <SelectTrigger className="w-16 h-6 text-xs">
             <ArrowUpDown className="w-2 h-2" />
           </SelectTrigger>
           <SelectContent>
