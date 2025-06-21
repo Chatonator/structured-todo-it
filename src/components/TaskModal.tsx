@@ -13,7 +13,7 @@ interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
-  parentTask?: Task; // Pour créer des sous-tâches
+  parentTask?: Task;
 }
 
 interface TaskDraft {
@@ -74,13 +74,24 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
     handleClose();
   };
 
-  const isTaskValid = (task: TaskDraft) => {
-    const hasBasicFields = task.name.trim() && task.category && task.estimatedTime;
-    const hasSubCategory = parentTask ? task.subCategory : true;
-    return hasBasicFields && hasSubCategory;
+  // Validation corrigée pour les sous-tâches et sous-sous-tâches
+  const isTaskValid = (task: TaskDraft): boolean => {
+    const hasName = task.name.trim().length > 0;
+    const hasEstimatedTime = task.estimatedTime !== '' && Number(task.estimatedTime) > 0;
+    
+    if (parentTask) {
+      // Pour les sous-tâches : nom + sous-catégorie + temps
+      const hasSubCategory = task.subCategory !== '';
+      return hasName && hasSubCategory && hasEstimatedTime;
+    } else {
+      // Pour les tâches principales : nom + catégorie + temps
+      const hasCategory = task.category !== '';
+      return hasName && hasCategory && hasEstimatedTime;
+    }
   };
 
-  const allTasksValid = taskDrafts.every(isTaskValid);
+  const allTasksValid = taskDrafts.every(draft => isTaskValid(draft));
+  const validTasksCount = taskDrafts.filter(draft => isTaskValid(draft)).length;
   const showLimitWarning = parentTask && taskDrafts.length > 3;
 
   return (
@@ -96,7 +107,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Avertissement dépassement limite */}
           {showLimitWarning && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
@@ -106,111 +116,115 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
             </Alert>
           )}
 
-          {taskDrafts.map((draft, index) => (
-            <div key={index} className={`p-3 border rounded-lg space-y-3 ${!isTaskValid(draft) ? 'border-red-300 bg-red-50' : 'bg-gray-50 border-gray-200'}`}>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Tâche {index + 1}
-                </span>
-                {taskDrafts.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeTaskDraft(index)}
-                    className="h-6 w-6 p-0 text-red-500"
-                  >
-                    ×
-                  </Button>
-                )}
-              </div>
-
-              {/* Nom de la tâche */}
-              <div>
-                <Input
-                  type="text"
-                  value={draft.name}
-                  onChange={(e) => updateTaskDraft(index, 'name', e.target.value)}
-                  placeholder="Nom de la tâche..."
-                  className={`text-sm ${!draft.name.trim() ? 'border-red-300' : ''}`}
-                />
-              </div>
-
-              {/* Catégories principales ou sous-catégories */}
-              <div>
-                <Label className="text-xs text-gray-700 mb-1 block">
-                  {parentTask ? 'Priorité' : 'Catégorie'}
-                </Label>
-                <div className="grid grid-cols-2 gap-1">
-                  {parentTask ? (
-                    // Sous-catégories pour les sous-tâches
-                    Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => (
-                      <button
-                        key={subCat}
-                        type="button"
-                        onClick={() => updateTaskDraft(index, 'subCategory', subCat)}
-                        className={`
-                          flex items-center space-x-1 p-1.5 text-xs border rounded transition-all
-                          ${draft.subCategory === subCat 
-                            ? `${config.color} border-current` 
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                          }
-                        `}
-                      >
-                        <span className="text-sm">{config.icon}</span>
-                        <span className="font-medium truncate">{subCat}</span>
-                      </button>
-                    ))
-                  ) : (
-                    // Catégories principales pour les tâches principales
-                    Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => updateTaskDraft(index, 'category', cat)}
-                        className={`
-                          flex items-center space-x-1 p-1.5 text-xs border rounded transition-all
-                          ${draft.category === cat 
-                            ? `${config.color} border-current` 
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                          }
-                        `}
-                      >
-                        <span className="text-sm">{config.icon}</span>
-                        <span className="font-medium truncate">{cat}</span>
-                      </button>
-                    ))
+          {taskDrafts.map((draft, index) => {
+            const isValid = isTaskValid(draft);
+            
+            return (
+              <div key={index} className={`p-3 border rounded-lg space-y-3 ${!isValid ? 'border-red-300 bg-red-50' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    Tâche {index + 1}
+                  </span>
+                  {taskDrafts.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeTaskDraft(index)}
+                      className="h-6 w-6 p-0 text-red-500"
+                    >
+                      ×
+                    </Button>
                   )}
                 </div>
-              </div>
 
-              {/* Temps estimé */}
-              <div>
-                <Select 
-                  value={draft.estimatedTime.toString()} 
-                  onValueChange={(value) => updateTaskDraft(index, 'estimatedTime', Number(value))}
-                >
-                  <SelectTrigger className={`h-8 text-sm ${!draft.estimatedTime ? 'border-red-300' : ''}`}>
-                    <SelectValue placeholder="Temps estimé..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value.toString()}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {isTaskValid(draft) && (
-                <div className="text-xs text-green-600 flex items-center">
-                  <Check className="w-3 h-3 mr-1" />
-                  Tâche prête
+                {/* Nom de la tâche */}
+                <div>
+                  <Input
+                    type="text"
+                    value={draft.name}
+                    onChange={(e) => updateTaskDraft(index, 'name', e.target.value)}
+                    placeholder="Nom de la tâche..."
+                    className={`text-sm ${!draft.name.trim() ? 'border-red-300' : ''}`}
+                  />
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Catégories principales ou sous-catégories */}
+                <div>
+                  <Label className="text-xs text-gray-700 mb-1 block">
+                    {parentTask ? 'Priorité' : 'Catégorie'}
+                  </Label>
+                  <div className="grid grid-cols-2 gap-1">
+                    {parentTask ? (
+                      // Sous-catégories pour les sous-tâches
+                      Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => (
+                        <button
+                          key={subCat}
+                          type="button"
+                          onClick={() => updateTaskDraft(index, 'subCategory', subCat)}
+                          className={`
+                            flex items-center space-x-1 p-1.5 text-xs border rounded transition-all
+                            ${draft.subCategory === subCat 
+                              ? `${config.color} border-current` 
+                              : 'bg-white border-gray-200 hover:bg-gray-50'
+                            }
+                          `}
+                        >
+                          <span className="text-sm">{config.icon}</span>
+                          <span className="font-medium truncate">{subCat}</span>
+                        </button>
+                      ))
+                    ) : (
+                      // Catégories principales pour les tâches principales
+                      Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => updateTaskDraft(index, 'category', cat)}
+                          className={`
+                            flex items-center space-x-1 p-1.5 text-xs border rounded transition-all
+                            ${draft.category === cat 
+                              ? `${config.color} border-current` 
+                              : 'bg-white border-gray-200 hover:bg-gray-50'
+                            }
+                          `}
+                        >
+                          <span className="text-sm">{config.icon}</span>
+                          <span className="font-medium truncate">{cat}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Temps estimé */}
+                <div>
+                  <Select 
+                    value={draft.estimatedTime.toString()} 
+                    onValueChange={(value) => updateTaskDraft(index, 'estimatedTime', Number(value))}
+                  >
+                    <SelectTrigger className={`h-8 text-sm ${!draft.estimatedTime ? 'border-red-300' : ''}`}>
+                      <SelectValue placeholder="Temps estimé..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value.toString()}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {isValid && (
+                  <div className="text-xs text-green-600 flex items-center">
+                    <Check className="w-3 h-3 mr-1" />
+                    Tâche prête
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {/* Boutons d'action */}
           <div className="flex justify-between pt-2">
@@ -236,11 +250,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
               <Button
                 type="button"
                 onClick={handleFinish}
-                disabled={!allTasksValid}
-                className="text-xs bg-green-600 hover:bg-green-700"
+                disabled={!allTasksValid || validTasksCount === 0}
+                className="text-xs bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check className="w-3 h-3 mr-1" />
-                Terminer ({taskDrafts.filter(isTaskValid).length})
+                Terminer ({validTasksCount})
               </Button>
             </div>
           </div>
