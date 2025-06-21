@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, PieChart, Timer, Hash } from 'lucide-react';
-import { PieChart as RechartsPieChart, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 interface DashboardViewProps {
   tasks: Task[];
@@ -154,8 +153,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
-                  {/* Changement ici pour corriger le problème */}
-                  <RechartsPieChart.Pie
+                  <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
@@ -165,7 +163,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                     {pieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
-                  </RechartsPieChart.Pie>
+                  </Pie>
                   <Tooltip />
                 </RechartsPieChart>
               </ResponsiveContainer>
