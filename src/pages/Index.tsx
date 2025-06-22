@@ -11,7 +11,7 @@ import CompletedTasksView from '@/components/CompletedTasksView';
 import UserOptionsMenu from '@/components/UserOptionsMenu';
 import { useTasks } from '@/hooks/useTasks';
 import { useTheme } from '@/hooks/useTheme';
-import { Plus, Search, Filter, CheckSquare, Trash2, X } from 'lucide-react';
+import { Plus, Search, Filter, CheckSquare, Trash2, X, Undo, Redo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -83,25 +83,37 @@ const Index = () => {
     setSelectedTasks([]);
   };
 
-  // Filtrer les tâches
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'completed' && task.isCompleted) ||
-      (statusFilter === 'pending' && !task.isCompleted);
-    const matchesView = currentView === 'completed' ? task.isCompleted : true;
-    return matchesSearch && matchesCategory && matchesStatus && matchesView;
-  });
+  // Filtrer les tâches selon la vue
+  const getFilteredTasks = () => {
+    let filteredTasks = tasks;
+    
+    // Pour la vue "terminées", on montre seulement les tâches terminées
+    if (currentView === 'completed') {
+      filteredTasks = tasks.filter(task => task.isCompleted);
+    } else {
+      // Pour les autres vues, on exclut les tâches terminées
+      filteredTasks = tasks.filter(task => !task.isCompleted);
+    }
 
+    // Appliquer les autres filtres
+    return filteredTasks.filter(task => {
+      const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
+      const matchesStatus = statusFilter === 'all' || 
+        (statusFilter === 'completed' && task.isCompleted) ||
+        (statusFilter === 'pending' && !task.isCompleted);
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  };
+
+  const filteredTasks = getFilteredTasks();
   const filteredMainTasks = mainTasks.filter(task => {
+    // Pour la liste de gauche, on exclut toujours les tâches terminées
+    if (task.isCompleted) return false;
+    
     const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'completed' && task.isCompleted) ||
-      (statusFilter === 'pending' && !task.isCompleted);
-    const matchesView = currentView === 'completed' ? task.isCompleted : true;
-    return matchesSearch && matchesCategory && matchesStatus && matchesView;
+    return matchesSearch && matchesCategory;
   });
 
   useEffect(() => {
@@ -154,12 +166,37 @@ const Index = () => {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
+                {/* Historique déplacé en haut */}
+                <div className="flex items-center gap-2 px-3 py-1 bg-theme-accent rounded-lg border border-theme-border">
+                  <span className="text-xs text-theme-muted font-medium">Historique:</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={undo}
+                    disabled={!canUndo}
+                    className="h-6 w-6 p-0 text-theme-muted hover:text-theme-primary disabled:opacity-50"
+                    title="Annuler (Ctrl+Z)"
+                  >
+                    <Undo className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={redo}
+                    disabled={!canRedo}
+                    className="h-6 w-6 p-0 text-theme-muted hover:text-theme-primary disabled:opacity-50"
+                    title="Refaire (Ctrl+Y)"
+                  >
+                    <Redo className="w-3 h-3" />
+                  </Button>
+                </div>
+
                 {/* Statistiques en header */}
-                <div className="flex items-center space-x-4 text-xs text-theme-muted mr-4">
+                <div className="flex items-center space-x-4 text-xs text-theme-muted">
                   <span className="flex items-center space-x-1">
                     <div className="w-2 h-2 bg-theme-primary rounded-full"></div>
-                    <span>{tasksCount} tâches</span>
+                    <span>{tasks.filter(t => !t.isCompleted).length} actives</span>
                   </span>
                   <span className="flex items-center space-x-1">
                     <div className="w-2 h-2 bg-theme-success rounded-full"></div>
@@ -181,7 +218,7 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Navigation horizontale améliorée */}
+            {/* Navigation horizontale */}
             <nav className="flex space-x-1">
               {navigationItems.map((item) => (
                 <button
@@ -202,12 +239,12 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Contenu principal avec layout 20/80 optimisé */}
+        {/* Contenu principal avec layout optimisé */}
         <main className="flex-1 flex">
-          {/* Colonne gauche : Liste des tâches (20%) */}
-          <div className="w-[20%] bg-theme-background border-r border-theme-border flex flex-col shadow-sm">
+          {/* Colonne gauche : Liste des tâches actives (25%) */}
+          <div className="w-1/4 bg-theme-background border-r border-theme-border flex flex-col shadow-sm">
+            {/* Filtres généraux */}
             <div className="p-3 border-b border-theme-border bg-theme-accent">
-              {/* Barre de recherche améliorée */}
               <div className="relative mb-3">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-theme-muted w-4 h-4" />
                 <Input
@@ -229,31 +266,19 @@ const Index = () => {
                 )}
               </div>
               
-              {/* Filtres */}
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="grid grid-cols-1 gap-2 mb-3">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                   <SelectTrigger className="h-7 text-xs border-theme-border bg-theme-background text-theme-foreground">
                     <Filter className="w-3 h-3 mr-1" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-theme-background border-theme-border">
-                    <SelectItem value="all" className="text-theme-foreground">Toutes</SelectItem>
+                    <SelectItem value="all" className="text-theme-foreground">Toutes catégories</SelectItem>
                     {Object.entries(CATEGORY_CONFIG).map(([category]) => (
                       <SelectItem key={category} value={category} className="text-theme-foreground">
                         {category}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-7 text-xs border-theme-border bg-theme-background text-theme-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-theme-background border-theme-border">
-                    <SelectItem value="all" className="text-theme-foreground">Tous états</SelectItem>
-                    <SelectItem value="pending" className="text-theme-foreground">En cours</SelectItem>
-                    <SelectItem value="completed" className="text-theme-foreground">Terminées</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -298,11 +323,11 @@ const Index = () => {
               {/* Statistiques compactes */}
               <div className="grid grid-cols-3 gap-1 text-xs">
                 <div className="bg-theme-primary/10 p-2 rounded text-center">
-                  <div className="font-bold text-theme-primary">{filteredTasks.length}</div>
-                  <div className="text-theme-muted">visibles</div>
+                  <div className="font-bold text-theme-primary">{filteredMainTasks.length}</div>
+                  <div className="text-theme-muted">actives</div>
                 </div>
                 <div className="bg-theme-success/10 p-2 rounded text-center">
-                  <div className="font-bold text-theme-success">{filteredTasks.filter(t => t.isCompleted).length}</div>
+                  <div className="font-bold text-theme-success">{completedTasks}</div>
                   <div className="text-theme-muted">terminées</div>
                 </div>
                 <div className="bg-theme-warning/10 p-2 rounded text-center">
@@ -312,7 +337,7 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Liste des tâches avec scroll intégré */}
+            {/* Liste des tâches avec scroll personnalisé */}
             <div className="flex-1 overflow-hidden">
               <TaskList 
                 tasks={filteredTasks}
@@ -338,7 +363,7 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Section droite : Vue courante (80%) */}
+          {/* Section droite : Vue courante (75%) */}
           <div className="flex-1 p-6 overflow-y-auto bg-theme-background">
             <div className="bg-theme-background rounded-lg shadow-sm border border-theme-border p-6 h-full">
               {renderCurrentView()}

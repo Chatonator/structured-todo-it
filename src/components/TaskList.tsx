@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG, TASK_LEVELS } from '@/types/task';
-import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Divide, CheckSquare, Square, Plus, Pin, PinOff, Undo, Redo } from 'lucide-react';
+import { Clock, X, ArrowUpDown, GripVertical, ChevronDown, ChevronRight, Divide, CheckSquare, Square, Plus, Pin, PinOff, Undo, Redo, Filter, SortAsc } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 import TaskModal from './TaskModal';
 
 interface TaskListProps {
@@ -23,7 +23,6 @@ interface TaskListProps {
   canHaveSubTasks: (task: Task) => boolean;
   selectedTasks: string[];
   onToggleSelection: (taskId: string) => void;
-  // Historique
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -54,14 +53,32 @@ const TaskList: React.FC<TaskListProps> = ({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
+  const [localSearch, setLocalSearch] = useState('');
+  const [localCategoryFilter, setLocalCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'name' | 'duration' | 'category'>('name');
+
+  // Filtrer les tâches non terminées seulement
+  const activeTasks = mainTasks.filter(task => !task.isCompleted);
+  
+  // Appliquer les filtres locaux
+  const filteredActiveTasks = activeTasks.filter(task => {
+    const matchesSearch = task.name.toLowerCase().includes(localSearch.toLowerCase());
+    const matchesCategory = localCategoryFilter === 'all' || task.category === localCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) {
-      return `${minutes} min`;
+      return `${minutes}m`;
     }
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+    return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
+  };
+
+  const handleSort = (newSortBy: 'name' | 'duration' | 'category') => {
+    setSortBy(newSortBy);
+    onSortTasks(newSortBy);
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -92,166 +109,173 @@ const TaskList: React.FC<TaskListProps> = ({
     const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
     const contextConfig = CONTEXT_CONFIG[task.context];
     const levelConfig = TASK_LEVELS[task.level];
-    const subTasks = getSubTasks(task.id);
+    const subTasks = getSubTasks(task.id).filter(t => !t.isCompleted); // Exclure les sous-tâches terminées
     const hasSubTasks = subTasks.length > 0;
     const totalTime = calculateTotalTime(task);
     const isSelected = selectedTasks.includes(task.id);
     const isPinned = pinnedTasks.includes(task.id);
 
-    // Réduction de l'indentation pour optimiser l'espace
-    const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-2' : 'ml-4';
+    const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-3' : 'ml-6';
 
     return (
       <div key={task.id} className={indentClass}>
         <div
           draggable={task.level === 0}
-          onDragStart={(e) => task.level === 0 && handleDragStart(e, mainTasks.findIndex(t => t.id === task.id))}
+          onDragStart={(e) => task.level === 0 && handleDragStart(e, activeTasks.findIndex(t => t.id === task.id))}
           onDragOver={task.level === 0 ? handleDragOver : undefined}
-          onDrop={(e) => task.level === 0 && handleDrop(e, mainTasks.findIndex(t => t.id === task.id))}
+          onDrop={(e) => task.level === 0 && handleDrop(e, activeTasks.findIndex(t => t.id === task.id))}
           className={`
-            group flex items-center p-2 border rounded-md 
-            hover:shadow-sm transition-all mb-1 text-xs task-item
+            group flex items-center gap-2 p-2 border rounded-lg 
+            hover:shadow-sm transition-all mb-1 text-sm task-item
             ${categoryConfig.borderPattern} ${levelConfig.bgColor}
             ${task.level === 0 ? 'cursor-move' : ''}
-            ${draggedIndex === mainTasks.findIndex(t => t.id === task.id) ? 'opacity-50' : ''}
-            ${task.isCompleted ? 'opacity-60 bg-gray-100 dark:bg-gray-800' : ''}
+            ${draggedIndex === activeTasks.findIndex(t => t.id === task.id) ? 'opacity-50' : ''}
             ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-theme-border'}
             ${isPinned ? 'task-pinned' : ''}
             bg-theme-background
           `}
         >
-          {/* Bouton d'épinglage (seulement pour les tâches principales) */}
-          {task.level === 0 && (
+          {/* Contrôles à gauche */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Épinglage */}
+            {task.level === 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onTogglePinTask(task.id)}
+                className="h-5 w-5 p-0 text-gray-500 hover:text-yellow-600"
+                title="Épingler"
+              >
+                {isPinned ? 
+                  <PinOff className="w-3 h-3 text-yellow-600" /> : 
+                  <Pin className="w-3 h-3" />
+                }
+              </Button>
+            )}
+
+            {/* Sélection */}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onTogglePinTask(task.id)}
-              className="h-4 w-4 p-0 mr-1 text-gray-500 hover:text-yellow-600"
-              title="Épingler"
+              onClick={() => onToggleSelection(task.id)}
+              className="h-5 w-5 p-0 text-gray-500 hover:text-blue-600"
             >
-              {isPinned ? 
-                <PinOff className="w-3 h-3 text-yellow-600" /> : 
-                <Pin className="w-3 h-3" />
+              {isSelected ? 
+                <CheckSquare className="w-3 h-3 text-blue-600" /> : 
+                <Square className="w-3 h-3" />
               }
             </Button>
-          )}
 
-          {/* Bouton de sélection */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onToggleSelection(task.id)}
-            className="h-4 w-4 p-0 mr-1 text-gray-500 hover:text-blue-600"
-          >
-            {isSelected ? 
-              <CheckSquare className="w-3 h-3 text-blue-600" /> : 
-              <Square className="w-3 h-3" />
-            }
-          </Button>
+            {/* Expansion */}
+            {hasSubTasks && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onToggleExpansion(task.id)}
+                className="h-5 w-5 p-0 text-gray-500"
+              >
+                {task.isExpanded ? 
+                  <ChevronDown className="w-3 h-3" /> : 
+                  <ChevronRight className="w-3 h-3" />
+                }
+              </Button>
+            )}
 
-          {/* Bouton d'expansion */}
-          {hasSubTasks && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onToggleExpansion(task.id)}
-              className="h-4 w-4 p-0 mr-1 text-gray-500"
-            >
-              {task.isExpanded ? 
-                <ChevronDown className="w-2 h-2" /> : 
-                <ChevronRight className="w-2 h-2" />
-              }
-            </Button>
-          )}
-
-          {/* Poignée de glissement */}
-          {task.level === 0 && (
-            <div className="mr-1 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-              <GripVertical className="w-2 h-2" />
-            </div>
-          )}
-
-          {/* Symbole de niveau */}
-          <div className="mr-1 text-gray-600 font-bold text-xs">
-            {levelConfig.symbol}
-          </div>
-
-          {/* Indicateur de catégorie coloré */}
-          <div 
-            className="w-2 h-2 rounded-full mr-2" 
-            style={{ backgroundColor: categoryConfig.cssColor }}
-          />
-
-          {/* Contenu principal */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-1 mb-0.5">
-              <h3 className={`text-xs font-medium truncate task-name ${task.isCompleted ? 'line-through text-theme-muted' : 'text-theme-foreground'}`}>
-                {task.name}
-              </h3>
-              {/* Badge contexte */}
-              <span className={`
-                inline-flex items-center px-1 py-0.5 rounded text-xs font-medium
-                ${contextConfig.color} dark:${contextConfig.colorDark}
-              `}>
-                {task.context}
-              </span>
-            </div>
-            
-            {subCategoryConfig && (
-              <div className="mb-0.5">
-                <span className={`
-                  inline-flex items-center px-1 py-0.5 rounded text-xs font-medium
-                  ${subCategoryConfig.color} dark:${subCategoryConfig.colorDark}
-                `}>
-                  {subCategoryConfig.priority}★
-                </span>
+            {/* Poignée */}
+            {task.level === 0 && (
+              <div className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                <GripVertical className="w-3 h-3" />
               </div>
             )}
+          </div>
+
+          {/* Indicateurs visuels */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-xs font-bold text-gray-600">{levelConfig.symbol}</span>
+            <div 
+              className="w-3 h-3 rounded-full flex-shrink-0" 
+              style={{ backgroundColor: categoryConfig.cssColor }}
+            />
+          </div>
+
+          {/* Contenu principal */}
+          <div className="flex-1 min-w-0 space-y-1">
+            {/* Titre de la tâche */}
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium truncate task-name text-theme-foreground text-sm">
+                {task.name}
+              </h3>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Badge contexte */}
+                <span className={`
+                  inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                  ${contextConfig.color} dark:${contextConfig.colorDark}
+                `}>
+                  {task.context}
+                </span>
+                {/* Badge priorité */}
+                {subCategoryConfig && (
+                  <span className={`
+                    inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                    ${subCategoryConfig.color} dark:${subCategoryConfig.colorDark}
+                  `}>
+                    {subCategoryConfig.priority}★
+                  </span>
+                )}
+              </div>
+            </div>
             
-            <div className="flex items-center space-x-1 text-xs text-theme-muted">
-              <Clock className="w-2 h-2" />
-              <span>{formatDuration(totalTime)}</span>
-              {hasSubTasks && <span>({subTasks.length})</span>}
+            {/* Informations secondaires */}
+            <div className="flex items-center gap-3 text-xs text-theme-muted">
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{formatDuration(totalTime)}</span>
+              </div>
+              {hasSubTasks && (
+                <span className="bg-theme-accent px-1.5 py-0.5 rounded">
+                  {subTasks.length} sous-tâche{subTasks.length > 1 ? 's' : ''}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Boutons d'action */}
-          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Actions à droite */}
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
             {canHaveSubTasks(task) && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => handleCreateSubTasks(task)}
-                className="h-4 w-4 p-0 text-blue-500 hover:text-blue-700"
+                className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
                 title="Diviser"
               >
-                <Divide className="w-2 h-2" />
+                <Divide className="w-3 h-3" />
               </Button>
             )}
-            {/* Bouton Terminer */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onToggleCompletion(task.id)}
-              className="h-4 w-4 p-0 text-green-500 hover:text-green-700"
+              className="h-6 w-6 p-0 text-green-500 hover:text-green-700"
               title="Terminer"
             >
-              <CheckSquare className="w-2 h-2" />
+              <CheckSquare className="w-3 h-3" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onRemoveTask(task.id)}
-              className="h-4 w-4 p-0 text-gray-400 hover:text-red-500"
+              className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+              title="Supprimer"
             >
-              <X className="w-2 h-2" />
+              <X className="w-3 h-3" />
             </Button>
           </div>
         </div>
 
         {/* Sous-tâches */}
         {hasSubTasks && task.isExpanded && (
-          <div className="mt-1">
+          <div className="mt-1 space-y-1">
             {subTasks.map(subTask => renderTask(subTask, depth + 1))}
           </div>
         )}
@@ -259,16 +283,20 @@ const TaskList: React.FC<TaskListProps> = ({
     );
   };
 
-  if (mainTasks.length === 0) {
+  if (filteredActiveTasks.length === 0) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center py-4">
-            <div className="text-gray-400 mb-2">
-              <Clock className="w-6 h-6 mx-auto mb-2" />
+          <div className="text-center py-8">
+            <div className="text-gray-400 mb-3">
+              <Clock className="w-8 h-8 mx-auto mb-2" />
             </div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Aucune tâche</h3>
-            <p className="text-xs text-gray-400">Créez votre première tâche !</p>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">
+              {localSearch || localCategoryFilter !== 'all' ? 'Aucune tâche trouvée' : 'Aucune tâche active'}
+            </h3>
+            <p className="text-xs text-gray-400">
+              {localSearch || localCategoryFilter !== 'all' ? 'Modifiez vos filtres' : 'Créez votre première tâche !'}
+            </p>
           </div>
         </div>
       </div>
@@ -276,40 +304,83 @@ const TaskList: React.FC<TaskListProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full space-y-2">
-      {/* En-tête avec tri, actions et historique */}
-      <div className="flex items-center justify-between pb-2 border-b bg-theme-background px-1">
-        <h2 className="text-sm font-semibold text-theme-foreground">
-          Tâches ({tasks.length})
-        </h2>
-        <div className="flex items-center space-x-1">
-          {/* Boutons historique */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onUndo}
-            disabled={!canUndo}
-            className="h-6 w-6 p-0 text-gray-500 hover:text-blue-600 disabled:opacity-50"
-            title="Annuler (Ctrl+Z)"
-          >
-            <Undo className="w-3 h-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRedo}
-            disabled={!canRedo}
-            className="h-6 w-6 p-0 text-gray-500 hover:text-blue-600 disabled:opacity-50"
-            title="Refaire (Ctrl+Y)"
-          >
-            <Redo className="w-3 h-3" />
-          </Button>
+    <div className="flex flex-col h-full">
+      {/* En-tête avec contrôles améliorés */}
+      <div className="p-3 border-b border-theme-border bg-theme-accent space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-theme-foreground">
+            Tâches Actives ({filteredActiveTasks.length})
+          </h2>
           
-          <Select onValueChange={(value) => onSortTasks(value as 'name' | 'duration' | 'category')}>
-            <SelectTrigger className="w-16 h-6 text-xs border-theme-border bg-theme-background text-theme-foreground">
-              <ArrowUpDown className="w-2 h-2" />
+          {/* Historique */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onUndo}
+              disabled={!canUndo}
+              className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 disabled:opacity-50"
+              title="Annuler (Ctrl+Z)"
+            >
+              <Undo className="w-3 h-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRedo}
+              disabled={!canRedo}
+              className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 disabled:opacity-50"
+              title="Refaire (Ctrl+Y)"
+            >
+              <Redo className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Recherche locale */}
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder="Rechercher dans les tâches..."
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            className="text-xs h-8 pr-8 border-theme-border bg-theme-background text-theme-foreground"
+          />
+          {localSearch && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocalSearch('')}
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+
+        {/* Filtres et tri */}
+        <div className="flex items-center gap-2">
+          <Select value={localCategoryFilter} onValueChange={setLocalCategoryFilter}>
+            <SelectTrigger className="h-7 text-xs flex-1 border-theme-border bg-theme-background text-theme-foreground">
+              <Filter className="w-3 h-3 mr-1" />
+              <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-theme-background border-theme-border z-50">
+            <SelectContent className="bg-theme-background border-theme-border">
+              <SelectItem value="all" className="text-theme-foreground">Toutes catégories</SelectItem>
+              {Object.keys(CATEGORY_CONFIG).map((category) => (
+                <SelectItem key={category} value={category} className="text-theme-foreground">
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={handleSort}>
+            <SelectTrigger className="h-7 text-xs flex-1 border-theme-border bg-theme-background text-theme-foreground">
+              <SortAsc className="w-3 h-3 mr-1" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-theme-background border-theme-border">
               <SelectItem value="name" className="text-theme-foreground">Nom</SelectItem>
               <SelectItem value="duration" className="text-theme-foreground">Durée</SelectItem>
               <SelectItem value="category" className="text-theme-foreground">Catégorie</SelectItem>
@@ -318,10 +389,10 @@ const TaskList: React.FC<TaskListProps> = ({
         </div>
       </div>
 
-      {/* Liste des tâches avec scroll */}
-      <ScrollArea className="flex-1 pr-2">
-        <div className="space-y-1">
-          {mainTasks.map(task => renderTask(task))}
+      {/* Liste des tâches avec scroll personnalisé */}
+      <ScrollArea className="flex-1 task-list-scroll">
+        <div className="p-2 space-y-1">
+          {filteredActiveTasks.map(task => renderTask(task))}
         </div>
       </ScrollArea>
 

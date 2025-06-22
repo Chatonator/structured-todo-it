@@ -34,7 +34,7 @@ export const CATEGORY_CONFIG = {
     color: 'bg-category-envie-light text-category-envie border-category-envie',
     borderPattern: 'border-l-4 border-l-category-envie',
     cssColor: 'hsl(var(--theme-envie))',
-    eisenhowerQuadrant: 'not-urgent-important' as const
+    eisenhowerQuadrant: 'important-not-urgent' as const
   },
   'Autres': {
     color: 'bg-category-autres-light text-category-autres border-category-autres',
