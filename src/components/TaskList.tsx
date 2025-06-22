@@ -145,8 +145,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
           {/* Indicateur de catégorie coloré */}
           <div 
-            className={`w-2 h-2 rounded-full mr-2 ${categoryConfig.color.includes('bg-category') ? categoryConfig.color.split(' ')[0] : ''}`}
-            style={{ backgroundColor: categoryConfig.cssColor }}
+            className={`w-2 h-2 rounded-full mr-2 bg-category-${task.category.toLowerCase()}`}
           />
 
           {/* Contenu principal */}
@@ -243,5 +242,45 @@ const TaskList: React.FC<TaskListProps> = ({
           <Select onValueChange={(value) => onSortTasks(value as 'name' | 'duration' | 'category')}>
             <SelectTrigger className="w-16 h-6 text-xs border-theme-border bg-theme-background text-theme-foreground">
               <ArrowUpDown className="w-2 h-2" />
-            </SelectT
+            </SelectTrigger>
+            <SelectContent className="bg-theme-background border-theme-border">
+              <SelectItem value="name" className="text-theme-foreground">Nom</SelectItem>
+              <SelectItem value="duration" className="text-theme-foreground">Durée</SelectItem>
+              <SelectItem value="category" className="text-theme-foreground">Catégorie</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
+      {/* Liste des tâches avec scroll */}
+      <ScrollArea className="flex-1 pr-2">
+        <div className="space-y-1">
+          {mainTasks.map(task => renderTask(task))}
+        </div>
+      </ScrollArea>
+
+      {/* Modale pour sous-tâches */}
+      {selectedParentTask && (
+        <TaskModal
+          isOpen={isSubTaskModalOpen}
+          onClose={() => {
+            setIsSubTaskModalOpen(false);
+            setSelectedParentTask(null);
+          }}
+          onAddTask={(taskData) => {
+            onAddTask({
+              ...taskData,
+              parentId: selectedParentTask.id,
+              level: (selectedParentTask.level + 1) as 0 | 1 | 2
+            });
+            setIsSubTaskModalOpen(false);
+            setSelectedParentTask(null);
+          }}
+          parentTask={selectedParentTask}
+        />
+      )}
+    </div>
+  );
+};
+
+export default TaskList;
