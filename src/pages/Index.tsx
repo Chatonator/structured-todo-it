@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import TaskList from '@/components/TaskList';
 import TaskModal from '@/components/TaskModal';
@@ -7,15 +7,18 @@ import DashboardView from '@/components/DashboardView';
 import EisenhowerView from '@/components/EisenhowerView';
 import CalendarView from '@/components/CalendarView';
 import CompletedTasksView from '@/components/CompletedTasksView';
+import UserOptionsMenu from '@/components/UserOptionsMenu';
 import { useTasks } from '@/hooks/useTasks';
+import { useTheme } from '@/hooks/useTheme';
 import { Plus, Search, Filter, CheckSquare, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { CATEGORY_CONFIG } from '@/types/task';
 
 const Index = () => {
+  const { theme } = useTheme();
+  
   const { 
     tasks, 
     mainTasks,
@@ -94,6 +97,10 @@ const Index = () => {
     return matchesSearch && matchesCategory && matchesStatus && matchesView;
   });
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   const renderCurrentView = () => {
     switch (currentView) {
       case 'priority':
@@ -125,30 +132,30 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col w-full bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex flex-col w-full bg-theme-background">
         {/* Header amélioré */}
-        <header className="bg-white shadow-sm border-b">
+        <header className="bg-theme-background shadow-sm border-b border-theme-border">
           <div className="px-6 py-3">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg">
-                  <CheckSquare className="w-5 h-5 text-white" />
+                <div className="p-2 bg-theme-primary rounded-lg">
+                  <CheckSquare className="w-5 h-5 text-theme-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">TO-DO-IT</h1>
-                  <p className="text-xs text-gray-600">Gestion mentale simplifiée</p>
+                  <h1 className="text-xl font-bold text-theme-foreground">TO-DO-IT</h1>
+                  <p className="text-xs text-theme-muted">Gestion mentale simplifiée</p>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 {/* Statistiques en header */}
-                <div className="flex items-center space-x-4 text-xs text-gray-600 mr-4">
+                <div className="flex items-center space-x-4 text-xs text-theme-muted mr-4">
                   <span className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-theme-primary rounded-full"></div>
                     <span>{tasksCount} tâches</span>
                   </span>
                   <span className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-theme-success rounded-full"></div>
                     <span>{completedTasks} terminées</span>
                   </span>
                   <span>{completionRate}% complet</span>
@@ -156,12 +163,14 @@ const Index = () => {
                 
                 <Button
                   onClick={() => setIsModalOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  className="bg-theme-primary hover:opacity-90 text-theme-primary-foreground transition-opacity"
                   size="sm"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Nouvelle tâche
                 </Button>
+                
+                <UserOptionsMenu />
               </div>
             </div>
 
@@ -174,79 +183,78 @@ const Index = () => {
                   className={`
                     flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
                     ${currentView === item.key 
-                      ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border border-blue-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                      ? 'bg-theme-primary text-theme-primary-foreground shadow-sm' 
+                      : 'text-theme-muted hover:bg-theme-accent hover:text-theme-foreground'
                     }
                   `}
                 >
-                  <span>{item.icon}</span>
-                  <span>{item.title}</span>
+                  <span className="text-base">{item.title}</span>
                 </button>
               ))}
             </nav>
           </div>
         </header>
 
-        {/* Contenu principal avec layout 25/75 optimisé */}
+        {/* Contenu principal avec layout 20/80 optimisé */}
         <main className="flex-1 flex">
-          {/* Colonne gauche : Liste des tâches (25%) */}
-          <div className="w-[25%] bg-white border-r flex flex-col shadow-sm">
-            <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-white">
+          {/* Colonne gauche : Liste des tâches (20%) */}
+          <div className="w-[20%] bg-theme-background border-r border-theme-border flex flex-col shadow-sm">
+            <div className="p-3 border-b border-theme-border bg-theme-accent">
               {/* Barre de recherche améliorée */}
               <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-theme-muted w-4 h-4" />
                 <Input
                   type="text"
-                  placeholder="Rechercher une tâche..."
+                  placeholder="Rechercher..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 text-sm h-8 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                  className="pl-10 text-sm h-8 border-theme-border bg-theme-background text-theme-foreground focus:border-theme-primary"
                 />
                 {searchQuery && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 p-0"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 p-0 text-theme-muted hover:text-theme-foreground"
                   >
                     <X className="w-3 h-3" />
                   </Button>
                 )}
               </div>
               
-              {/* Filtres améliorés */}
+              {/* Filtres */}
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="h-7 text-xs">
+                  <SelectTrigger className="h-7 text-xs border-theme-border bg-theme-background text-theme-foreground">
                     <Filter className="w-3 h-3 mr-1" />
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes</SelectItem>
-                    {Object.entries(CATEGORY_CONFIG).map(([category, config]) => (
-                      <SelectItem key={category} value={category}>
-                        {config.icon} {category}
+                  <SelectContent className="bg-theme-background border-theme-border">
+                    <SelectItem value="all" className="text-theme-foreground">Toutes</SelectItem>
+                    {Object.entries(CATEGORY_CONFIG).map(([category]) => (
+                      <SelectItem key={category} value={category} className="text-theme-foreground">
+                        {category}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-7 text-xs">
+                  <SelectTrigger className="h-7 text-xs border-theme-border bg-theme-background text-theme-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous états</SelectItem>
-                    <SelectItem value="pending">En cours</SelectItem>
-                    <SelectItem value="completed">Terminées</SelectItem>
+                  <SelectContent className="bg-theme-background border-theme-border">
+                    <SelectItem value="all" className="text-theme-foreground">Tous états</SelectItem>
+                    <SelectItem value="pending" className="text-theme-foreground">En cours</SelectItem>
+                    <SelectItem value="completed" className="text-theme-foreground">Terminées</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Actions de sélection */}
               {selectedTasks.length > 0 && (
-                <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-lg mb-2">
-                  <span className="text-xs text-blue-700 font-medium">
+                <div className="flex items-center justify-between p-2 bg-theme-primary/10 border border-theme-primary/20 rounded-lg mb-2">
+                  <span className="text-xs text-theme-foreground font-medium">
                     {selectedTasks.length} sélectionnée{selectedTasks.length > 1 ? 's' : ''}
                   </span>
                   <div className="flex items-center space-x-1">
@@ -254,7 +262,7 @@ const Index = () => {
                       variant="ghost"
                       size="sm"
                       onClick={handleCompleteSelected}
-                      className="h-6 px-2 text-xs text-green-600 hover:text-green-700"
+                      className="h-6 px-2 text-xs text-theme-success hover:bg-theme-success/10"
                     >
                       <CheckSquare className="w-3 h-3 mr-1" />
                       Terminer
@@ -263,7 +271,7 @@ const Index = () => {
                       variant="ghost"
                       size="sm"
                       onClick={handleDeleteSelected}
-                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                      className="h-6 px-2 text-xs text-theme-error hover:bg-theme-error/10"
                     >
                       <Trash2 className="w-3 h-3 mr-1" />
                       Supprimer
@@ -272,7 +280,7 @@ const Index = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => setSelectedTasks([])}
-                      className="h-6 w-6 p-0 text-gray-500"
+                      className="h-6 w-6 p-0 text-theme-muted hover:text-theme-foreground"
                     >
                       <X className="w-3 h-3" />
                     </Button>
@@ -282,17 +290,17 @@ const Index = () => {
               
               {/* Statistiques compactes */}
               <div className="grid grid-cols-3 gap-1 text-xs">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-2 rounded text-center">
-                  <div className="font-bold text-blue-600">{filteredTasks.length}</div>
-                  <div className="text-gray-600">visibles</div>
+                <div className="bg-theme-primary/10 p-2 rounded text-center">
+                  <div className="font-bold text-theme-primary">{filteredTasks.length}</div>
+                  <div className="text-theme-muted">visibles</div>
                 </div>
-                <div className="bg-gradient-to-r from-green-50 to-green-100 p-2 rounded text-center">
-                  <div className="font-bold text-green-600">{filteredTasks.filter(t => t.isCompleted).length}</div>
-                  <div className="text-gray-600">terminées</div>
+                <div className="bg-theme-success/10 p-2 rounded text-center">
+                  <div className="font-bold text-theme-success">{filteredTasks.filter(t => t.isCompleted).length}</div>
+                  <div className="text-theme-muted">terminées</div>
                 </div>
-                <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-2 rounded text-center">
-                  <div className="font-bold text-orange-600">{Math.round(totalProjectTime / 60)}h</div>
-                  <div className="text-gray-600">temps</div>
+                <div className="bg-theme-warning/10 p-2 rounded text-center">
+                  <div className="font-bold text-theme-warning">{Math.round(totalProjectTime / 60)}h</div>
+                  <div className="text-theme-muted">temps</div>
                 </div>
               </div>
             </div>
@@ -317,9 +325,9 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Section droite : Vue courante (75%) */}
-          <div className="flex-1 p-6 overflow-y-auto">
-            <div className="bg-white rounded-lg shadow-sm border p-6 h-full">
+          {/* Section droite : Vue courante (80%) */}
+          <div className="flex-1 p-6 overflow-y-auto bg-theme-background">
+            <div className="bg-theme-background rounded-lg shadow-sm border border-theme-border p-6 h-full">
               {renderCurrentView()}
             </div>
           </div>
