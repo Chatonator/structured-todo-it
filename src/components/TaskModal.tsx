@@ -42,7 +42,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
     setTaskDrafts([...taskDrafts, { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
   };
 
-  const updateTaskDraft = (index: number, field: keyof TaskD raft, value: string | number) => {
+  const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number) => {
     const updated = [...taskDrafts];
     updated[index] = { ...updated[index], [field]: value };
     setTaskDrafts(updated);
