@@ -121,7 +121,10 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
         `}
       >
         <div className="flex items-center space-x-2 mb-2">
-          <span className="text-lg">{categoryConfig.icon}</span>
+          <div 
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: categoryConfig.cssColor }}
+          />
           <h3 className="font-medium text-gray-900 flex-1">{task.name}</h3>
           <span className={`
             inline-flex items-center px-2 py-1 rounded text-xs font-medium
@@ -137,7 +140,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
               inline-flex items-center px-2 py-1 rounded text-xs font-medium
               ${subCategoryConfig.color}
             `}>
-              {subCategoryConfig.icon} {task.subCategory}
+              {task.subCategory}
             </span>
           </div>
         )}
@@ -177,7 +180,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           {/* 1 Tâche Prioritaire */}
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-lg text-red-600">🔥 1 Prioritaire</CardTitle>
+              <CardTitle className="text-lg text-red-600">1 Prioritaire</CardTitle>
             </CardHeader>
             <CardContent>
               {selection.priority ? (
@@ -191,7 +194,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           {/* 3 Tâches Moyennes */}
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-lg text-blue-600">⚡ 3 Moyennes</CardTitle>
+              <CardTitle className="text-lg text-blue-600">3 Moyennes</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {selection.medium.length > 0 ? (
@@ -205,7 +208,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           {/* 5 Tâches Rapides */}
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-lg text-green-600">⚡ 5 Rapides</CardTitle>
+              <CardTitle className="text-lg text-green-600">5 Rapides</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {selection.quick.length > 0 ? (

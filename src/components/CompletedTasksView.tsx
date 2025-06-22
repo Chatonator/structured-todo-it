@@ -99,13 +99,16 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({ tasks }) => {
                   <div className="flex items-center space-x-3">
                     <CheckSquare className="w-5 h-5 text-green-600" />
                     <div className="flex items-center space-x-2">
-                      <span className="text-lg">{categoryConfig.icon}</span>
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: categoryConfig.cssColor }}
+                      />
                       <div>
                         <h4 className="font-medium text-gray-900 line-through">{task.name}</h4>
                         <div className="flex items-center space-x-2 text-sm text-gray-600">
-                          <span>{categoryConfig.icon} {task.category}</span>
+                          <span>{task.category}</span>
                           {subCategoryConfig && (
-                            <span>{subCategoryConfig.icon} {task.subCategory}</span>
+                            <span>{task.subCategory}</span>
                           )}
                         </div>
                       </div>

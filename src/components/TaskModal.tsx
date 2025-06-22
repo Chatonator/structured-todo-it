@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -163,7 +164,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                             }
                           `}
                         >
-                          <span className="text-sm">{config.icon}</span>
                           <span className="font-medium truncate">{subCat}</span>
                         </button>
                       ))
@@ -181,7 +181,10 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                             }
                           `}
                         >
-                          <span className="text-sm">{config.icon}</span>
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: config.cssColor }}
+                          />
                           <span className="font-medium truncate">{cat}</span>
                         </button>
                       ))
