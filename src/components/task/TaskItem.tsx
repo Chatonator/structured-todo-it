@@ -1,0 +1,228 @@
+
+import React from 'react';
+import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG, TASK_LEVELS } from '@/types/task';
+import { Clock, X, ChevronDown, ChevronRight, Divide, CheckSquare, Square, Pin, PinOff, GripVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+interface TaskItemProps {
+  task: Task;
+  subTasks: Task[];
+  totalTime: number;
+  isSelected: boolean;
+  isPinned: boolean;
+  canHaveSubTasks: boolean;
+  onToggleSelection: (taskId: string) => void;
+  onToggleExpansion: (taskId: string) => void;
+  onToggleCompletion: (taskId: string) => void;
+  onTogglePinTask: (taskId: string) => void;
+  onRemoveTask: (taskId: string) => void;
+  onCreateSubTask: (task: Task) => void;
+  onDragStart?: (e: React.DragEvent, index: number) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent, index: number) => void;
+  dragIndex?: number;
+  taskIndex?: number;
+}
+
+/**
+ * Composant pour afficher une tâche individuelle
+ * Sépare la logique d'affichage de la logique de liste
+ */
+const TaskItem: React.FC<TaskItemProps> = ({
+  task,
+  subTasks,
+  totalTime,
+  isSelected,
+  isPinned,
+  canHaveSubTasks,
+  onToggleSelection,
+  onToggleExpansion,
+  onToggleCompletion,
+  onTogglePinTask,
+  onRemoveTask,
+  onCreateSubTask,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  dragIndex,
+  taskIndex
+}) => {
+  const categoryConfig = CATEGORY_CONFIG[task.category];
+  const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
+  const contextConfig = CONTEXT_CONFIG[task.context];
+  const levelConfig = TASK_LEVELS[task.level];
+  const hasSubTasks = subTasks.length > 0;
+
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
+  };
+
+  const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-3' : 'ml-6';
+
+  return (
+    <div className={indentClass}>
+      <div
+        draggable={task.level === 0}
+        onDragStart={(e) => task.level === 0 && onDragStart?.(e, taskIndex || 0)}
+        onDragOver={task.level === 0 ? onDragOver : undefined}
+        onDrop={(e) => task.level === 0 && onDrop?.(e, taskIndex || 0)}
+        className={`
+          group flex items-center gap-2 p-2 border rounded-lg 
+          hover:shadow-sm transition-all mb-1 text-sm task-item
+          ${categoryConfig.borderPattern} ${levelConfig.bgColor}
+          ${task.level === 0 ? 'cursor-move' : ''}
+          ${dragIndex === taskIndex ? 'opacity-50' : ''}
+          ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-theme-border'}
+          ${isPinned ? 'task-pinned' : ''}
+          bg-theme-background
+        `}
+      >
+        {/* Contrôles à gauche */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Épinglage - seulement pour les tâches principales */}
+          {task.level === 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onTogglePinTask(task.id)}
+              className="h-5 w-5 p-0 text-gray-500 hover:text-yellow-600"
+              title="Épingler"
+            >
+              {isPinned ? 
+                <PinOff className="w-3 h-3 text-yellow-600" /> : 
+                <Pin className="w-3 h-3" />
+              }
+            </Button>
+          )}
+
+          {/* Sélection */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onToggleSelection(task.id)}
+            className="h-5 w-5 p-0 text-gray-500 hover:text-blue-600"
+          >
+            {isSelected ? 
+              <CheckSquare className="w-3 h-3 text-blue-600" /> : 
+              <Square className="w-3 h-3" />
+            }
+          </Button>
+
+          {/* Expansion pour les tâches avec sous-tâches */}
+          {hasSubTasks && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onToggleExpansion(task.id)}
+              className="h-5 w-5 p-0 text-gray-500"
+            >
+              {task.isExpanded ? 
+                <ChevronDown className="w-3 h-3" /> : 
+                <ChevronRight className="w-3 h-3" />
+              }
+            </Button>
+          )}
+
+          {/* Poignée de drag pour les tâches principales */}
+          {task.level === 0 && (
+            <div className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+              <GripVertical className="w-3 h-3" />
+            </div>
+          )}
+        </div>
+
+        {/* Indicateurs visuels */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs font-bold text-gray-600">{levelConfig.symbol}</span>
+          <div 
+            className="w-3 h-3 rounded-full flex-shrink-0" 
+            style={{ backgroundColor: categoryConfig.cssColor }}
+          />
+        </div>
+
+        {/* Contenu principal - plus d'espace pour le titre */}
+        <div className="flex-1 min-w-0 space-y-1">
+          {/* Titre de la tâche - plus proéminent */}
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-theme-foreground text-base leading-tight flex-1 min-w-0">
+              {task.name}
+            </h3>
+          </div>
+          
+          {/* Informations secondaires - plus compactes */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-xs text-theme-muted">
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{formatDuration(totalTime)}</span>
+              </div>
+              {hasSubTasks && (
+                <span className="bg-theme-accent px-1.5 py-0.5 rounded">
+                  {subTasks.length} sous-tâche{subTasks.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            
+            {/* Badges - plus compacts */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Badge contexte */}
+              <span className={`
+                inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                ${contextConfig.color} dark:${contextConfig.colorDark}
+              `}>
+                {task.context}
+              </span>
+              {/* Badge priorité */}
+              {subCategoryConfig && (
+                <span className={`
+                  inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                  ${subCategoryConfig.color} dark:${subCategoryConfig.colorDark}
+                `}>
+                  {subCategoryConfig.priority}★
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions à droite */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          {canHaveSubTasks && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onCreateSubTask(task)}
+              className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
+              title="Diviser"
+            >
+              <Divide className="w-3 h-3" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onToggleCompletion(task.id)}
+            className="h-6 w-6 p-0 text-green-500 hover:text-green-700"
+            title="Terminer"
+          >
+            <CheckSquare className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemoveTask(task.id)}
+            className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+            title="Supprimer"
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TaskItem;

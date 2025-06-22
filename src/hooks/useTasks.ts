@@ -1,33 +1,50 @@
-
 import { useState, useEffect } from 'react';
 import { Task } from '@/types/task';
 import { useActionHistory } from './useActionHistory';
+import { validateTaskList, repairTaskList, sanitizeTask } from '@/utils/taskValidation';
 
 const STORAGE_KEY = 'todo-it-tasks';
 const PINNED_TASKS_KEY = 'todo-it-pinned-tasks';
 
+/**
+ * Hook principal pour la gestion des tâches
+ * Refactorisé avec validation et réparation automatique des données
+ */
 export const useTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [pinnedTasks, setPinnedTasks] = useState<string[]>([]);
   const { addAction, undo, redo, canUndo, canRedo } = useActionHistory();
 
-  // Charger les tâches depuis localStorage au démarrage
+  // Charger les tâches depuis localStorage au démarrage avec validation
   useEffect(() => {
     try {
       const savedTasks = localStorage.getItem(STORAGE_KEY);
       const savedPinnedTasks = localStorage.getItem(PINNED_TASKS_KEY);
       
       if (savedTasks) {
-        const parsedTasks = JSON.parse(savedTasks);
+        let parsedTasks = JSON.parse(savedTasks);
+        
+        // Normaliser les tâches avec valeurs par défaut
         const tasksWithDates = parsedTasks.map((task: any) => ({
           ...task,
           createdAt: new Date(task.createdAt),
           level: task.level ?? 0,
           isExpanded: task.isExpanded ?? true,
           isCompleted: task.isCompleted ?? false,
-          context: task.context || 'Perso' // Valeur par défaut
+          context: task.context || 'Perso' // Valeur par défaut sécurisée
         }));
-        setTasks(tasksWithDates);
+
+        // Valider et réparer les données si nécessaire
+        const validationErrors = validateTaskList(tasksWithDates);
+        if (validationErrors.length > 0) {
+          console.warn('Problèmes de données détectés:', validationErrors);
+          const repairedTasks = repairTaskList(tasksWithDates);
+          setTasks(repairedTasks);
+          console.log('Données réparées automatiquement');
+        } else {
+          setTasks(tasksWithDates);
+        }
+        
         console.log('Tâches chargées depuis localStorage:', tasksWithDates.length);
       }
       
@@ -36,12 +53,22 @@ export const useTasks = () => {
       }
     } catch (error) {
       console.error('Erreur lors du chargement des tâches:', error);
+      // En cas d'erreur, initialiser avec un état propre
+      setTasks([]);
+      setPinnedTasks([]);
     }
   }, []);
 
-  // Sauvegarder dans localStorage à chaque modification
+  // Sauvegarder dans localStorage à chaque modification avec validation
   useEffect(() => {
     try {
+      // Valider avant de sauvegarder
+      const validationErrors = validateTaskList(tasks);
+      if (validationErrors.length > 0) {
+        console.error('Tentative de sauvegarde de données invalides:', validationErrors);
+        return;
+      }
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
       localStorage.setItem(PINNED_TASKS_KEY, JSON.stringify(pinnedTasks));
       console.log('Tâches sauvegardées:', tasks.length);
@@ -51,12 +78,15 @@ export const useTasks = () => {
   }, [tasks, pinnedTasks]);
 
   const addTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    // Nettoyer et valider les données d'entrée
+    const sanitizedData = sanitizeTask(taskData);
+    
     const newTask: Task = {
-      ...taskData,
+      ...sanitizedData,
       id: crypto.randomUUID(),
       createdAt: new Date(),
       isCompleted: false
-    };
+    } as Task;
     
     setTasks(prevTasks => {
       const newTasks = [newTask, ...prevTasks];
@@ -94,7 +124,6 @@ export const useTasks = () => {
         type: 'remove',
         data: { removedTasks: prevTasks.filter(task => idsToRemove.includes(task.id)) },
         reverseAction: () => {
-          // Logique de restauration simplifiée
           console.log('Action suppression annulée');
         }
       });

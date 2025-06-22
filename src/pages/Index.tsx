@@ -8,18 +8,19 @@ import DashboardView from '@/components/DashboardView';
 import EisenhowerView from '@/components/EisenhowerView';
 import CalendarView from '@/components/CalendarView';
 import CompletedTasksView from '@/components/CompletedTasksView';
-import UserOptionsMenu from '@/components/UserOptionsMenu';
+import AppHeader from '@/components/layout/AppHeader';
+import AppNavigation from '@/components/layout/AppNavigation';
 import { useTasks } from '@/hooks/useTasks';
 import { useTheme } from '@/hooks/useTheme';
-import { Plus, Search, Filter, CheckSquare, Trash2, X, Undo, Redo } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CATEGORY_CONFIG } from '@/types/task';
 
+/**
+ * Page principale de l'application
+ * Refactorisée pour une meilleure séparation des responsabilités
+ */
 const Index = () => {
   const { theme } = useTheme();
   
+  // Hook principal pour la gestion des tâches
   const { 
     tasks, 
     mainTasks,
@@ -44,14 +45,12 @@ const Index = () => {
     canRedo
   } = useTasks();
 
+  // États locaux pour l'interface
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState('priority');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
-  // Navigation items
+  // Configuration de la navigation
   const navigationItems = [
     { key: 'priority', title: 'Vue 1-3-5', icon: '🎲' },
     { key: 'dashboard', title: 'Dashboard', icon: '📊' },
@@ -60,7 +59,7 @@ const Index = () => {
     { key: 'completed', title: 'Terminées', icon: '✅' }
   ];
 
-  // Logique de sélection
+  // Gestion de la sélection
   const handleToggleSelection = (taskId: string) => {
     setSelectedTasks(prev => 
       prev.includes(taskId) 
@@ -69,57 +68,25 @@ const Index = () => {
     );
   };
 
-  const handleCompleteSelected = () => {
-    selectedTasks.forEach(taskId => {
-      toggleTaskCompletion(taskId);
-    });
-    setSelectedTasks([]);
-  };
-
-  const handleDeleteSelected = () => {
-    selectedTasks.forEach(taskId => {
-      removeTask(taskId);
-    });
-    setSelectedTasks([]);
-  };
-
-  // Filtrer les tâches selon la vue
+  // Filtrage des tâches selon la vue
   const getFilteredTasks = () => {
-    let filteredTasks = tasks;
-    
-    // Pour la vue "terminées", on montre seulement les tâches terminées
     if (currentView === 'completed') {
-      filteredTasks = tasks.filter(task => task.isCompleted);
-    } else {
-      // Pour les autres vues, on exclut les tâches terminées
-      filteredTasks = tasks.filter(task => !task.isCompleted);
+      return tasks.filter(task => task.isCompleted);
     }
-
-    // Appliquer les autres filtres
-    return filteredTasks.filter(task => {
-      const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
-      const matchesStatus = statusFilter === 'all' || 
-        (statusFilter === 'completed' && task.isCompleted) ||
-        (statusFilter === 'pending' && !task.isCompleted);
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
+    return tasks.filter(task => !task.isCompleted);
   };
 
   const filteredTasks = getFilteredTasks();
-  const filteredMainTasks = mainTasks.filter(task => {
-    // Pour la liste de gauche, on exclut toujours les tâches terminées
-    if (task.isCompleted) return false;
-    
-    const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  
+  // Pour la liste de gauche, on exclut toujours les tâches terminées
+  const filteredMainTasks = mainTasks.filter(task => !task.isCompleted);
 
+  // Application du thème
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  // Rendu de la vue courante
   const renderCurrentView = () => {
     switch (currentView) {
       case 'priority':
@@ -145,222 +112,57 @@ const Index = () => {
       case 'completed':
         return <CompletedTasksView tasks={tasks.filter(t => t.isCompleted)} />;
       default:
-        return <div>Vue non trouvée</div>;
+        return <div className="text-center text-theme-muted">Vue non trouvée</div>;
     }
   };
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex flex-col w-full bg-theme-background">
-        {/* Header amélioré */}
-        <header className="bg-theme-background shadow-sm border-b border-theme-border">
-          <div className="px-6 py-3">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-theme-primary rounded-lg">
-                  <CheckSquare className="w-5 h-5 text-theme-primary-foreground" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-theme-foreground">TO-DO-IT</h1>
-                  <p className="text-xs text-theme-muted">Gestion mentale simplifiée</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                {/* Historique déplacé en haut */}
-                <div className="flex items-center gap-2 px-3 py-1 bg-theme-accent rounded-lg border border-theme-border">
-                  <span className="text-xs text-theme-muted font-medium">Historique:</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={undo}
-                    disabled={!canUndo}
-                    className="h-6 w-6 p-0 text-theme-muted hover:text-theme-primary disabled:opacity-50"
-                    title="Annuler (Ctrl+Z)"
-                  >
-                    <Undo className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={redo}
-                    disabled={!canRedo}
-                    className="h-6 w-6 p-0 text-theme-muted hover:text-theme-primary disabled:opacity-50"
-                    title="Refaire (Ctrl+Y)"
-                  >
-                    <Redo className="w-3 h-3" />
-                  </Button>
-                </div>
+        {/* Header avec statistiques et historique */}
+        <AppHeader
+          tasksCount={tasks.filter(t => !t.isCompleted).length}
+          completedTasks={completedTasks}
+          completionRate={completionRate}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          onOpenModal={() => setIsModalOpen(true)}
+        />
 
-                {/* Statistiques en header */}
-                <div className="flex items-center space-x-4 text-xs text-theme-muted">
-                  <span className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-theme-primary rounded-full"></div>
-                    <span>{tasks.filter(t => !t.isCompleted).length} actives</span>
-                  </span>
-                  <span className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-theme-success rounded-full"></div>
-                    <span>{completedTasks} terminées</span>
-                  </span>
-                  <span>{completionRate}% complet</span>
-                </div>
-                
-                <Button
-                  onClick={() => setIsModalOpen(true)}
-                  className="bg-theme-primary hover:opacity-90 text-theme-primary-foreground transition-opacity"
-                  size="sm"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvelle tâche
-                </Button>
-                
-                <UserOptionsMenu />
-              </div>
-            </div>
-
-            {/* Navigation horizontale */}
-            <nav className="flex space-x-1">
-              {navigationItems.map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => setCurrentView(item.key)}
-                  className={`
-                    flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                    ${currentView === item.key 
-                      ? 'bg-theme-primary text-theme-primary-foreground shadow-sm' 
-                      : 'text-theme-muted hover:bg-theme-accent hover:text-theme-foreground'
-                    }
-                  `}
-                >
-                  <span className="text-base">{item.title}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
-        </header>
+        {/* Navigation horizontale */}
+        <AppNavigation
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          navigationItems={navigationItems}
+        />
 
         {/* Contenu principal avec layout optimisé */}
         <main className="flex-1 flex">
           {/* Colonne gauche : Liste des tâches actives (25%) */}
           <div className="w-1/4 bg-theme-background border-r border-theme-border flex flex-col shadow-sm">
-            {/* Filtres généraux */}
-            <div className="p-3 border-b border-theme-border bg-theme-accent">
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-theme-muted w-4 h-4" />
-                <Input
-                  type="text"
-                  placeholder="Rechercher..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 text-sm h-8 border-theme-border bg-theme-background text-theme-foreground focus:border-theme-primary"
-                />
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 p-0 text-theme-muted hover:text-theme-foreground"
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 gap-2 mb-3">
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="h-7 text-xs border-theme-border bg-theme-background text-theme-foreground">
-                    <Filter className="w-3 h-3 mr-1" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-theme-background border-theme-border">
-                    <SelectItem value="all" className="text-theme-foreground">Toutes catégories</SelectItem>
-                    {Object.entries(CATEGORY_CONFIG).map(([category]) => (
-                      <SelectItem key={category} value={category} className="text-theme-foreground">
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Actions de sélection */}
-              {selectedTasks.length > 0 && (
-                <div className="flex items-center justify-between p-2 bg-theme-primary/10 border border-theme-primary/20 rounded-lg mb-2">
-                  <span className="text-xs text-theme-foreground font-medium">
-                    {selectedTasks.length} sélectionnée{selectedTasks.length > 1 ? 's' : ''}
-                  </span>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCompleteSelected}
-                      className="h-6 px-2 text-xs text-theme-success hover:bg-theme-success/10"
-                    >
-                      <CheckSquare className="w-3 h-3 mr-1" />
-                      Terminer
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleDeleteSelected}
-                      className="h-6 px-2 text-xs text-theme-error hover:bg-theme-error/10"
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Supprimer
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedTasks([])}
-                      className="h-6 w-6 p-0 text-theme-muted hover:text-theme-foreground"
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Statistiques compactes */}
-              <div className="grid grid-cols-3 gap-1 text-xs">
-                <div className="bg-theme-primary/10 p-2 rounded text-center">
-                  <div className="font-bold text-theme-primary">{filteredMainTasks.length}</div>
-                  <div className="text-theme-muted">actives</div>
-                </div>
-                <div className="bg-theme-success/10 p-2 rounded text-center">
-                  <div className="font-bold text-theme-success">{completedTasks}</div>
-                  <div className="text-theme-muted">terminées</div>
-                </div>
-                <div className="bg-theme-warning/10 p-2 rounded text-center">
-                  <div className="font-bold text-theme-warning">{Math.round(totalProjectTime / 60)}h</div>
-                  <div className="text-theme-muted">temps</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Liste des tâches avec scroll personnalisé */}
-            <div className="flex-1 overflow-hidden">
-              <TaskList 
-                tasks={filteredTasks}
-                mainTasks={filteredMainTasks}
-                pinnedTasks={pinnedTasks}
-                onRemoveTask={removeTask}
-                onReorderTasks={reorderTasks}
-                onSortTasks={sortTasks}
-                onToggleExpansion={toggleTaskExpansion}
-                onToggleCompletion={toggleTaskCompletion}
-                onTogglePinTask={togglePinTask}
-                onAddTask={addTask}
-                getSubTasks={getSubTasks}
-                calculateTotalTime={calculateTotalTime}
-                canHaveSubTasks={canHaveSubTasks}
-                selectedTasks={selectedTasks}
-                onToggleSelection={handleToggleSelection}
-                canUndo={canUndo}
-                canRedo={canRedo}
-                onUndo={undo}
-                onRedo={redo}
-              />
-            </div>
+            <TaskList 
+              tasks={tasks}
+              mainTasks={filteredMainTasks}
+              pinnedTasks={pinnedTasks}
+              onRemoveTask={removeTask}
+              onReorderTasks={reorderTasks}
+              onSortTasks={sortTasks}
+              onToggleExpansion={toggleTaskExpansion}
+              onToggleCompletion={toggleTaskCompletion}
+              onTogglePinTask={togglePinTask}
+              onAddTask={addTask}
+              getSubTasks={getSubTasks}
+              calculateTotalTime={calculateTotalTime}
+              canHaveSubTasks={canHaveSubTasks}
+              selectedTasks={selectedTasks}
+              onToggleSelection={handleToggleSelection}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={undo}
+              onRedo={redo}
+            />
           </div>
 
           {/* Section droite : Vue courante (75%) */}
