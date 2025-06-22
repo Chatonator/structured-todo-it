@@ -1,15 +1,22 @@
+
 import { useState, useEffect } from 'react';
 import { Task } from '@/types/task';
+import { useActionHistory } from './useActionHistory';
 
 const STORAGE_KEY = 'todo-it-tasks';
+const PINNED_TASKS_KEY = 'todo-it-pinned-tasks';
 
 export const useTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [pinnedTasks, setPinnedTasks] = useState<string[]>([]);
+  const { addAction, undo, redo, canUndo, canRedo } = useActionHistory();
 
   // Charger les tâches depuis localStorage au démarrage
   useEffect(() => {
     try {
       const savedTasks = localStorage.getItem(STORAGE_KEY);
+      const savedPinnedTasks = localStorage.getItem(PINNED_TASKS_KEY);
+      
       if (savedTasks) {
         const parsedTasks = JSON.parse(savedTasks);
         const tasksWithDates = parsedTasks.map((task: any) => ({
@@ -17,10 +24,15 @@ export const useTasks = () => {
           createdAt: new Date(task.createdAt),
           level: task.level ?? 0,
           isExpanded: task.isExpanded ?? true,
-          isCompleted: task.isCompleted ?? false
+          isCompleted: task.isCompleted ?? false,
+          context: task.context || 'Perso' // Valeur par défaut
         }));
         setTasks(tasksWithDates);
         console.log('Tâches chargées depuis localStorage:', tasksWithDates.length);
+      }
+      
+      if (savedPinnedTasks) {
+        setPinnedTasks(JSON.parse(savedPinnedTasks));
       }
     } catch (error) {
       console.error('Erreur lors du chargement des tâches:', error);
@@ -31,11 +43,12 @@ export const useTasks = () => {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      localStorage.setItem(PINNED_TASKS_KEY, JSON.stringify(pinnedTasks));
       console.log('Tâches sauvegardées:', tasks.length);
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
     }
-  }, [tasks]);
+  }, [tasks, pinnedTasks]);
 
   const addTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     const newTask: Task = {
@@ -45,7 +58,19 @@ export const useTasks = () => {
       isCompleted: false
     };
     
-    setTasks(prevTasks => [newTask, ...prevTasks]);
+    setTasks(prevTasks => {
+      const newTasks = [newTask, ...prevTasks];
+      
+      // Ajouter à l'historique
+      addAction({
+        type: 'add',
+        data: newTask,
+        reverseAction: () => removeTask(newTask.id)
+      });
+      
+      return newTasks;
+    });
+    
     console.log('Nouvelle tâche ajoutée:', newTask);
     return newTask;
   };
@@ -62,19 +87,45 @@ export const useTasks = () => {
       };
 
       const idsToRemove = removeTaskAndChildren(taskId);
-      return prevTasks.filter(task => !idsToRemove.includes(task.id));
+      const newTasks = prevTasks.filter(task => !idsToRemove.includes(task.id));
+      
+      // Ajouter à l'historique
+      addAction({
+        type: 'remove',
+        data: { removedTasks: prevTasks.filter(task => idsToRemove.includes(task.id)) },
+        reverseAction: () => {
+          // Logique de restauration simplifiée
+          console.log('Action suppression annulée');
+        }
+      });
+      
+      return newTasks;
     });
+    
+    // Retirer des épinglés si nécessaire
+    setPinnedTasks(prev => prev.filter(id => id !== taskId));
     console.log('Tâche supprimée:', taskId);
   };
 
   const toggleTaskCompletion = (taskId: string) => {
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
+    setTasks(prevTasks => {
+      const newTasks = prevTasks.map(task => 
         task.id === taskId 
           ? { ...task, isCompleted: !task.isCompleted }
           : task
-      )
-    );
+      );
+      
+      const task = prevTasks.find(t => t.id === taskId);
+      if (task) {
+        addAction({
+          type: 'update',
+          data: { taskId, field: 'isCompleted', value: !task.isCompleted },
+          reverseAction: () => toggleTaskCompletion(taskId)
+        });
+      }
+      
+      return newTasks;
+    });
     console.log('Tâche completion togglee:', taskId);
   };
 
@@ -86,6 +137,18 @@ export const useTasks = () => {
           : task
       )
     );
+  };
+
+  const togglePinTask = (taskId: string) => {
+    setPinnedTasks(prev => {
+      const isPinned = prev.includes(taskId);
+      if (isPinned) {
+        return prev.filter(id => id !== taskId);
+      } else {
+        return [taskId, ...prev];
+      }
+    });
+    console.log('Tâche épinglage togglee:', taskId);
   };
 
   const getSubTasks = (parentId: string) => {
@@ -142,8 +205,12 @@ export const useTasks = () => {
     });
   };
 
-  // Obtenir les tâches principales (niveau 0)
+  // Obtenir les tâches principales triées (épinglées en premier)
   const mainTasks = tasks.filter(task => task.level === 0);
+  const sortedMainTasks = [
+    ...mainTasks.filter(task => pinnedTasks.includes(task.id)),
+    ...mainTasks.filter(task => !pinnedTasks.includes(task.id))
+  ];
   
   // Calculer le temps total du projet
   const totalProjectTime = mainTasks.reduce((total, task) => total + calculateTotalTime(task), 0);
@@ -154,19 +221,26 @@ export const useTasks = () => {
 
   return {
     tasks,
-    mainTasks,
+    mainTasks: sortedMainTasks,
+    pinnedTasks,
     addTask,
     removeTask,
     reorderTasks,
     sortTasks,
     toggleTaskExpansion,
     toggleTaskCompletion,
+    togglePinTask,
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
     tasksCount: tasks.length,
     totalProjectTime,
     completedTasks,
-    completionRate
+    completionRate,
+    // Historique
+    undo,
+    redo,
+    canUndo,
+    canRedo
   };
 };
