@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import TaskList from '@/components/TaskList';
@@ -22,19 +23,25 @@ const Index = () => {
   const { 
     tasks, 
     mainTasks,
+    pinnedTasks,
     addTask, 
     removeTask, 
     reorderTasks, 
     sortTasks,
     toggleTaskExpansion,
     toggleTaskCompletion,
+    togglePinTask,
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
     tasksCount,
     totalProjectTime,
     completedTasks,
-    completionRate
+    completionRate,
+    undo,
+    redo,
+    canUndo,
+    canRedo
   } = useTasks();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -310,17 +317,23 @@ const Index = () => {
               <TaskList 
                 tasks={filteredTasks}
                 mainTasks={filteredMainTasks}
+                pinnedTasks={pinnedTasks}
                 onRemoveTask={removeTask}
                 onReorderTasks={reorderTasks}
                 onSortTasks={sortTasks}
                 onToggleExpansion={toggleTaskExpansion}
                 onToggleCompletion={toggleTaskCompletion}
+                onTogglePinTask={togglePinTask}
                 onAddTask={addTask}
                 getSubTasks={getSubTasks}
                 calculateTotalTime={calculateTotalTime}
                 canHaveSubTasks={canHaveSubTasks}
                 selectedTasks={selectedTasks}
                 onToggleSelection={handleToggleSelection}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onUndo={undo}
+                onRedo={redo}
               />
             </div>
           </div>
