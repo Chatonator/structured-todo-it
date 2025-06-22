@@ -40,13 +40,17 @@
     --theme-warning: 47.9 95.8% 53.1%;
     --theme-error: var(--destructive);
     
-    /* Couleurs de catégories */
-    --theme-work: 221.2 83.2% 53.3%;
-    --theme-personal: 142.1 76.2% 36.3%;
-    --theme-health: 47.9 95.8% 53.1%;
-    --theme-finance: 271.5 81.3% 55.9%;
-    --theme-education: 24.6 95% 53.1%;
-    --theme-other: 215.4 16.3% 46.9%;
+    /* Couleurs de catégories - NOUVEAU SYSTÈME */
+    --theme-obligation: 0 84.2% 60.2%; /* Rouge pour Obligation */
+    --theme-envie: 142.1 76.2% 36.3%; /* Vert pour Envie */
+    --theme-quotidien: 47.9 95.8% 53.1%; /* Orange pour Quotidien */
+    --theme-autres: 215.4 16.3% 46.9%; /* Gris pour Autres */
+    
+    /* Versions claires pour les fonds */
+    --theme-obligation-light: 0 84.2% 95%;
+    --theme-envie-light: 142.1 76.2% 95%;
+    --theme-quotidien-light: 47.9 95.8% 95%;
+    --theme-autres-light: 215.4 16.3% 95%;
   }
 
   [data-theme="dark"] {
@@ -81,12 +85,16 @@
     --theme-warning: 47.9 95.8% 53.1%;
     --theme-error: var(--destructive);
     
-    --theme-work: 217.2 91.2% 59.8%;
-    --theme-personal: 142.1 70.6% 45.3%;
-    --theme-health: 47.9 95.8% 53.1%;
-    --theme-finance: 271.5 81.3% 55.9%;
-    --theme-education: 24.6 95% 53.1%;
-    --theme-other: 215 20.2% 65.1%;
+    /* Couleurs de catégories - thème sombre */
+    --theme-obligation: 0 84.2% 70%;
+    --theme-envie: 142.1 70.6% 50%;
+    --theme-quotidien: 47.9 95.8% 60%;
+    --theme-autres: 215 20.2% 65.1%;
+    
+    --theme-obligation-light: 0 84.2% 20%;
+    --theme-envie-light: 142.1 70.6% 20%;
+    --theme-quotidien-light: 47.9 95.8% 20%;
+    --theme-autres-light: 215 20.2% 20%;
   }
 
   [data-theme="colorblind"] {
@@ -121,13 +129,16 @@
     --theme-warning: 0 0% 20%;
     --theme-error: var(--destructive);
     
-    /* Palette adaptée aux daltoniens (bleu/gris) */
-    --theme-work: 221.2 83.2% 53.3%;
-    --theme-personal: 0 0% 20%;
-    --theme-health: 221.2 83.2% 73.3%;
-    --theme-finance: 0 0% 40%;
-    --theme-education: 221.2 83.2% 33.3%;
-    --theme-other: 215.4 16.3% 46.9%;
+    /* Palette adaptée aux daltoniens (distinguable) */
+    --theme-obligation: 221.2 83.2% 53.3%; /* Bleu */
+    --theme-envie: 0 0% 20%; /* Noir */
+    --theme-quotidien: 221.2 83.2% 73.3%; /* Bleu clair */
+    --theme-autres: 0 0% 60%; /* Gris */
+    
+    --theme-obligation-light: 221.2 83.2% 95%;
+    --theme-envie-light: 0 0% 95%;
+    --theme-quotidien-light: 221.2 83.2% 95%;
+    --theme-autres-light: 0 0% 95%;
   }
 
   [data-theme="high-contrast"] {
@@ -163,12 +174,15 @@
     --theme-error: var(--destructive);
     
     /* Contraste élevé - noir et gris */
-    --theme-work: 0 0% 0%;
-    --theme-personal: 0 0% 30%;
-    --theme-health: 0 0% 50%;
-    --theme-finance: 0 0% 20%;
-    --theme-education: 0 0% 40%;
-    --theme-other: 0 0% 60%;
+    --theme-obligation: 0 0% 0%;
+    --theme-envie: 0 0% 30%;
+    --theme-quotidien: 0 0% 50%;
+    --theme-autres: 0 0% 70%;
+    
+    --theme-obligation-light: 0 0% 90%;
+    --theme-envie-light: 0 0% 85%;
+    --theme-quotidien-light: 0 0% 80%;
+    --theme-autres-light: 0 0% 75%;
   }
 
   * {
@@ -201,10 +215,24 @@
   
   .border-theme-border { border-color: hsl(var(--theme-border)); }
   
-  .bg-category-work { background-color: hsl(var(--theme-work)); }
-  .bg-category-personal { background-color: hsl(var(--theme-personal)); }
-  .bg-category-health { background-color: hsl(var(--theme-health)); }
-  .bg-category-finance { background-color: hsl(var(--theme-finance)); }
-  .bg-category-education { background-color: hsl(var(--theme-education)); }
-  .bg-category-other { background-color: hsl(var(--theme-other)); }
+  /* Classes pour les catégories de tâches */
+  .bg-category-obligation { background-color: hsl(var(--theme-obligation)); }
+  .bg-category-envie { background-color: hsl(var(--theme-envie)); }
+  .bg-category-quotidien { background-color: hsl(var(--theme-quotidien)); }
+  .bg-category-autres { background-color: hsl(var(--theme-autres)); }
+  
+  .bg-category-obligation-light { background-color: hsl(var(--theme-obligation-light)); }
+  .bg-category-envie-light { background-color: hsl(var(--theme-envie-light)); }
+  .bg-category-quotidien-light { background-color: hsl(var(--theme-quotidien-light)); }
+  .bg-category-autres-light { background-color: hsl(var(--theme-autres-light)); }
+  
+  .text-category-obligation { color: hsl(var(--theme-obligation)); }
+  .text-category-envie { color: hsl(var(--theme-envie)); }
+  .text-category-quotidien { color: hsl(var(--theme-quotidien)); }
+  .text-category-autres { color: hsl(var(--theme-autres)); }
+  
+  .border-category-obligation { border-color: hsl(var(--theme-obligation)); }
+  .border-category-envie { border-color: hsl(var(--theme-envie)); }
+  .border-category-quotidien { border-color: hsl(var(--theme-quotidien)); }
+  .border-category-autres { border-color: hsl(var(--theme-autres)); }
 }

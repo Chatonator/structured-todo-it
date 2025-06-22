@@ -25,38 +25,30 @@ export const TIME_OPTIONS = [
   }))
 ];
 
-// Configuration des catégories principales avec couleurs, icônes et motifs pour l'accessibilité
+// Configuration des catégories principales - NOUVEAU SYSTÈME AVEC COULEURS CSS
 export const CATEGORY_CONFIG = {
   Obligation: {
-    color: 'bg-red-100 text-red-800 border-red-200',
-    colorDark: 'bg-red-800 text-red-100',
-    icon: '🔥',
-    pattern: 'border-l-4 border-l-red-500',
-    shape: 'rounded-none',
+    color: 'bg-category-obligation-light text-category-obligation border-category-obligation',
+    borderPattern: 'border-l-4 border-l-category-obligation',
+    cssColor: 'hsl(var(--theme-obligation))',
     eisenhowerQuadrant: 'urgent-important'
   },
   Envie: {
-    color: 'bg-green-100 text-green-800 border-green-200',
-    colorDark: 'bg-green-800 text-green-100',
-    icon: '💚',
-    pattern: 'border-l-4 border-l-green-500',
-    shape: 'rounded-full',
+    color: 'bg-category-envie-light text-category-envie border-category-envie',
+    borderPattern: 'border-l-4 border-l-category-envie',
+    cssColor: 'hsl(var(--theme-envie))',
     eisenhowerQuadrant: 'important-not-urgent'
   },
   Quotidien: {
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    colorDark: 'bg-blue-800 text-blue-100',
-    icon: '📅',
-    pattern: 'border-l-4 border-l-blue-500',
-    shape: 'rounded-md',
+    color: 'bg-category-quotidien-light text-category-quotidien border-category-quotidien',
+    borderPattern: 'border-l-4 border-l-category-quotidien',
+    cssColor: 'hsl(var(--theme-quotidien))',
     eisenhowerQuadrant: 'urgent-not-important'
   },
   Autres: {
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
-    colorDark: 'bg-gray-800 text-gray-100',
-    icon: '📝',
-    pattern: 'border-l-4 border-l-gray-500',
-    shape: 'rounded-lg',
+    color: 'bg-category-autres-light text-category-autres border-category-autres',
+    borderPattern: 'border-l-4 border-l-category-autres',
+    cssColor: 'hsl(var(--theme-autres))',
     eisenhowerQuadrant: 'not-urgent-not-important'
   }
 } as const;
@@ -66,33 +58,25 @@ export const SUB_CATEGORY_CONFIG = {
   'Le plus important': {
     color: 'bg-purple-100 text-purple-800 border-purple-200',
     colorDark: 'bg-purple-800 text-purple-100',
-    icon: '⭐',
     pattern: 'border-l-4 border-l-purple-500',
-    shape: 'rounded-none',
     priority: 4
   },
   'Important': {
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     colorDark: 'bg-yellow-800 text-yellow-100',
-    icon: '➕',
     pattern: 'border-l-4 border-l-yellow-500',
-    shape: 'rounded-md',
     priority: 3
   },
   'Normal': {
     color: 'bg-orange-100 text-orange-800 border-orange-200',
     colorDark: 'bg-orange-800 text-orange-100',
-    icon: '🔗',
     pattern: 'border-l-4 border-l-orange-500',
-    shape: 'rounded-lg',
     priority: 2
   },
   'Optionnel': {
     color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     colorDark: 'bg-cyan-800 text-cyan-100',
-    icon: '⚙️',
     pattern: 'border-l-4 border-l-cyan-500',
-    shape: 'rounded-full',
     priority: 1
   }
 } as const;

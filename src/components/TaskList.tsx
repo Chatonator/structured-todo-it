@@ -83,8 +83,8 @@ const TaskList: React.FC<TaskListProps> = ({
     const totalTime = calculateTotalTime(task);
     const isSelected = selectedTasks.includes(task.id);
 
-    // Réduction de l'indentation
-    const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-3' : 'ml-6';
+    // Réduction de l'indentation pour optimiser l'espace
+    const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-2' : 'ml-4';
 
     return (
       <div key={task.id} className={indentClass}>
@@ -96,11 +96,11 @@ const TaskList: React.FC<TaskListProps> = ({
           className={`
             group flex items-center p-2 border rounded-md 
             hover:shadow-sm transition-all mb-1 text-xs
-            ${categoryConfig.pattern} ${levelConfig.bgColor}
+            ${categoryConfig.borderPattern} ${levelConfig.bgColor}
             ${task.level === 0 ? 'cursor-move' : ''}
             ${draggedIndex === mainTasks.findIndex(t => t.id === task.id) ? 'opacity-50' : ''}
             ${task.isCompleted ? 'opacity-60 bg-gray-100' : ''}
-            ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50' : 'border-gray-200'}
+            ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50' : 'border-theme-border'}
           `}
         >
           {/* Bouton de sélection */}
@@ -143,15 +143,16 @@ const TaskList: React.FC<TaskListProps> = ({
             {levelConfig.symbol}
           </div>
 
-          {/* Icône de catégorie */}
-          <div className="mr-1 text-xs">
-            {categoryConfig.icon}
-          </div>
+          {/* Indicateur de catégorie coloré */}
+          <div 
+            className={`w-2 h-2 rounded-full mr-2 ${categoryConfig.color.includes('bg-category') ? categoryConfig.color.split(' ')[0] : ''}`}
+            style={{ backgroundColor: categoryConfig.cssColor }}
+          />
 
           {/* Contenu principal */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-1">
-              <h3 className={`text-xs font-medium truncate ${task.isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+              <h3 className={`text-xs font-medium truncate ${task.isCompleted ? 'line-through text-gray-500' : 'text-theme-foreground'}`}>
                 {task.name}
               </h3>
               {subCategoryConfig && (
@@ -159,12 +160,12 @@ const TaskList: React.FC<TaskListProps> = ({
                   inline-flex items-center px-1 py-0.5 rounded text-xs font-medium
                   ${subCategoryConfig.color}
                 `}>
-                  {subCategoryConfig.icon}
+                  {subCategoryConfig.priority}★
                 </span>
               )}
             </div>
             
-            <div className="flex items-center space-x-1 mt-0.5 text-xs text-gray-500">
+            <div className="flex items-center space-x-1 mt-0.5 text-xs text-theme-muted">
               <Clock className="w-2 h-2" />
               <span>{formatDuration(totalTime)}</span>
               {hasSubTasks && <span>({subTasks.length})</span>}
@@ -184,7 +185,7 @@ const TaskList: React.FC<TaskListProps> = ({
                 <Divide className="w-2 h-2" />
               </Button>
             )}
-            {/* Nouveau bouton Terminer */}
+            {/* Bouton Terminer */}
             <Button
               variant="ghost"
               size="sm"
@@ -234,43 +235,13 @@ const TaskList: React.FC<TaskListProps> = ({
   return (
     <div className="flex flex-col h-full space-y-2">
       {/* En-tête avec tri et actions */}
-      <div className="flex items-center justify-between pb-2 border-b bg-white px-1">
-        <h2 className="text-sm font-semibold text-gray-800">
+      <div className="flex items-center justify-between pb-2 border-b bg-theme-background px-1">
+        <h2 className="text-sm font-semibold text-theme-foreground">
           Tâches ({tasks.length})
         </h2>
         <div className="flex items-center space-x-1">
           <Select onValueChange={(value) => onSortTasks(value as 'name' | 'duration' | 'category')}>
-            <SelectTrigger className="w-16 h-6 text-xs">
+            <SelectTrigger className="w-16 h-6 text-xs border-theme-border bg-theme-background text-theme-foreground">
               <ArrowUpDown className="w-2 h-2" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name">Nom</SelectItem>
-              <SelectItem value="duration">Durée</SelectItem>
-              <SelectItem value="category">Catégorie</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+            </SelectT
 
-      {/* Liste des tâches avec scroll */}
-      <ScrollArea className="flex-1">
-        <div className="space-y-1 p-1">
-          {mainTasks.map(task => renderTask(task))}
-        </div>
-      </ScrollArea>
-
-      {/* Modale pour sous-tâches */}
-      <TaskModal
-        isOpen={isSubTaskModalOpen}
-        onClose={() => {
-          setIsSubTaskModalOpen(false);
-          setSelectedParentTask(null);
-        }}
-        onAddTask={onAddTask}
-        parentTask={selectedParentTask || undefined}
-      />
-    </div>
-  );
-};
-
-export default TaskList;

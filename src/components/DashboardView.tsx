@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
   const totalTime = mainTasks.reduce((sum, task) => sum + calculateTotalTime(task), 0);
   const averageTime = totalTasks > 0 ? Math.round(totalTime / totalTasks) : 0;
 
-  // Répartition par catégories principales - corrigée
+  // Couleurs des graphiques basées sur les variables CSS
+  const getCategoryColor = (category: string) => {
+    const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG];
+    return config ? config.cssColor : 'hsl(var(--theme-autres))';
+  };
+
+  // Répartition par catégories principales avec couleurs CSS
   const categoryStats = Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
     const categoryTasks = tasks.filter(task => task.category === category);
     const categoryTime = categoryTasks.reduce((sum, task) => sum + task.estimatedTime, 0);
@@ -24,8 +31,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
       name: category,
       count: categoryTasks.length,
       time: categoryTime,
-      color: config.color,
-      icon: config.icon
+      color: config.cssColor,
+      bgColor: config.color
     };
   }).filter(stat => stat.count > 0);
 
@@ -37,18 +44,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
       name: subCategory,
       count: subCategoryTasks.length,
       time: subCategoryTime,
-      color: config.color,
-      icon: config.icon
+      color: config.color
     };
   }).filter(stat => stat.count > 0);
 
-  // Données pour les graphiques - avec couleurs fixes
-  const CHART_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
-  
-  const pieData = categoryStats.map((stat, index) => ({
+  // Données pour les graphiques avec couleurs CSS
+  const pieData = categoryStats.map((stat) => ({
     name: stat.name,
     value: stat.count,
-    fill: CHART_COLORS[index % CHART_COLORS.length]
+    fill: stat.color
   }));
 
   const barData = categoryStats.map(stat => ({
@@ -83,59 +87,59 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-sm text-gray-600">Vue d'ensemble de vos tâches et statistiques</p>
+        <h2 className="text-2xl font-bold text-theme-foreground">Dashboard</h2>
+        <p className="text-sm text-theme-muted">Vue d'ensemble de vos tâches et statistiques</p>
       </div>
 
       {/* Cartes de statistiques principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="border-theme-border bg-theme-background">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tâches</CardTitle>
-            <Hash className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-theme-foreground">Total Tâches</CardTitle>
+            <Hash className="h-4 w-4 text-theme-muted" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTasks}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-theme-foreground">{totalTasks}</div>
+            <p className="text-xs text-theme-muted">
               {mainTasks.length} principales, {totalTasks - mainTasks.length} sous-tâches
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-theme-border bg-theme-background">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Temps Total</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-theme-foreground">Temps Total</CardTitle>
+            <Clock className="h-4 w-4 text-theme-muted" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatHours(totalTime)}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-theme-foreground">{formatHours(totalTime)}</div>
+            <p className="text-xs text-theme-muted">
               {formatDuration(totalTime)} estimé
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-theme-border bg-theme-background">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Durée Moyenne</CardTitle>
-            <Timer className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-theme-foreground">Durée Moyenne</CardTitle>
+            <Timer className="h-4 w-4 text-theme-muted" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{averageTime}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-theme-foreground">{averageTime}</div>
+            <p className="text-xs text-theme-muted">
               minutes par tâche
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-theme-border bg-theme-background">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Catégories</CardTitle>
-            <PieChart className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-theme-foreground">Catégories</CardTitle>
+            <PieChart className="h-4 w-4 text-theme-muted" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{categoryStats.length}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-theme-foreground">{categoryStats.length}</div>
+            <p className="text-xs text-theme-muted">
               types différents
             </p>
           </CardContent>
@@ -145,9 +149,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
       {/* Graphiques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Répartition par catégories (Camembert) */}
-        <Card>
+        <Card className="border-theme-border bg-theme-background">
           <CardHeader>
-            <CardTitle>Répartition par Catégories</CardTitle>
+            <CardTitle className="text-theme-foreground">Répartition par Catégories</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -169,14 +173,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
               </ResponsiveContainer>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-4">
-              {categoryStats.map((stat, index) => (
+              {categoryStats.map((stat) => (
                 <div key={stat.name} className="flex items-center space-x-2">
                   <div 
                     className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: pieData[index]?.fill }}
+                    style={{ backgroundColor: stat.color }}
                   />
-                  <span className="text-sm">{stat.icon} {stat.name}</span>
-                  <span className="text-xs text-gray-500">({stat.count})</span>
+                  <span className="text-sm text-theme-foreground">{stat.name}</span>
+                  <span className="text-xs text-theme-muted">({stat.count})</span>
                 </div>
               ))}
             </div>
@@ -184,9 +188,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
         </Card>
 
         {/* Temps par catégorie (Histogramme) */}
-        <Card>
+        <Card className="border-theme-border bg-theme-background">
           <CardHeader>
-            <CardTitle>Temps par Catégorie</CardTitle>
+            <CardTitle className="text-theme-foreground">Temps par Catégorie</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -201,7 +205,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                       name === 'temps' ? 'Temps' : 'Tâches'
                     ]}
                   />
-                  <Bar dataKey="temps" fill="#8884d8" />
+                  <Bar dataKey="temps" fill="hsl(var(--theme-primary))" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -210,24 +214,27 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
       </div>
 
       {/* Détails par catégorie */}
-      <Card>
+      <Card className="border-theme-border bg-theme-background">
         <CardHeader>
-          <CardTitle>Détails par Catégorie</CardTitle>
+          <CardTitle className="text-theme-foreground">Détails par Catégorie</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {categoryStats.map(stat => (
-              <div key={stat.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={stat.name} className="flex items-center justify-between p-3 bg-theme-accent rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <span className="text-xl">{stat.icon}</span>
+                  <div 
+                    className="w-4 h-4 rounded-full" 
+                    style={{ backgroundColor: stat.color }}
+                  />
                   <div>
-                    <h4 className="font-medium">{stat.name}</h4>
-                    <p className="text-sm text-gray-600">{stat.count} tâche{stat.count > 1 ? 's' : ''}</p>
+                    <h4 className="font-medium text-theme-foreground">{stat.name}</h4>
+                    <p className="text-sm text-theme-muted">{stat.count} tâche{stat.count > 1 ? 's' : ''}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">{formatDuration(stat.time)}</p>
-                  <p className="text-xs text-gray-500">{Math.round(stat.time / stat.count)} min/tâche</p>
+                  <p className="font-medium text-theme-foreground">{formatDuration(stat.time)}</p>
+                  <p className="text-xs text-theme-muted">{Math.round(stat.time / stat.count)} min/tâche</p>
                 </div>
               </div>
             ))}
@@ -237,24 +244,23 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
 
       {/* Sous-catégories (si présentes) */}
       {subCategoryStats.length > 0 && (
-        <Card>
+        <Card className="border-theme-border bg-theme-background">
           <CardHeader>
-            <CardTitle>Sous-catégories</CardTitle>
+            <CardTitle className="text-theme-foreground">Sous-catégories</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {subCategoryStats.map(stat => (
-                <div key={stat.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={stat.name} className="flex items-center justify-between p-3 bg-theme-accent rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <span className="text-xl">{stat.icon}</span>
                     <div>
-                      <h4 className="font-medium">{stat.name}</h4>
-                      <p className="text-sm text-gray-600">{stat.count} sous-tâche{stat.count > 1 ? 's' : ''}</p>
+                      <h4 className="font-medium text-theme-foreground">{stat.name}</h4>
+                      <p className="text-sm text-theme-muted">{stat.count} sous-tâche{stat.count > 1 ? 's' : ''}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{formatDuration(stat.time)}</p>
-                    <p className="text-xs text-gray-500">{Math.round(stat.time / stat.count)} min/tâche</p>
+                    <p className="font-medium text-theme-foreground">{formatDuration(stat.time)}</p>
+                    <p className="text-xs text-theme-muted">{Math.round(stat.time / stat.count)} min/tâche</p>
                   </div>
                 </div>
               ))}
