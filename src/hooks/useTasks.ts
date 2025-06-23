@@ -248,6 +248,46 @@ export const useTasks = () => {
   const completedTasks = tasks.filter(task => task.isCompleted).length;
   const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
+  const scheduleTask = (taskId: string, date: Date, time: string) => {
+    setTasks(prevTasks => {
+      const newTasks = prevTasks.map(task => 
+        task.id === taskId 
+          ? { ...task, scheduledDate: date, scheduledTime: time }
+          : task
+      );
+      
+      addAction({
+        type: 'update',
+        data: { taskId, field: 'scheduled', value: { date, time } },
+        reverseAction: () => unscheduleTask(taskId)
+      });
+      
+      return newTasks;
+    });
+    console.log('Tâche planifiée:', taskId, date, time);
+  };
+
+  const unscheduleTask = (taskId: string) => {
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId 
+          ? { ...task, scheduledDate: undefined, scheduledTime: undefined }
+          : task
+      )
+    );
+    console.log('Tâche déprogrammée:', taskId);
+  };
+
+  const updateTaskDuration = (taskId: string, duration: number) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId
+          ? { ...task, duration }
+          : task
+      )
+    );
+  };
+
   return {
     tasks,
     mainTasks: sortedMainTasks,
@@ -270,6 +310,9 @@ export const useTasks = () => {
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    scheduleTask,
+    unscheduleTask,
+    updateTaskDuration
   };
 };

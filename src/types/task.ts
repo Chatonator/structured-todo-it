@@ -1,4 +1,3 @@
-
 export type TaskCategory = 'Obligation' | 'Quotidien' | 'Envie' | 'Autres';
 export type SubTaskCategory = 'Le plus important' | 'Important' | 'Peut attendre' | 'Si j\'ai le temps';
 export type TaskContext = 'Pro' | 'Perso';
@@ -15,6 +14,10 @@ export interface Task {
   level: 0 | 1 | 2;
   isExpanded: boolean;
   isCompleted: boolean;
+  // Nouveaux champs pour la planification
+  scheduledDate?: Date;
+  scheduledTime?: string; // Format "HH:mm"
+  duration?: number; // Durée réelle si différente de estimatedTime
 }
 
 export const CATEGORY_CONFIG = {
@@ -105,3 +108,23 @@ export const TIME_OPTIONS = [
   { value: 360, label: '6h' },
   { value: 480, label: '8h' }
 ];
+
+// Nouvelles constantes pour le calendrier
+export const CALENDAR_VIEWS = {
+  DAY: 'day',
+  WEEK: 'week',
+  MONTH: 'month',
+  THREE_MONTHS: 'three-months'
+} as const;
+
+export type CalendarView = typeof CALENDAR_VIEWS[keyof typeof CALENDAR_VIEWS];
+
+export const CALENDAR_HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8h à 19h
+
+export interface CalendarEvent {
+  id: string;
+  task: Task;
+  startTime: Date;
+  endTime: Date;
+  duration: number; // en minutes
+}
