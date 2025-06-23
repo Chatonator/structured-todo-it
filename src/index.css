@@ -216,9 +216,8 @@ body {
 
 /* Scrollbar améliorée pour la liste de tâches */
 .task-list-scroll {
-  overflow-y: auto !important;
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--theme-muted)) hsl(var(--theme-accent));
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 
 .task-list-scroll::-webkit-scrollbar {
@@ -226,18 +225,30 @@ body {
 }
 
 .task-list-scroll::-webkit-scrollbar-track {
-  background: hsl(var(--theme-accent));
-  border-radius: 4px;
+  background: transparent;
 }
 
 .task-list-scroll::-webkit-scrollbar-thumb {
-  background: hsl(var(--theme-muted));
+  background-color: rgba(156, 163, 175, 0.5);
   border-radius: 4px;
-  border: 1px solid hsl(var(--theme-accent));
 }
 
 .task-list-scroll::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--theme-primary));
+  background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* ScrollArea component customization */
+[data-radix-scroll-area-scrollbar] {
+  width: 8px !important;
+}
+
+[data-radix-scroll-area-thumb] {
+  background-color: rgba(156, 163, 175, 0.5) !important;
+  border-radius: 4px !important;
+}
+
+[data-radix-scroll-area-thumb]:hover {
+  background-color: rgba(156, 163, 175, 0.8) !important;
 }
 
 /* Classe utilitaire pour limiter le texte à 3 lignes */

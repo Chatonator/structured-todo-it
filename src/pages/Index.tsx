@@ -140,8 +140,8 @@ const Index = () => {
 
         {/* Contenu principal avec layout optimisé */}
         <main className="flex-1 flex">
-          {/* Colonne gauche : Liste des tâches actives (27% pour plus d'espace) */}
-          <div className="w-[27%] bg-theme-background border-r border-theme-border flex flex-col shadow-sm">
+          {/* Colonne gauche : Liste des tâches actives (25% pour la scrollbar) */}
+          <div className="w-[25%] bg-theme-background border-r border-theme-border flex flex-col shadow-sm">
             <TaskList 
               tasks={tasks}
               mainTasks={filteredMainTasks}
@@ -165,7 +165,7 @@ const Index = () => {
             />
           </div>
 
-          {/* Section droite : Vue courante (73%) */}
+          {/* Section droite : Vue courante (75%) */}
           <div className="flex-1 p-6 overflow-y-auto bg-theme-background">
             <div className="bg-theme-background rounded-lg shadow-sm border border-theme-border p-6 h-full">
               {renderCurrentView()}

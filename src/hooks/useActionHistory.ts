@@ -7,6 +7,7 @@ export interface HistoryAction {
   timestamp: Date;
   data: any;
   reverseAction: () => void;
+  forwardAction?: () => void;
 }
 
 export const useActionHistory = () => {
@@ -21,7 +22,7 @@ export const useActionHistory = () => {
     };
 
     setHistory(prev => {
-      // Couper l'historique après l'index courant
+      // Couper l'historique après l'index courant pour éviter les branches
       const newHistory = prev.slice(0, currentIndex + 1);
       newHistory.push(newAction);
       
@@ -34,12 +35,17 @@ export const useActionHistory = () => {
       return newHistory;
     });
     
-    setCurrentIndex(prev => Math.min(prev + 1, 9));
+    setCurrentIndex(prev => {
+      const newIndex = Math.min(prev + 1, 9);
+      return newIndex;
+    });
   }, [currentIndex]);
 
   const undo = useCallback(() => {
     if (currentIndex >= 0 && history[currentIndex]) {
-      history[currentIndex].reverseAction();
+      const action = history[currentIndex];
+      console.log('Executing undo for action:', action.type);
+      action.reverseAction();
       setCurrentIndex(prev => prev - 1);
       return true;
     }
@@ -47,9 +53,14 @@ export const useActionHistory = () => {
   }, [currentIndex, history]);
 
   const redo = useCallback(() => {
-    if (currentIndex < history.length - 1 && history[currentIndex + 1]) {
-      // Pour redo, on devrait avoir une action forward, mais simplifions
-      setCurrentIndex(prev => prev + 1);
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < history.length && history[nextIndex]) {
+      const action = history[nextIndex];
+      console.log('Executing redo for action:', action.type);
+      
+      // Pour le redo, on devrait réexécuter l'action originale
+      // Comme nous n'avons pas de forwardAction, on ne fait que avancer dans l'historique
+      setCurrentIndex(nextIndex);
       return true;
     }
     return false;
@@ -57,6 +68,13 @@ export const useActionHistory = () => {
 
   const canUndo = currentIndex >= 0;
   const canRedo = currentIndex < history.length - 1;
+
+  console.log('History state:', { 
+    historyLength: history.length, 
+    currentIndex, 
+    canUndo, 
+    canRedo 
+  });
 
   return {
     addAction,

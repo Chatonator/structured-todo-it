@@ -11,6 +11,7 @@ interface TaskItemProps {
   isSelected: boolean;
   isPinned: boolean;
   canHaveSubTasks: boolean;
+  forceExtended?: boolean;
   onToggleSelection: (taskId: string) => void;
   onToggleExpansion: (taskId: string) => void;
   onToggleCompletion: (taskId: string) => void;
@@ -35,6 +36,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
   isSelected,
   isPinned,
   canHaveSubTasks,
+  forceExtended = false,
   onToggleSelection,
   onToggleExpansion,
   onToggleCompletion,
@@ -61,7 +63,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-3' : 'ml-6';
-  const isExtended = isSelected;
+  const isExtended = isSelected || forceExtended;
 
   return (
     <div className={indentClass}>
@@ -76,20 +78,20 @@ const TaskItem: React.FC<TaskItemProps> = ({
           ${categoryConfig.borderPattern} ${levelConfig.bgColor}
           ${task.level === 0 ? 'cursor-move' : ''}
           ${dragIndex === taskIndex ? 'opacity-50' : ''}
-          ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 border-l-blue-500' : 'border-theme-border'}
-          ${isPinned ? 'task-pinned border-l-yellow-500' : ''}
+          ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 border-l-8' : 'border-l-6'}
+          ${isPinned ? 'task-pinned border-l-yellow-500 border-l-8' : ''}
           bg-theme-background
         `}
       >
         {/* Contrôles à gauche */}
         <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
           {/* Épinglage - seulement pour les tâches principales */}
-          {task.level === 0 && (isExtended || isSelected) && (
+          {task.level === 0 && (isExtended || isSelected || forceExtended) && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onTogglePinTask(task.id)}
-              className="h-5 w-5 p-0 text-gray-500 hover:text-yellow-600"
+              className="h-5 w-5 p-0 text-gray-500 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity"
               title="Épingler"
             >
               {isPinned ? 
@@ -113,12 +115,12 @@ const TaskItem: React.FC<TaskItemProps> = ({
           </Button>
 
           {/* Expansion pour les tâches avec sous-tâches */}
-          {hasSubTasks && (isExtended || isSelected) && (
+          {hasSubTasks && (isExtended || isSelected || forceExtended) && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onToggleExpansion(task.id)}
-              className="h-5 w-5 p-0 text-gray-500"
+              className="h-5 w-5 p-0 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               {task.isExpanded ? 
                 <ChevronDown className="w-3 h-3" /> : 
@@ -137,9 +139,10 @@ const TaskItem: React.FC<TaskItemProps> = ({
             </h3>
           </div>
           
-          {/* Informations détaillées - seulement en mode étendu */}
-          {(isExtended || isSelected) && (
-            <div className="flex items-center justify-between">
+          {/* Informations détaillées - seulement en mode étendu ou hover */}
+          {(isExtended || isSelected || forceExtended) && (
+            <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity group-hover:delay-200" 
+                 style={{ opacity: isSelected || forceExtended ? 1 : undefined }}>
               <div className="flex items-center gap-3 text-xs text-theme-muted">
                 <div className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
@@ -175,9 +178,10 @@ const TaskItem: React.FC<TaskItemProps> = ({
           )}
         </div>
 
-        {/* Actions à droite - seulement en mode étendu */}
-        {(isExtended || isSelected) && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        {/* Actions à droite - seulement en mode étendu ou hover */}
+        {(isExtended || isSelected || forceExtended) && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+               style={{ opacity: isSelected || forceExtended ? 1 : undefined }}>
             {canHaveSubTasks && (
               <Button
                 variant="ghost"

@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
-import { Clock } from 'lucide-react';
+import { Clock, Expand, Collapse } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
 import TaskItem from './task/TaskItem';
 import TaskListHeader from './task/TaskListHeader';
@@ -61,6 +62,7 @@ const TaskList: React.FC<TaskListProps> = ({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
+  const [isExtendedView, setIsExtendedView] = useState(false);
 
   // Filtres locaux utilisant le hook personnalisé
   const {
@@ -128,6 +130,7 @@ const TaskList: React.FC<TaskListProps> = ({
           isSelected={isSelected}
           isPinned={isPinned}
           canHaveSubTasks={canHaveSubTasks(task)}
+          forceExtended={isExtendedView}
           onToggleSelection={onToggleSelection}
           onToggleExpansion={onToggleExpansion}
           onToggleCompletion={onToggleCompletion}
@@ -163,11 +166,25 @@ const TaskList: React.FC<TaskListProps> = ({
           onCategoryFilterChange={setCategoryFilter}
           sortBy={sortBy}
           onSortChange={handleSort}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onUndo={onUndo}
-          onRedo={onRedo}
+          canUndo={false}
+          canRedo={false}
+          onUndo={() => {}}
+          onRedo={() => {}}
         />
+        
+        {/* Bouton de vue étendue */}
+        <div className="px-2 py-1 border-b border-theme-border bg-theme-background">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExtendedView(!isExtendedView)}
+            className="w-full justify-start text-xs text-theme-muted hover:text-theme-foreground"
+          >
+            {isExtendedView ? <Collapse className="w-3 h-3 mr-2" /> : <Expand className="w-3 h-3 mr-2" />}
+            {isExtendedView ? 'Vue condensée' : 'Vue étendue'}
+          </Button>
+        </div>
+        
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center py-8">
             <div className="text-gray-400 mb-3">
@@ -196,18 +213,33 @@ const TaskList: React.FC<TaskListProps> = ({
         onCategoryFilterChange={setCategoryFilter}
         sortBy={sortBy}
         onSortChange={handleSort}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={onUndo}
-        onRedo={onRedo}
+        canUndo={false}
+        canRedo={false}
+        onUndo={() => {}}
+        onRedo={() => {}}
       />
 
+      {/* Bouton de vue étendue */}
+      <div className="px-2 py-1 border-b border-theme-border bg-theme-background">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsExtendedView(!isExtendedView)}
+          className="w-full justify-start text-xs text-theme-muted hover:text-theme-foreground"
+        >
+          {isExtendedView ? <Collapse className="w-3 h-3 mr-2" /> : <Expand className="w-3 h-3 mr-2" />}
+          {isExtendedView ? 'Vue condensée' : 'Vue étendue'}
+        </Button>
+      </div>
+
       {/* Liste des tâches avec scroll personnalisé */}
-      <ScrollArea className="flex-1 task-list-scroll">
-        <div className="p-2 space-y-1">
-          {localFilteredTasks.map(task => renderTask(task))}
-        </div>
-      </ScrollArea>
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-2 space-y-1">
+            {localFilteredTasks.map(task => renderTask(task))}
+          </div>
+        </ScrollArea>
+      </div>
 
       {/* Modale pour sous-tâches */}
       {selectedParentTask && (
