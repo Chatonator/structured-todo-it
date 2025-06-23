@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import TaskList from '@/components/TaskList';
 import TaskModal from '@/components/TaskModal';
+import TasksView from '@/components/TasksView';
 import PriorityView from '@/components/PriorityView';
 import DashboardView from '@/components/DashboardView';
 import EisenhowerView from '@/components/EisenhowerView';
@@ -47,11 +47,12 @@ const Index = () => {
 
   // États locaux pour l'interface
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('priority');
+  const [currentView, setCurrentView] = useState('tasks');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
-  // Configuration de la navigation
+  // Configuration de la navigation - Ajout de la vue "taches" en premier
   const navigationItems = [
+    { key: 'tasks', title: 'Tâches', icon: '📝' },
     { key: 'priority', title: 'Vue 1-3-5', icon: '🎲' },
     { key: 'dashboard', title: 'Dashboard', icon: '📊' },
     { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
@@ -89,6 +90,15 @@ const Index = () => {
   // Rendu de la vue courante
   const renderCurrentView = () => {
     switch (currentView) {
+      case 'tasks':
+        return (
+          <TasksView 
+            tasks={filteredTasks}
+            mainTasks={mainTasks}
+            getSubTasks={getSubTasks}
+            calculateTotalTime={calculateTotalTime}
+          />
+        );
       case 'priority':
         return (
           <PriorityView 
