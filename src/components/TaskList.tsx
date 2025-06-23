@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
-import { Clock, Expand, Collapse } from 'lucide-react';
+import { Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
@@ -154,54 +153,6 @@ const TaskList: React.FC<TaskListProps> = ({
     );
   };
 
-  // Affichage quand aucune tâche n'est trouvée
-  if (localFilteredTasks.length === 0) {
-    return (
-      <div className="flex flex-col h-full">
-        <TaskListHeader
-          tasksCount={0}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          categoryFilter={categoryFilter}
-          onCategoryFilterChange={setCategoryFilter}
-          sortBy={sortBy}
-          onSortChange={handleSort}
-          canUndo={false}
-          canRedo={false}
-          onUndo={() => {}}
-          onRedo={() => {}}
-        />
-        
-        {/* Bouton de vue étendue */}
-        <div className="px-2 py-1 border-b border-theme-border bg-theme-background">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExtendedView(!isExtendedView)}
-            className="w-full justify-start text-xs text-theme-muted hover:text-theme-foreground"
-          >
-            {isExtendedView ? <Collapse className="w-3 h-3 mr-2" /> : <Expand className="w-3 h-3 mr-2" />}
-            {isExtendedView ? 'Vue condensée' : 'Vue étendue'}
-          </Button>
-        </div>
-        
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center py-8">
-            <div className="text-gray-400 mb-3">
-              <Clock className="w-8 h-8 mx-auto mb-2" />
-            </div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">
-              {searchQuery || categoryFilter !== 'all' ? 'Aucune tâche trouvée' : 'Aucune tâche active'}
-            </h3>
-            <p className="text-xs text-gray-400">
-              {searchQuery || categoryFilter !== 'all' ? 'Modifiez vos filtres' : 'Créez votre première tâche !'}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-full">
       {/* En-tête avec contrôles */}
@@ -227,7 +178,7 @@ const TaskList: React.FC<TaskListProps> = ({
           onClick={() => setIsExtendedView(!isExtendedView)}
           className="w-full justify-start text-xs text-theme-muted hover:text-theme-foreground"
         >
-          {isExtendedView ? <Collapse className="w-3 h-3 mr-2" /> : <Expand className="w-3 h-3 mr-2" />}
+          {isExtendedView ? <ChevronUp className="w-3 h-3 mr-2" /> : <ChevronDown className="w-3 h-3 mr-2" />}
           {isExtendedView ? 'Vue condensée' : 'Vue étendue'}
         </Button>
       </div>
@@ -236,7 +187,23 @@ const TaskList: React.FC<TaskListProps> = ({
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="p-2 space-y-1">
-            {localFilteredTasks.map(task => renderTask(task))}
+            {localFilteredTasks.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center py-8">
+                  <div className="text-gray-400 mb-3">
+                    <Clock className="w-8 h-8 mx-auto mb-2" />
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">
+                    {searchQuery || categoryFilter !== 'all' ? 'Aucune tâche trouvée' : 'Aucune tâche active'}
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    {searchQuery || categoryFilter !== 'all' ? 'Modifiez vos filtres' : 'Créez votre première tâche !'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              localFilteredTasks.map(task => renderTask(task))
+            )}
           </div>
         </ScrollArea>
       </div>
