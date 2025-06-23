@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG, TASK_LEVELS } from '@/types/task';
-import { Clock, X, ChevronDown, ChevronRight, Divide, CheckSquare, Square, Pin, PinOff, GripVertical } from 'lucide-react';
+import { Clock, X, ChevronDown, ChevronRight, Divide, CheckSquare, Square, Pin, PinOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface TaskItemProps {
@@ -61,6 +61,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-3' : 'ml-6';
+  const isExtended = isSelected;
 
   return (
     <div className={indentClass}>
@@ -70,20 +71,20 @@ const TaskItem: React.FC<TaskItemProps> = ({
         onDragOver={task.level === 0 ? onDragOver : undefined}
         onDrop={(e) => task.level === 0 && onDrop?.(e, taskIndex || 0)}
         className={`
-          group flex items-center gap-2 p-2 border rounded-lg 
+          group flex items-start gap-2 p-3 border rounded-lg 
           hover:shadow-sm transition-all mb-1 text-sm task-item
           ${categoryConfig.borderPattern} ${levelConfig.bgColor}
           ${task.level === 0 ? 'cursor-move' : ''}
           ${dragIndex === taskIndex ? 'opacity-50' : ''}
-          ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-theme-border'}
-          ${isPinned ? 'task-pinned' : ''}
+          ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 border-l-blue-500' : 'border-theme-border'}
+          ${isPinned ? 'task-pinned border-l-yellow-500' : ''}
           bg-theme-background
         `}
       >
         {/* Contrôles à gauche */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
           {/* Épinglage - seulement pour les tâches principales */}
-          {task.level === 0 && (
+          {task.level === 0 && (isExtended || isSelected) && (
             <Button
               variant="ghost"
               size="sm"
@@ -112,7 +113,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
           </Button>
 
           {/* Expansion pour les tâches avec sous-tâches */}
-          {hasSubTasks && (
+          {hasSubTasks && (isExtended || isSelected) && (
             <Button
               variant="ghost"
               size="sm"
@@ -125,101 +126,89 @@ const TaskItem: React.FC<TaskItemProps> = ({
               }
             </Button>
           )}
-
-          {/* Poignée de drag pour les tâches principales */}
-          {task.level === 0 && (
-            <div className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-              <GripVertical className="w-3 h-3" />
-            </div>
-          )}
         </div>
 
-        {/* Indicateurs visuels */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs font-bold text-gray-600">{levelConfig.symbol}</span>
-          <div 
-            className="w-3 h-3 rounded-full flex-shrink-0" 
-            style={{ backgroundColor: categoryConfig.cssColor }}
-          />
-        </div>
-
-        {/* Contenu principal - plus d'espace pour le titre */}
+        {/* Contenu principal - titre + infos conditionnelles */}
         <div className="flex-1 min-w-0 space-y-1">
-          {/* Titre de la tâche - plus proéminent */}
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-theme-foreground text-base leading-tight flex-1 min-w-0">
+          {/* Titre de la tâche - limité à 3 lignes */}
+          <div className="flex items-start gap-2">
+            <h3 className="font-semibold text-theme-foreground text-sm leading-tight flex-1 min-w-0 line-clamp-3 break-words">
               {task.name}
             </h3>
           </div>
           
-          {/* Informations secondaires - plus compactes */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-xs text-theme-muted">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>{formatDuration(totalTime)}</span>
+          {/* Informations détaillées - seulement en mode étendu */}
+          {(isExtended || isSelected) && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 text-xs text-theme-muted">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span>{formatDuration(totalTime)}</span>
+                </div>
+                {hasSubTasks && (
+                  <span className="bg-theme-accent px-1.5 py-0.5 rounded">
+                    {subTasks.length} tâche{subTasks.length > 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
-              {hasSubTasks && (
-                <span className="bg-theme-accent px-1.5 py-0.5 rounded">
-                  {subTasks.length} sous-tâche{subTasks.length > 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
-            
-            {/* Badges - plus compacts */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Badge contexte */}
-              <span className={`
-                inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
-                ${contextConfig.color} dark:${contextConfig.colorDark}
-              `}>
-                {task.context}
-              </span>
-              {/* Badge priorité */}
-              {subCategoryConfig && (
+              
+              {/* Badges - plus compacts */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Badge contexte */}
                 <span className={`
                   inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
-                  ${subCategoryConfig.color} dark:${subCategoryConfig.colorDark}
+                  ${contextConfig.color} dark:${contextConfig.colorDark}
                 `}>
-                  {subCategoryConfig.priority}★
+                  {task.context}
                 </span>
-              )}
+                {/* Badge priorité */}
+                {subCategoryConfig && (
+                  <span className={`
+                    inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                    ${subCategoryConfig.color} dark:${subCategoryConfig.colorDark}
+                  `}>
+                    {subCategoryConfig.priority}★
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Actions à droite */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-          {canHaveSubTasks && (
+        {/* Actions à droite - seulement en mode étendu */}
+        {(isExtended || isSelected) && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+            {canHaveSubTasks && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCreateSubTask(task)}
+                className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
+                title="Diviser"
+              >
+                <Divide className="w-3 h-3" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onCreateSubTask(task)}
-              className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
-              title="Diviser"
+              onClick={() => onToggleCompletion(task.id)}
+              className="h-6 w-6 p-0 text-green-500 hover:text-green-700"
+              title="Terminer"
             >
-              <Divide className="w-3 h-3" />
+              <CheckSquare className="w-3 h-3" />
             </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onToggleCompletion(task.id)}
-            className="h-6 w-6 p-0 text-green-500 hover:text-green-700"
-            title="Terminer"
-          >
-            <CheckSquare className="w-3 h-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onRemoveTask(task.id)}
-            className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
-            title="Supprimer"
-          >
-            <X className="w-3 h-3" />
-          </Button>
-        </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRemoveTask(task.id)}
+              className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+              title="Supprimer"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
