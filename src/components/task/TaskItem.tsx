@@ -60,26 +60,35 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragging(true);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('text/plain', task.id);
     
-    // Image de drag améliorée
+    // Image de drag améliorée avec plus de style
     const dragImage = document.createElement('div');
-    dragImage.innerHTML = `📅 ${task.name}`;
-    dragImage.className = 'drag-preview';
+    dragImage.innerHTML = `
+      <div style="
+        background: ${categoryConfig.cssColor};
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        transform: rotate(2deg) scale(1.05);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 200px;
+      ">
+        <span style="font-size: 16px;">📅</span>
+        <span>${task.name}</span>
+      </div>
+    `;
     dragImage.style.position = 'absolute';
     dragImage.style.top = '-1000px';
-    dragImage.style.background = categoryConfig.cssColor;
-    dragImage.style.color = 'white';
-    dragImage.style.padding = '12px 16px';
-    dragImage.style.borderRadius = '8px';
-    dragImage.style.fontSize = '14px';
-    dragImage.style.fontWeight = '600';
-    dragImage.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
-    dragImage.style.transform = 'rotate(2deg) scale(1.05)';
     document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
-    setTimeout(() => document.body.removeChild(dragImage), 0);
+    e.dataTransfer.setDragImage(dragImage, 100, 25);
+    setTimeout(() => document.body.removeChild(dragImage), 100);
     
     if (task.level === 0) {
       onDragStart?.(e, taskIndex || 0);
@@ -117,19 +126,23 @@ const TaskItem: React.FC<TaskItemProps> = ({
         onMouseLeave={() => setIsHovered(false)}
         className={`
           group flex items-start gap-2 p-3 border rounded-lg 
-          transition-all duration-300 mb-1 text-sm task-item
+          transition-all duration-300 mb-1 text-sm task-item relative
           ${categoryConfig.borderPattern} ${levelConfig.bgColor}
           ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
-          ${isDragging ? 'dragging opacity-30 scale-95 rotate-2' : ''}
-          ${isDragOver && !isDragging ? 'drop-zone-active transform scale-102' : ''}
+          ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
+          ${isDragOver && !isDragging ? 'scale-102 ring-2 ring-blue-400' : ''}
           ${dragIndex === taskIndex && !isDragging ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-300' : ''}
           ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 border-l-8' : 'border-l-8'}
-          ${isPinned ? 'task-pinned border-l-yellow-500 border-l-8' : ''}
-          ${isHovered && !isDragging ? 'shadow-lg transform -translate-y-0.5' : 'hover:shadow-md'}
+          ${isPinned ? 'border-l-yellow-500 border-l-8' : ''}
           bg-theme-background
         `}
         style={{
           borderLeftColor: !isSelected && !isPinned ? categoryConfig.cssColor : undefined,
+          boxShadow: isHovered && !isDragging 
+            ? `0 8px 25px -5px ${categoryConfig.cssColor}40, 0 4px 6px -2px ${categoryConfig.cssColor}20`
+            : isDragging 
+            ? `0 20px 40px -10px ${categoryConfig.cssColor}60`
+            : `0 1px 3px 0 ${categoryConfig.cssColor}20`
         }}
       >
         {/* Indicateur de drop zone */}
@@ -171,9 +184,10 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
         {/* Indicateur de drag pour les tâches actives */}
         {!task.isCompleted && isHovered && !isDragging && (
-          <div className="absolute right-2 top-2 text-blue-500 opacity-70 animate-pulse">
-            <div className="flex items-center gap-1 text-xs font-medium">
-              📅 <span>Glisser</span>
+          <div className="absolute right-2 top-2 text-blue-500 opacity-70 animate-bounce">
+            <div className="flex items-center gap-1 text-xs font-medium bg-white dark:bg-gray-800 px-2 py-1 rounded-full shadow-md">
+              <span className="text-sm">📅</span>
+              <span>Glisser vers calendrier</span>
             </div>
           </div>
         )}

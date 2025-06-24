@@ -1,255 +1,289 @@
-
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Variables CSS pour les thèmes */
-:root {
-  /* Couleurs de base */
-  --theme-background: 255 255 255;
-  --theme-foreground: 17 24 39;
-  --theme-muted: 107 114 128;
-  --theme-accent: 243 244 246;
-  --theme-border: 229 231 235;
-
-  /* Couleurs des catégories */
-  --theme-obligation: 239 68 68;
-  --theme-quotidien: 34 197 94;
-  --theme-envie: 168 85 247;
-  --theme-autres: 156 163 175;
-
-  /* Variables Shadcn */
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222.2 84% 4.9%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --chart-1: 12 76% 61%;
-  --chart-2: 173 58% 39%;
-  --chart-3: 197 37% 24%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
-  --radius: 0.5rem;
-}
-
-[data-theme="dark"] {
-  /* Couleurs de base pour le mode sombre */
-  --theme-background: 17 24 39;
-  --theme-foreground: 243 244 246;
-  --theme-muted: 156 163 175;
-  --theme-accent: 31 41 55;
-  --theme-border: 55 65 81;
-
-  /* Variables Shadcn pour le mode sombre */
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 84% 4.9%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 94.1%;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
-}
-
-/* Classes utilitaires pour les thèmes */
-.bg-theme-background { background-color: rgb(var(--theme-background)); }
-.text-theme-foreground { color: rgb(var(--theme-foreground)); }
-.text-theme-muted { color: rgb(var(--theme-muted)); }
-.bg-theme-accent { background-color: rgb(var(--theme-accent)); }
-.border-theme-border { border-color: rgb(var(--theme-border)); }
-
-/* Classes des catégories */
-.bg-category-obligation-light { background-color: rgb(var(--theme-obligation) / 0.1); }
-.text-category-obligation { color: rgb(var(--theme-obligation)); }
-.border-category-obligation { border-color: rgb(var(--theme-obligation)); }
-
-.bg-category-quotidien-light { background-color: rgb(var(--theme-quotidien) / 0.1); }
-.text-category-quotidien { color: rgb(var(--theme-quotidien)); }
-.border-category-quotidien { border-color: rgb(var(--theme-quotidien)); }
-
-.bg-category-envie-light { background-color: rgb(var(--theme-envie) / 0.1); }
-.text-category-envie { color: rgb(var(--theme-envie)); }
-.border-category-envie { border-color: rgb(var(--theme-envie)); }
-
-.bg-category-autres-light { background-color: rgb(var(--theme-autres) / 0.1); }
-.text-category-autres { color: rgb(var(--theme-autres)); }
-.border-category-autres { border-color: rgb(var(--theme-autres)); }
-
-/* Styles de base */
-* {
-  border-color: hsl(var(--border));
-}
-
+/* Styles de base pour l'application */
 body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: "Inter", sans-serif;
+  @apply bg-theme-background text-theme-foreground antialiased;
 }
 
-/* Amélioration de la scrollbar */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+/* Styles pour les conteneurs principaux */
+.container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+/* Styles pour les cartes (cards) */
+.card {
+  @apply bg-theme-card rounded-lg shadow-md p-4;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+/* Styles pour les formulaires */
+.form-control {
+  @apply block w-full px-3 py-2 border border-theme-border rounded-md shadow-sm focus:outline-none focus:ring-theme-primary focus:border-theme-primary sm:text-sm;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+/* Styles pour les boutons */
+.btn {
+  @apply inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.8);
+.btn-primary {
+  @apply bg-theme-primary text-white hover:bg-theme-primary-dark focus:ring-theme-primary;
 }
 
-/* Animation pour les tâches épinglées */
-.task-pinned {
-  position: relative;
+.btn-secondary {
+  @apply bg-theme-secondary text-white hover:bg-theme-secondary-dark focus:ring-theme-secondary;
 }
 
-.task-pinned::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, #f59e0b, #f97316, #f59e0b);
-  border-radius: 8px;
-  z-index: -1;
-  animation: shimmer 2s infinite;
+/* Styles pour la navigation */
+.nav-link {
+  @apply text-theme-foreground hover:text-theme-primary px-3 py-2 rounded-md text-sm font-medium;
 }
 
-@keyframes shimmer {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
+/* Styles pour les listes */
+.list-item {
+  @apply px-4 py-2 border-b border-theme-border;
 }
 
-/* Styles améliorés pour le drag and drop */
-.drag-preview {
-  transform: rotate(5deg) scale(1.05);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
-  z-index: 1000;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+/* Styles pour les typographies */
+.text-primary {
+  @apply text-theme-primary;
+}
+
+.text-secondary {
+  @apply text-theme-secondary;
+}
+
+/* Styles pour les liens */
+.link {
+  @apply text-theme-primary hover:text-theme-primary-dark;
+}
+
+/* Styles pour les icônes */
+.icon {
+  @apply h-5 w-5 inline-block align-middle;
+}
+
+/* Styles spécifiques à l'application Todo-IT */
+
+/* Styles pour la barre latérale */
+.sidebar {
+  @apply bg-theme-sidebar border-r border-theme-border h-full;
+}
+
+/* Styles pour l'en-tête de la tâche */
+.task-header {
+  @apply flex items-center justify-between p-4 border-b border-theme-border;
+}
+
+/* Styles pour le pied de page de la tâche */
+.task-footer {
+  @apply p-4 border-t border-theme-border;
+}
+
+/* Styles pour les catégories de tâches */
+.category-badge {
+  @apply inline-block bg-theme-accent text-theme-foreground rounded-full px-2 py-1 text-xs font-bold mr-2;
+}
+
+/* Styles pour les niveaux de tâches */
+.level-badge {
+  @apply inline-block bg-theme-muted text-theme-foreground rounded-full px-2 py-1 text-xs font-bold mr-2;
+}
+
+/* Styles pour les tâches complétées */
+.task-completed {
+  @apply line-through text-theme-muted;
+}
+
+/* Styles pour les champs de formulaire personnalisés */
+.custom-input {
+  @apply appearance-none block w-full bg-theme-input text-theme-foreground border border-theme-border rounded py-2 px-4 leading-tight focus:outline-none focus:bg-theme-background focus:border-theme-primary;
+}
+
+/* Styles pour les étiquettes de formulaire personnalisées */
+.custom-label {
+  @apply block uppercase tracking-wide text-theme-muted text-xs font-bold mb-2;
+}
+
+/* Styles pour les alertes */
+.alert {
+  @apply relative px-4 py-3 leading-normal;
+}
+
+.alert-success {
+  @apply bg-green-100 text-green-700;
+}
+
+.alert-error {
+  @apply bg-red-100 text-red-700;
+}
+
+/* Styles pour les thèmes */
+[data-theme="dark"] {
+  --theme-background: 20 20 20;
+  --theme-foreground: 255 255 255;
+  --theme-muted: 156 163 175;
+  --theme-accent: 30 41 59;
+  --theme-border: 55 65 81;
+  --theme-card: 30 41 59;
+  --theme-input: 30 41 59;
+  --theme-primary: 99 102 241;
+  --theme-secondary: 79 70 229;
+  --theme-obligation: 219 39 119;
+  --theme-quotidien: 22 163 74;
+  --theme-envie: 56 189 248;
+  --theme-autres: 107 114 128;
+}
+
+[data-theme="light"] {
+  --theme-background: 255 255 255;
+  --theme-foreground: 0 0 0;
+  --theme-muted: 71 85 105;
+  --theme-accent: 241 245 249;
+  --theme-border: 226 232 240;
+  --theme-card: 255 255 255;
+  --theme-input: 241 245 249;
+  --theme-primary: 99 102 241;
+  --theme-secondary: 79 70 229;
+   --theme-obligation: 219 39 119;
+  --theme-quotidien: 22 163 74;
+  --theme-envie: 56 189 248;
+  --theme-autres: 107 114 128;
+}
+
+/* Animations pour le drag & drop */
+.dragging {
+  opacity: 0.3 !important;
+  transform: scale(0.95) rotate(2deg) !important;
+  z-index: 1000 !important;
+  pointer-events: none;
 }
 
 .drop-zone-active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.15));
-  border: 2px dashed #3b82f6 !important;
-  animation: pulse-glow 1.5s infinite;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.2));
+  border-color: rgb(59, 130, 246) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3), inset 0 2px 8px rgba(59, 130, 246, 0.1);
+  transform: scale(1.02);
 }
 
-@keyframes pulse-glow {
-  0%, 100% { 
-    border-color: #3b82f6;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-  }
-  50% { 
-    border-color: #60a5fa;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-  }
-}
-
-/* Animations d'entrée et de sortie */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideOutDown {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-}
-
-.animate-slide-in-up {
-  animation: slideInUp 0.3s ease-out;
-}
-
-.animate-slide-out-down {
-  animation: slideOutDown 0.3s ease-out;
-}
-
-/* Styles pour les tâches en hover et drag */
 .task-item {
+  position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .task-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .task-item.dragging {
-  opacity: 0.4;
-  transform: rotate(3deg) scale(0.95);
+  transform: scale(0.95) rotate(2deg);
+  opacity: 0.3;
   z-index: 1000;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
 }
 
-/* Amélioration des transitions */
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 300ms;
+.task-pinned {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.05), rgba(255, 235, 59, 0.1));
 }
 
-/* Animation pour l'indicateur de glissement */
-@keyframes bounce-hint {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(5px); }
+/* Ombres colorées pour les catégories */
+.task-item[data-category="Obligation"]:hover {
+  box-shadow: 0 8px 25px -5px rgba(220, 38, 127, 0.25), 
+              0 4px 6px -2px rgba(220, 38, 127, 0.1);
 }
 
-.task-item:hover .drag-hint {
-  animation: bounce-hint 1s infinite;
+.task-item[data-category="Quotidien"]:hover {
+  box-shadow: 0 8px 25px -5px rgba(34, 197, 94, 0.25), 
+              0 4px 6px -2px rgba(34, 197, 94, 0.1);
+}
+
+.task-item[data-category="Envie"]:hover {
+  box-shadow: 0 8px 25px -5px rgba(59, 130, 246, 0.25), 
+              0 4px 6px -2px rgba(59, 130, 246, 0.1);
+}
+
+.task-item[data-category="Autres"]:hover {
+  box-shadow: 0 8px 25px -5px rgba(107, 114, 128, 0.25), 
+              0 4px 6px -2px rgba(107, 114, 128, 0.1);
+}
+
+/* Calendrier - créneaux horaires */
+.calendar-time-slot {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.calendar-time-slot:hover {
+  background: rgba(59, 130, 246, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.1);
+}
+
+.calendar-time-slot.drop-zone {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.2));
+  border: 2px dashed rgb(59, 130, 246);
+  box-shadow: inset 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+/* Animations de bounce pour les indicateurs */
+@keyframes gentle-bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+.animate-gentle-bounce {
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+/* Amélioration des scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* États de focus améliorés */
+.focus-ring:focus-visible {
+  outline: 2px solid rgb(59, 130, 246);
+  outline-offset: 2px;
+}
+
+/* Transitions fluides pour les modales */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.modal-content {
+  transform: scale(0.95);
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.modal-content.open {
+  transform: scale(1);
+  opacity: 1;
 }

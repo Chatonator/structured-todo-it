@@ -8,6 +8,7 @@ import TaskItem from './task/TaskItem';
 import TaskListHeader from './task/TaskListHeader';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
+import { TaskListActions } from './task/TaskListActions';
 
 interface TaskListProps {
   tasks: Task[];
@@ -29,6 +30,17 @@ interface TaskListProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  backups?: Array<{
+    id: string;
+    name: string;
+    createdAt: Date;
+    tasks: any[];
+  }>;
+  onSaveBackup?: (name: string) => void;
+  onLoadBackup?: (backupId: string) => void;
+  onDeleteBackup?: (backupId: string) => void;
+  onExportCSV?: () => void;
+  onImportCSV?: (file: File) => Promise<void>;
 }
 
 const TaskList: React.FC<TaskListProps> = ({ 
@@ -50,7 +62,13 @@ const TaskList: React.FC<TaskListProps> = ({
   canUndo,
   canRedo,
   onUndo,
-  onRedo
+  onRedo,
+  backups = [],
+  onSaveBackup,
+  onLoadBackup,
+  onDeleteBackup,
+  onExportCSV,
+  onImportCSV
 }) => {
   // États locaux
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -120,7 +138,7 @@ const TaskList: React.FC<TaskListProps> = ({
     setIsSubTaskModalOpen(true);
   };
 
-  // Rendu d'une tâche avec ses sous-tâches
+  // Rendu d'une tâche avec ses sous-tâches - ajout de data-category pour les ombres
   const renderTask = (task: Task): React.ReactNode => {
     const subTasks = getSubTasks(task.id).filter(t => !t.isCompleted);
     const totalTime = calculateTotalTime(task);
@@ -133,6 +151,7 @@ const TaskList: React.FC<TaskListProps> = ({
         key={task.id}
         onDragEnter={() => handleDragEnter(taskIndex)}
         onDragLeave={handleDragLeave}
+        data-category={task.category}
       >
         <TaskItem
           task={task}
@@ -183,6 +202,18 @@ const TaskList: React.FC<TaskListProps> = ({
         onRedo={() => {}}
       />
 
+      {/* Actions de sauvegarde et export */}
+      {(onSaveBackup || onExportCSV) && (
+        <TaskListActions
+          backups={backups}
+          onSaveBackup={onSaveBackup || (() => {})}
+          onLoadBackup={onLoadBackup || (() => {})}
+          onDeleteBackup={onDeleteBackup || (() => {})}
+          onExportCSV={onExportCSV || (() => {})}
+          onImportCSV={onImportCSV || (async () => {})}
+        />
+      )}
+
       {/* Bouton de vue étendue */}
       <div className="px-2 py-1 border-b border-theme-border bg-theme-background">
         <Button
@@ -207,7 +238,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
       {/* Liste des tâches avec scrollbar améliorée */}
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full w-full">
+        <ScrollArea className="h-full w-full custom-scrollbar">
           <div className="p-2 space-y-1">
             {localFilteredTasks.length === 0 ? (
               <div className="flex-1 flex items-center justify-center">

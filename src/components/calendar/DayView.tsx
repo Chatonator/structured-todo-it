@@ -2,8 +2,10 @@
 import React, { useState, useRef } from 'react';
 import { CalendarEvent, CALENDAR_HOURS } from '@/types/task';
 import { CalendarEventComponent } from './CalendarEvent';
-import { format, isSameDay } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { DayHeader } from './day/DayHeader';
+import { HourLabel } from './day/HourLabel';
+import { TimeSlot } from './day/TimeSlot';
+import { isSameDay } from 'date-fns';
 
 interface DayViewProps {
   currentDate: Date;
@@ -63,61 +65,30 @@ export const DayView: React.FC<DayViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* En-tête du jour */}
-      <div className="p-4 border-b border-theme-border bg-theme-background">
-        <h2 className="text-xl font-semibold text-theme-foreground">
-          {format(currentDate, 'EEEE d MMMM yyyy', { locale: fr })}
-        </h2>
-        <p className="text-sm text-theme-muted mt-1">
-          {dayEvents.length} événement{dayEvents.length !== 1 ? 's' : ''} planifié{dayEvents.length !== 1 ? 's' : ''}
-        </p>
-      </div>
+    <div className="flex flex-col h-full bg-theme-background">
+      <DayHeader currentDate={currentDate} eventsCount={dayEvents.length} />
 
-      {/* Grille horaire */}
       <div className="flex-1 overflow-auto" ref={containerRef}>
         <div className="grid grid-cols-2 h-full min-h-[800px]">
           {/* Colonne des heures */}
           <div className="border-r border-theme-border">
             {CALENDAR_HOURS.map(hour => (
-              <div
-                key={hour}
-                className="h-20 flex items-start justify-end pr-4 pt-2 text-sm font-medium text-theme-muted border-b border-theme-border"
-              >
-                {hour}:00
-              </div>
+              <HourLabel key={hour} hour={hour} />
             ))}
           </div>
 
           {/* Colonne des créneaux */}
           <div className="relative">
             {CALENDAR_HOURS.map(hour => (
-              <div
+              <TimeSlot
                 key={hour}
-                className={`
-                  h-20 border-b border-theme-border cursor-pointer transition-all duration-200
-                  ${dragOverSlot === `${hour}:00` 
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 drop-zone-active' 
-                    : 'hover:bg-theme-accent'
-                  }
-                `}
-                onClick={() => handleSlotClick(hour)}
-                onDragOver={(e) => handleSlotDragOver(e, hour)}
+                hour={hour}
+                isDropZone={dragOverSlot === `${hour}:00`}
+                onSlotClick={handleSlotClick}
+                onDragOver={handleSlotDragOver}
                 onDragLeave={handleSlotDragLeave}
-                onDrop={(e) => handleSlotDrop(e, hour)}
-              >
-                {/* Indicateur de drop zone */}
-                {dragOverSlot === `${hour}:00` && (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium animate-pulse">
-                      📅 Planifier ici
-                    </div>
-                  </div>
-                )}
-                
-                {/* Ligne de demi-heure */}
-                <div className="absolute inset-x-0 top-10 h-px bg-theme-border opacity-30" />
-              </div>
+                onDrop={handleSlotDrop}
+              />
             ))}
 
             {/* Événements */}
