@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Task } from '@/types/task';
 import { useCalendar } from '@/hooks/useCalendar';
@@ -43,7 +42,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
   };
 
   const handleScheduleTask = (taskId: string, date: Date, time: string) => {
-    scheduleTask(taskId, date,);
+    scheduleTask(taskId, date, time);
     console.log('Tâche planifiée:', taskId, 'à', time, 'le', date);
   };
 
