@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -28,11 +29,11 @@ body {
 }
 
 .btn-primary {
-  @apply bg-theme-primary text-white hover:bg-theme-primary-dark focus:ring-theme-primary;
+  @apply bg-theme-primary text-white hover:bg-theme-primary focus:ring-theme-primary;
 }
 
 .btn-secondary {
-  @apply bg-theme-secondary text-white hover:bg-theme-secondary-dark focus:ring-theme-secondary;
+  @apply bg-theme-secondary text-white hover:bg-theme-secondary focus:ring-theme-secondary;
 }
 
 /* Styles pour la navigation */
@@ -56,7 +57,7 @@ body {
 
 /* Styles pour les liens */
 .link {
-  @apply text-theme-primary hover:text-theme-primary-dark;
+  @apply text-theme-primary hover:text-theme-primary;
 }
 
 /* Styles pour les icônes */
@@ -68,7 +69,7 @@ body {
 
 /* Styles pour la barre latérale */
 .sidebar {
-  @apply bg-theme-sidebar border-r border-theme-border h-full;
+  @apply bg-theme-card border-r border-theme-border h-full;
 }
 
 /* Styles pour l'en-tête de la tâche */
@@ -130,6 +131,7 @@ body {
   --theme-input: 30 41 59;
   --theme-primary: 99 102 241;
   --theme-secondary: 79 70 229;
+  --theme-sidebar: 24 24 27;
   --theme-obligation: 219 39 119;
   --theme-quotidien: 22 163 74;
   --theme-envie: 56 189 248;
@@ -146,10 +148,45 @@ body {
   --theme-input: 241 245 249;
   --theme-primary: 99 102 241;
   --theme-secondary: 79 70 229;
-   --theme-obligation: 219 39 119;
+  --theme-sidebar: 248 250 252;
+  --theme-obligation: 219 39 119;
   --theme-quotidien: 22 163 74;
   --theme-envie: 56 189 248;
   --theme-autres: 107 114 128;
+}
+
+[data-theme="colorblind"] {
+  --theme-background: 255 255 255;
+  --theme-foreground: 0 0 0;
+  --theme-muted: 71 85 105;
+  --theme-accent: 241 245 249;
+  --theme-border: 226 232 240;
+  --theme-card: 255 255 255;
+  --theme-input: 241 245 249;
+  --theme-primary: 99 102 241;
+  --theme-secondary: 79 70 229;
+  --theme-sidebar: 248 250 252;
+  --theme-obligation: 185 28 28;
+  --theme-quotidien: 22 163 74;
+  --theme-envie: 14 116 144;
+  --theme-autres: 107 114 128;
+}
+
+[data-theme="high-contrast"] {
+  --theme-background: 255 255 255;
+  --theme-foreground: 0 0 0;
+  --theme-muted: 64 64 64;
+  --theme-accent: 240 240 240;
+  --theme-border: 0 0 0;
+  --theme-card: 255 255 255;
+  --theme-input: 255 255 255;
+  --theme-primary: 0 0 255;
+  --theme-secondary: 128 0 128;
+  --theme-sidebar: 245 245 245;
+  --theme-obligation: 255 0 0;
+  --theme-quotidien: 0 128 0;
+  --theme-envie: 0 0 255;
+  --theme-autres: 0 0 0;
 }
 
 /* Animations pour le drag & drop */

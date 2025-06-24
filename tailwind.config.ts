@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,23 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Theme colors for the Todo-IT application
+				theme: {
+					background: 'rgb(var(--theme-background))',
+					foreground: 'rgb(var(--theme-foreground))',
+					muted: 'rgb(var(--theme-muted))',
+					accent: 'rgb(var(--theme-accent))',
+					border: 'rgb(var(--theme-border))',
+					card: 'rgb(var(--theme-card))',
+					input: 'rgb(var(--theme-input))',
+					primary: 'rgb(var(--theme-primary))',
+					secondary: 'rgb(var(--theme-secondary))',
+					sidebar: 'rgb(var(--theme-sidebar))',
+					obligation: 'rgb(var(--theme-obligation))',
+					quotidien: 'rgb(var(--theme-quotidien))',
+					envie: 'rgb(var(--theme-envie))',
+					autres: 'rgb(var(--theme-autres))'
 				}
 			},
 			borderRadius: {
