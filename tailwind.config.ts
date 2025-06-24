@@ -79,6 +79,29 @@ export default {
 					quotidien: 'rgb(var(--theme-quotidien))',
 					envie: 'rgb(var(--theme-envie))',
 					autres: 'rgb(var(--theme-autres))'
+				},
+				// Category colors for tasks
+				category: {
+					obligation: {
+						DEFAULT: 'rgb(var(--theme-obligation))',
+						light: 'rgba(var(--theme-obligation), 0.1)',
+						dark: 'rgba(var(--theme-obligation), 0.8)'
+					},
+					quotidien: {
+						DEFAULT: 'rgb(var(--theme-quotidien))',
+						light: 'rgba(var(--theme-quotidien), 0.1)',
+						dark: 'rgba(var(--theme-quotidien), 0.8)'
+					},
+					envie: {
+						DEFAULT: 'rgb(var(--theme-envie))',
+						light: 'rgba(var(--theme-envie), 0.1)',
+						dark: 'rgba(var(--theme-envie), 0.8)'
+					},
+					autres: {
+						DEFAULT: 'rgb(var(--theme-autres))',
+						light: 'rgba(var(--theme-autres), 0.1)',
+						dark: 'rgba(var(--theme-autres), 0.8)'
+					}
 				}
 			},
 			borderRadius: {
