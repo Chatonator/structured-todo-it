@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Task } from '@/types/task';
 import { useActionHistory } from './useActionHistory';
@@ -91,11 +92,14 @@ export const useTasks = () => {
     setTasks(prevTasks => {
       const newTasks = [newTask, ...prevTasks];
       
-      // Ajouter à l'historique
+      // Ajouter à l'historique avec reverseAction et forwardAction
       addAction({
         type: 'add',
         data: newTask,
-        reverseAction: () => removeTask(newTask.id)
+        reverseAction: () => removeTask(newTask.id),
+        forwardAction: () => {
+          setTasks(prev => [newTask, ...prev.filter(t => t.id !== newTask.id)]);
+        }
       });
       
       return newTasks;
@@ -117,14 +121,18 @@ export const useTasks = () => {
       };
 
       const idsToRemove = removeTaskAndChildren(taskId);
+      const removedTasks = prevTasks.filter(task => idsToRemove.includes(task.id));
       const newTasks = prevTasks.filter(task => !idsToRemove.includes(task.id));
       
-      // Ajouter à l'historique
+      // Ajouter à l'historique avec reverseAction et forwardAction
       addAction({
         type: 'remove',
-        data: { removedTasks: prevTasks.filter(task => idsToRemove.includes(task.id)) },
+        data: { removedTasks },
         reverseAction: () => {
-          console.log('Action suppression annulée');
+          setTasks(prev => [...removedTasks, ...prev]);
+        },
+        forwardAction: () => {
+          setTasks(prev => prev.filter(task => !idsToRemove.includes(task.id)));
         }
       });
       
@@ -138,20 +146,29 @@ export const useTasks = () => {
 
   const toggleTaskCompletion = (taskId: string) => {
     setTasks(prevTasks => {
-      const newTasks = prevTasks.map(task => 
-        task.id === taskId 
-          ? { ...task, isCompleted: !task.isCompleted }
-          : task
+      const task = prevTasks.find(t => t.id === taskId);
+      if (!task) return prevTasks;
+
+      const newTasks = prevTasks.map(t => 
+        t.id === taskId 
+          ? { ...t, isCompleted: !t.isCompleted }
+          : t
       );
       
-      const task = prevTasks.find(t => t.id === taskId);
-      if (task) {
-        addAction({
-          type: 'update',
-          data: { taskId, field: 'isCompleted', value: !task.isCompleted },
-          reverseAction: () => toggleTaskCompletion(taskId)
-        });
-      }
+      addAction({
+        type: 'update',
+        data: { taskId, field: 'isCompleted', value: !task.isCompleted },
+        reverseAction: () => {
+          setTasks(prev => prev.map(t => 
+            t.id === taskId ? { ...t, isCompleted: task.isCompleted } : t
+          ));
+        },
+        forwardAction: () => {
+          setTasks(prev => prev.map(t => 
+            t.id === taskId ? { ...t, isCompleted: !task.isCompleted } : t
+          ));
+        }
+      });
       
       return newTasks;
     });
@@ -250,16 +267,32 @@ export const useTasks = () => {
 
   const scheduleTask = (taskId: string, date: Date, time: string) => {
     setTasks(prevTasks => {
-      const newTasks = prevTasks.map(task => 
-        task.id === taskId 
-          ? { ...task, scheduledDate: date, scheduledTime: time }
-          : task
+      const task = prevTasks.find(t => t.id === taskId);
+      if (!task) return prevTasks;
+
+      const newTasks = prevTasks.map(t => 
+        t.id === taskId 
+          ? { ...t, scheduledDate: date, scheduledTime: time }
+          : t
       );
       
       addAction({
         type: 'update',
         data: { taskId, field: 'scheduled', value: { date, time } },
-        reverseAction: () => unscheduleTask(taskId)
+        reverseAction: () => {
+          setTasks(prev => prev.map(t => 
+            t.id === taskId 
+              ? { ...t, scheduledDate: task.scheduledDate, scheduledTime: task.scheduledTime }
+              : t
+          ));
+        },
+        forwardAction: () => {
+          setTasks(prev => prev.map(t => 
+            t.id === taskId 
+              ? { ...t, scheduledDate: date, scheduledTime: time }
+              : t
+          ));
+        }
       });
       
       return newTasks;
