@@ -1,13 +1,13 @@
+
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
-import { Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, ChevronsDown, ChevronsUp } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
 import TaskItem from './task/TaskItem';
 import TaskListHeader from './task/TaskListHeader';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
-import { useTaskSelection } from '@/hooks/useTaskSelection';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
 
 interface TaskListProps {
@@ -32,10 +32,6 @@ interface TaskListProps {
   onRedo: () => void;
 }
 
-/**
- * Composant principal pour la liste des tâches
- * Refactorisé pour utiliser des hooks personnalisés et des composants séparés
- */
 const TaskList: React.FC<TaskListProps> = ({ 
   tasks,
   mainTasks,
@@ -57,13 +53,13 @@ const TaskList: React.FC<TaskListProps> = ({
   onUndo,
   onRedo
 }) => {
-  // États locaux pour le drag & drop et la modale
+  // États locaux
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
   const [isExtendedView, setIsExtendedView] = useState(false);
 
-  // Filtres locaux utilisant le hook personnalisé
+  // Filtres locaux
   const {
     searchQuery,
     setSearchQuery,
@@ -72,7 +68,7 @@ const TaskList: React.FC<TaskListProps> = ({
     filteredTasks: localFilteredTasks
   } = useTaskFilters(mainTasks.filter(task => !task.isCompleted));
 
-  // Utilisation du hook pour les opérations sur les tâches
+  // Opérations sur les tâches
   const { handleBulkComplete, handleBulkDelete } = useTaskOperations(
     onRemoveTask,
     onToggleCompletion,
@@ -178,14 +174,23 @@ const TaskList: React.FC<TaskListProps> = ({
           onClick={() => setIsExtendedView(!isExtendedView)}
           className="w-full justify-start text-xs text-theme-muted hover:text-theme-foreground"
         >
-          {isExtendedView ? <ChevronUp className="w-3 h-3 mr-2" /> : <ChevronDown className="w-3 h-3 mr-2" />}
-          {isExtendedView ? 'Vue condensée' : 'Vue étendue'}
+          {isExtendedView ? (
+            <>
+              <ChevronsUp className="w-3 h-3 mr-2" />
+              Vue condensée
+            </>
+          ) : (
+            <>
+              <ChevronsDown className="w-3 h-3 mr-2" />
+              Vue étendue
+            </>
+          )}
         </Button>
       </div>
 
-      {/* Liste des tâches avec scroll personnalisé */}
+      {/* Liste des tâches avec scrollbar améliorée */}
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+        <ScrollArea className="h-full w-full">
           <div className="p-2 space-y-1">
             {localFilteredTasks.length === 0 ? (
               <div className="flex-1 flex items-center justify-center">

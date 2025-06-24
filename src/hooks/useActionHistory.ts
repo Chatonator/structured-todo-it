@@ -7,7 +7,7 @@ export interface HistoryAction {
   timestamp: Date;
   data: any;
   reverseAction: () => void;
-  forwardAction?: () => void;
+  forwardAction: () => void;
 }
 
 export const useActionHistory = () => {
@@ -58,8 +58,8 @@ export const useActionHistory = () => {
       const action = history[nextIndex];
       console.log('Executing redo for action:', action.type);
       
-      // Pour le redo, on devrait réexécuter l'action originale
-      // Comme nous n'avons pas de forwardAction, on ne fait que avancer dans l'historique
+      // Exécuter l'action en avant
+      action.forwardAction();
       setCurrentIndex(nextIndex);
       return true;
     }

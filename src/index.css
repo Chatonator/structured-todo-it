@@ -258,3 +258,91 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Amélioration des bordures latérales - plus larges */
+.border-l-8 {
+  border-left-width: 8px !important;
+}
+
+/* Scrollbar améliorée spécifiquement pour la TaskList */
+.task-list-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.6) transparent;
+}
+
+.task-list-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+.task-list-container::-webkit-scrollbar-track {
+  background: hsl(var(--theme-background));
+  border-radius: 6px;
+}
+
+.task-list-container::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.6);
+  border-radius: 6px;
+  border: 2px solid hsl(var(--theme-background));
+}
+
+.task-list-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* ScrollArea améliorée pour une meilleure visibilité */
+[data-radix-scroll-area-scrollbar] {
+  width: 12px !important;
+  background: hsl(var(--theme-background));
+  border-radius: 6px;
+  padding: 2px;
+}
+
+[data-radix-scroll-area-thumb] {
+  background-color: rgba(156, 163, 175, 0.6) !important;
+  border-radius: 4px !important;
+  border: 1px solid hsl(var(--theme-background)) !important;
+}
+
+[data-radix-scroll-area-thumb]:hover {
+  background-color: rgba(156, 163, 175, 0.8) !important;
+}
+
+/* Amélioration des transitions pour le hover */
+.task-item {
+  transition: all 0.2s ease-in-out, border-left-color 0.15s ease-in-out;
+}
+
+.task-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Animations pour les éléments qui apparaissent au hover */
+.hover-reveal {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.group:hover .hover-reveal {
+  opacity: 1 !important;
+}
+
+/* Styles pour les bordures de catégorie plus épaisses */
+.border-l-category-obligation { 
+  border-left-color: hsl(var(--theme-obligation-dark)) !important; 
+  border-left-width: 8px !important; 
+}
+
+.border-l-category-envie { 
+  border-left-color: hsl(var(--theme-envie-dark)) !important; 
+  border-left-width: 8px !important; 
+}
+
+.border-l-category-quotidien { 
+  border-left-color: hsl(var(--theme-quotidien-dark)) !important; 
+  border-left-width: 8px !important; 
+}
+
+.border-l-category-autres { 
+  border-left-color: hsl(var(--theme-autres-dark)) !important; 
+  border-left-width: 8px !important; 
+}
