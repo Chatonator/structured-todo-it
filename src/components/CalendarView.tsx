@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Task } from '@/types/task';
 import { useCalendar } from '@/hooks/useCalendar';
@@ -24,13 +25,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
     canScheduleTask
   } = useCalendar(tasks);
 
-  // Tâches non planifiées pour la vue jour
-  const unscheduledTasks = tasks.filter(task => 
-    !task.isCompleted && 
-    !task.scheduledDate && 
-    task.level === 0 // Seulement les tâches principales
-  );
-
   const handleTimeSlotClick = (date: Date, time: string) => {
     console.log('Clic sur le créneau:', date, time);
     // TODO: Ouvrir modal de sélection de tâche
@@ -41,7 +35,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
     // TODO: Ouvrir modal d'édition de l'événement
   };
 
-  const handleScheduleTask = (taskId: string, date: Date, time: string) => {
+  const handleTaskDrop = (taskId: string, date: Date, time: string) => {
     scheduleTask(taskId, date, time);
     console.log('Tâche planifiée:', taskId, 'à', time, 'le', date);
   };
@@ -71,10 +65,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
           <DayView
             currentDate={currentDate}
             events={calendarEvents}
-            unscheduledTasks={unscheduledTasks}
             onEventClick={handleEventClick}
             onTimeSlotClick={handleTimeSlotClick}
-            onScheduleTask={handleScheduleTask}
+            onTaskDrop={handleTaskDrop}
           />
         )}
         
