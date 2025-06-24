@@ -1,26 +1,25 @@
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Variables CSS pour les thèmes */
 :root {
-  /* Couleurs principales par catégorie */
-  --theme-obligation: 0 72% 51%;
-  --theme-obligation-light: 0 84% 92%;
-  --theme-obligation-dark: 0 72% 51%;
-  
-  --theme-envie: 142 71% 45%; 
-  --theme-envie-light: 142 76% 88%;
-  --theme-envie-dark: 142 71% 45%;
-  
-  --theme-quotidien: 43 96% 56%;
-  --theme-quotidien-light: 43 96% 88%;
-  --theme-quotidien-dark: 43 96% 56%;
-  
-  --theme-autres: 210 40% 56%;
-  --theme-autres-light: 210 40% 88%;
-  --theme-autres-dark: 210 40% 56%;
+  /* Couleurs de base */
+  --theme-background: 255 255 255;
+  --theme-foreground: 17 24 39;
+  --theme-muted: 107 114 128;
+  --theme-accent: 243 244 246;
+  --theme-border: 229 231 235;
 
-  /* Thème clair */
+  /* Couleurs des catégories */
+  --theme-obligation: 239 68 68;
+  --theme-quotidien: 34 197 94;
+  --theme-envie: 168 85 247;
+  --theme-autres: 156 163 175;
+
+  /* Variables Shadcn */
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
@@ -30,33 +29,33 @@
   --primary: 221.2 83.2% 53.3%;
   --primary-foreground: 210 40% 98%;
   --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  --secondary-foreground: 222.2 84% 4.9%;
   --muted: 210 40% 96%;
   --muted-foreground: 215.4 16.3% 46.9%;
   --accent: 210 40% 96%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --accent-foreground: 222.2 84% 4.9%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 221.2 83.2% 53.3%;
-  --radius: 0.75rem;
-
-  /* Variables de thème personnalisées - Mode clair */
-  --theme-background: 0 0% 100%;
-  --theme-foreground: 222.2 84% 4.9%;
-  --theme-muted: 215.4 16.3% 46.9%;
-  --theme-accent: 210 40% 96%;
-  --theme-primary: 221.2 83.2% 53.3%;
-  --theme-primary-foreground: 210 40% 98%;
-  --theme-border: 214.3 31.8% 91.4%;
-  --theme-success: 142 71% 45%;
-  --theme-warning: 43 96% 56%;
-  --theme-error: 0 72% 51%;
+  --chart-1: 12 76% 61%;
+  --chart-2: 173 58% 39%;
+  --chart-3: 197 37% 24%;
+  --chart-4: 43 74% 66%;
+  --chart-5: 27 87% 67%;
+  --radius: 0.5rem;
 }
 
 [data-theme="dark"] {
-  /* Thème sombre */
+  /* Couleurs de base pour le mode sombre */
+  --theme-background: 17 24 39;
+  --theme-foreground: 243 244 246;
+  --theme-muted: 156 163 175;
+  --theme-accent: 31 41 55;
+  --theme-border: 55 65 81;
+
+  /* Variables Shadcn pour le mode sombre */
   --background: 222.2 84% 4.9%;
   --foreground: 210 40% 98%;
   --card: 222.2 84% 4.9%;
@@ -64,7 +63,7 @@
   --popover: 222.2 84% 4.9%;
   --popover-foreground: 210 40% 98%;
   --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  --primary-foreground: 222.2 84% 4.9%;
   --secondary: 217.2 32.6% 17.5%;
   --secondary-foreground: 210 40% 98%;
   --muted: 217.2 32.6% 17.5%;
@@ -76,135 +75,38 @@
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
   --ring: 224.3 76.3% 94.1%;
-
-  /* Variables de thème personnalisées - Mode sombre */
-  --theme-background: 222.2 84% 4.9%;
-  --theme-foreground: 210 40% 98%;
-  --theme-muted: 215 20.2% 65.1%;
-  --theme-accent: 217.2 32.6% 17.5%;
-  --theme-primary: 217.2 91.2% 59.8%;
-  --theme-primary-foreground: 222.2 47.4% 11.2%;
-  --theme-border: 217.2 32.6% 17.5%;
-  --theme-success: 142 71% 45%;
-  --theme-warning: 43 96% 56%;
-  --theme-error: 0 72% 51%;
-
-  /* Couleurs catégories en mode sombre */
-  --theme-obligation: 0 72% 60%;
-  --theme-obligation-light: 0 84% 92%;
-  --theme-obligation-dark: 0 72% 60%;
-  
-  --theme-envie: 142 71% 55%;
-  --theme-envie-light: 142 76% 88%;
-  --theme-envie-dark: 142 71% 55%;
-  
-  --theme-quotidien: 43 96% 66%;
-  --theme-quotidien-light: 43 96% 88%;
-  --theme-quotidien-dark: 43 96% 66%;
-  
-  --theme-autres: 210 40% 66%;
-  --theme-autres-light: 210 40% 88%;
-  --theme-autres-dark: 210 40% 66%;
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
 }
 
-[data-theme="colorblind"] {
-  /* Thème adapté aux daltoniens */
-  --theme-background: 0 0% 100%;
-  --theme-foreground: 0 0% 0%;
-  --theme-muted: 0 0% 45%;
-  --theme-accent: 0 0% 95%;
-  --theme-primary: 210 100% 40%;
-  --theme-primary-foreground: 0 0% 100%;
-  --theme-border: 0 0% 85%;
-  --theme-success: 0 0% 30%;
-  --theme-warning: 45 100% 30%;
-  --theme-error: 0 0% 10%;
+/* Classes utilitaires pour les thèmes */
+.bg-theme-background { background-color: rgb(var(--theme-background)); }
+.text-theme-foreground { color: rgb(var(--theme-foreground)); }
+.text-theme-muted { color: rgb(var(--theme-muted)); }
+.bg-theme-accent { background-color: rgb(var(--theme-accent)); }
+.border-theme-border { border-color: rgb(var(--theme-border)); }
 
-  /* Couleurs catégories adaptées */
-  --theme-obligation: 0 0% 20%;
-  --theme-envie: 0 0% 40%;
-  --theme-quotidien: 45 100% 40%;
-  --theme-autres: 210 100% 50%;
-}
+/* Classes des catégories */
+.bg-category-obligation-light { background-color: rgb(var(--theme-obligation) / 0.1); }
+.text-category-obligation { color: rgb(var(--theme-obligation)); }
+.border-category-obligation { border-color: rgb(var(--theme-obligation)); }
 
-[data-theme="high-contrast"] {
-  /* Thème à contraste élevé */
-  --theme-background: 0 0% 0%;
-  --theme-foreground: 0 0% 100%;
-  --theme-muted: 0 0% 70%;
-  --theme-accent: 0 0% 10%;
-  --theme-primary: 60 100% 50%;
-  --theme-primary-foreground: 0 0% 0%;
-  --theme-border: 0 0% 50%;
-  --theme-success: 120 100% 50%;
-  --theme-warning: 45 100% 50%;
-  --theme-error: 0 100% 50%;
+.bg-category-quotidien-light { background-color: rgb(var(--theme-quotidien) / 0.1); }
+.text-category-quotidien { color: rgb(var(--theme-quotidien)); }
+.border-category-quotidien { border-color: rgb(var(--theme-quotidien)); }
 
-  /* Couleurs catégories contrastées */
-  --theme-obligation: 0 100% 60%;
-  --theme-envie: 120 100% 60%;
-  --theme-quotidien: 60 100% 60%;
-  --theme-autres: 240 100% 60%;
-}
+.bg-category-envie-light { background-color: rgb(var(--theme-envie) / 0.1); }
+.text-category-envie { color: rgb(var(--theme-envie)); }
+.border-category-envie { border-color: rgb(var(--theme-envie)); }
 
-/* Classes utilitaires pour les catégories */
-.bg-category-obligation { background-color: hsl(var(--theme-obligation)); }
-.bg-category-obligation-light { background-color: hsl(var(--theme-obligation-light)); }
-.text-category-obligation { color: hsl(var(--theme-obligation-dark)); }
-.border-category-obligation { border-color: hsl(var(--theme-obligation-dark)); }
-.border-l-category-obligation { border-left-color: hsl(var(--theme-obligation-dark)) !important; border-left-width: 4px !important; }
+.bg-category-autres-light { background-color: rgb(var(--theme-autres) / 0.1); }
+.text-category-autres { color: rgb(var(--theme-autres)); }
+.border-category-autres { border-color: rgb(var(--theme-autres)); }
 
-.bg-category-envie { background-color: hsl(var(--theme-envie)); }
-.bg-category-envie-light { background-color: hsl(var(--theme-envie-light)); }
-.text-category-envie { color: hsl(var(--theme-envie-dark)); }
-.border-category-envie { border-color: hsl(var(--theme-envie-dark)); }
-.border-l-category-envie { border-left-color: hsl(var(--theme-envie-dark)) !important; border-left-width: 4px !important; }
-
-.bg-category-quotidien { background-color: hsl(var(--theme-quotidien)); }
-.bg-category-quotidien-light { background-color: hsl(var(--theme-quotidien-light)); }
-.text-category-quotidien { color: hsl(var(--theme-quotidien-dark)); }
-.border-category-quotidien { border-color: hsl(var(--theme-quotidien-dark)); }
-.border-l-category-quotidien { border-left-color: hsl(var(--theme-quotidien-dark)) !important; border-left-width: 4px !important; }
-
-.bg-category-autres { background-color: hsl(var(--theme-autres)); }
-.bg-category-autres-light { background-color: hsl(var(--theme-autres-light)); }
-.text-category-autres { color: hsl(var(--theme-autres-dark)); }
-.border-category-autres { border-color: hsl(var(--theme-autres-dark)); }
-.border-l-category-autres { border-left-color: hsl(var(--theme-autres-dark)) !important; border-left-width: 4px !important; }
-
-/* Classes de thème */
-.bg-theme-background { background-color: hsl(var(--theme-background)); }
-.text-theme-foreground { color: hsl(var(--theme-foreground)); }
-.text-theme-muted { color: hsl(var(--theme-muted)); }
-.bg-theme-accent { background-color: hsl(var(--theme-accent)); }
-.bg-theme-primary { background-color: hsl(var(--theme-primary)); }
-.text-theme-primary-foreground { color: hsl(var(--theme-primary-foreground)); }
-.border-theme-border { border-color: hsl(var(--theme-border)); }
-.text-theme-success { color: hsl(var(--theme-success)); }
-.text-theme-warning { color: hsl(var(--theme-warning)); }
-.text-theme-error { color: hsl(var(--theme-error)); }
-.bg-theme-success { background-color: hsl(var(--theme-success)); }
-.bg-theme-warning { background-color: hsl(var(--theme-warning)); }
-.bg-theme-error { background-color: hsl(var(--theme-error)); }
-
-/* Styles pour les tasks épinglées */
-.task-pinned {
-  background-color: hsl(var(--theme-warning) / 0.1);
-  border-left-color: hsl(var(--theme-warning)) !important;
-  border-left-width: 4px !important;
-}
-
-/* Animation pour les changements d'état */
-.task-item {
-  transition: all 0.2s ease-in-out;
-}
-
-/* Assurer la visibilité du texte */
-.task-name {
-  color: hsl(var(--theme-foreground)) !important;
-  opacity: 1 !important;
-}
-
+/* Styles de base */
 * {
   border-color: hsl(var(--border));
 }
@@ -212,137 +114,120 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  font-family: "Inter", sans-serif;
 }
 
-/* Scrollbar améliorée pour la liste de tâches */
-.task-list-scroll {
+/* Amélioration de la scrollbar */
+.custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 
-.task-list-scroll::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
 
-.task-list-scroll::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.task-list-scroll::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgba(156, 163, 175, 0.5);
   border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
-.task-list-scroll::-webkit-scrollbar-thumb:hover {
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(156, 163, 175, 0.8);
 }
 
-/* ScrollArea component customization */
-[data-radix-scroll-area-scrollbar] {
-  width: 8px !important;
+/* Animation pour les tâches épinglées */
+.task-pinned {
+  position: relative;
 }
 
-[data-radix-scroll-area-thumb] {
-  background-color: rgba(156, 163, 175, 0.5) !important;
-  border-radius: 4px !important;
+.task-pinned::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #f59e0b, #f97316, #f59e0b);
+  border-radius: 8px;
+  z-index: -1;
+  animation: shimmer 2s infinite;
 }
 
-[data-radix-scroll-area-thumb]:hover {
-  background-color: rgba(156, 163, 175, 0.8) !important;
+@keyframes shimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
 }
 
-/* Classe utilitaire pour limiter le texte à 3 lignes */
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Styles pour le drag and drop */
+.drag-preview {
+  transform: rotate(5deg) scale(1.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
 }
 
-/* Amélioration des bordures latérales - plus larges */
-.border-l-8 {
-  border-left-width: 8px !important;
+.drop-zone-active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.1));
+  border: 2px dashed #3b82f6;
+  animation: pulse-border 1s infinite;
 }
 
-/* Scrollbar améliorée spécifiquement pour la TaskList */
-.task-list-container {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.6) transparent;
+@keyframes pulse-border {
+  0%, 100% { border-color: #3b82f6; }
+  50% { border-color: #60a5fa; }
 }
 
-.task-list-container::-webkit-scrollbar {
-  width: 12px;
+/* Animations d'entrée et de sortie */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.task-list-container::-webkit-scrollbar-track {
-  background: hsl(var(--theme-background));
-  border-radius: 6px;
+@keyframes slideOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
 }
 
-.task-list-container::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.6);
-  border-radius: 6px;
-  border: 2px solid hsl(var(--theme-background));
+.animate-slide-in-up {
+  animation: slideInUp 0.3s ease-out;
 }
 
-.task-list-container::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.8);
+.animate-slide-out-down {
+  animation: slideOutDown 0.3s ease-out;
 }
 
-/* ScrollArea améliorée pour une meilleure visibilité */
-[data-radix-scroll-area-scrollbar] {
-  width: 12px !important;
-  background: hsl(var(--theme-background));
-  border-radius: 6px;
-  padding: 2px;
-}
-
-[data-radix-scroll-area-thumb] {
-  background-color: rgba(156, 163, 175, 0.6) !important;
-  border-radius: 4px !important;
-  border: 1px solid hsl(var(--theme-background)) !important;
-}
-
-[data-radix-scroll-area-thumb]:hover {
-  background-color: rgba(156, 163, 175, 0.8) !important;
-}
-
-/* Amélioration des transitions pour le hover */
-.task-item {
-  transition: all 0.2s ease-in-out, border-left-color 0.15s ease-in-out;
-}
-
+/* Styles pour les tâches en hover */
 .task-item:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Animations pour les éléments qui apparaissent au hover */
-.hover-reveal {
-  transition: opacity 0.2s ease-in-out;
+.task-item.dragging {
+  opacity: 0.3;
+  transform: rotate(3deg) scale(0.95);
+  transition: all 0.2s ease;
 }
 
-.group:hover .hover-reveal {
-  opacity: 1 !important;
-}
-
-/* Styles pour les bordures de catégorie plus épaisses */
-.border-l-category-obligation { 
-  border-left-color: hsl(var(--theme-obligation-dark)) !important; 
-  border-left-width: 8px !important; 
-}
-
-.border-l-category-envie { 
-  border-left-color: hsl(var(--theme-envie-dark)) !important; 
-  border-left-width: 8px !important; 
-}
-
-.border-l-category-quotidien { 
-  border-left-color: hsl(var(--theme-quotidien-dark)) !important; 
-  border-left-width: 8px !important; 
-}
-
-.border-l-category-autres { 
-  border-left-color: hsl(var(--theme-autres-dark)) !important; 
-  border-left-width: 8px !important; 
+/* Amélioration des transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
 }

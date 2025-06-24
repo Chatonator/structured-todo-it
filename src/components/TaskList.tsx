@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { Clock, ChevronsDown, ChevronsUp } from 'lucide-react';
@@ -55,6 +54,7 @@ const TaskList: React.FC<TaskListProps> = ({
 }) => {
   // États locaux
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
   const [isExtendedView, setIsExtendedView] = useState(false);
@@ -83,9 +83,10 @@ const TaskList: React.FC<TaskListProps> = ({
     onSortTasks(newSortBy);
   };
 
-  // Gestion du drag & drop
+  // Gestion du drag & drop améliorée
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
+    setDragOverIndex(null);
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -94,12 +95,23 @@ const TaskList: React.FC<TaskListProps> = ({
     e.dataTransfer.dropEffect = 'move';
   };
 
+  const handleDragEnter = (index: number) => {
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
     if (draggedIndex !== null && draggedIndex !== dropIndex) {
       onReorderTasks(draggedIndex, dropIndex);
     }
     setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   // Gestion de la création de sous-tâches
@@ -117,7 +129,11 @@ const TaskList: React.FC<TaskListProps> = ({
     const taskIndex = localFilteredTasks.findIndex(t => t.id === task.id);
 
     return (
-      <div key={task.id}>
+      <div 
+        key={task.id}
+        onDragEnter={() => handleDragEnter(taskIndex)}
+        onDragLeave={handleDragLeave}
+      >
         <TaskItem
           task={task}
           subTasks={subTasks}
@@ -137,6 +153,7 @@ const TaskList: React.FC<TaskListProps> = ({
           onDrop={handleDrop}
           dragIndex={draggedIndex}
           taskIndex={taskIndex}
+          isDragOver={dragOverIndex === taskIndex}
         />
 
         {/* Sous-tâches */}
