@@ -108,7 +108,7 @@ export const useTasksSaveLoad = (
     return ['Pro', 'Perso'].includes(value);
   };
 
-  const isValidLevel = (value: string): value is 0 | 1 | 2 => {
+  const isValidLevel = (value: string): boolean => {
     const num = parseInt(value);
     return [0, 1, 2].includes(num);
   };
