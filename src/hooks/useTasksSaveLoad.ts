@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Task } from '@/types/task';
+import { Task, TaskCategory, SubTaskCategory, TaskContext } from '@/types/task';
 
 interface TaskBackup {
   id: string;
@@ -96,7 +95,25 @@ export const useTasksSaveLoad = (
     link.click();
   };
 
-  // Import CSV
+  // Fonctions de validation pour l'import
+  const isValidCategory = (value: string): value is TaskCategory => {
+    return ['Obligation', 'Quotidien', 'Envie', 'Autres'].includes(value);
+  };
+
+  const isValidSubCategory = (value: string): value is SubTaskCategory => {
+    return ['Le plus important', 'Important', 'Peut attendre', 'Si j\'ai le temps'].includes(value);
+  };
+
+  const isValidContext = (value: string): value is TaskContext => {
+    return ['Pro', 'Perso'].includes(value);
+  };
+
+  const isValidLevel = (value: string): value is 0 | 1 | 2 => {
+    const num = parseInt(value);
+    return [0, 1, 2].includes(num);
+  };
+
+  // Import CSV avec validation des types
   const importFromCSV = (file: File) => {
     return new Promise<void>((resolve, reject) => {
       const reader = new FileReader();
@@ -115,14 +132,20 @@ export const useTasksSaveLoad = (
             const values = line.split(',');
             if (values.length < headers.length) continue;
             
+            // Validation et nettoyage des données
+            const category = isValidCategory(values[1]) ? values[1] : 'Autres';
+            const subCategory = values[2] && isValidSubCategory(values[2]) ? values[2] : undefined;
+            const context = isValidContext(values[3]) ? values[3] : 'Perso';
+            const level = isValidLevel(values[5]) ? parseInt(values[5]) as 0 | 1 | 2 : 0;
+            
             const task: Task = {
               id: crypto.randomUUID(),
               name: values[0].replace(/^"|"$/g, '').replace(/""/g, '"'),
-              category: values[1] as any,
-              subCategory: values[2] || undefined,
-              context: values[3] as any,
+              category,
+              subCategory,
+              context,
               estimatedTime: parseInt(values[4]) || 30,
-              level: parseInt(values[5]) as 0 | 1 | 2,
+              level,
               parentId: values[6] || undefined,
               isCompleted: values[7] === 'Oui',
               isExpanded: true,
