@@ -1,3 +1,4 @@
+
 export type TaskCategory = 'Obligation' | 'Quotidien' | 'Envie' | 'Autres';
 export type SubTaskCategory = 'Le plus important' | 'Important' | 'Peut attendre' | 'Si j\'ai le temps';
 export type TaskContext = 'Pro' | 'Perso';
@@ -20,29 +21,41 @@ export interface Task {
   duration?: number; // Durée réelle si différente de estimatedTime
 }
 
+// Mapping technique pour les classes CSS (sans accents, minuscules)
+export const CATEGORY_CSS_NAMES = {
+  'Obligation': 'obligation',
+  'Quotidien': 'quotidien', 
+  'Envie': 'envie',
+  'Autres': 'autres'
+} as const;
+
 export const CATEGORY_CONFIG = {
   'Obligation': {
+    cssName: 'obligation',
     color: 'bg-category-obligation-light text-category-obligation border-category-obligation',
     borderPattern: 'border-l-4 border-l-category-obligation',
-    cssColor: 'hsl(var(--theme-obligation))',
+    cssColor: 'rgb(var(--theme-obligation))',
     eisenhowerQuadrant: 'urgent-important' as const
   },
   'Quotidien': {
+    cssName: 'quotidien',
     color: 'bg-category-quotidien-light text-category-quotidien border-category-quotidien',
     borderPattern: 'border-l-4 border-l-category-quotidien',
-    cssColor: 'hsl(var(--theme-quotidien))',
+    cssColor: 'rgb(var(--theme-quotidien))',
     eisenhowerQuadrant: 'urgent-not-important' as const
   },
   'Envie': {
+    cssName: 'envie',
     color: 'bg-category-envie-light text-category-envie border-category-envie',
     borderPattern: 'border-l-4 border-l-category-envie',
-    cssColor: 'hsl(var(--theme-envie))',
+    cssColor: 'rgb(var(--theme-envie))',
     eisenhowerQuadrant: 'important-not-urgent' as const
   },
   'Autres': {
+    cssName: 'autres',
     color: 'bg-category-autres-light text-category-autres border-category-autres',
     borderPattern: 'border-l-4 border-l-category-autres',
-    cssColor: 'hsl(var(--theme-autres))',
+    cssColor: 'rgb(var(--theme-autres))',
     eisenhowerQuadrant: 'not-urgent-not-important' as const
   }
 } as const;

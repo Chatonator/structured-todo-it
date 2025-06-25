@@ -80,24 +80,24 @@ export default {
 					envie: 'rgb(var(--theme-envie))',
 					autres: 'rgb(var(--theme-autres))'
 				},
-				// Category colors for tasks - CORRECTION: utiliser les vrais noms des catégories
+				// CORRECTION : Clés en minuscules sans accents pour les classes CSS
 				category: {
-					'Obligation': {
+					'obligation': {
 						DEFAULT: 'rgb(var(--theme-obligation))',
 						light: 'rgba(var(--theme-obligation), 0.1)',
 						dark: 'rgba(var(--theme-obligation), 0.8)'
 					},
-					'Quotidien': {
+					'quotidien': {
 						DEFAULT: 'rgb(var(--theme-quotidien))',
 						light: 'rgba(var(--theme-quotidien), 0.1)',
 						dark: 'rgba(var(--theme-quotidien), 0.8)'
 					},
-					'Envie': {
+					'envie': {
 						DEFAULT: 'rgb(var(--theme-envie))',
 						light: 'rgba(var(--theme-envie), 0.1)',
 						dark: 'rgba(var(--theme-envie), 0.8)'
 					},
-					'Autres': {
+					'autres': {
 						DEFAULT: 'rgb(var(--theme-autres))',
 						light: 'rgba(var(--theme-autres), 0.1)',
 						dark: 'rgba(var(--theme-autres), 0.8)'
