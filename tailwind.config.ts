@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -62,46 +61,6 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				},
-				// Theme colors for the Todo-IT application
-				theme: {
-					background: 'rgb(var(--theme-background))',
-					foreground: 'rgb(var(--theme-foreground))',
-					muted: 'rgb(var(--theme-muted))',
-					accent: 'rgb(var(--theme-accent))',
-					border: 'rgb(var(--theme-border))',
-					card: 'rgb(var(--theme-card))',
-					input: 'rgb(var(--theme-input))',
-					primary: 'rgb(var(--theme-primary))',
-					secondary: 'rgb(var(--theme-secondary))',
-					sidebar: 'rgb(var(--theme-sidebar))',
-					obligation: 'rgb(var(--theme-obligation))',
-					quotidien: 'rgb(var(--theme-quotidien))',
-					envie: 'rgb(var(--theme-envie))',
-					autres: 'rgb(var(--theme-autres))'
-				},
-				// Category colors for tasks - CORRECTION: utiliser les vrais noms des catégories
-				category: {
-					'Obligation': {
-						DEFAULT: 'rgb(var(--theme-obligation))',
-						light: 'rgba(var(--theme-obligation), 0.1)',
-						dark: 'rgba(var(--theme-obligation), 0.8)'
-					},
-					'Quotidien': {
-						DEFAULT: 'rgb(var(--theme-quotidien))',
-						light: 'rgba(var(--theme-quotidien), 0.1)',
-						dark: 'rgba(var(--theme-quotidien), 0.8)'
-					},
-					'Envie': {
-						DEFAULT: 'rgb(var(--theme-envie))',
-						light: 'rgba(var(--theme-envie), 0.1)',
-						dark: 'rgba(var(--theme-envie), 0.8)'
-					},
-					'Autres': {
-						DEFAULT: 'rgb(var(--theme-autres))',
-						light: 'rgba(var(--theme-autres), 0.1)',
-						dark: 'rgba(var(--theme-autres), 0.8)'
-					}
 				}
 			},
 			borderRadius: {
