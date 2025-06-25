@@ -1,260 +1,326 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Couleurs principales par catégorie */
-  --theme-obligation: 0 72% 51%;
-  --theme-obligation-light: 0 84% 92%;
-  --theme-obligation-dark: 0 72% 51%;
-  
-  --theme-envie: 142 71% 45%; 
-  --theme-envie-light: 142 76% 88%;
-  --theme-envie-dark: 142 71% 45%;
-  
-  --theme-quotidien: 43 96% 56%;
-  --theme-quotidien-light: 43 96% 88%;
-  --theme-quotidien-dark: 43 96% 56%;
-  
-  --theme-autres: 210 40% 56%;
-  --theme-autres-light: 210 40% 88%;
-  --theme-autres-dark: 210 40% 56%;
-
-  /* Thème clair */
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.75rem;
-
-  /* Variables de thème personnalisées - Mode clair */
-  --theme-background: 0 0% 100%;
-  --theme-foreground: 222.2 84% 4.9%;
-  --theme-muted: 215.4 16.3% 46.9%;
-  --theme-accent: 210 40% 96%;
-  --theme-primary: 221.2 83.2% 53.3%;
-  --theme-primary-foreground: 210 40% 98%;
-  --theme-border: 214.3 31.8% 91.4%;
-  --theme-success: 142 71% 45%;
-  --theme-warning: 43 96% 56%;
-  --theme-error: 0 72% 51%;
+/* Styles de base pour l'application */
+body {
+  @apply bg-theme-background text-theme-foreground antialiased;
 }
 
+/* Styles pour les conteneurs principaux */
+.container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Styles pour les cartes (cards) */
+.card {
+  @apply bg-theme-card rounded-lg shadow-md p-4;
+}
+
+/* Styles pour les formulaires */
+.form-control {
+  @apply block w-full px-3 py-2 border border-theme-border rounded-md shadow-sm focus:outline-none focus:ring-theme-primary focus:border-theme-primary sm:text-sm;
+}
+
+/* Styles pour les boutons */
+.btn {
+  @apply inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-theme-primary text-white hover:bg-theme-primary focus:ring-theme-primary;
+}
+
+.btn-secondary {
+  @apply bg-theme-secondary text-white hover:bg-theme-secondary focus:ring-theme-secondary;
+}
+
+/* Styles pour la navigation */
+.nav-link {
+  @apply text-theme-foreground hover:text-theme-primary px-3 py-2 rounded-md text-sm font-medium;
+}
+
+/* Styles pour les listes */
+.list-item {
+  @apply px-4 py-2 border-b border-theme-border;
+}
+
+/* Styles pour les typographies */
+.text-primary {
+  @apply text-theme-primary;
+}
+
+.text-secondary {
+  @apply text-theme-secondary;
+}
+
+/* Styles pour les liens */
+.link {
+  @apply text-theme-primary hover:text-theme-primary;
+}
+
+/* Styles pour les icônes */
+.icon {
+  @apply h-5 w-5 inline-block align-middle;
+}
+
+/* Styles spécifiques à l'application Todo-IT */
+
+/* Styles pour la barre latérale */
+.sidebar {
+  @apply bg-theme-card border-r border-theme-border h-full;
+}
+
+/* Styles pour l'en-tête de la tâche */
+.task-header {
+  @apply flex items-center justify-between p-4 border-b border-theme-border;
+}
+
+/* Styles pour le pied de page de la tâche */
+.task-footer {
+  @apply p-4 border-t border-theme-border;
+}
+
+/* Styles pour les catégories de tâches */
+.category-badge {
+  @apply inline-block bg-theme-accent text-theme-foreground rounded-full px-2 py-1 text-xs font-bold mr-2;
+}
+
+/* Styles pour les niveaux de tâches */
+.level-badge {
+  @apply inline-block bg-theme-muted text-theme-foreground rounded-full px-2 py-1 text-xs font-bold mr-2;
+}
+
+/* Styles pour les tâches complétées */
+.task-completed {
+  @apply line-through text-theme-muted;
+}
+
+/* Styles pour les champs de formulaire personnalisés */
+.custom-input {
+  @apply appearance-none block w-full bg-theme-input text-theme-foreground border border-theme-border rounded py-2 px-4 leading-tight focus:outline-none focus:bg-theme-background focus:border-theme-primary;
+}
+
+/* Styles pour les étiquettes de formulaire personnalisées */
+.custom-label {
+  @apply block uppercase tracking-wide text-theme-muted text-xs font-bold mb-2;
+}
+
+/* Styles pour les alertes */
+.alert {
+  @apply relative px-4 py-3 leading-normal;
+}
+
+.alert-success {
+  @apply bg-green-100 text-green-700;
+}
+
+.alert-error {
+  @apply bg-red-100 text-red-700;
+}
+
+/* Styles pour les thèmes */
 [data-theme="dark"] {
-  /* Thème sombre */
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 94.1%;
+  --theme-background: 20 20 20;
+  --theme-foreground: 255 255 255;
+  --theme-muted: 156 163 175;
+  --theme-accent: 30 41 59;
+  --theme-border: 55 65 81;
+  --theme-card: 30 41 59;
+  --theme-input: 30 41 59;
+  --theme-primary: 99 102 241;
+  --theme-secondary: 79 70 229;
+  --theme-sidebar: 24 24 27;
+  --theme-obligation: 219 39 119;
+  --theme-quotidien: 22 163 74;
+  --theme-envie: 56 189 248;
+  --theme-autres: 107 114 128;
+}
 
-  /* Variables de thème personnalisées - Mode sombre */
-  --theme-background: 222.2 84% 4.9%;
-  --theme-foreground: 210 40% 98%;
-  --theme-muted: 215 20.2% 65.1%;
-  --theme-accent: 217.2 32.6% 17.5%;
-  --theme-primary: 217.2 91.2% 59.8%;
-  --theme-primary-foreground: 222.2 47.4% 11.2%;
-  --theme-border: 217.2 32.6% 17.5%;
-  --theme-success: 142 71% 45%;
-  --theme-warning: 43 96% 56%;
-  --theme-error: 0 72% 51%;
-
-  /* Couleurs catégories en mode sombre */
-  --theme-obligation: 0 72% 60%;
-  --theme-obligation-light: 0 84% 92%;
-  --theme-obligation-dark: 0 72% 60%;
-  
-  --theme-envie: 142 71% 55%;
-  --theme-envie-light: 142 76% 88%;
-  --theme-envie-dark: 142 71% 55%;
-  
-  --theme-quotidien: 43 96% 66%;
-  --theme-quotidien-light: 43 96% 88%;
-  --theme-quotidien-dark: 43 96% 66%;
-  
-  --theme-autres: 210 40% 66%;
-  --theme-autres-light: 210 40% 88%;
-  --theme-autres-dark: 210 40% 66%;
+[data-theme="light"] {
+  --theme-background: 255 255 255;
+  --theme-foreground: 0 0 0;
+  --theme-muted: 71 85 105;
+  --theme-accent: 241 245 249;
+  --theme-border: 226 232 240;
+  --theme-card: 255 255 255;
+  --theme-input: 241 245 249;
+  --theme-primary: 99 102 241;
+  --theme-secondary: 79 70 229;
+  --theme-sidebar: 248 250 252;
+  --theme-obligation: 219 39 119;
+  --theme-quotidien: 22 163 74;
+  --theme-envie: 56 189 248;
+  --theme-autres: 107 114 128;
 }
 
 [data-theme="colorblind"] {
-  /* Thème adapté aux daltoniens */
-  --theme-background: 0 0% 100%;
-  --theme-foreground: 0 0% 0%;
-  --theme-muted: 0 0% 45%;
-  --theme-accent: 0 0% 95%;
-  --theme-primary: 210 100% 40%;
-  --theme-primary-foreground: 0 0% 100%;
-  --theme-border: 0 0% 85%;
-  --theme-success: 0 0% 30%;
-  --theme-warning: 45 100% 30%;
-  --theme-error: 0 0% 10%;
-
-  /* Couleurs catégories adaptées */
-  --theme-obligation: 0 0% 20%;
-  --theme-envie: 0 0% 40%;
-  --theme-quotidien: 45 100% 40%;
-  --theme-autres: 210 100% 50%;
+  --theme-background: 255 255 255;
+  --theme-foreground: 0 0 0;
+  --theme-muted: 71 85 105;
+  --theme-accent: 241 245 249;
+  --theme-border: 226 232 240;
+  --theme-card: 255 255 255;
+  --theme-input: 241 245 249;
+  --theme-primary: 99 102 241;
+  --theme-secondary: 79 70 229;
+  --theme-sidebar: 248 250 252;
+  --theme-obligation: 185 28 28;
+  --theme-quotidien: 22 163 74;
+  --theme-envie: 14 116 144;
+  --theme-autres: 107 114 128;
 }
 
 [data-theme="high-contrast"] {
-  /* Thème à contraste élevé */
-  --theme-background: 0 0% 0%;
-  --theme-foreground: 0 0% 100%;
-  --theme-muted: 0 0% 70%;
-  --theme-accent: 0 0% 10%;
-  --theme-primary: 60 100% 50%;
-  --theme-primary-foreground: 0 0% 0%;
-  --theme-border: 0 0% 50%;
-  --theme-success: 120 100% 50%;
-  --theme-warning: 45 100% 50%;
-  --theme-error: 0 100% 50%;
-
-  /* Couleurs catégories contrastées */
-  --theme-obligation: 0 100% 60%;
-  --theme-envie: 120 100% 60%;
-  --theme-quotidien: 60 100% 60%;
-  --theme-autres: 240 100% 60%;
+  --theme-background: 255 255 255;
+  --theme-foreground: 0 0 0;
+  --theme-muted: 64 64 64;
+  --theme-accent: 240 240 240;
+  --theme-border: 0 0 0;
+  --theme-card: 255 255 255;
+  --theme-input: 255 255 255;
+  --theme-primary: 0 0 255;
+  --theme-secondary: 128 0 128;
+  --theme-sidebar: 245 245 245;
+  --theme-obligation: 255 0 0;
+  --theme-quotidien: 0 128 0;
+  --theme-envie: 0 0 255;
+  --theme-autres: 0 0 0;
 }
 
-/* Classes utilitaires pour les catégories */
-.bg-category-obligation { background-color: hsl(var(--theme-obligation)); }
-.bg-category-obligation-light { background-color: hsl(var(--theme-obligation-light)); }
-.text-category-obligation { color: hsl(var(--theme-obligation-dark)); }
-.border-category-obligation { border-color: hsl(var(--theme-obligation-dark)); }
-.border-l-category-obligation { border-left-color: hsl(var(--theme-obligation-dark)) !important; border-left-width: 4px !important; }
-
-.bg-category-envie { background-color: hsl(var(--theme-envie)); }
-.bg-category-envie-light { background-color: hsl(var(--theme-envie-light)); }
-.text-category-envie { color: hsl(var(--theme-envie-dark)); }
-.border-category-envie { border-color: hsl(var(--theme-envie-dark)); }
-.border-l-category-envie { border-left-color: hsl(var(--theme-envie-dark)) !important; border-left-width: 4px !important; }
-
-.bg-category-quotidien { background-color: hsl(var(--theme-quotidien)); }
-.bg-category-quotidien-light { background-color: hsl(var(--theme-quotidien-light)); }
-.text-category-quotidien { color: hsl(var(--theme-quotidien-dark)); }
-.border-category-quotidien { border-color: hsl(var(--theme-quotidien-dark)); }
-.border-l-category-quotidien { border-left-color: hsl(var(--theme-quotidien-dark)) !important; border-left-width: 4px !important; }
-
-.bg-category-autres { background-color: hsl(var(--theme-autres)); }
-.bg-category-autres-light { background-color: hsl(var(--theme-autres-light)); }
-.text-category-autres { color: hsl(var(--theme-autres-dark)); }
-.border-category-autres { border-color: hsl(var(--theme-autres-dark)); }
-.border-l-category-autres { border-left-color: hsl(var(--theme-autres-dark)) !important; border-left-width: 4px !important; }
-
-/* Classes de thème */
-.bg-theme-background { background-color: hsl(var(--theme-background)); }
-.text-theme-foreground { color: hsl(var(--theme-foreground)); }
-.text-theme-muted { color: hsl(var(--theme-muted)); }
-.bg-theme-accent { background-color: hsl(var(--theme-accent)); }
-.bg-theme-primary { background-color: hsl(var(--theme-primary)); }
-.text-theme-primary-foreground { color: hsl(var(--theme-primary-foreground)); }
-.border-theme-border { border-color: hsl(var(--theme-border)); }
-.text-theme-success { color: hsl(var(--theme-success)); }
-.text-theme-warning { color: hsl(var(--theme-warning)); }
-.text-theme-error { color: hsl(var(--theme-error)); }
-.bg-theme-success { background-color: hsl(var(--theme-success)); }
-.bg-theme-warning { background-color: hsl(var(--theme-warning)); }
-.bg-theme-error { background-color: hsl(var(--theme-error)); }
-
-/* Styles pour les tasks épinglées */
-.task-pinned {
-  background-color: hsl(var(--theme-warning) / 0.1);
-  border-left-color: hsl(var(--theme-warning)) !important;
-  border-left-width: 4px !important;
+/* Animations pour le drag & drop */
+.dragging {
+  opacity: 0.3 !important;
+  transform: scale(0.95) rotate(2deg) !important;
+  z-index: 1000 !important;
+  pointer-events: none;
 }
 
-/* Animation pour les changements d'état */
+.drop-zone-active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.2));
+  border-color: rgb(59, 130, 246) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3), inset 0 2px 8px rgba(59, 130, 246, 0.1);
+  transform: scale(1.02);
+}
+
 .task-item {
-  transition: all 0.2s ease-in-out;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Assurer la visibilité du texte */
-.task-name {
-  color: hsl(var(--theme-foreground)) !important;
-  opacity: 1 !important;
+.task-item:hover {
+  transform: translateY(-2px);
 }
 
-* {
-  border-color: hsl(var(--border));
+.task-item.dragging {
+  transform: scale(0.95) rotate(2deg);
+  opacity: 0.3;
+  z-index: 1000;
 }
 
-body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+.task-pinned {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.05), rgba(255, 235, 59, 0.1));
 }
 
-/* Scrollbar améliorée pour la liste de tâches */
-.task-list-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+/* Ombres colorées pour les catégories */
+.task-item[data-category="Obligation"]:hover {
+  box-shadow: 0 8px 25px -5px rgba(220, 38, 127, 0.25), 
+              0 4px 6px -2px rgba(220, 38, 127, 0.1);
 }
 
-.task-list-scroll::-webkit-scrollbar {
+.task-item[data-category="Quotidien"]:hover {
+  box-shadow: 0 8px 25px -5px rgba(34, 197, 94, 0.25), 
+              0 4px 6px -2px rgba(34, 197, 94, 0.1);
+}
+
+.task-item[data-category="Envie"]:hover {
+  box-shadow: 0 8px 25px -5px rgba(59, 130, 246, 0.25), 
+              0 4px 6px -2px rgba(59, 130, 246, 0.1);
+}
+
+.task-item[data-category="Autres"]:hover {
+  box-shadow: 0 8px 25px -5px rgba(107, 114, 128, 0.25), 
+              0 4px 6px -2px rgba(107, 114, 128, 0.1);
+}
+
+/* Calendrier - créneaux horaires */
+.calendar-time-slot {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.calendar-time-slot:hover {
+  background: rgba(59, 130, 246, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.1);
+}
+
+.calendar-time-slot.drop-zone {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.2));
+  border: 2px dashed rgb(59, 130, 246);
+  box-shadow: inset 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+/* Animations de bounce pour les indicateurs */
+@keyframes gentle-bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+.animate-gentle-bounce {
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+/* Amélioration des scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
 
-.task-list-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.task-list-scroll::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 4px;
 }
 
-.task-list-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.8);
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
 }
 
-/* ScrollArea component customization */
-[data-radix-scroll-area-scrollbar] {
-  width: 8px !important;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
-[data-radix-scroll-area-thumb] {
-  background-color: rgba(156, 163, 175, 0.5) !important;
-  border-radius: 4px !important;
+/* États de focus améliorés */
+.focus-ring:focus-visible {
+  outline: 2px solid rgb(59, 130, 246);
+  outline-offset: 2px;
 }
 
-[data-radix-scroll-area-thumb]:hover {
-  background-color: rgba(156, 163, 175, 0.8) !important;
+/* Transitions fluides pour les modales */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
 }
 
-/* Classe utilitaire pour limiter le texte à 3 lignes */
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.modal-content {
+  transform: scale(0.95);
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.modal-content.open {
+  transform: scale(1);
+  opacity: 1;
 }

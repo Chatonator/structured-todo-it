@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
-import { Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, ChevronsDown, ChevronsUp } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
 import TaskItem from './task/TaskItem';
 import TaskListHeader from './task/TaskListHeader';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
-import { useTaskSelection } from '@/hooks/useTaskSelection';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
+import { TaskListActions } from './task/TaskListActions';
 
 interface TaskListProps {
   tasks: Task[];
@@ -30,12 +30,19 @@ interface TaskListProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  backups?: Array<{
+    id: string;
+    name: string;
+    createdAt: Date;
+    tasks: any[];
+  }>;
+  onSaveBackup?: (name: string) => void;
+  onLoadBackup?: (backupId: string) => void;
+  onDeleteBackup?: (backupId: string) => void;
+  onExportCSV?: () => void;
+  onImportCSV?: (file: File) => Promise<void>;
 }
 
-/**
- * Composant principal pour la liste des tâches
- * Refactorisé pour utiliser des hooks personnalisés et des composants séparés
- */
 const TaskList: React.FC<TaskListProps> = ({ 
   tasks,
   mainTasks,
@@ -55,15 +62,22 @@ const TaskList: React.FC<TaskListProps> = ({
   canUndo,
   canRedo,
   onUndo,
-  onRedo
+  onRedo,
+  backups = [],
+  onSaveBackup,
+  onLoadBackup,
+  onDeleteBackup,
+  onExportCSV,
+  onImportCSV
 }) => {
-  // États locaux pour le drag & drop et la modale
+  // États locaux
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
   const [isExtendedView, setIsExtendedView] = useState(false);
 
-  // Filtres locaux utilisant le hook personnalisé
+  // Filtres locaux
   const {
     searchQuery,
     setSearchQuery,
@@ -72,7 +86,7 @@ const TaskList: React.FC<TaskListProps> = ({
     filteredTasks: localFilteredTasks
   } = useTaskFilters(mainTasks.filter(task => !task.isCompleted));
 
-  // Utilisation du hook pour les opérations sur les tâches
+  // Opérations sur les tâches
   const { handleBulkComplete, handleBulkDelete } = useTaskOperations(
     onRemoveTask,
     onToggleCompletion,
@@ -87,9 +101,10 @@ const TaskList: React.FC<TaskListProps> = ({
     onSortTasks(newSortBy);
   };
 
-  // Gestion du drag & drop
+  // Gestion du drag & drop améliorée
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
+    setDragOverIndex(null);
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -98,12 +113,23 @@ const TaskList: React.FC<TaskListProps> = ({
     e.dataTransfer.dropEffect = 'move';
   };
 
+  const handleDragEnter = (index: number) => {
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
     if (draggedIndex !== null && draggedIndex !== dropIndex) {
       onReorderTasks(draggedIndex, dropIndex);
     }
     setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   // Gestion de la création de sous-tâches
@@ -112,7 +138,7 @@ const TaskList: React.FC<TaskListProps> = ({
     setIsSubTaskModalOpen(true);
   };
 
-  // Rendu d'une tâche avec ses sous-tâches
+  // Rendu d'une tâche avec ses sous-tâches - ajout de data-category pour les ombres
   const renderTask = (task: Task): React.ReactNode => {
     const subTasks = getSubTasks(task.id).filter(t => !t.isCompleted);
     const totalTime = calculateTotalTime(task);
@@ -121,7 +147,12 @@ const TaskList: React.FC<TaskListProps> = ({
     const taskIndex = localFilteredTasks.findIndex(t => t.id === task.id);
 
     return (
-      <div key={task.id}>
+      <div 
+        key={task.id}
+        onDragEnter={() => handleDragEnter(taskIndex)}
+        onDragLeave={handleDragLeave}
+        data-category={task.category}
+      >
         <TaskItem
           task={task}
           subTasks={subTasks}
@@ -141,6 +172,7 @@ const TaskList: React.FC<TaskListProps> = ({
           onDrop={handleDrop}
           dragIndex={draggedIndex}
           taskIndex={taskIndex}
+          isDragOver={dragOverIndex === taskIndex}
         />
 
         {/* Sous-tâches */}
@@ -170,6 +202,18 @@ const TaskList: React.FC<TaskListProps> = ({
         onRedo={() => {}}
       />
 
+      {/* Actions de sauvegarde et export */}
+      {(onSaveBackup || onExportCSV) && (
+        <TaskListActions
+          backups={backups}
+          onSaveBackup={onSaveBackup || (() => {})}
+          onLoadBackup={onLoadBackup || (() => {})}
+          onDeleteBackup={onDeleteBackup || (() => {})}
+          onExportCSV={onExportCSV || (() => {})}
+          onImportCSV={onImportCSV || (async () => {})}
+        />
+      )}
+
       {/* Bouton de vue étendue */}
       <div className="px-2 py-1 border-b border-theme-border bg-theme-background">
         <Button
@@ -178,14 +222,23 @@ const TaskList: React.FC<TaskListProps> = ({
           onClick={() => setIsExtendedView(!isExtendedView)}
           className="w-full justify-start text-xs text-theme-muted hover:text-theme-foreground"
         >
-          {isExtendedView ? <ChevronUp className="w-3 h-3 mr-2" /> : <ChevronDown className="w-3 h-3 mr-2" />}
-          {isExtendedView ? 'Vue condensée' : 'Vue étendue'}
+          {isExtendedView ? (
+            <>
+              <ChevronsUp className="w-3 h-3 mr-2" />
+              Vue condensée
+            </>
+          ) : (
+            <>
+              <ChevronsDown className="w-3 h-3 mr-2" />
+              Vue étendue
+            </>
+          )}
         </Button>
       </div>
 
-      {/* Liste des tâches avec scroll personnalisé */}
+      {/* Liste des tâches avec scrollbar améliorée */}
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+        <ScrollArea className="h-full w-full custom-scrollbar">
           <div className="p-2 space-y-1">
             {localFilteredTasks.length === 0 ? (
               <div className="flex-1 flex items-center justify-center">

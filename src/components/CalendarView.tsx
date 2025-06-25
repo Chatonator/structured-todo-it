@@ -5,6 +5,7 @@ import { useCalendar } from '@/hooks/useCalendar';
 import { useTasks } from '@/hooks/useTasks';
 import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';
 import { WeekView } from '@/components/calendar/WeekView';
+import { DayView } from '@/components/calendar/DayView';
 
 interface CalendarViewProps {
   tasks: Task[];
@@ -26,12 +27,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
 
   const handleTimeSlotClick = (date: Date, time: string) => {
     console.log('Clic sur le créneau:', date, time);
-    // TODO: Implémenter la logique de planification via drag & drop
+    // TODO: Ouvrir modal de sélection de tâche
   };
 
   const handleEventClick = (event: any) => {
     console.log('Clic sur l\'événement:', event);
     // TODO: Ouvrir modal d'édition de l'événement
+  };
+
+  const handleTaskDrop = (taskId: string, date: Date, time: string) => {
+    scheduleTask(taskId, date, time);
+    console.log('Tâche planifiée:', taskId, 'à', time, 'le', date);
   };
 
   return (
@@ -54,8 +60,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
             onTimeSlotClick={handleTimeSlotClick}
           />
         )}
+
+        {currentView === 'day' && (
+          <DayView
+            currentDate={currentDate}
+            events={calendarEvents}
+            onEventClick={handleEventClick}
+            onTimeSlotClick={handleTimeSlotClick}
+            onTaskDrop={handleTaskDrop}
+          />
+        )}
         
-        {currentView !== 'week' && (
+        {!['week', 'day'].includes(currentView) && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <h3 className="text-lg font-medium text-theme-foreground mb-2">
