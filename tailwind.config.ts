@@ -80,24 +80,24 @@ export default {
 					envie: 'rgb(var(--theme-envie))',
 					autres: 'rgb(var(--theme-autres))'
 				},
-				// Category colors for tasks
+				// Category colors for tasks - CORRECTION: utiliser les vrais noms des catégories
 				category: {
-					obligation: {
+					'Obligation': {
 						DEFAULT: 'rgb(var(--theme-obligation))',
 						light: 'rgba(var(--theme-obligation), 0.1)',
 						dark: 'rgba(var(--theme-obligation), 0.8)'
 					},
-					quotidien: {
+					'Quotidien': {
 						DEFAULT: 'rgb(var(--theme-quotidien))',
 						light: 'rgba(var(--theme-quotidien), 0.1)',
 						dark: 'rgba(var(--theme-quotidien), 0.8)'
 					},
-					envie: {
+					'Envie': {
 						DEFAULT: 'rgb(var(--theme-envie))',
 						light: 'rgba(var(--theme-envie), 0.1)',
 						dark: 'rgba(var(--theme-envie), 0.8)'
 					},
-					autres: {
+					'Autres': {
 						DEFAULT: 'rgb(var(--theme-autres))',
 						light: 'rgba(var(--theme-autres), 0.1)',
 						dark: 'rgba(var(--theme-autres), 0.8)'
