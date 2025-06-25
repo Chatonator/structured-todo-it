@@ -1,4 +1,3 @@
-
 export type TaskCategory = 'Obligation' | 'Quotidien' | 'Envie' | 'Autres';
 export type SubTaskCategory = 'Le plus important' | 'Important' | 'Peut attendre' | 'Si j\'ai le temps';
 export type TaskContext = 'Pro' | 'Perso';
@@ -34,55 +33,55 @@ export const CATEGORY_CONFIG = {
     cssName: 'obligation',
     color: 'bg-category-obligation-light text-category-obligation border-category-obligation',
     borderPattern: 'border-l-4 border-l-category-obligation',
-    cssColor: 'rgb(var(--theme-obligation))',
+    cssColor: 'rgb(var(--color-obligation))', // Utilise la variable CSS centralisée
     eisenhowerQuadrant: 'urgent-important' as const
   },
   'Quotidien': {
     cssName: 'quotidien',
     color: 'bg-category-quotidien-light text-category-quotidien border-category-quotidien',
     borderPattern: 'border-l-4 border-l-category-quotidien',
-    cssColor: 'rgb(var(--theme-quotidien))',
+    cssColor: 'rgb(var(--color-quotidien))', // Utilise la variable CSS centralisée
     eisenhowerQuadrant: 'urgent-not-important' as const
   },
   'Envie': {
     cssName: 'envie',
     color: 'bg-category-envie-light text-category-envie border-category-envie',
     borderPattern: 'border-l-4 border-l-category-envie',
-    cssColor: 'rgb(var(--theme-envie))',
+    cssColor: 'rgb(var(--color-envie))', // Utilise la variable CSS centralisée
     eisenhowerQuadrant: 'important-not-urgent' as const
   },
   'Autres': {
     cssName: 'autres',
     color: 'bg-category-autres-light text-category-autres border-category-autres',
     borderPattern: 'border-l-4 border-l-category-autres',
-    cssColor: 'rgb(var(--theme-autres))',
+    cssColor: 'rgb(var(--color-autres))', // Utilise la variable CSS centralisée
     eisenhowerQuadrant: 'not-urgent-not-important' as const
   }
 } as const;
 
 export const SUB_CATEGORY_CONFIG = {
   'Le plus important': {
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
-    colorDark: 'bg-purple-800 text-purple-100',
-    pattern: 'border-l-4 border-l-purple-500',
+    color: 'bg-priority-highest-light text-priority-highest border-priority-highest',
+    colorDark: 'bg-priority-highest-dark text-white',
+    pattern: 'border-l-4 border-l-priority-highest',
     priority: 4
   },
   'Important': {
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    colorDark: 'bg-blue-800 text-blue-100',
-    pattern: 'border-l-4 border-l-blue-500',
+    color: 'bg-priority-high-light text-priority-high border-priority-high',
+    colorDark: 'bg-priority-high-dark text-white',
+    pattern: 'border-l-4 border-l-priority-high',
     priority: 3
   },
   'Peut attendre': {
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    colorDark: 'bg-yellow-800 text-yellow-100',
-    pattern: 'border-l-4 border-l-yellow-500',
+    color: 'bg-priority-medium-light text-priority-medium border-priority-medium',
+    colorDark: 'bg-priority-medium-dark text-white',
+    pattern: 'border-l-4 border-l-priority-medium',
     priority: 2
   },
   'Si j\'ai le temps': {
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
-    colorDark: 'bg-gray-800 text-gray-100',
-    pattern: 'border-l-4 border-l-gray-500',
+    color: 'bg-priority-low-light text-priority-low border-priority-low',
+    colorDark: 'bg-priority-low-dark text-white',
+    pattern: 'border-l-4 border-l-priority-low',
     priority: 1
   }
 } as const;
@@ -90,13 +89,13 @@ export const SUB_CATEGORY_CONFIG = {
 export const CONTEXT_CONFIG = {
   'Pro': {
     label: '💼 Pro',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    colorDark: 'bg-blue-800 text-blue-100'
+    color: 'bg-context-pro-light text-context-pro border-context-pro',
+    colorDark: 'bg-context-pro-dark text-white'
   },
   'Perso': {
     label: '🏠 Perso',
-    color: 'bg-green-100 text-green-800 border-green-200',
-    colorDark: 'bg-green-800 text-green-100'
+    color: 'bg-context-perso-light text-context-perso border-context-perso',
+    colorDark: 'bg-context-perso-dark text-white'
   }
 } as const;
 

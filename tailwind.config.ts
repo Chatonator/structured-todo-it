@@ -20,6 +20,7 @@ export default {
 		},
 		extend: {
 			colors: {
+				// Couleurs de base Shadcn/UI - gardées pour compatibilité
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -63,45 +64,127 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Theme colors for the Todo-IT application
+				
+				// COULEURS CENTRALISÉES - Toutes basées sur les variables CSS
 				theme: {
-					background: 'rgb(var(--theme-background))',
-					foreground: 'rgb(var(--theme-foreground))',
-					muted: 'rgb(var(--theme-muted))',
-					accent: 'rgb(var(--theme-accent))',
-					border: 'rgb(var(--theme-border))',
-					card: 'rgb(var(--theme-card))',
-					input: 'rgb(var(--theme-input))',
-					primary: 'rgb(var(--theme-primary))',
-					secondary: 'rgb(var(--theme-secondary))',
-					sidebar: 'rgb(var(--theme-sidebar))',
-					obligation: 'rgb(var(--theme-obligation))',
-					quotidien: 'rgb(var(--theme-quotidien))',
-					envie: 'rgb(var(--theme-envie))',
-					autres: 'rgb(var(--theme-autres))'
+					background: 'rgb(var(--color-background))',
+					foreground: 'rgb(var(--color-foreground))',
+					muted: 'rgb(var(--color-muted))',
+					accent: 'rgb(var(--color-accent))',
+					border: 'rgb(var(--color-border))',
+					card: 'rgb(var(--color-card))',
+					input: 'rgb(var(--color-input))',
+					primary: 'rgb(var(--color-primary))',
+					secondary: 'rgb(var(--color-secondary))',
+					sidebar: 'rgb(var(--color-sidebar))'
 				},
-				// CORRECTION : Clés en minuscules sans accents pour les classes CSS
+				
+				// COULEURS DES CATÉGORIES - Classes CSS générées automatiquement
 				category: {
-					'obligation': {
-						DEFAULT: 'rgb(var(--theme-obligation))',
-						light: 'rgba(var(--theme-obligation), 0.1)',
-						dark: 'rgba(var(--theme-obligation), 0.8)'
+					obligation: {
+						DEFAULT: 'rgb(var(--color-obligation))',
+						light: 'rgba(var(--color-obligation), 0.1)',
+						medium: 'rgba(var(--color-obligation), 0.3)',
+						dark: 'rgba(var(--color-obligation), 0.8)'
 					},
-					'quotidien': {
-						DEFAULT: 'rgb(var(--theme-quotidien))',
-						light: 'rgba(var(--theme-quotidien), 0.1)',
-						dark: 'rgba(var(--theme-quotidien), 0.8)'
+					quotidien: {
+						DEFAULT: 'rgb(var(--color-quotidien))',
+						light: 'rgba(var(--color-quotidien), 0.1)',
+						medium: 'rgba(var(--color-quotidien), 0.3)',
+						dark: 'rgba(var(--color-quotidien), 0.8)'
 					},
-					'envie': {
-						DEFAULT: 'rgb(var(--theme-envie))',
-						light: 'rgba(var(--theme-envie), 0.1)',
-						dark: 'rgba(var(--theme-envie), 0.8)'
+					envie: {
+						DEFAULT: 'rgb(var(--color-envie))',
+						light: 'rgba(var(--color-envie), 0.1)',
+						medium: 'rgba(var(--color-envie), 0.3)',
+						dark: 'rgba(var(--color-envie), 0.8)'
 					},
-					'autres': {
-						DEFAULT: 'rgb(var(--theme-autres))',
-						light: 'rgba(var(--theme-autres), 0.1)',
-						dark: 'rgba(var(--theme-autres), 0.8)'
+					autres: {
+						DEFAULT: 'rgb(var(--color-autres))',
+						light: 'rgba(var(--color-autres), 0.1)',
+						medium: 'rgba(var(--color-autres), 0.3)',
+						dark: 'rgba(var(--color-autres), 0.8)'
 					}
+				},
+				
+				// COULEURS DES CONTEXTES
+				context: {
+					pro: {
+						DEFAULT: 'rgb(var(--color-context-pro))',
+						light: 'rgba(var(--color-context-pro), 0.1)',
+						medium: 'rgba(var(--color-context-pro), 0.3)',
+						dark: 'rgba(var(--color-context-pro), 0.8)'
+					},
+					perso: {
+						DEFAULT: 'rgb(var(--color-context-perso))',
+						light: 'rgba(var(--color-context-perso), 0.1)',
+						medium: 'rgba(var(--color-context-perso), 0.3)',
+						dark: 'rgba(var(--color-context-perso), 0.8)'
+					}
+				},
+				
+				// COULEURS DES PRIORITÉS
+				priority: {
+					highest: {
+						DEFAULT: 'rgb(var(--color-priority-highest))',
+						light: 'rgba(var(--color-priority-highest), 0.1)',
+						medium: 'rgba(var(--color-priority-highest), 0.3)',
+						dark: 'rgba(var(--color-priority-highest), 0.8)'
+					},
+					high: {
+						DEFAULT: 'rgb(var(--color-priority-high))',
+						light: 'rgba(var(--color-priority-high), 0.1)',
+						medium: 'rgba(var(--color-priority-high), 0.3)',
+						dark: 'rgba(var(--color-priority-high), 0.8)'
+					},
+					medium: {
+						DEFAULT: 'rgb(var(--color-priority-medium))',
+						light: 'rgba(var(--color-priority-medium), 0.1)',
+						medium: 'rgba(var(--color-priority-medium), 0.3)',
+						dark: 'rgba(var(--color-priority-medium), 0.8)'
+					},
+					low: {
+						DEFAULT: 'rgb(var(--color-priority-low))',
+						light: 'rgba(var(--color-priority-low), 0.1)',
+						medium: 'rgba(var(--color-priority-low), 0.3)',
+						dark: 'rgba(var(--color-priority-low), 0.8)'
+					}
+				},
+				
+				// COULEURS SYSTÈME
+				system: {
+					success: {
+						DEFAULT: 'rgb(var(--color-success))',
+						light: 'rgba(var(--color-success), 0.1)',
+						medium: 'rgba(var(--color-success), 0.3)',
+						dark: 'rgba(var(--color-success), 0.8)'
+					},
+					warning: {
+						DEFAULT: 'rgb(var(--color-warning))',
+						light: 'rgba(var(--color-warning), 0.1)',
+						medium: 'rgba(var(--color-warning), 0.3)',
+						dark: 'rgba(var(--color-warning), 0.8)'
+					},
+					error: {
+						DEFAULT: 'rgb(var(--color-error))',
+						light: 'rgba(var(--color-error), 0.1)',
+						medium: 'rgba(var(--color-error), 0.3)',
+						dark: 'rgba(var(--color-error), 0.8)'
+					},
+					info: {
+						DEFAULT: 'rgb(var(--color-info))',
+						light: 'rgba(var(--color-info), 0.1)',
+						medium: 'rgba(var(--color-info), 0.3)',
+						dark: 'rgba(var(--color-info), 0.8)'
+					}
+				},
+				
+				// COULEURS DE DRAG & DROP
+				drop: {
+					zone: 'rgb(var(--color-drop-zone))',
+					'zone-light': 'rgba(var(--color-drop-zone), 0.1)',
+					active: 'rgb(var(--color-drag-active))',
+					'active-light': 'rgba(var(--color-drag-active), 0.2)'
 				}
 			},
 			borderRadius: {
