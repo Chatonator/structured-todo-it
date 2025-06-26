@@ -65,7 +65,7 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				
-				// COULEURS CENTRALISÉES - Toutes basées sur les variables CSS
+				// COULEURS CENTRALISÉES - Toutes basées sur les variables CSS du fichier colors.css
 				theme: {
 					background: 'rgb(var(--color-background))',
 					foreground: 'rgb(var(--color-foreground))',

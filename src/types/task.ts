@@ -1,3 +1,4 @@
+
 export type TaskCategory = 'Obligation' | 'Quotidien' | 'Envie' | 'Autres';
 export type SubTaskCategory = 'Le plus important' | 'Important' | 'Peut attendre' | 'Si j\'ai le temps';
 export type TaskContext = 'Pro' | 'Perso';
@@ -7,17 +8,16 @@ export interface Task {
   name: string;
   category: TaskCategory;
   subCategory?: SubTaskCategory;
-  context: TaskContext; // Nouveau champ obligatoire
+  context: TaskContext;
   estimatedTime: number;
   createdAt: Date;
   parentId?: string;
   level: 0 | 1 | 2;
   isExpanded: boolean;
   isCompleted: boolean;
-  // Nouveaux champs pour la planification
   scheduledDate?: Date;
-  scheduledTime?: string; // Format "HH:mm"
-  duration?: number; // Durée réelle si différente de estimatedTime
+  scheduledTime?: string;
+  duration?: number;
 }
 
 // Mapping technique pour les classes CSS (sans accents, minuscules)

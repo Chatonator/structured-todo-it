@@ -3,7 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import des couleurs centralisées */
+/* Import des couleurs centralisées - OBLIGATOIRE pour que toutes les variables CSS soient disponibles */
 @import './styles/colors.css';
 
 /* Styles de base pour l'application */
