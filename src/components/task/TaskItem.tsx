@@ -67,7 +67,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
     const dragImage = document.createElement('div');
     dragImage.innerHTML = `
       <div style="
-        background: ${categoryConfig.cssColor};
+        background: rgb(var(--color-${categoryConfig.cssName}));
         color: white;
         padding: 12px 16px;
         border-radius: 8px;
@@ -114,6 +114,21 @@ const TaskItem: React.FC<TaskItemProps> = ({
     }
   };
 
+  // Construction des classes CSS avec les bonnes variables
+  const borderColorClass = isSelected 
+    ? 'border-l-theme-primary' 
+    : isPinned 
+    ? 'border-l-system-warning' 
+    : `border-l-category-${categoryConfig.cssName}`;
+
+  const backgroundClass = isSelected 
+    ? 'bg-theme-accent' 
+    : levelConfig.bgColor === 'bg-white' 
+    ? 'bg-theme-background' 
+    : levelConfig.bgColor === 'bg-gray-50' 
+    ? 'bg-theme-accent' 
+    : 'bg-theme-muted';
+
   return (
     <div className={indentClass}>
       <div
@@ -127,27 +142,26 @@ const TaskItem: React.FC<TaskItemProps> = ({
         className={`
           group flex items-start gap-2 p-3 border rounded-lg 
           transition-all duration-300 mb-1 text-sm task-item relative
-          ${categoryConfig.borderPattern} ${levelConfig.bgColor}
+          ${borderColorClass} border-l-8 ${backgroundClass}
           ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
           ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
-          ${isDragOver && !isDragging ? 'scale-102 ring-2 ring-blue-400' : ''}
-          ${dragIndex === taskIndex && !isDragging ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-300' : ''}
-          ${isSelected ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 border-l-8' : 'border-l-8'}
-          ${isPinned ? 'border-l-yellow-500 border-l-8' : ''}
-          bg-theme-background
+          ${isDragOver && !isDragging ? 'scale-102 ring-2 ring-theme-primary' : ''}
+          ${dragIndex === taskIndex && !isDragging ? 'bg-theme-accent border-theme-primary' : ''}
+          border-theme-border
         `}
+        data-category={task.category}
         style={{
-          borderLeftColor: !isSelected && !isPinned ? categoryConfig.cssColor : undefined,
+          borderLeftColor: !isSelected && !isPinned ? `rgb(var(--color-${categoryConfig.cssName}))` : undefined,
           boxShadow: isHovered && !isDragging 
-            ? `0 8px 25px -5px ${categoryConfig.cssColor}40, 0 4px 6px -2px ${categoryConfig.cssColor}20`
+            ? `0 8px 25px -5px rgba(var(--color-${categoryConfig.cssName}), 0.25), 0 4px 6px -2px rgba(var(--color-${categoryConfig.cssName}), 0.1)`
             : isDragging 
-            ? `0 20px 40px -10px ${categoryConfig.cssColor}60`
-            : `0 1px 3px 0 ${categoryConfig.cssColor}20`
+            ? `0 20px 40px -10px rgba(var(--color-${categoryConfig.cssName}), 0.6)`
+            : `0 1px 3px 0 rgba(var(--color-${categoryConfig.cssName}), 0.2)`
         }}
       >
         {/* Indicateur de drop zone */}
         {isDragOver && !isDragging && (
-          <div className="absolute inset-0 bg-blue-100 dark:bg-blue-900/20 border-2 border-dashed border-blue-400 rounded-lg pointer-events-none animate-pulse" />
+          <div className="absolute inset-0 bg-drop-zone-light border-2 border-dashed border-drop-zone rounded-lg pointer-events-none animate-pulse" />
         )}
 
         {/* Contrôles à gauche */}
@@ -184,8 +198,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
         {/* Indicateur de drag pour les tâches actives */}
         {!task.isCompleted && isHovered && !isDragging && (
-          <div className="absolute right-2 top-2 text-blue-500 opacity-70 animate-bounce">
-            <div className="flex items-center gap-1 text-xs font-medium bg-white dark:bg-gray-800 px-2 py-1 rounded-full shadow-md">
+          <div className="absolute right-2 top-2 text-theme-primary opacity-70 animate-bounce">
+            <div className="flex items-center gap-1 text-xs font-medium bg-theme-background border border-theme-border px-2 py-1 rounded-full shadow-md">
               <span className="text-sm">📅</span>
               <span>Glisser vers calendrier</span>
             </div>
