@@ -1,5 +1,6 @@
 
 import { TaskCategory, CATEGORY_CONFIG, CATEGORY_CSS_NAMES } from '@/types/task';
+import { cssVarRGB } from '@/utils/colors';
 
 /**
  * Utilitaire pour garantir la cohérence entre les noms de catégories JS et les classes CSS
@@ -15,14 +16,14 @@ export const getCategoryClasses = (category: TaskCategory) => {
     return {
       color: 'bg-priority-low-light text-priority-low border-priority-low',
       borderPattern: 'border-l-4 border-l-priority-low',
-      cssColor: 'rgb(var(--color-priority-low))'
+      cssColor: cssVarRGB('--color-priority-low')
     };
   }
   
   return {
     color: `bg-category-${cssName}-light text-category-${cssName} border-category-${cssName}`,
     borderPattern: `border-l-4 border-l-category-${cssName}`,
-    cssColor: config.cssColor, // Déjà basé sur la variable CSS centralisée
+    cssColor: cssVarRGB(`--color-${cssName}`), // Utilise l'utilitaire de résolution
     cssName
   };
 };

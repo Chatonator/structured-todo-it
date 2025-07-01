@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Task, CATEGORY_CONFIG } from '@/types/task';
+import { Task, CATEGORY_CONFIG, CATEGORY_CSS_NAMES } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, AlertTriangle, Target, Calendar, Archive } from 'lucide-react';
@@ -74,11 +74,12 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
 
   const renderTaskCard = (task: Task) => {
     const categoryConfig = CATEGORY_CONFIG[task.category];
+    const cssName = CATEGORY_CSS_NAMES[task.category];
     
     // Couleur résolue mémorisée
     const resolvedCategoryColor = React.useMemo(() => 
-      cssVarRGB(`--color-${categoryConfig.cssName}`), 
-      [categoryConfig.cssName]
+      cssVarRGB(`--color-${cssName}`), 
+      [cssName]
     );
     
     return (
@@ -133,16 +134,31 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
         
         {/* Statistiques globales */}
         <div className="grid grid-cols-4 gap-4 mb-6">
-          {Object.entries(quadrants).map(([key, quadrant]) => (
-            <div key={key} className="text-center p-3 bg-theme-background border border-theme-border rounded-lg">
-              <div className="flex items-center justify-center mb-1">
-                {React.cloneElement(quadrant.icon, { className: "w-5 h-5", style: { color: CATEGORY_CONFIG[quadrant.tasks[0]?.category]?.cssColor || 'currentColor' } })}
+          {Object.entries(quadrants).map(([key, quadrant]) => {
+            // Mémoriser la couleur résolue pour chaque quadrant
+            const resolvedIconColor = React.useMemo(() => {
+              if (quadrant.tasks.length > 0) {
+                const firstTaskCategory = quadrant.tasks[0].category;
+                const cssName = CATEGORY_CSS_NAMES[firstTaskCategory];
+                return cssVarRGB(`--color-${cssName}`);
+              }
+              return 'currentColor';
+            }, [quadrant.tasks]);
+
+            return (
+              <div key={key} className="text-center p-3 bg-theme-background border border-theme-border rounded-lg">
+                <div className="flex items-center justify-center mb-1">
+                  {React.cloneElement(quadrant.icon, { 
+                    className: "w-5 h-5", 
+                    style: { color: resolvedIconColor } 
+                  })}
+                </div>
+                <div className="text-lg font-bold text-theme-foreground">{quadrant.tasks.length}</div>
+                <div className="text-xs text-theme-muted">tâches</div>
+                <div className="text-xs text-theme-muted">{formatDuration(getTotalTime(quadrant.tasks))}</div>
               </div>
-              <div className="text-lg font-bold text-theme-foreground">{quadrant.tasks.length}</div>
-              <div className="text-xs text-theme-muted">tâches</div>
-              <div className="text-xs text-theme-muted">{formatDuration(getTotalTime(quadrant.tasks))}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
