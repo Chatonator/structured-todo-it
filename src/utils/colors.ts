@@ -8,10 +8,10 @@
  * Mapping des couleurs hardcodées comme fallback si les variables CSS échouent
  */
 const COLOR_FALLBACKS: Record<string, string> = {
-  '--color-obligation': '219, 39, 119',
-  '--color-quotidien': '22, 163, 74', 
-  '--color-envie': '56, 189, 248',
-  '--color-autres': '107, 114, 128',
+  '--color-obligation': '220, 38, 38',      /* Rouge */
+  '--color-quotidien': '234, 179, 8',       /* Jaune */ 
+  '--color-envie': '34, 197, 94',           /* Vert */
+  '--color-autres': '55, 65, 81',           /* Bleu-gris sombre */
   '--color-context-pro': '59, 130, 246',
   '--color-context-perso': '34, 197, 94',
   '--color-priority-highest': '147, 51, 234',

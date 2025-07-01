@@ -61,7 +61,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
   const barData = categoryStats.map(stat => ({
     category: stat.name,
     temps: stat.time,
-    taches: stat.count
+    taches: stat.count,
+    fill: resolvedColors[stat.name] // Couleur résolue pour chaque barre
   }));
 
   // Fonctions de formatage
@@ -209,7 +210,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                       name === 'temps' ? 'Temps' : 'Tâches'
                     ]}
                   />
-                  <Bar dataKey="temps" fill={cssVarRGB('--theme-primary')} />
+                  <Bar 
+                    dataKey="temps" 
+                    fill={cssVarRGB('--color-primary')}
+                    shape={(props: any) => {
+                      const categoryName = barData[props.payload?.category]?.name;
+                      const color = resolvedColors[categoryName] || cssVarRGB('--color-primary');
+                      return <rect {...props} fill={color} />;
+                    }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>

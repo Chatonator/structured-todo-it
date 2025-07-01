@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -162,23 +163,36 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                       Contexte <span className="text-red-500">*</span>
                     </Label>
                     <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(CONTEXT_CONFIG).map(([context, config]) => (
-                        <button
-                          key={context}
-                          type="button"
-                          onClick={() => updateTaskDraft(index, 'context', context)}
-                          className={`
-                            flex items-center justify-center space-x-2 p-3 text-sm border rounded transition-all
-                            ${draft.context === context 
-                              ? `${config.color} border-current shadow-sm` 
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
-                            }
-                            ${!draft.context ? 'border-red-300' : ''}
-                          `}
-                        >
-                          <span className="font-medium">{config.label}</span>
-                        </button>
-                      ))}
+                      {Object.entries(CONTEXT_CONFIG).map(([context, config]) => {
+                        // Couleur résolue pour le contexte
+                        const resolvedContextColor = React.useMemo(() => 
+                          cssVarRGB(`--color-context-${context.toLowerCase()}`), 
+                          [context]
+                        );
+
+                        return (
+                          <button
+                            key={context}
+                            type="button"
+                            onClick={() => updateTaskDraft(index, 'context', context)}
+                            className={`
+                              flex items-center justify-center space-x-2 p-3 text-sm border rounded transition-all
+                              ${draft.context === context 
+                                ? 'border-current shadow-sm' 
+                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                              }
+                              ${!draft.context ? 'border-red-300' : ''}
+                            `}
+                            style={draft.context === context ? {
+                              backgroundColor: `${resolvedContextColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
+                              borderColor: resolvedContextColor,
+                              color: resolvedContextColor
+                            } : {}}
+                          >
+                            <span className="font-medium">{config.label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -220,10 +234,15 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                               className={`
                                 flex items-center space-x-1 p-2 text-xs border rounded transition-all
                                 ${draft.category === cat 
-                                  ? `${config.color} border-current` 
+                                  ? 'border-current shadow-sm' 
                                   : 'bg-white border-gray-200 hover:bg-gray-50'
                                 }
                               `}
+                              style={draft.category === cat ? {
+                                backgroundColor: `${resolvedCategoryColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
+                                borderColor: resolvedCategoryColor,
+                                color: resolvedCategoryColor
+                              } : {}}
                             >
                               <div 
                                 className="w-2 h-2 rounded-full" 

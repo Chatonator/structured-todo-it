@@ -17,11 +17,11 @@
   --color-secondary: 79 70 229;
   --color-sidebar: 248 250 252;
   
-  /* ===== COULEURS DES CATÉGORIES DE TÂCHES ===== */
-  --color-obligation: 219 39 119;
-  --color-quotidien: 22 163 74;
-  --color-envie: 56 189 248;
-  --color-autres: 107 114 128;
+  /* ===== COULEURS DES CATÉGORIES DE TÂCHES - NOUVELLES COULEURS ===== */
+  --color-obligation: 220 38 38;    /* Rouge */
+  --color-quotidien: 234 179 8;     /* Jaune */
+  --color-envie: 34 197 94;         /* Vert */
+  --color-autres: 55 65 81;         /* Bleu-gris sombre */
   
   /* ===== COULEURS DES CONTEXTES ===== */
   --color-context-pro: 59 130 246;
@@ -62,11 +62,11 @@
   --color-secondary: 79 70 229;
   --color-sidebar: 24 24 27;
   
-  /* Catégories - couleurs ajustées pour le mode sombre */
-  --color-obligation: 219 39 119;
-  --color-quotidien: 22 163 74;
-  --color-envie: 56 189 248;
-  --color-autres: 156 163 175;
+  /* Catégories - nouvelles couleurs adaptées pour le mode sombre */
+  --color-obligation: 239 68 68;     /* Rouge plus clair en sombre */
+  --color-quotidien: 250 204 21;     /* Jaune plus clair en sombre */
+  --color-envie: 74 222 128;         /* Vert plus clair en sombre */
+  --color-autres: 156 163 175;       /* Gris plus clair en sombre */
   
   /* Contextes */
   --color-context-pro: 96 165 250;
@@ -87,10 +87,10 @@
   --color-sidebar: 248 250 252;
   
   /* Catégories - palette optimisée pour daltoniens */
-  --color-obligation: 185 28 28;
-  --color-quotidien: 22 163 74;
-  --color-envie: 14 116 144;
-  --color-autres: 107 114 128;
+  --color-obligation: 185 28 28;     /* Rouge foncé */
+  --color-quotidien: 217 119 6;      /* Orange au lieu de jaune */
+  --color-envie: 22 163 74;          /* Vert */
+  --color-autres: 30 58 138;         /* Bleu foncé */
   
   /* Contextes */
   --color-context-pro: 29 78 216;
@@ -111,10 +111,10 @@
   --color-sidebar: 245 245 245;
   
   /* Catégories - couleurs haute contraste */
-  --color-obligation: 255 0 0;
-  --color-quotidien: 0 128 0;
-  --color-envie: 0 0 255;
-  --color-autres: 0 0 0;
+  --color-obligation: 255 0 0;       /* Rouge pur */
+  --color-quotidien: 255 215 0;      /* Jaune pur */
+  --color-envie: 0 128 0;            /* Vert pur */
+  --color-autres: 0 0 0;             /* Noir */
   
   /* Contextes */
   --color-context-pro: 0 0 255;
