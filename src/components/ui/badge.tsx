@@ -1,6 +1,7 @@
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-
+import { cssVarRGB } from "@/utils/colors"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
@@ -25,11 +26,31 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+    VariantProps<typeof badgeVariants> {
+  categoryColor?: string;
+}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+function Badge({ className, variant, categoryColor, style, ...props }: BadgeProps) {
+  // Si une couleur de catégorie est fournie, on l'utilise dans les styles inline
+  const inlineStyle = React.useMemo(() => {
+    if (categoryColor && variant === "outline") {
+      const resolvedColor = cssVarRGB(categoryColor);
+      return {
+        backgroundColor: `${resolvedColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
+        borderColor: resolvedColor,
+        color: resolvedColor,
+        ...style
+      };
+    }
+    return style;
+  }, [categoryColor, variant, style]);
+
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div 
+      className={cn(badgeVariants({ variant }), className)} 
+      style={inlineStyle}
+      {...props} 
+    />
   )
 }
 
