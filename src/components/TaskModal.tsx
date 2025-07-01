@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Check, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task, TaskCategory, SubTaskCategory, TaskContext, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
+import { cssVarRGB } from '@/utils/colors';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -205,26 +205,34 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                           </button>
                         ))
                       ) : (
-                        Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => updateTaskDraft(index, 'category', cat)}
-                            className={`
-                              flex items-center space-x-1 p-2 text-xs border rounded transition-all
-                              ${draft.category === cat 
-                                ? `${config.color} border-current` 
-                                : 'bg-white border-gray-200 hover:bg-gray-50'
-                              }
-                            `}
-                          >
-                            <div 
-                              className="w-2 h-2 rounded-full" 
-                              style={{ backgroundColor: config.cssColor }}
-                            />
-                            <span className="font-medium truncate">{cat}</span>
-                          </button>
-                        ))
+                        Object.entries(CATEGORY_CONFIG).map(([cat, config]) => {
+                          // Couleur résolue mémorisée
+                          const resolvedCategoryColor = React.useMemo(() => 
+                            cssVarRGB(`--color-${config.cssName}`), 
+                            [config.cssName]
+                          );
+
+                          return (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => updateTaskDraft(index, 'category', cat)}
+                              className={`
+                                flex items-center space-x-1 p-2 text-xs border rounded transition-all
+                                ${draft.category === cat 
+                                  ? `${config.color} border-current` 
+                                  : 'bg-white border-gray-200 hover:bg-gray-50'
+                                }
+                              `}
+                            >
+                              <div 
+                                className="w-2 h-2 rounded-full" 
+                                style={{ backgroundColor: resolvedCategoryColor }}
+                              />
+                              <span className="font-medium truncate">{cat}</span>
+                            </button>
+                          );
+                        })
                       )}
                     </div>
                   </div>

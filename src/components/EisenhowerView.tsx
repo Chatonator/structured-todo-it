@@ -4,6 +4,7 @@ import { Task, CATEGORY_CONFIG } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, AlertTriangle, Target, Calendar, Archive } from 'lucide-react';
+import { cssVarRGB } from '@/utils/colors';
 
 interface EisenhowerViewProps {
   tasks: Task[];
@@ -74,6 +75,12 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
   const renderTaskCard = (task: Task) => {
     const categoryConfig = CATEGORY_CONFIG[task.category];
     
+    // Couleur résolue mémorisée
+    const resolvedCategoryColor = React.useMemo(() => 
+      cssVarRGB(`--color-${categoryConfig.cssName}`), 
+      [categoryConfig.cssName]
+    );
+    
     return (
       <div
         key={task.id}
@@ -89,7 +96,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
           </h4>
           <div 
             className="w-3 h-3 rounded-full" 
-            style={{ backgroundColor: categoryConfig.cssColor }}
+            style={{ backgroundColor: resolvedCategoryColor }}
           />
         </div>
         

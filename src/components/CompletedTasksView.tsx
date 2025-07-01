@@ -3,6 +3,7 @@ import React from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckSquare, Clock, Calendar } from 'lucide-react';
+import { cssVarRGB } from '@/utils/colors';
 
 interface CompletedTasksViewProps {
   tasks: Task[];
@@ -91,6 +92,12 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({ tasks }) => {
               const categoryConfig = CATEGORY_CONFIG[task.category];
               const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
               
+              // Couleur résolue mémorisée
+              const resolvedCategoryColor = React.useMemo(() => 
+                cssVarRGB(`--color-${categoryConfig.cssName}`), 
+                [categoryConfig.cssName]
+              );
+              
               return (
                 <div 
                   key={task.id} 
@@ -101,7 +108,7 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({ tasks }) => {
                     <div className="flex items-center space-x-2">
                       <div 
                         className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: categoryConfig.cssColor }}
+                        style={{ backgroundColor: resolvedCategoryColor }}
                       />
                       <div>
                         <h4 className="font-medium text-gray-900 line-through">{task.name}</h4>

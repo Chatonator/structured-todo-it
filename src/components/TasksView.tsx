@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
 import { Clock, CheckSquare, Users, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { cssVarRGB } from '@/utils/colors';
 
 interface TasksViewProps {
   tasks: Task[];
@@ -35,9 +35,15 @@ const TasksView: React.FC<TasksViewProps> = ({
     const subTasks = getSubTasks(task.id);
     const totalTime = calculateTotalTime(task);
 
+    // Couleur résolue mémorisée
+    const resolvedCategoryColor = React.useMemo(() => 
+      cssVarRGB(`--color-${categoryConfig.cssName}`), 
+      [categoryConfig.cssName]
+    );
+
     return (
       <Card key={task.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 bg-theme-card" 
-            style={{ borderLeftColor: `rgb(var(--color-${categoryConfig.cssName}))` }}>
+            style={{ borderLeftColor: resolvedCategoryColor }}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <CardTitle className="text-lg font-semibold text-theme-foreground leading-tight">

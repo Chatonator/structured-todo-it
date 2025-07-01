@@ -4,6 +4,7 @@ import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RefreshCw, Clock } from 'lucide-react';
+import { cssVarRGB } from '@/utils/colors';
 
 interface PriorityViewProps {
   tasks: Task[];
@@ -111,6 +112,12 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
     const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
     const totalTime = calculateTotalTime(task);
 
+    // Couleur résolue mémorisée
+    const resolvedCategoryColor = React.useMemo(() => 
+      cssVarRGB(`--color-${categoryConfig.cssName}`), 
+      [categoryConfig.cssName]
+    );
+
     return (
       <div 
         key={task.id} 
@@ -123,7 +130,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
         <div className="flex items-center space-x-2 mb-2">
           <div 
             className="w-3 h-3 rounded-full" 
-            style={{ backgroundColor: categoryConfig.cssColor }}
+            style={{ backgroundColor: resolvedCategoryColor }}
           />
           <h3 className="font-medium text-gray-900 flex-1">{task.name}</h3>
           <span className={`

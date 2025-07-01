@@ -1,4 +1,3 @@
-
 export type TaskCategory = 'Obligation' | 'Quotidien' | 'Envie' | 'Autres';
 export type SubTaskCategory = 'Le plus important' | 'Important' | 'Peut attendre' | 'Si j\'ai le temps';
 export type TaskContext = 'Pro' | 'Perso';
@@ -33,28 +32,24 @@ export const CATEGORY_CONFIG = {
     cssName: 'obligation',
     color: 'bg-category-obligation-light text-category-obligation border-category-obligation',
     borderPattern: 'border-l-4 border-l-category-obligation',
-    cssColor: 'rgb(var(--color-obligation))', // Utilise la variable CSS centralisée
     eisenhowerQuadrant: 'urgent-important' as const
   },
   'Quotidien': {
     cssName: 'quotidien',
     color: 'bg-category-quotidien-light text-category-quotidien border-category-quotidien',
     borderPattern: 'border-l-4 border-l-category-quotidien',
-    cssColor: 'rgb(var(--color-quotidien))', // Utilise la variable CSS centralisée
     eisenhowerQuadrant: 'urgent-not-important' as const
   },
   'Envie': {
     cssName: 'envie',
     color: 'bg-category-envie-light text-category-envie border-category-envie',
     borderPattern: 'border-l-4 border-l-category-envie',
-    cssColor: 'rgb(var(--color-envie))', // Utilise la variable CSS centralisée
     eisenhowerQuadrant: 'important-not-urgent' as const
   },
   'Autres': {
     cssName: 'autres',
     color: 'bg-category-autres-light text-category-autres border-category-autres',
     borderPattern: 'border-l-4 border-l-category-autres',
-    cssColor: 'rgb(var(--color-autres))', // Utilise la variable CSS centralisée
     eisenhowerQuadrant: 'not-urgent-not-important' as const
   }
 } as const;
