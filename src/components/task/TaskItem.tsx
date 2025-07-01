@@ -1,9 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Task, CATEGORY_CONFIG, TASK_LEVELS } from '@/types/task';
 import TaskItemControls from './TaskItemControls';
 import TaskItemContent from './TaskItemContent';
 import TaskItemActions from './TaskItemActions';
+import { cssVarRGB } from '@/utils/colors';
 
 interface TaskItemProps {
   task: Task;
@@ -58,6 +58,12 @@ const TaskItem: React.FC<TaskItemProps> = ({
   const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-3' : 'ml-6';
   const isExtended = isSelected || forceExtended || isHovered;
 
+  // Mémorisation des couleurs résolues
+  const resolvedCategoryColor = React.useMemo(() => 
+    cssVarRGB(`--color-${categoryConfig.cssName}`), 
+    [categoryConfig.cssName]
+  );
+
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'copy';
@@ -67,7 +73,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
     const dragImage = document.createElement('div');
     dragImage.innerHTML = `
       <div style="
-        background: rgb(var(--color-${categoryConfig.cssName}));
+        background: ${resolvedCategoryColor};
         color: white;
         padding: 12px 16px;
         border-radius: 8px;
@@ -129,6 +135,16 @@ const TaskItem: React.FC<TaskItemProps> = ({
     ? 'bg-theme-accent' 
     : 'bg-theme-muted';
 
+  // Styles inline avec couleurs résolues
+  const inlineStyles = React.useMemo(() => ({
+    borderLeftColor: !isSelected && !isPinned ? resolvedCategoryColor : undefined,
+    boxShadow: isHovered && !isDragging 
+      ? `0 8px 25px -5px ${resolvedCategoryColor}40, 0 4px 6px -2px ${resolvedCategoryColor}1A`
+      : isDragging 
+      ? `0 20px 40px -10px ${resolvedCategoryColor}99`
+      : `0 1px 3px 0 ${resolvedCategoryColor}33`
+  }), [resolvedCategoryColor, isHovered, isDragging, isSelected, isPinned]);
+
   return (
     <div className={indentClass}>
       <div
@@ -150,14 +166,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
           border-theme-border
         `}
         data-category={task.category}
-        style={{
-          borderLeftColor: !isSelected && !isPinned ? `rgb(var(--color-${categoryConfig.cssName}))` : undefined,
-          boxShadow: isHovered && !isDragging 
-            ? `0 8px 25px -5px rgba(var(--color-${categoryConfig.cssName}), 0.25), 0 4px 6px -2px rgba(var(--color-${categoryConfig.cssName}), 0.1)`
-            : isDragging 
-            ? `0 20px 40px -10px rgba(var(--color-${categoryConfig.cssName}), 0.6)`
-            : `0 1px 3px 0 rgba(var(--color-${categoryConfig.cssName}), 0.2)`
-        }}
+        style={inlineStyles}
       >
         {/* Indicateur de drop zone */}
         {isDragOver && !isDragging && (

@@ -1,9 +1,9 @@
-
 import React from 'react';
-import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
+import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CATEGORY_CSS_NAMES } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, PieChart, Timer, Hash } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { cssVarRGB } from '@/utils/colors';
 
 interface DashboardViewProps {
   tasks: Task[];
@@ -17,13 +17,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
   const totalTime = mainTasks.reduce((sum, task) => sum + calculateTotalTime(task), 0);
   const averageTime = totalTasks > 0 ? Math.round(totalTime / totalTasks) : 0;
 
-  // Couleurs des graphiques basées sur les variables CSS
-  const getCategoryColor = (category: string) => {
-    const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG];
-    return config ? config.cssColor : 'hsl(var(--theme-autres))';
-  };
+  // Mémorisation des couleurs résolues pour éviter les recalculs
+  const resolvedColors = React.useMemo(() => {
+    const colors: Record<string, string> = {};
+    Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
+      colors[category] = cssVarRGB(`--color-${config.cssName}`);
+    });
+    return colors;
+  }, []); // Pas de dépendance au thème pour l'instant, on peut l'ajouter si nécessaire
 
-  // Répartition par catégories principales avec couleurs CSS
+  // Répartition par catégories principales avec couleurs résolues
   const categoryStats = Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
     const categoryTasks = tasks.filter(task => task.category === category);
     const categoryTime = categoryTasks.reduce((sum, task) => sum + task.estimatedTime, 0);
@@ -31,7 +34,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
       name: category,
       count: categoryTasks.length,
       time: categoryTime,
-      color: config.cssColor,
+      color: resolvedColors[category],
       bgColor: config.color
     };
   }).filter(stat => stat.count > 0);
@@ -48,7 +51,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
     };
   }).filter(stat => stat.count > 0);
 
-  // Données pour les graphiques avec couleurs CSS
+  // Données pour les graphiques avec couleurs résolues
   const pieData = categoryStats.map((stat) => ({
     name: stat.name,
     value: stat.count,
@@ -61,6 +64,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
     taches: stat.count
   }));
 
+  // Fonctions de formatage
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) {
       return `${minutes} min`;
@@ -205,7 +209,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                       name === 'temps' ? 'Temps' : 'Tâches'
                     ]}
                   />
-                  <Bar dataKey="temps" fill="hsl(var(--theme-primary))" />
+                  <Bar dataKey="temps" fill={cssVarRGB('--theme-primary')} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

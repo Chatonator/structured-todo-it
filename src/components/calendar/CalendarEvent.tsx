@@ -3,6 +3,7 @@ import React from 'react';
 import { CalendarEvent, CATEGORY_CONFIG } from '@/types/task';
 import { Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { cssVarRGB } from '@/utils/colors';
 
 interface CalendarEventProps {
   event: CalendarEvent;
@@ -16,12 +17,26 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
   onClick
 }) => {
   const categoryConfig = CATEGORY_CONFIG[event.task.category];
+  
+  // Couleurs résolues mémorisées
+  const resolvedCategoryColor = React.useMemo(() => 
+    cssVarRGB(`--color-${categoryConfig.cssName}`), 
+    [categoryConfig.cssName]
+  );
+
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
   };
+
+  // Styles inline avec couleurs résolues
+  const inlineStyles = React.useMemo(() => ({
+    backgroundColor: `${resolvedCategoryColor}26`, // 15% d'opacité
+    borderLeftColor: resolvedCategoryColor,
+    ...style
+  }), [resolvedCategoryColor, style]);
 
   return (
     <div
@@ -31,11 +46,7 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
         bg-theme-background text-theme-foreground
         ${categoryConfig.borderPattern}
       `}
-      style={{
-        backgroundColor: `${categoryConfig.cssColor}15`,
-        borderLeftColor: categoryConfig.cssColor,
-        ...style
-      }}
+      style={inlineStyles}
       onClick={() => onClick?.(event)}
     >
       <div className="font-medium text-sm line-clamp-2 mb-1">
