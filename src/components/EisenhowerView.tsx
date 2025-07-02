@@ -20,12 +20,11 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
   const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
 
   // Organisation des tâches par quadrant avec couleurs thématiques
-  const quadrants = {
+  const quadrants = React.useMemo(() => ({
     'urgent-important': {
       title: 'Urgent & Important',
       subtitle: 'À FAIRE MAINTENANT',
-      color: 'bg-category-obligation-light border-category-obligation',
-      headerColor: 'bg-category-obligation text-white',
+      cssColorVar: '--color-obligation',
       icon: <AlertTriangle className="w-5 h-5 text-white" />,
       description: 'Crises, urgences, problèmes pressants',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-important')
@@ -33,8 +32,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
     'important-not-urgent': {
       title: 'Important & Non Urgent',
       subtitle: 'À PLANIFIER',
-      color: 'bg-category-envie-light border-category-envie',
-      headerColor: 'bg-category-envie text-white',
+      cssColorVar: '--color-envie',
       icon: <Target className="w-5 h-5 text-white" />,
       description: 'Prévention, amélioration, développement',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'important-not-urgent')
@@ -42,8 +40,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
     'urgent-not-important': {
       title: 'Urgent & Non Important',
       subtitle: 'À DÉLÉGUER',
-      color: 'bg-category-quotidien-light border-category-quotidien',
-      headerColor: 'bg-category-quotidien text-white',
+      cssColorVar: '--color-quotidien',
       icon: <Calendar className="w-5 h-5 text-white" />,
       description: 'Interruptions, certains appels, emails',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-not-important')
@@ -51,13 +48,12 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
     'not-urgent-not-important': {
       title: 'Non Urgent & Non Important',
       subtitle: 'À ÉLIMINER',
-      color: 'bg-category-autres-light border-category-autres',
-      headerColor: 'bg-category-autres text-white',
+      cssColorVar: '--color-autres',
       icon: <Archive className="w-5 h-5 text-white" />,
       description: 'Distractions, certaines activités',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'not-urgent-not-important')
     }
-  };
+  }), [tasks]);
 
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) {
@@ -164,13 +160,22 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
 
       {/* Matrice 2x2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {Object.entries(quadrants).map(([key, quadrant]) => (
+        {Object.entries(quadrants).map(([key, quadrant]) => {
+          const resolvedColor = cssVarRGB(quadrant.cssColorVar);
+          return (
           <Card 
             key={key} 
-            className={`${quadrant.color} cursor-pointer transition-all hover:shadow-md`}
+            className="cursor-pointer transition-all hover:shadow-md border-2"
+            style={{
+              backgroundColor: `${resolvedColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
+              borderColor: resolvedColor
+            }}
             onClick={() => setSelectedQuadrant(selectedQuadrant === key ? null : key)}
           >
-            <CardHeader className={`${quadrant.headerColor} rounded-t-lg`}>
+            <CardHeader 
+              className="py-3 rounded-t-lg text-white"
+              style={{ backgroundColor: resolvedColor }}
+            >
               <CardTitle className="flex items-center justify-between text-sm">
                 <div className="flex items-center space-x-2">
                   {quadrant.icon}
@@ -210,7 +215,8 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
               )}
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       {/* Conseils d'action */}
@@ -221,19 +227,19 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
         <CardContent className="text-sm text-theme-foreground">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h4 className="font-semibold text-category-obligation mb-1">🔥 Urgent & Important</h4>
+              <h4 className="font-semibold mb-1" style={{ color: cssVarRGB('--color-obligation') }}>🔥 Urgent & Important</h4>
               <p className="text-xs text-theme-muted">Traitez immédiatement ces tâches. Elles ne peuvent pas attendre.</p>
             </div>
             <div>
-              <h4 className="font-semibold text-category-envie mb-1">🎯 Important & Non Urgent</h4>
+              <h4 className="font-semibold mb-1" style={{ color: cssVarRGB('--color-envie') }}>🎯 Important & Non Urgent</h4>
               <p className="text-xs text-theme-muted">Planifiez du temps dédié. C'est ici que vous devez investir le plus.</p>
             </div>
             <div>
-              <h4 className="font-semibold text-category-quotidien mb-1">⚡ Urgent & Non Important</h4>
+              <h4 className="font-semibold mb-1" style={{ color: cssVarRGB('--color-quotidien') }}>⚡ Urgent & Non Important</h4>
               <p className="text-xs text-theme-muted">Déléguez si possible, ou traitez rapidement.</p>
             </div>
             <div>
-              <h4 className="font-semibold text-category-autres mb-1">🗑️ Non Urgent & Non Important</h4>
+              <h4 className="font-semibold mb-1" style={{ color: cssVarRGB('--color-autres') }}>🗑️ Non Urgent & Non Important</h4>
               <p className="text-xs text-theme-muted">Éliminez ou minimisez ces activités.</p>
             </div>
           </div>

@@ -51,11 +51,19 @@ const TasksView: React.FC<TasksViewProps> = ({
             </CardTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
               {subCategoryConfig && (
-                <Badge variant="secondary" className={`${subCategoryConfig.color} text-xs`}>
+                <Badge 
+                  variant="outline" 
+                  className="text-xs" 
+                  categoryColor={`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`}
+                >
                   {subCategoryConfig.priority}★
                 </Badge>
               )}
-              <Badge variant="outline" className={`${contextConfig.color} text-xs`}>
+              <Badge 
+                variant="outline" 
+                className="text-xs" 
+                categoryColor={`--color-context-${task.context.toLowerCase()}`}
+              >
                 {task.context}
               </Badge>
             </div>
@@ -86,7 +94,8 @@ const TasksView: React.FC<TasksViewProps> = ({
             <div className="flex items-center gap-2">
               <Badge 
                 variant="outline" 
-                className={`bg-category-${categoryConfig.cssName}-light text-category-${categoryConfig.cssName} border-category-${categoryConfig.cssName} text-xs`}
+                className="text-xs"
+                categoryColor={`--color-${categoryConfig.cssName}`}
               >
                 {task.category}
               </Badge>

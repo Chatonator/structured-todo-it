@@ -2,6 +2,7 @@
 import React from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
 import { Clock } from 'lucide-react';
+import { cssVarRGB } from '@/utils/colors';
 
 interface TaskItemContentProps {
   task: Task;
@@ -56,18 +57,26 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
           {/* Badges - plus compacts */}
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Badge contexte */}
-            <span className={`
-              inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
-              ${contextConfig.color} dark:${contextConfig.colorDark}
-            `}>
+            <span 
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border"
+              style={{
+                backgroundColor: `${cssVarRGB(`--color-context-${task.context.toLowerCase()}`).replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
+                borderColor: cssVarRGB(`--color-context-${task.context.toLowerCase()}`),
+                color: cssVarRGB(`--color-context-${task.context.toLowerCase()}`)
+              }}
+            >
               {task.context}
             </span>
             {/* Badge priorité */}
             {subCategoryConfig && (
-              <span className={`
-                inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
-                ${subCategoryConfig.color} dark:${subCategoryConfig.colorDark}
-              `}>
+              <span 
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border"
+                style={{
+                  backgroundColor: `${cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`).replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
+                  borderColor: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`),
+                  color: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`)
+                }}
+              >
                 {subCategoryConfig.priority}★
               </span>
             )}

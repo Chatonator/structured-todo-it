@@ -133,20 +133,28 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
             style={{ backgroundColor: resolvedCategoryColor }}
           />
           <h3 className="font-medium text-gray-900 flex-1">{task.name}</h3>
-          <span className={`
-            inline-flex items-center px-2 py-1 rounded text-xs font-medium
-            ${categoryConfig.color}
-          `}>
+          <span 
+            className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border"
+            style={{
+              backgroundColor: `${resolvedCategoryColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
+              borderColor: resolvedCategoryColor,
+              color: resolvedCategoryColor
+            }}
+          >
             {task.category}
           </span>
         </div>
         
         {subCategoryConfig && (
           <div className="mb-2">
-            <span className={`
-              inline-flex items-center px-2 py-1 rounded text-xs font-medium
-              ${subCategoryConfig.color}
-            `}>
+            <span 
+              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border"
+              style={{
+                backgroundColor: `${cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`).replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
+                borderColor: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`),
+                color: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`)
+              }}
+            >
               {task.subCategory}
             </span>
           </div>
