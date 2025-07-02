@@ -213,11 +213,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                   <Bar 
                     dataKey="temps" 
                     fill={cssVarRGB('--color-primary')}
-                    shape={(props: any) => {
-                      const categoryName = barData[props.payload?.category]?.name;
-                      const color = resolvedColors[categoryName] || cssVarRGB('--color-primary');
-                      return <rect {...props} fill={color} />;
-                    }}
                   />
                 </BarChart>
               </ResponsiveContainer>
