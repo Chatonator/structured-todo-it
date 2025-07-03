@@ -6,41 +6,6 @@
 /* Import des couleurs centralisées - OBLIGATOIRE pour que toutes les variables CSS soient disponibles */
 @import './styles/colors.css';
 
-/* ===== CLASSES THEME PERSONNALISÉES ===== */
-/* Ces classes utilisent les variables CSS centralisées et sont nécessaires pour certains composants */
-.bg-theme-background { background-color: rgb(var(--color-background)); }
-.bg-theme-foreground { background-color: rgb(var(--color-foreground)); }
-.bg-theme-muted { background-color: rgb(var(--color-muted)); }
-.bg-theme-accent { background-color: rgb(var(--color-accent)); }
-.bg-theme-border { background-color: rgb(var(--color-border)); }
-.bg-theme-card { background-color: rgb(var(--color-card)); }
-.bg-theme-input { background-color: rgb(var(--color-input)); }
-.bg-theme-primary { background-color: rgb(var(--color-primary)); }
-.bg-theme-secondary { background-color: rgb(var(--color-secondary)); }
-.bg-theme-sidebar { background-color: rgb(var(--color-sidebar)); }
-
-.text-theme-background { color: rgb(var(--color-background)); }
-.text-theme-foreground { color: rgb(var(--color-foreground)); }
-.text-theme-muted { color: rgb(var(--color-muted)); }
-.text-theme-accent { color: rgb(var(--color-accent)); }
-.text-theme-border { color: rgb(var(--color-border)); }
-.text-theme-card { color: rgb(var(--color-card)); }
-.text-theme-input { color: rgb(var(--color-input)); }
-.text-theme-primary { color: rgb(var(--color-primary)); }
-.text-theme-secondary { color: rgb(var(--color-secondary)); }
-.text-theme-sidebar { color: rgb(var(--color-sidebar)); }
-
-.border-theme-background { border-color: rgb(var(--color-background)); }
-.border-theme-foreground { border-color: rgb(var(--color-foreground)); }
-.border-theme-muted { border-color: rgb(var(--color-muted)); }
-.border-theme-accent { border-color: rgb(var(--color-accent)); }
-.border-theme-border { border-color: rgb(var(--color-border)); }
-.border-theme-card { border-color: rgb(var(--color-card)); }
-.border-theme-input { border-color: rgb(var(--color-input)); }
-.border-theme-primary { border-color: rgb(var(--color-primary)); }
-.border-theme-secondary { border-color: rgb(var(--color-secondary)); }
-.border-theme-sidebar { border-color: rgb(var(--color-sidebar)); }
-
 /* Styles de base pour l'application */
 body {
   @apply bg-background text-foreground antialiased;
@@ -85,15 +50,6 @@ body {
 /* Styles pour les listes */
 .list-item {
   @apply px-4 py-2 border-b border-border;
-}
-
-/* Styles pour les typographies - CORRECTION : utilisation directe des variables CSS */
-.text-primary {
-  color: rgb(var(--color-primary));
-}
-
-.text-secondary {
-  color: rgb(var(--color-secondary));
 }
 
 /* Styles pour les liens */

@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -11,14 +12,6 @@ export default {
 	prefix: "",
 	// SAFELIST OPTIMISÉE - Classes dynamiques pour éviter que Tailwind les supprime
 	safelist: [
-		// Classes de base pour les thèmes personnalisés
-		'bg-theme-background', 'bg-theme-foreground', 'bg-theme-muted', 'bg-theme-accent',
-		'bg-theme-border', 'bg-theme-card', 'bg-theme-input', 'bg-theme-primary', 'bg-theme-secondary', 'bg-theme-sidebar',
-		'text-theme-background', 'text-theme-foreground', 'text-theme-muted', 'text-theme-accent',
-		'text-theme-border', 'text-theme-card', 'text-theme-input', 'text-theme-primary', 'text-theme-secondary', 'text-theme-sidebar',
-		'border-theme-background', 'border-theme-foreground', 'border-theme-muted', 'border-theme-accent',
-		'border-theme-border', 'border-theme-card', 'border-theme-input', 'border-theme-primary', 'border-theme-secondary', 'border-theme-sidebar',
-
 		// Classes des catégories - toutes les variantes
 		'bg-category-obligation', 'bg-category-obligation-light', 'bg-category-obligation-medium', 'bg-category-obligation-dark',
 		'text-category-obligation', 'text-category-obligation-light', 'text-category-obligation-medium', 'text-category-obligation-dark',
@@ -143,20 +136,6 @@ export default {
 					'accent-foreground': 'rgb(var(--color-foreground))',
 					border: 'rgb(var(--color-border))',
 					ring: 'rgb(var(--color-primary))'
-				},
-				
-				// ===== COULEURS CENTRALISÉES - Toutes basées sur les variables CSS =====
-				theme: {
-					background: 'rgb(var(--color-background))',
-					foreground: 'rgb(var(--color-foreground))',
-					muted: 'rgb(var(--color-muted))',
-					accent: 'rgb(var(--color-accent))',
-					border: 'rgb(var(--color-border))',
-					card: 'rgb(var(--color-card))',
-					input: 'rgb(var(--color-input))',
-					primary: 'rgb(var(--color-primary))',
-					secondary: 'rgb(var(--color-secondary))',
-					sidebar: 'rgb(var(--color-sidebar))'
 				},
 				
 				// ===== COULEURS DES CATÉGORIES =====

@@ -133,7 +133,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
       : `0 1px 3px 0 ${resolvedCategoryColor}33`
   }), [resolvedCategoryColor, isHovered, isDragging, isSelected, isPinned]);
 
-  // Construction des classes CSS harmonisées
+  // Construction des classes CSS harmonisées avec Tailwind standards
   const borderColorClass = isSelected 
     ? 'border-l-primary' 
     : isPinned 

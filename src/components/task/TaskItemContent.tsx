@@ -32,7 +32,7 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
     <div className="flex-1 min-w-0 space-y-1">
       {/* Titre de la tâche - limité à 3 lignes */}
       <div className="flex items-start gap-2">
-        <h3 className="font-semibold text-theme-foreground text-sm leading-tight flex-1 min-w-0 line-clamp-3 break-words">
+        <h3 className="font-semibold text-foreground text-sm leading-tight flex-1 min-w-0 line-clamp-3 break-words">
           {task.name}
         </h3>
       </div>
@@ -42,13 +42,13 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
         <div className={`flex items-center justify-between transition-opacity duration-200 ${
           isExtended ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-hover:delay-200'
         }`}>
-          <div className="flex items-center gap-3 text-xs text-theme-muted">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               <span>{formatDuration(totalTime)}</span>
             </div>
             {hasSubTasks && (
-              <span className="bg-theme-accent px-1.5 py-0.5 rounded">
+              <span className="bg-accent px-1.5 py-0.5 rounded">
                 {subTasks.length} tâche{subTasks.length > 1 ? 's' : ''}
               </span>
             )}
