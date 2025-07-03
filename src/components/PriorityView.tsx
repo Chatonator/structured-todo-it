@@ -21,53 +21,75 @@ interface PrioritySelection {
 const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calculateTotalTime }) => {
   const [selection, setSelection] = useState<PrioritySelection | null>(null);
 
-  // Algorithme de priorisation hiérarchique
+  // Algorithme de priorisation corrigé et sécurisé
   const generatePrioritySelection = (): PrioritySelection => {
+    if (!tasks || tasks.length === 0) {
+      return { priority: null, medium: [], quick: [] };
+    }
+
     const allEligibleTasks: Task[] = [];
 
-    // Fonction récursive pour explorer la hiérarchie
-    const exploreHierarchy = (task: Task): Task => {
-      const subTasks = getSubTasks(task.id);
+    // Fonction récursive corrigée pour éviter les boucles infinies
+    const exploreHierarchy = (task: Task, visited = new Set<string>()): Task => {
+      // Protection contre les références circulaires
+      if (visited.has(task.id)) {
+        return task;
+      }
+      visited.add(task.id);
+
+      const subTasks = getSubTasks(task.id).filter(st => !st.isCompleted);
       
       if (subTasks.length === 0) {
         return task; // Feuille de l'arbre
       }
 
-      // Chercher les sous-tâches prioritaires (Le plus important)
-      const essentialSubTasks = subTasks.filter(st => st.subCategory === 'Le plus important');
+      // Chercher les sous-tâches prioritaires
+      const essentialSubTasks = subTasks.filter(st => 
+        st.subCategory === 'Le plus important' && !st.isCompleted
+      );
       
       if (essentialSubTasks.length > 0) {
-        // Descendre dans les sous-tâches les plus importantes
         const randomEssential = essentialSubTasks[Math.floor(Math.random() * essentialSubTasks.length)];
-        return exploreHierarchy(randomEssential);
+        return exploreHierarchy(randomEssential, visited);
       } else {
-        // Pas de sous-tâche "Le plus important", prendre une sous-tâche au hasard
+        // Prendre une sous-tâche au hasard parmi les non-complétées
         const randomSubTask = subTasks[Math.floor(Math.random() * subTasks.length)];
-        return exploreHierarchy(randomSubTask);
+        return exploreHierarchy(randomSubTask, visited);
       }
     };
 
-    // Explorer toutes les tâches principales
-    tasks.filter(task => task.level === 0).forEach(mainTask => {
-      const finalTask = exploreHierarchy(mainTask);
-      allEligibleTasks.push(finalTask);
+    // Explorer toutes les tâches principales non-complétées
+    const mainTasks = tasks.filter(task => task.level === 0 && !task.isCompleted);
+    
+    mainTasks.forEach(mainTask => {
+      try {
+        const finalTask = exploreHierarchy(mainTask);
+        if (finalTask && !finalTask.isCompleted) {
+          allEligibleTasks.push(finalTask);
+        }
+      } catch (error) {
+        console.warn('Erreur lors de l\'exploration de la hiérarchie:', error);
+        // En cas d'erreur, ajouter la tâche principale
+        allEligibleTasks.push(mainTask);
+      }
     });
 
-    // Séparer par critères
+    // Filtrage sécurisé par critères
     const obligations = allEligibleTasks.filter(task => 
       task.category === 'Obligation' || task.subCategory === 'Le plus important'
     );
-    const mediumTasks = allEligibleTasks.filter(task => 
-      calculateTotalTime(task) >= 15 && calculateTotalTime(task) <= 60 &&
-      !obligations.includes(task)
-    );
-    const quickTasks = allEligibleTasks.filter(task => 
-      calculateTotalTime(task) < 15 &&
-      !obligations.includes(task) &&
-      !mediumTasks.includes(task)
-    );
+    
+    const mediumTasks = allEligibleTasks.filter(task => {
+      const totalTime = calculateTotalTime(task);
+      return totalTime >= 15 && totalTime <= 60 && !obligations.includes(task);
+    });
+    
+    const quickTasks = allEligibleTasks.filter(task => {
+      const totalTime = calculateTotalTime(task);
+      return totalTime < 15 && !obligations.includes(task) && !mediumTasks.includes(task);
+    });
 
-    // Sélection finale
+    // Sélection finale sécurisée
     const priority = obligations.length > 0 ? 
       obligations[Math.floor(Math.random() * obligations.length)] : 
       (allEligibleTasks.length > 0 ? allEligibleTasks[Math.floor(Math.random() * allEligibleTasks.length)] : null);
@@ -88,10 +110,15 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
   };
 
   const handleGenerate = () => {
-    setSelection(generatePrioritySelection());
+    try {
+      setSelection(generatePrioritySelection());
+    } catch (error) {
+      console.error('Erreur lors de la génération de la sélection prioritaire:', error);
+      setSelection({ priority: null, medium: [], quick: [] });
+    }
   };
 
-  // Génération initiale
+  // Génération initiale sécurisée
   useMemo(() => {
     if (tasks.length > 0 && !selection) {
       handleGenerate();
@@ -112,7 +139,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
     const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
     const totalTime = calculateTotalTime(task);
 
-    // Couleur résolue mémorisée
+    // Couleur résolue avec système unifié
     const resolvedCategoryColor = React.useMemo(() => 
       cssVarRGB(`--color-${categoryConfig.cssName}`), 
       [categoryConfig.cssName]
@@ -122,19 +149,19 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
       <div 
         key={task.id} 
         className={`
-          p-3 border rounded-lg transition-all
-          ${isHigh ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}
+          p-3 border rounded-lg transition-all bg-card text-foreground
+          ${isHigh ? 'border-system-error bg-system-error/5' : 'border-border'}
           hover:shadow-sm
         `}
       >
         <div className="flex items-center space-x-2 mb-2">
           <div 
-            className="w-3 h-3 rounded-full" 
+            className="w-3 h-3 rounded-full border border-border" 
             style={{ backgroundColor: resolvedCategoryColor }}
           />
-          <h3 className="font-medium text-gray-900 flex-1">{task.name}</h3>
+          <h3 className="font-medium text-foreground flex-1">{task.name}</h3>
           <span 
-            className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border"
+            className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border border-border bg-card"
             style={{
               backgroundColor: `${resolvedCategoryColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
               borderColor: resolvedCategoryColor,
@@ -148,7 +175,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
         {subCategoryConfig && (
           <div className="mb-2">
             <span 
-              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border"
+              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border border-border bg-card"
               style={{
                 backgroundColor: `${cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`).replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
                 borderColor: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`),
@@ -160,7 +187,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           </div>
         )}
         
-        <div className="flex items-center text-sm text-gray-600">
+        <div className="flex items-center text-sm text-muted-foreground">
           <Clock className="w-4 h-4 mr-1" />
           {formatDuration(totalTime)}
         </div>
@@ -170,21 +197,21 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
 
   if (tasks.length === 0) {
     return (
-      <div className="text-center py-8">
-        <h3 className="text-lg font-medium text-gray-500 mb-2">Aucune tâche disponible</h3>
-        <p className="text-sm text-gray-400">Créez des tâches pour utiliser la vue 1-3-5</p>
+      <div className="text-center py-8 bg-background">
+        <h3 className="text-lg font-medium text-muted-foreground mb-2">Aucune tâche disponible</h3>
+        <p className="text-sm text-muted-foreground">Créez des tâches pour utiliser la vue 1-3-5</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-background text-foreground">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Vue 1-3-5</h2>
-          <p className="text-sm text-gray-600">Priorisation intelligente de vos tâches</p>
+          <h2 className="text-2xl font-bold text-foreground">Vue 1-3-5</h2>
+          <p className="text-sm text-muted-foreground">Priorisation intelligente de vos tâches</p>
         </div>
-        <Button onClick={handleGenerate} variant="outline">
+        <Button onClick={handleGenerate} variant="outline" className="bg-background text-foreground border-border hover:bg-accent">
           <RefreshCw className="w-4 h-4 mr-2" />
           Régénérer
         </Button>
@@ -193,43 +220,43 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
       {selection && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 1 Tâche Prioritaire */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg text-red-600">1 Prioritaire</CardTitle>
+          <Card className="lg:col-span-1 bg-card border-border">
+            <CardHeader className="bg-card">
+              <CardTitle className="text-lg" style={{ color: cssVarRGB('--color-error') }}>1 Prioritaire</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-card">
               {selection.priority ? (
                 renderTask(selection.priority, true)
               ) : (
-                <p className="text-sm text-gray-500">Aucune tâche prioritaire disponible</p>
+                <p className="text-sm text-muted-foreground">Aucune tâche prioritaire disponible</p>
               )}
             </CardContent>
           </Card>
 
           {/* 3 Tâches Moyennes */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg text-blue-600">3 Moyennes</CardTitle>
+          <Card className="lg:col-span-1 bg-card border-border">
+            <CardHeader className="bg-card">
+              <CardTitle className="text-lg" style={{ color: cssVarRGB('--color-info') }}>3 Moyennes</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 bg-card">
               {selection.medium.length > 0 ? (
                 selection.medium.map(task => renderTask(task))
               ) : (
-                <p className="text-sm text-gray-500">Aucune tâche moyenne disponible</p>
+                <p className="text-sm text-muted-foreground">Aucune tâche moyenne disponible</p>
               )}
             </CardContent>
           </Card>
 
           {/* 5 Tâches Rapides */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg text-green-600">5 Rapides</CardTitle>
+          <Card className="lg:col-span-1 bg-card border-border">
+            <CardHeader className="bg-card">
+              <CardTitle className="text-lg" style={{ color: cssVarRGB('--color-success') }}>5 Rapides</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 bg-card">
               {selection.quick.length > 0 ? (
                 selection.quick.map(task => renderTask(task))
               ) : (
-                <p className="text-sm text-gray-500">Aucune tâche rapide disponible</p>
+                <p className="text-sm text-muted-foreground">Aucune tâche rapide disponible</p>
               )}
             </CardContent>
           </Card>

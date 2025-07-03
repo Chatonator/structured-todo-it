@@ -21,17 +21,17 @@ body {
 
 /* Styles pour les cartes (cards) */
 .card {
-  @apply bg-card rounded-lg shadow-md p-4;
+  @apply bg-card rounded-lg shadow-md p-4 border border-border;
 }
 
 /* Styles pour les formulaires */
 .form-control {
-  @apply block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm;
+  @apply block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-input text-foreground;
 }
 
 /* Styles pour les boutons */
 .btn {
-  @apply inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2;
+  @apply inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 bg-background text-foreground;
 }
 
 .btn-primary {
@@ -49,7 +49,7 @@ body {
 
 /* Styles pour les listes */
 .list-item {
-  @apply px-4 py-2 border-b border-border;
+  @apply px-4 py-2 border-b border-border bg-background text-foreground;
 }
 
 /* Styles pour les liens */
@@ -71,22 +71,22 @@ body {
 
 /* Styles pour l'en-tête de la tâche */
 .task-header {
-  @apply flex items-center justify-between p-4 border-b border-border;
+  @apply flex items-center justify-between p-4 border-b border-border bg-card text-foreground;
 }
 
 /* Styles pour le pied de page de la tâche */
 .task-footer {
-  @apply p-4 border-t border-border;
+  @apply p-4 border-t border-border bg-card text-foreground;
 }
 
 /* Styles pour les catégories de tâches */
 .category-badge {
-  @apply inline-block bg-accent text-foreground rounded-full px-2 py-1 text-xs font-bold mr-2;
+  @apply inline-block bg-accent text-foreground rounded-full px-2 py-1 text-xs font-bold mr-2 border border-border;
 }
 
 /* Styles pour les niveaux de tâches */
 .level-badge {
-  @apply inline-block bg-muted text-foreground rounded-full px-2 py-1 text-xs font-bold mr-2;
+  @apply inline-block bg-muted text-foreground rounded-full px-2 py-1 text-xs font-bold mr-2 border border-border;
 }
 
 /* Styles pour les tâches complétées */
@@ -106,15 +106,19 @@ body {
 
 /* Styles pour les alertes */
 .alert {
-  @apply relative px-4 py-3 leading-normal;
+  @apply relative px-4 py-3 leading-normal bg-card text-foreground border border-border rounded;
 }
 
 .alert-success {
-  @apply bg-system-success-light text-system-success-dark;
+  color: rgb(var(--color-success));
+  background-color: rgba(var(--color-success), 0.1);
+  border-color: rgb(var(--color-success));
 }
 
 .alert-error {
-  @apply bg-system-error-light text-system-error-dark;
+  color: rgb(var(--color-error));
+  background-color: rgba(var(--color-error), 0.1);
+  border-color: rgb(var(--color-error));
 }
 
 /* ===== ANIMATIONS ET INTERACTIONS ===== */
@@ -128,9 +132,9 @@ body {
 }
 
 .drop-zone-active {
-  background: rgb(var(--color-drop-zone) / 0.1) !important;
-  border-color: rgb(var(--color-drop-zone)) !important;
-  box-shadow: 0 0 0 2px rgb(var(--color-drop-zone) / 0.3), inset 0 2px 8px rgb(var(--color-drop-zone) / 0.1);
+  background: rgba(var(--color-primary), 0.1) !important;
+  border-color: rgb(var(--color-primary)) !important;
+  box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.3), inset 0 2px 8px rgba(var(--color-primary), 0.1);
   transform: scale(1.02);
 }
 
@@ -150,10 +154,11 @@ body {
 }
 
 .task-pinned {
-  background: linear-gradient(135deg, rgba(var(--color-warning), 0.05), rgba(var(--color-warning), 0.1));
+  background: rgba(var(--color-warning), 0.05);
+  border-color: rgba(var(--color-warning), 0.2);
 }
 
-/* Ombres colorées pour les catégories - utilisent les variables CSS */
+/* Ombres colorées harmonisées avec les variables CSS */
 .task-item[data-category="Obligation"]:hover {
   box-shadow: 0 8px 25px -5px rgba(var(--color-obligation), 0.25), 
               0 4px 6px -2px rgba(var(--color-obligation), 0.1);
@@ -178,17 +183,17 @@ body {
 .calendar-time-slot {
   position: relative;
   transition: all 0.2s ease;
+  @apply bg-background text-foreground border border-border;
 }
 
 .calendar-time-slot:hover {
-  background: rgba(var(--color-drop-zone), 0.05);
-  box-shadow: inset 0 0 0 1px rgba(var(--color-drop-zone), 0.1);
+  @apply bg-accent;
 }
 
 .calendar-time-slot.drop-zone {
-  background: linear-gradient(135deg, rgba(var(--color-drop-zone), 0.1), rgba(var(--color-drag-active), 0.2));
-  border: 2px dashed rgb(var(--color-drop-zone));
-  box-shadow: inset 0 2px 8px rgba(var(--color-drop-zone), 0.1);
+  background: rgba(var(--color-primary), 0.1);
+  border: 2px dashed rgb(var(--color-primary));
+  box-shadow: inset 0 2px 8px rgba(var(--color-primary), 0.1);
 }
 
 /* Animations de bounce pour les indicateurs */
@@ -248,6 +253,7 @@ body {
   transform: scale(0.95);
   opacity: 0;
   transition: all 0.2s ease;
+  @apply bg-card text-foreground border border-border;
 }
 
 .modal-content.open {

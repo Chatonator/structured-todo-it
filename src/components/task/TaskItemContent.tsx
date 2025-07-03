@@ -48,17 +48,17 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
               <span>{formatDuration(totalTime)}</span>
             </div>
             {hasSubTasks && (
-              <span className="bg-accent px-1.5 py-0.5 rounded">
+              <span className="bg-accent text-foreground px-1.5 py-0.5 rounded border border-border">
                 {subTasks.length} tâche{subTasks.length > 1 ? 's' : ''}
               </span>
             )}
           </div>
           
-          {/* Badges - plus compacts */}
+          {/* Badges - plus compacts avec couleurs harmonisées */}
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Badge contexte */}
             <span 
-              className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border"
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border border-border bg-card"
               style={{
                 backgroundColor: `${cssVarRGB(`--color-context-${task.context.toLowerCase()}`).replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
                 borderColor: cssVarRGB(`--color-context-${task.context.toLowerCase()}`),
@@ -70,7 +70,7 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
             {/* Badge priorité */}
             {subCategoryConfig && (
               <span 
-                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border"
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border border-border bg-card"
                 style={{
                   backgroundColor: `${cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`).replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
                   borderColor: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`),

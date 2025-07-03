@@ -133,7 +133,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
       : `0 1px 3px 0 ${resolvedCategoryColor}33`
   }), [resolvedCategoryColor, isHovered, isDragging, isSelected, isPinned]);
 
-  // Construction des classes CSS harmonisées avec Tailwind standards
+  // Construction des classes CSS harmonisées avec variables CSS
   const borderColorClass = isSelected 
     ? 'border-l-primary' 
     : isPinned 
@@ -164,16 +164,19 @@ const TaskItem: React.FC<TaskItemProps> = ({
           ${borderColorClass} ${backgroundClass}
           ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
           ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
-          ${isDragOver && !isDragging ? 'scale-102 ring-2 ring-primary' : ''}
+          ${isDragOver && !isDragging ? 'scale-102' : ''}
           ${dragIndex === taskIndex && !isDragging ? 'bg-accent border-primary' : ''}
-          border-border
+          border-border text-foreground
         `}
         data-category={task.category}
         style={inlineStyles}
       >
         {/* Indicateur de drop zone */}
         {isDragOver && !isDragging && (
-          <div className="absolute inset-0 bg-drop-zone-light border-2 border-dashed border-drop-zone rounded-lg pointer-events-none animate-pulse" />
+          <div 
+            className="absolute inset-0 border-2 border-dashed rounded-lg pointer-events-none animate-pulse bg-accent/20" 
+            style={{ borderColor: cssVarRGB('--color-primary') }}
+          />
         )}
 
         {/* Contrôles à gauche */}
@@ -208,15 +211,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
           />
         )}
 
-        {/* Indicateur de drag pour les tâches actives */}
-        {!task.isCompleted && isHovered && !isDragging && (
-          <div className="absolute right-2 top-2 text-primary opacity-70 animate-bounce">
-            <div className="flex items-center gap-1 text-xs font-medium bg-background border border-border px-2 py-1 rounded-full shadow-md">
-              <span className="text-sm">📅</span>
-              <span>Glisser vers calendrier</span>
-            </div>
-          </div>
-        )}
+        {/* SUPPRIMÉ : Indicateur de drag "Glisser vers calendrier" */}
       </div>
     </div>
   );

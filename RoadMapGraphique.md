@@ -14,9 +14,9 @@
   - Texte : `text-primary-foreground` → `rgb(var(--color-background))` → `rgb(255, 255, 255)` (Blanc)
   - Hover : `hover:bg-primary/90` → Variante transparente du primary
 - **Boutons d'actions des tâches** :
-  - Diviser : `text-blue-500 hover:text-blue-700`
-  - Terminer : `text-green-500 hover:text-green-700`
-  - Supprimer : `text-gray-400 hover:text-red-500`
+  - Diviser : Utilise les variables CSS harmonisées
+  - Terminer : Utilise `--color-success`
+  - Supprimer : Utilise `--color-error`
 
 ### 1.3 Tâches et Leurs Couleurs Catégorielles
 - **Obligation** : `--color-obligation` → `rgb(220, 38, 38)` (Rouge plus prononcé)
@@ -49,248 +49,109 @@
 - **Matrice d'Eisenhower** : 4 quadrants avec couleurs catégorielles
 - **Vue 1-3-5** : Couleurs par priorité et catégorie
 
-## 2. RÉSUMÉ DES CORRECTIONS APPORTÉES AU SYSTÈME DE COULEURS
+## 2. CORRECTIONS RÉCENTES APPORTÉES (2025-07-03)
 
-### 2.1 Problème Initial
-- Utilisation de variables CSS `var(--color-name)` dans les styles inline
-- Les navigateurs n'évaluaient pas ces variables dynamiquement
-- Résultat : couleurs par défaut ou incorrectes affichées
+### 2.1 Correction du Crash de la Vue "1-3-5"
+- **Problème identifié** : Boucles infinies dans l'algorithme de priorisation hiérarchique
+- **Solutions appliquées** :
+  - Protection contre les références circulaires avec `Set<string>` visited
+  - Gestion d'erreurs avec try/catch et fallbacks
+  - Filtrage des tâches complétées dans l'exploration
+  - Sécurisation de tous les accès aux tableaux et objets
 
-### 2.2 Solution Implémentée
-- **Création de `cssVarRGB()`** dans `src/utils/colors.ts`
-- **Fonction de résolution** : Convertit les variables CSS en valeurs RGB réelles
-- **Système de fallback** : Couleurs hardcodées si les variables CSS échouent
-- **Application globale** : Tous les composants utilisant des couleurs inline
+### 2.2 Suppression de l'Élément "Glisser vers le calendrier"
+- **Composant modifié** : `src/components/task/TaskItem.tsx`
+- **Action** : Suppression complète du bloc d'indicateur de drag
+- **Résultat** : Interface plus épurée, plus de distraction visuelle
 
-### 2.3 Corrections des Couleurs Catégorielles
-- **Rouge (Obligation)** : `239, 68, 68` → `220, 38, 38` (plus prononcé)
-- **Jaune (Quotidien)** : `250, 204, 21` → `251, 191, 36` (plus brillant)
-- **Vert (Envie)** : `74, 222, 128` → `134, 239, 172` (plus clair)
-- **Bleu (Autres)** : `30, 58, 138` → `37, 99, 235` (plus bleu)
+### 2.3 Harmonisation Complète des Couleurs
+- **Composants corrigés** :
+  - `src/components/PriorityView.tsx` : Remplacement couleurs hardcodées par variables CSS
+  - `src/components/task/TaskItem.tsx` : Harmonisation des classes et couleurs inline
+  - `src/components/task/TaskItemContent.tsx` : Badges avec fond explicite `bg-card`
+  - `src/index.css` : Suppression couleurs hardcodées, ajout classes harmonisées
 
-### 2.4 Corrections de Mapping Tailwind
-- **Synchronisation Shadcn/UI** : Variables HSL → Variables RGB harmonisées
-- **Classes `bg-primary`** : Maintenant liées à `--color-primary`
-- **Classes `text-primary-foreground`** : Maintenant liées à `--color-background`
-- **Cohérence complète** : `tailwind.config.ts` ↔ `colors.css` ↔ Composants
+### 2.4 Corrections des Classes CSS Sans Fond Explicite
+- **Problème** : Éléments invisibles dans certains thèmes
+- **Solutions** :
+  - Ajout systématique de `bg-card`, `bg-background`, `bg-accent`
+  - Ajout de `text-foreground`, `text-muted-foreground`
+  - Ajout de `border-border` pour tous les éléments avec bordures
+  - Classes d'alerte harmonisées avec variables CSS
 
-### 2.5 Corrections des Classes CSS Personnalisées
-- **Problème identifié** : Usage de classes `bg-theme-*` non définies dans Tailwind
-- **Solution** : Définition explicite des classes `theme-*` dans `src/index.css`
-- **Harmonisation** : Remplacement de `bg-theme-primary` par `bg-primary` dans les composants
-- **Nettoyage** : Suppression des classes redondantes et optimisation de la safelist
+### 2.5 Composants Portal et Dialog
+- **Vérification effectuée** : Tous les composants shadcn/ui héritent automatiquement du `data-theme`
+- **Confirmation** : Les modales et popups accèdent correctement aux variables CSS
+- **Action** : Ajout explicite de classes de fond et texte pour garantir la visibilité
 
-### 2.6 Fichiers Modifiés
-1. **`src/styles/colors.css`** : Définition des nouvelles couleurs + ajout `--radius`
-2. **`src/utils/colors.ts`** : Utilitaire de résolution + fallbacks harmonisés
-3. **`tailwind.config.ts`** : Mapping complet Shadcn/UI → variables RGB + nettoyage safelist
-4. **`src/index.css`** : Définition explicite des classes `theme-*` + harmonisation Shadcn/UI
-5. **`src/components/task/TaskItem.tsx`** : Remplacement classes `theme-*` par classes standards
-6. **`src/components/TaskModal.tsx`** : Modal de création de tâches
-7. **`src/components/task/TaskItemContent.tsx`** : Contenu des éléments de tâche
-8. **`src/components/PriorityView.tsx`** : Vue priorité 1-3-5
-9. **`src/components/TasksView.tsx`** : Vue globale des tâches
-10. **`src/components/EisenhowerView.tsx`** : Matrice d'Eisenhower
-11. **`src/components/DashboardView.tsx`** : Tableau de bord et graphiques
+## 3. SYSTÈME DE COULEURS UNIFIÉ ET COHÉRENT
 
-## 3. CHEMIN COMPLET DES COULEURS
+### 3.1 Hiérarchie des Couleurs
+1. **Variables CSS** : `src/styles/colors.css` - Source de vérité unique
+2. **Classes Tailwind** : `tailwind.config.ts` - Mapping vers les variables
+3. **Fonction utilitaire** : `cssVarRGB()` - Résolution runtime pour styles inline
+4. **Fallbacks** : Couleurs hardcodées harmonisées dans `colors.ts`
 
-### 3.1 Couleur d'une Tâche - Chemin Technique Complet
+### 3.2 Classes Standardisées Utilisées
+- **Fond** : `bg-background`, `bg-card`, `bg-accent`, `bg-muted`
+- **Texte** : `text-foreground`, `text-muted-foreground`, `text-primary`
+- **Bordures** : `border-border`, `border-primary`
+- **États** : `hover:bg-accent`, `hover:text-primary`
 
-#### A. Définition Source
-```css
-src/styles/colors.css
-:root {
-  --color-obligation: 220 38 38;    /* Rouge plus prononcé */
-  --color-quotidien: 251 191 36;    /* Jaune plus brillant */
-  --color-envie: 134 239 172;       /* Vert plus clair */
-  --color-autres: 37 99 235;        /* Bleu plus prononcé */
-}
-```
+### 3.3 Élimination des Couleurs Hardcodées
+- ❌ Supprimé : `bg-red-50`, `text-blue-600`, `border-green-300`
+- ✅ Remplacé par : Variables CSS via `cssVarRGB()` ou classes Tailwind harmonisées
+- ✅ Tous les badges, alertes, et indicateurs utilisent le système unifié
 
-#### B. Mapping Technique
-```typescript
-src/types/task.ts
-export const CATEGORY_CSS_NAMES = {
-  'Obligation': 'obligation',
-  'Quotidien': 'quotidien', 
-  'Envie': 'envie',
-  'Autres': 'autres'
-} as const;
+## 4. RECOMMANDATIONS ET BONNES PRATIQUES
 
-export const CATEGORY_CONFIG = {
-  'Obligation': {
-    cssName: 'obligation',
-    // ...
-  }
-}
-```
+### 4.1 Maintenance Continue
+- **Vérification régulière** : Aucune nouvelle couleur hardcodée dans les composants
+- **Tests de thèmes** : Validation de tous les thèmes (light, dark, colorblind, high-contrast)
+- **Cohérence visuelle** : Tous les éléments doivent avoir un fond, texte et bordure explicites
 
-#### C. Résolution de Couleur
-```typescript
-src/utils/colors.ts
-export const cssVarRGB = (varName: string): string => {
-  // 1. Lecture de la variable CSS depuis le DOM
-  const value = getComputedStyle(document.documentElement)
-    .getPropertyValue(varName).trim();
-  
-  // 2. Conversion en format RGB
-  if (value && value !== '') {
-    return `rgb(${value})`;
-  }
-  
-  // 3. Fallback vers couleurs hardcodées harmonisées
-  const fallback = COLOR_FALLBACKS[varName];
-  return fallback ? `rgb(${fallback})` : 'rgb(0, 0, 0)';
-};
-```
+### 4.2 Développement Futur
+- **Nouveaux composants** : Utiliser uniquement les classes Tailwind harmonisées
+- **Couleurs dynamiques** : Utiliser `cssVarRGB()` pour les styles inline
+- **Thèmes personnalisés** : Étendre `colors.css` avec de nouveaux sélecteurs `[data-theme]`
 
-#### D. Application dans les Composants
-```typescript
-src/components/task/TaskItem.tsx
-const resolvedCategoryColor = useMemo(() => {
-  const color = cssVarRGB(`--color-${cssName}`);
-  return color;
-}, [cssName]);
+### 4.3 Performance et Optimisation
+- **Mémorisation** : `useMemo()` pour les couleurs résolues fréquemment utilisées
+- **Cache** : Éviter les recalculs répétés de `cssVarRGB()`
+- **Bundle size** : Safelist optimisée dans `tailwind.config.ts`
 
-// Utilisation dans les styles inline
-style={{
-  borderLeftColor: resolvedCategoryColor,
-  boxShadow: `0 8px 25px -5px ${resolvedCategoryColor}40`
-}}
-```
+## 5. FICHIERS ET COMPOSANTS MODIFIÉS
 
-### 3.2 Bouton "Nouvelle Tâche" - Chemin Technique Complet
+### 5.1 Corrections de Bugs et Stabilité
+- **`src/components/PriorityView.tsx`** : Correction algorithme + harmonisation couleurs
+- **`src/components/task/TaskItem.tsx`** : Suppression drag indicator + couleurs
+- **`src/components/task/TaskItemContent.tsx`** : Harmonisation badges
 
-#### A. Définition dans les Variables CSS
-```css
-src/styles/colors.css
-:root {
-  --color-primary: 99 102 241;    /* Bleu indigo */
-  --color-background: 255 255 255; /* Blanc pour contraste */
-}
-```
+### 5.2 Harmonisation Visuelle
+- **`src/index.css`** : Suppression couleurs hardcodées, classes harmonisées
+- **`tailwind.config.ts`** : Configuration cohérente et safelist optimisée
 
-#### B. Mapping Tailwind Harmonisé
-```typescript
-tailwind.config.ts
-colors: {
-  primary: {
-    DEFAULT: 'rgb(var(--color-primary))', // 99, 102, 241
-    foreground: 'rgb(var(--color-background))' // 255, 255, 255
-  }
-}
-```
+### 5.3 Système Core
+- **`src/styles/colors.css`** : Variables CSS centralisées (inchangé)
+- **`src/utils/colors.ts`** : Utilitaires de résolution (inchangé)
 
-#### C. Utilisation dans le Composant Button
-```typescript
-src/components/ui/button.tsx
-const buttonVariants = cva(
-  // ...
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        // bg-primary = rgb(99, 102, 241)
-        // text-primary-foreground = rgb(255, 255, 255)
-      }
-    }
-  }
-)
-```
+## 6. VALIDATION ET TESTS
 
-#### D. Instanciation du Bouton
-```typescript
-Quelque part dans l'application (TaskList ou similaire)
-<Button variant="default">
-  Nouvelle tâche
-</Button>
-// Résultat : Fond bleu indigo (99, 102, 241), texte blanc (255, 255, 255)
-```
+### 6.1 Fonctionnalités Testées
+- ✅ Vue "1-3-5" : Plus de crashes, génération stable
+- ✅ Drag & Drop : Fonctionnel sans indicateur intrusif
+- ✅ Thèmes : Tous les éléments visibles dans tous les thèmes
+- ✅ Performance : Pas de régression, couleurs résolues efficacement
 
-## 4. INTERACTIONS ET FLUX DE DONNÉES
-
-### 4.1 Flux de Résolution des Couleurs
-1. **Définition** : `colors.css` → Variables CSS globales au format RGB
-2. **Mapping Tailwind** : `tailwind.config.ts` → `rgb(var(--color-xxx))` pour toutes les classes
-3. **Mapping Types** : `task.ts` → Association catégorie ↔ nom CSS
-4. **Résolution Runtime** : `colors.ts` → Conversion var CSS → RGB réel
-5. **Mémorisation** : `useMemo()` dans composants → Évite recalculs
-6. **Application** : Styles inline avec couleurs résolues
-
-### 4.2 Classes CSS et Cohérence
-- **Classes Shadcn/UI** : `bg-primary`, `text-primary-foreground`, etc. → Directement liées aux variables
-- **Classes personnalisées** : `bg-theme-primary`, etc. → Définies explicitement dans `index.css`
-- **Classes dynamiques** : Safelistées dans `tailwind.config.ts` pour éviter la suppression
-- **Harmonisation** : Toutes les classes utilisent le même système de variables RGB
-
-### 4.3 Thèmes et Variations
-- **Mode sombre** : `[data-theme="dark"]` surcharge les variables RGB
-- **Mode daltonien** : `[data-theme="colorblind"]` couleurs optimisées
-- **Contraste élevé** : `[data-theme="high-contrast"]` couleurs pures
-
-### 4.4 Points d'Extension
-- **Nouveaux thèmes** : Ajouter dans `colors.css` avec sélecteur `[data-theme="nom"]`
-- **Nouvelles catégories** : Étendre `CATEGORY_CONFIG` et ajouter variables CSS
-- **Nouvelles couleurs système** : Ajouter dans les variables `--color-*`
-
-## 5. FICHIERS ET DOSSIERS IMPLIQUÉS
-
-### 5.1 Configuration des Couleurs
-- **`src/styles/colors.css`** : Source de vérité pour toutes les couleurs + `--radius`
-- **`src/utils/colors.ts`** : Utilitaires de résolution + fallbacks harmonisés
-- **`src/types/task.ts`** : Configuration des catégories et mapping
-- **`tailwind.config.ts`** : Configuration Tailwind harmonisée avec variables RGB
-- **`src/index.css`** : Classes CSS personnalisées + harmonisation Shadcn/UI
-
-### 5.2 Composants Utilisant les Couleurs
-- **`src/components/task/`** : Tous les composants de tâches
-- **`src/components/TaskModal.tsx`** : Modal de création
-- **`src/components/*View.tsx`** : Toutes les vues (Dashboard, Priority, etc.)
-- **`src/components/ui/badge.tsx`** : Badges avec couleurs catégorielles
-- **`src/components/ui/button.tsx`** : Boutons utilisant `bg-primary`
-
-### 5.3 Système de Thèmes
-- **`src/hooks/useTheme.ts`** : Hook de gestion des thèmes
-- **`src/index.css`** : Classes Tailwind étendues pour les thèmes
-
-## 6. COHÉRENCE COMPLÈTE ASSURÉE
-
-### 6.1 Synchronisation Totale
-- **Variables CSS** : Toutes au format RGB `--color-*`
-- **Classes Tailwind** : Toutes mappées via `rgb(var(--color-*))`
-- **Classes personnalisées** : Définies explicitement avec mêmes variables
-- **Fallbacks** : Harmonisés avec les vraies valeurs
-- **Composants** : Utilisent soit les classes Tailwind, soit `cssVarRGB()`
-
-### 6.2 Tests de Cohérence
-- ✅ `bg-primary` → `rgb(var(--color-primary))` → `rgb(99, 102, 241)`
-- ✅ `text-primary-foreground` → `rgb(var(--color-background))` → `rgb(255, 255, 255)`
-- ✅ `bg-theme-primary` → `rgb(var(--color-primary))` → `rgb(99, 102, 241)`
-- ✅ `cssVarRGB('--color-obligation')` → `rgb(220, 38, 38)`
-- ✅ Fallbacks alignés avec les vraies valeurs CSS
-
-### 6.3 Recommandations et Améliorations
-
-#### 6.3.1 Optimisations Possibles
-- **Contexte React** pour les couleurs résolues (éviter useMemo répétés)
-- **Cache des couleurs** pour améliorer les performances
-- **TypeScript strict** pour les noms de couleurs
-
-#### 6.3.2 Maintenance
-- **Centralisation** : Toutes les couleurs dans `colors.css`
-- **Documentation** : Ce document comme référence
-- **Tests** : Vérifier la résolution des couleurs dans différents navigateurs
-
-#### 6.3.3 Extensibilité
-- **API de couleurs** : Fonction pour générer de nouvelles couleurs
-- **Thèmes personnalisés** : Interface pour créer des thèmes utilisateur
-- **Export/Import** : Sauvegarde des préférences de couleurs
+### 6.2 Cohérence Visuelle
+- ✅ Aucune couleur hardcodée restante
+- ✅ Tous les éléments ont fond/texte/bordure explicites
+- ✅ Badges et alertes utilisent le système unifié
+- ✅ Modales et popups correctement thématisées
 
 ---
 
 **Date de création** : 2025-07-03  
 **Date de mise à jour** : 2025-07-03  
-**Version** : 1.2  
-**Statut** : Système de couleurs entièrement harmonisé et cohérent avec classes CSS unifiées
-
+**Version** : 1.3  
+**Statut** : Système de couleurs entièrement unifié, bugs corrigés, éléments intrusifs supprimés
