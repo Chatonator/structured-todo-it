@@ -4,9 +4,9 @@
 ## 1. INVENTAIRE COMPLET DES ÉLÉMENTS VISUELS ET LEURS COULEURS
 
 ### 1.1 Éléments de Navigation et Structure
-- **Sidebar (AppSidebar)** : `bg-theme-sidebar` → `rgb(var(--color-sidebar))` - Couleur de fond de la barre latérale
-- **Header (AppHeader)** : `bg-theme-background` → `rgb(var(--color-background))` - Fond d'en-tête
-- **Navigation items** : `text-theme-foreground` → `rgb(var(--color-foreground))` - Texte de navigation
+- **Sidebar (AppSidebar)** : `bg-sidebar` → `rgb(var(--color-sidebar))` - Couleur de fond de la barre latérale
+- **Header (AppHeader)** : `bg-background` → `rgb(var(--color-background))` - Fond d'en-tête
+- **Navigation items** : `text-foreground` → `rgb(var(--color-foreground))` - Texte de navigation
 
 ### 1.2 Boutons et Actions
 - **Bouton "Nouvelle tâche"** : 
@@ -74,16 +74,24 @@
 - **Classes `text-primary-foreground`** : Maintenant liées à `--color-background`
 - **Cohérence complète** : `tailwind.config.ts` ↔ `colors.css` ↔ Composants
 
-### 2.5 Fichiers Modifiés
+### 2.5 Corrections des Classes CSS Personnalisées
+- **Problème identifié** : Usage de classes `bg-theme-*` non définies dans Tailwind
+- **Solution** : Définition explicite des classes `theme-*` dans `src/index.css`
+- **Harmonisation** : Remplacement de `bg-theme-primary` par `bg-primary` dans les composants
+- **Nettoyage** : Suppression des classes redondantes et optimisation de la safelist
+
+### 2.6 Fichiers Modifiés
 1. **`src/styles/colors.css`** : Définition des nouvelles couleurs + ajout `--radius`
 2. **`src/utils/colors.ts`** : Utilitaire de résolution + fallbacks harmonisés
-3. **`tailwind.config.ts`** : Mapping complet Shadcn/UI → variables RGB
-4. **`src/components/TaskModal.tsx`** : Modal de création de tâches
-5. **`src/components/task/TaskItemContent.tsx`** : Contenu des éléments de tâche
-6. **`src/components/PriorityView.tsx`** : Vue priorité 1-3-5
-7. **`src/components/TasksView.tsx`** : Vue globale des tâches
-8. **`src/components/EisenhowerView.tsx`** : Matrice d'Eisenhower
-9. **`src/components/DashboardView.tsx`** : Tableau de bord et graphiques
+3. **`tailwind.config.ts`** : Mapping complet Shadcn/UI → variables RGB + nettoyage safelist
+4. **`src/index.css`** : Définition explicite des classes `theme-*` + harmonisation Shadcn/UI
+5. **`src/components/task/TaskItem.tsx`** : Remplacement classes `theme-*` par classes standards
+6. **`src/components/TaskModal.tsx`** : Modal de création de tâches
+7. **`src/components/task/TaskItemContent.tsx`** : Contenu des éléments de tâche
+8. **`src/components/PriorityView.tsx`** : Vue priorité 1-3-5
+9. **`src/components/TasksView.tsx`** : Vue globale des tâches
+10. **`src/components/EisenhowerView.tsx`** : Matrice d'Eisenhower
+11. **`src/components/DashboardView.tsx`** : Tableau de bord et graphiques
 
 ## 3. CHEMIN COMPLET DES COULEURS
 
@@ -210,12 +218,18 @@ Quelque part dans l'application (TaskList ou similaire)
 5. **Mémorisation** : `useMemo()` dans composants → Évite recalculs
 6. **Application** : Styles inline avec couleurs résolues
 
-### 4.2 Thèmes et Variations
+### 4.2 Classes CSS et Cohérence
+- **Classes Shadcn/UI** : `bg-primary`, `text-primary-foreground`, etc. → Directement liées aux variables
+- **Classes personnalisées** : `bg-theme-primary`, etc. → Définies explicitement dans `index.css`
+- **Classes dynamiques** : Safelistées dans `tailwind.config.ts` pour éviter la suppression
+- **Harmonisation** : Toutes les classes utilisent le même système de variables RGB
+
+### 4.3 Thèmes et Variations
 - **Mode sombre** : `[data-theme="dark"]` surcharge les variables RGB
 - **Mode daltonien** : `[data-theme="colorblind"]` couleurs optimisées
 - **Contraste élevé** : `[data-theme="high-contrast"]` couleurs pures
 
-### 4.3 Points d'Extension
+### 4.4 Points d'Extension
 - **Nouveaux thèmes** : Ajouter dans `colors.css` avec sélecteur `[data-theme="nom"]`
 - **Nouvelles catégories** : Étendre `CATEGORY_CONFIG` et ajouter variables CSS
 - **Nouvelles couleurs système** : Ajouter dans les variables `--color-*`
@@ -227,6 +241,7 @@ Quelque part dans l'application (TaskList ou similaire)
 - **`src/utils/colors.ts`** : Utilitaires de résolution + fallbacks harmonisés
 - **`src/types/task.ts`** : Configuration des catégories et mapping
 - **`tailwind.config.ts`** : Configuration Tailwind harmonisée avec variables RGB
+- **`src/index.css`** : Classes CSS personnalisées + harmonisation Shadcn/UI
 
 ### 5.2 Composants Utilisant les Couleurs
 - **`src/components/task/`** : Tous les composants de tâches
@@ -244,12 +259,14 @@ Quelque part dans l'application (TaskList ou similaire)
 ### 6.1 Synchronisation Totale
 - **Variables CSS** : Toutes au format RGB `--color-*`
 - **Classes Tailwind** : Toutes mappées via `rgb(var(--color-*))`
+- **Classes personnalisées** : Définies explicitement avec mêmes variables
 - **Fallbacks** : Harmonisés avec les vraies valeurs
 - **Composants** : Utilisent soit les classes Tailwind, soit `cssVarRGB()`
 
 ### 6.2 Tests de Cohérence
 - ✅ `bg-primary` → `rgb(var(--color-primary))` → `rgb(99, 102, 241)`
 - ✅ `text-primary-foreground` → `rgb(var(--color-background))` → `rgb(255, 255, 255)`
+- ✅ `bg-theme-primary` → `rgb(var(--color-primary))` → `rgb(99, 102, 241)`
 - ✅ `cssVarRGB('--color-obligation')` → `rgb(220, 38, 38)`
 - ✅ Fallbacks alignés avec les vraies valeurs CSS
 
@@ -274,5 +291,6 @@ Quelque part dans l'application (TaskList ou similaire)
 
 **Date de création** : 2025-07-03  
 **Date de mise à jour** : 2025-07-03  
-**Version** : 1.1  
-**Statut** : Système de couleurs entièrement harmonisé et cohérent
+**Version** : 1.2  
+**Statut** : Système de couleurs entièrement harmonisé et cohérent avec classes CSS unifiées
+

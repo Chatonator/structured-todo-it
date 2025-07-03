@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Task, CATEGORY_CONFIG, TASK_LEVELS, CATEGORY_CSS_NAMES } from '@/types/task';
 import TaskItemControls from './TaskItemControls';
@@ -132,20 +133,20 @@ const TaskItem: React.FC<TaskItemProps> = ({
       : `0 1px 3px 0 ${resolvedCategoryColor}33`
   }), [resolvedCategoryColor, isHovered, isDragging, isSelected, isPinned]);
 
-  // Construction des classes CSS
+  // Construction des classes CSS harmonisées
   const borderColorClass = isSelected 
-    ? 'border-l-theme-primary' 
+    ? 'border-l-primary' 
     : isPinned 
     ? 'border-l-system-warning' 
     : 'border-l-8'; // On force la taille avec une couleur inline
 
   const backgroundClass = isSelected 
-    ? 'bg-theme-accent' 
+    ? 'bg-accent' 
     : levelConfig.bgColor === 'bg-white' 
-    ? 'bg-theme-background' 
+    ? 'bg-background' 
     : levelConfig.bgColor === 'bg-gray-50' 
-    ? 'bg-theme-accent' 
-    : 'bg-theme-muted';
+    ? 'bg-accent' 
+    : 'bg-muted';
 
   return (
     <div className={indentClass}>
@@ -163,9 +164,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
           ${borderColorClass} ${backgroundClass}
           ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
           ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
-          ${isDragOver && !isDragging ? 'scale-102 ring-2 ring-theme-primary' : ''}
-          ${dragIndex === taskIndex && !isDragging ? 'bg-theme-accent border-theme-primary' : ''}
-          border-theme-border
+          ${isDragOver && !isDragging ? 'scale-102 ring-2 ring-primary' : ''}
+          ${dragIndex === taskIndex && !isDragging ? 'bg-accent border-primary' : ''}
+          border-border
         `}
         data-category={task.category}
         style={inlineStyles}
@@ -209,8 +210,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
         {/* Indicateur de drag pour les tâches actives */}
         {!task.isCompleted && isHovered && !isDragging && (
-          <div className="absolute right-2 top-2 text-theme-primary opacity-70 animate-bounce">
-            <div className="flex items-center gap-1 text-xs font-medium bg-theme-background border border-theme-border px-2 py-1 rounded-full shadow-md">
+          <div className="absolute right-2 top-2 text-primary opacity-70 animate-bounce">
+            <div className="flex items-center gap-1 text-xs font-medium bg-background border border-border px-2 py-1 rounded-full shadow-md">
               <span className="text-sm">📅</span>
               <span>Glisser vers calendrier</span>
             </div>
