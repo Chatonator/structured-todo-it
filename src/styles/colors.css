@@ -17,11 +17,14 @@
   --color-secondary: 79 70 229;
   --color-sidebar: 248 250 252;
   
-  /* ===== COULEURS DES CATÉGORIES DE TÂCHES - NOUVELLES COULEURS ===== */
-  --color-obligation: 239 68 68;    /* Rouge plus prononcé */
-  --color-quotidien: 250 204 21;    /* Jaune plus brillant */
-  --color-envie: 74 222 128;        /* Vert plus clair */
-  --color-autres: 30 58 138;        /* Bleu plus prononcé */
+  /* ===== VARIABLES SHADCN/UI COMPATIBLES (pour radius) ===== */
+  --radius: 0.5rem;
+  
+  /* ===== COULEURS DES CATÉGORIES DE TÂCHES - COULEURS AMÉLIORÉES ===== */
+  --color-obligation: 220 38 38;      /* Rouge plus prononcé */
+  --color-quotidien: 251 191 36;      /* Jaune plus brillant */
+  --color-envie: 134 239 172;         /* Vert plus clair */
+  --color-autres: 37 99 235;          /* Bleu plus prononcé */
   
   /* ===== COULEURS DES CONTEXTES ===== */
   --color-context-pro: 59 130 246;
@@ -62,7 +65,7 @@
   --color-secondary: 79 70 229;
   --color-sidebar: 24 24 27;
   
-  /* Catégories - nouvelles couleurs adaptées pour le mode sombre */
+  /* Catégories - couleurs adaptées pour le mode sombre */
   --color-obligation: 248 113 113;   /* Rouge plus clair en sombre */
   --color-quotidien: 253 224 71;     /* Jaune plus clair en sombre */
   --color-envie: 134 239 172;        /* Vert plus clair en sombre */

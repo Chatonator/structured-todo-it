@@ -6,18 +6,38 @@
 
 /**
  * Mapping des couleurs hardcodées comme fallback si les variables CSS échouent
+ * HARMONISÉ avec les nouvelles couleurs de colors.css
  */
 const COLOR_FALLBACKS: Record<string, string> = {
-  '--color-obligation': '220, 38, 38',      /* Rouge */
-  '--color-quotidien': '234, 179, 8',       /* Jaune */ 
-  '--color-envie': '34, 197, 94',           /* Vert */
-  '--color-autres': '55, 65, 81',           /* Bleu-gris sombre */
+  // Couleurs de base du thème
+  '--color-background': '255, 255, 255',
+  '--color-foreground': '0, 0, 0',
+  '--color-muted': '71, 85, 105',
+  '--color-accent': '241, 245, 249',
+  '--color-border': '226, 232, 240',
+  '--color-card': '255, 255, 255',
+  '--color-input': '241, 245, 249',
+  '--color-primary': '99, 102, 241',
+  '--color-secondary': '79, 70, 229',
+  '--color-sidebar': '248, 250, 252',
+  
+  // Couleurs des catégories - MISES À JOUR
+  '--color-obligation': '220, 38, 38',      /* Rouge plus prononcé */
+  '--color-quotidien': '251, 191, 36',      /* Jaune plus brillant */
+  '--color-envie': '134, 239, 172',         /* Vert plus clair */
+  '--color-autres': '37, 99, 235',          /* Bleu plus prononcé */
+  
+  // Couleurs des contextes
   '--color-context-pro': '59, 130, 246',
   '--color-context-perso': '34, 197, 94',
+  
+  // Couleurs des priorités
   '--color-priority-highest': '147, 51, 234',
   '--color-priority-high': '59, 130, 246',
   '--color-priority-medium': '234, 179, 8',
   '--color-priority-low': '107, 114, 128',
+  
+  // Couleurs système
   '--color-success': '34, 197, 94',
   '--color-warning': '234, 179, 8',
   '--color-error': '239, 68, 68',
@@ -78,7 +98,7 @@ export const useResolvedColors = () => {
       
       // Couleurs de thème
       ['primary', 'secondary', 'accent', 'muted'].forEach(theme => {
-        newColors[`theme-${theme}`] = cssVarRGB(`--theme-${theme}`);
+        newColors[`theme-${theme}`] = cssVarRGB(`--color-${theme}`);
       });
       
       setColors(newColors);

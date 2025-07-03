@@ -307,49 +307,49 @@ export default {
 		},
 		extend: {
 			colors: {
-				// Couleurs de base Shadcn/UI - gardées pour compatibilité
-				border: 'hsl(var(--border))',
-				input: 'hsl(var(--input))',
-				ring: 'hsl(var(--ring))',
-				background: 'hsl(var(--background))',
-				foreground: 'hsl(var(--foreground))',
+				// CORRECTION MAJEURE : Synchronisation Shadcn/UI avec nos variables RGB
+				border: 'rgb(var(--color-border))',
+				input: 'rgb(var(--color-input))',
+				ring: 'rgb(var(--color-primary))',
+				background: 'rgb(var(--color-background))',
+				foreground: 'rgb(var(--color-foreground))',
 				primary: {
-					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					DEFAULT: 'rgb(var(--color-primary))',
+					foreground: 'rgb(var(--color-background))' // Contraste avec primary
 				},
 				secondary: {
-					DEFAULT: 'hsl(var(--secondary))',
-					foreground: 'hsl(var(--secondary-foreground))'
+					DEFAULT: 'rgb(var(--color-secondary))',
+					foreground: 'rgb(var(--color-background))' // Contraste avec secondary
 				},
 				destructive: {
-					DEFAULT: 'hsl(var(--destructive))',
-					foreground: 'hsl(var(--destructive-foreground))'
+					DEFAULT: 'rgb(var(--color-error))',
+					foreground: 'rgb(var(--color-background))'
 				},
 				muted: {
-					DEFAULT: 'hsl(var(--muted))',
-					foreground: 'hsl(var(--muted-foreground))'
+					DEFAULT: 'rgb(var(--color-muted))',
+					foreground: 'rgb(var(--color-foreground))'
 				},
 				accent: {
-					DEFAULT: 'hsl(var(--accent))',
-					foreground: 'hsl(var(--accent-foreground))'
+					DEFAULT: 'rgb(var(--color-accent))',
+					foreground: 'rgb(var(--color-foreground))'
 				},
 				popover: {
-					DEFAULT: 'hsl(var(--popover))',
-					foreground: 'hsl(var(--popover-foreground))'
+					DEFAULT: 'rgb(var(--color-card))',
+					foreground: 'rgb(var(--color-foreground))'
 				},
 				card: {
-					DEFAULT: 'hsl(var(--card))',
-					foreground: 'hsl(var(--card-foreground))'
+					DEFAULT: 'rgb(var(--color-card))',
+					foreground: 'rgb(var(--color-foreground))'
 				},
 				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
+					DEFAULT: 'rgb(var(--color-sidebar))',
+					foreground: 'rgb(var(--color-foreground))',
+					primary: 'rgb(var(--color-primary))',
+					'primary-foreground': 'rgb(var(--color-background))',
+					accent: 'rgb(var(--color-accent))',
+					'accent-foreground': 'rgb(var(--color-foreground))',
+					border: 'rgb(var(--color-border))',
+					ring: 'rgb(var(--color-primary))'
 				},
 				
 				// COULEURS CENTRALISÉES - Toutes basées sur les variables CSS du fichier colors.css
