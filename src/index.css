@@ -87,13 +87,13 @@ body {
   @apply px-4 py-2 border-b border-border;
 }
 
-/* Styles pour les typographies */
+/* Styles pour les typographies - CORRECTION : utilisation directe des variables CSS */
 .text-primary {
-  @apply text-primary;
+  color: rgb(var(--color-primary));
 }
 
 .text-secondary {
-  @apply text-secondary;
+  color: rgb(var(--color-secondary));
 }
 
 /* Styles pour les liens */
