@@ -148,24 +148,31 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
     return (
       <div 
         key={task.id} 
-        className={`
-          p-3 border rounded-lg transition-all bg-card text-foreground
-          ${isHigh ? 'border-red-500 bg-red-50' : 'border-border'}
-          hover:shadow-sm
-        `}
+        className="p-3 border rounded-lg transition-all hover:shadow-sm"
+        style={{
+          backgroundColor: cssVarRGB('--color-card'),
+          color: cssVarRGB('--color-foreground'),
+          borderColor: isHigh ? cssVarRGB('--color-error') : cssVarRGB('--color-border'),
+        }}
       >
         <div className="flex items-center space-x-2 mb-2">
           <div 
-            className="w-3 h-3 rounded-full border border-border" 
-            style={{ backgroundColor: resolvedCategoryColor }}
+            className="w-3 h-3 rounded-full" 
+            style={{ 
+              backgroundColor: resolvedCategoryColor,
+              border: `1px solid ${cssVarRGB('--color-border')}`
+            }}
           />
-          <h3 className="font-medium text-foreground flex-1">{task.name}</h3>
+          <h3 className="font-medium flex-1" style={{ color: cssVarRGB('--color-foreground') }}>
+            {task.name}
+          </h3>
           <span 
-            className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border border-border bg-card"
+            className="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
             style={{
               backgroundColor: `${resolvedCategoryColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
               borderColor: resolvedCategoryColor,
-              color: resolvedCategoryColor
+              color: resolvedCategoryColor,
+              border: `1px solid ${resolvedCategoryColor}`
             }}
           >
             {task.category}
@@ -175,11 +182,12 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
         {subCategoryConfig && (
           <div className="mb-2">
             <span 
-              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border border-border bg-card"
+              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
               style={{
                 backgroundColor: `${cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`).replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
                 borderColor: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`),
-                color: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`)
+                color: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`),
+                border: `1px solid ${cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`)}`
               }}
             >
               {task.subCategory}
@@ -187,7 +195,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           </div>
         )}
         
-        <div className="flex items-center text-sm text-muted-foreground">
+        <div className="flex items-center text-sm" style={{ color: cssVarRGB('--color-muted') }}>
           <Clock className="w-4 h-4 mr-1" />
           {formatDuration(totalTime)}
         </div>
@@ -197,21 +205,58 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
 
   if (tasks.length === 0) {
     return (
-      <div className="text-center py-8 bg-background">
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">Aucune tâche disponible</h3>
-        <p className="text-sm text-muted-foreground">Créez des tâches pour utiliser la vue 1-3-5</p>
+      <div 
+        className="text-center py-8"
+        style={{ backgroundColor: cssVarRGB('--color-background') }}
+      >
+        <h3 
+          className="text-lg font-medium mb-2"
+          style={{ color: cssVarRGB('--color-muted') }}
+        >
+          Aucune tâche disponible
+        </h3>
+        <p 
+          className="text-sm"
+          style={{ color: cssVarRGB('--color-muted') }}
+        >
+          Créez des tâches pour utiliser la vue 1-3-5
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 bg-background text-foreground">
+    <div 
+      className="space-y-6"
+      style={{ 
+        backgroundColor: cssVarRGB('--color-background'),
+        color: cssVarRGB('--color-foreground')
+      }}
+    >
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Vue 1-3-5</h2>
-          <p className="text-sm text-muted-foreground">Priorisation intelligente de vos tâches</p>
+          <h2 
+            className="text-2xl font-bold"
+            style={{ color: cssVarRGB('--color-foreground') }}
+          >
+            Vue 1-3-5
+          </h2>
+          <p 
+            className="text-sm"
+            style={{ color: cssVarRGB('--color-muted') }}
+          >
+            Priorisation intelligente de vos tâches
+          </p>
         </div>
-        <Button onClick={handleGenerate} variant="outline" className="bg-background text-foreground border-border hover:bg-accent">
+        <Button 
+          onClick={handleGenerate} 
+          variant="outline"
+          style={{
+            backgroundColor: cssVarRGB('--color-background'),
+            color: cssVarRGB('--color-foreground'),
+            borderColor: cssVarRGB('--color-border')
+          }}
+        >
           <RefreshCw className="w-4 h-4 mr-2" />
           Régénérer
         </Button>
@@ -220,43 +265,97 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
       {selection && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 1 Tâche Prioritaire */}
-          <Card className="lg:col-span-1 bg-card border-border">
-            <CardHeader className="bg-card">
-              <CardTitle className="text-lg text-red-600">1 Prioritaire</CardTitle>
+          <Card 
+            className="lg:col-span-1"
+            style={{
+              backgroundColor: cssVarRGB('--color-card'),
+              borderColor: cssVarRGB('--color-border')
+            }}
+          >
+            <CardHeader style={{ backgroundColor: cssVarRGB('--color-card') }}>
+              <CardTitle 
+                className="text-lg"
+                style={{ color: cssVarRGB('--color-error') }}
+              >
+                1 Prioritaire
+              </CardTitle>
             </CardHeader>
-            <CardContent className="bg-card">
+            <CardContent style={{ backgroundColor: cssVarRGB('--color-card') }}>
               {selection.priority ? (
                 renderTask(selection.priority, true)
               ) : (
-                <p className="text-sm text-muted-foreground">Aucune tâche prioritaire disponible</p>
+                <p 
+                  className="text-sm"
+                  style={{ color: cssVarRGB('--color-muted') }}
+                >
+                  Aucune tâche prioritaire disponible
+                </p>
               )}
             </CardContent>
           </Card>
 
           {/* 3 Tâches Moyennes */}
-          <Card className="lg:col-span-1 bg-card border-border">
-            <CardHeader className="bg-card">
-              <CardTitle className="text-lg text-blue-600">3 Moyennes</CardTitle>
+          <Card 
+            className="lg:col-span-1"
+            style={{
+              backgroundColor: cssVarRGB('--color-card'),
+              borderColor: cssVarRGB('--color-border')
+            }}
+          >
+            <CardHeader style={{ backgroundColor: cssVarRGB('--color-card') }}>
+              <CardTitle 
+                className="text-lg"
+                style={{ color: cssVarRGB('--color-info') }}
+              >
+                3 Moyennes
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 bg-card">
+            <CardContent 
+              className="space-y-3"
+              style={{ backgroundColor: cssVarRGB('--color-card') }}
+            >
               {selection.medium.length > 0 ? (
                 selection.medium.map(task => renderTask(task))
               ) : (
-                <p className="text-sm text-muted-foreground">Aucune tâche moyenne disponible</p>
+                <p 
+                  className="text-sm"
+                  style={{ color: cssVarRGB('--color-muted') }}
+                >
+                  Aucune tâche moyenne disponible
+                </p>
               )}
             </CardContent>
           </Card>
 
           {/* 5 Tâches Rapides */}
-          <Card className="lg:col-span-1 bg-card border-border">
-            <CardHeader className="bg-card">
-              <CardTitle className="text-lg text-green-600">5 Rapides</CardTitle>
+          <Card 
+            className="lg:col-span-1"
+            style={{
+              backgroundColor: cssVarRGB('--color-card'),
+              borderColor: cssVarRGB('--color-border')
+            }}
+          >
+            <CardHeader style={{ backgroundColor: cssVarRGB('--color-card') }}>
+              <CardTitle 
+                className="text-lg"
+                style={{ color: cssVarRGB('--color-success') }}
+              >
+                5 Rapides
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 bg-card">
+            <CardContent 
+              className="space-y-3"
+              style={{ backgroundColor: cssVarRGB('--color-card') }}
+            >
               {selection.quick.length > 0 ? (
                 selection.quick.map(task => renderTask(task))
               ) : (
-                <p className="text-sm text-muted-foreground">Aucune tâche rapide disponible</p>
+                <p 
+                  className="text-sm"
+                  style={{ color: cssVarRGB('--color-muted') }}
+                >
+                  Aucune tâche rapide disponible
+                </p>
               )}
             </CardContent>
           </Card>
