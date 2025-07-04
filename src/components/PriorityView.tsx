@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
+import { Task, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RefreshCw, Clock } from 'lucide-react';
@@ -135,14 +135,13 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
   };
 
   const renderTask = (task: Task, isHigh: boolean = false) => {
-    const categoryConfig = CATEGORY_CONFIG[task.category];
     const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
     const totalTime = calculateTotalTime(task);
 
-    // Couleur résolue avec système unifié
+    // Couleur résolue directement avec cssVarRGB
     const resolvedCategoryColor = React.useMemo(() => 
-      cssVarRGB(`--color-${categoryConfig.cssName}`), 
-      [categoryConfig.cssName]
+      cssVarRGB(`--color-${task.category?.toLowerCase() || 'autres'}`), 
+      [task.category]
     );
 
     return (
@@ -175,7 +174,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
               border: `1px solid ${resolvedCategoryColor}`
             }}
           >
-            {task.category}
+            {task.category || 'Sans catégorie'}
           </span>
         </div>
         
