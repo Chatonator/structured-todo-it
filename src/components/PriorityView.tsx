@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Task, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { Button } from '@/components/ui/button';
@@ -139,10 +138,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
     const totalTime = calculateTotalTime(task);
 
     // Couleur résolue directement avec cssVarRGB
-    const resolvedCategoryColor = React.useMemo(() => 
-      cssVarRGB(`--color-${task.category?.toLowerCase() || 'autres'}`), 
-      [task.category]
-    );
+    const resolvedCategoryColor = cssVarRGB(`--color-${task.category?.toLowerCase() || 'autres'}`);
 
     return (
       <div 
