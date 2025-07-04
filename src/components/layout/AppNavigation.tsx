@@ -32,8 +32,8 @@ const AppNavigation: React.FC<AppNavigationProps> = ({
             className={`
               flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
               ${currentView === item.key 
-                ? 'bg-theme-primary text-theme-primary-foreground shadow-sm' 
-                : 'text-theme-muted hover:bg-theme-accent hover:text-theme-foreground'
+                ? 'bg-primary text-primary-foreground shadow-sm' 
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               }
             `}
           >

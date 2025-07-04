@@ -28,19 +28,19 @@ const UserOptionsMenu = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-lg hover:bg-theme-accent transition-colors"
+          className="h-8 w-8 rounded-lg hover:bg-accent transition-colors"
         >
-          <Cog className="h-4 w-4 text-theme-foreground" />
+          <Cog className="h-4 w-4 text-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64 bg-theme-background border-theme-border">
-        <DropdownMenuLabel className="text-theme-foreground">
+      <DropdownMenuContent align="end" className="w-64 bg-background border-border">
+        <DropdownMenuLabel className="text-foreground">
           Options d'apparence
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-theme-border" />
+        <DropdownMenuSeparator className="bg-border" />
         
         <div className="p-2">
-          <div className="text-xs font-medium text-theme-muted mb-2">Thème</div>
+          <div className="text-xs font-medium text-muted-foreground mb-2">Thème</div>
           <div className="space-y-1">
             {themes.map((themeOption) => (
               <button
@@ -48,10 +48,10 @@ const UserOptionsMenu = () => {
                 onClick={() => changeTheme(themeOption.value)}
                 className={`
                   w-full text-left px-3 py-2 rounded-md text-sm transition-colors
-                  hover:bg-theme-accent
+                  hover:bg-accent
                   ${theme === themeOption.value 
-                    ? 'bg-theme-primary text-theme-primary-foreground' 
-                    : 'text-theme-foreground'
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'text-foreground'
                   }
                 `}
               >

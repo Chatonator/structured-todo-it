@@ -38,9 +38,9 @@ const TaskListHeader: React.FC<TaskListHeaderProps> = ({
   onRedo
 }) => {
   return (
-    <div className="p-3 border-b border-theme-border bg-theme-accent space-y-3">
+    <div className="p-3 border-b border-border bg-accent space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-theme-foreground">
+        <h2 className="text-sm font-semibold text-foreground">
           Tâches Actives ({tasksCount})
         </h2>
         
@@ -76,7 +76,7 @@ const TaskListHeader: React.FC<TaskListHeaderProps> = ({
           placeholder="Rechercher dans les tâches..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="text-xs h-8 pr-8 border-theme-border bg-theme-background text-theme-foreground"
+          className="text-xs h-8 pr-8 border-border bg-background text-foreground"
         />
         {searchQuery && (
           <Button
@@ -93,14 +93,14 @@ const TaskListHeader: React.FC<TaskListHeaderProps> = ({
       {/* Filtres et tri */}
       <div className="flex items-center gap-2">
         <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
-          <SelectTrigger className="h-7 text-xs flex-1 border-theme-border bg-theme-background text-theme-foreground">
+          <SelectTrigger className="h-7 text-xs flex-1 border-border bg-background text-foreground">
             <Filter className="w-3 h-3 mr-1" />
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-theme-background border-theme-border">
-            <SelectItem value="all" className="text-theme-foreground">Toutes catégories</SelectItem>
+          <SelectContent className="bg-background border-border">
+            <SelectItem value="all" className="text-foreground">Toutes catégories</SelectItem>
             {Object.keys(CATEGORY_CONFIG).map((category) => (
-              <SelectItem key={category} value={category} className="text-theme-foreground">
+              <SelectItem key={category} value={category} className="text-foreground">
                 {category}
               </SelectItem>
             ))}
@@ -108,14 +108,14 @@ const TaskListHeader: React.FC<TaskListHeaderProps> = ({
         </Select>
 
         <Select value={sortBy} onValueChange={onSortChange}>
-          <SelectTrigger className="h-7 text-xs flex-1 border-theme-border bg-theme-background text-theme-foreground">
+          <SelectTrigger className="h-7 text-xs flex-1 border-border bg-background text-foreground">
             <SortAsc className="w-3 h-3 mr-1" />
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-theme-background border-theme-border">
-            <SelectItem value="name" className="text-theme-foreground">Nom</SelectItem>
-            <SelectItem value="duration" className="text-theme-foreground">Durée</SelectItem>
-            <SelectItem value="category" className="text-theme-foreground">Catégorie</SelectItem>
+          <SelectContent className="bg-background border-border">
+            <SelectItem value="name" className="text-foreground">Nom</SelectItem>
+            <SelectItem value="duration" className="text-foreground">Durée</SelectItem>
+            <SelectItem value="category" className="text-foreground">Catégorie</SelectItem>
           </SelectContent>
         </Select>
       </div>

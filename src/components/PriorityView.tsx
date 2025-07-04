@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,12 +118,12 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
     }
   };
 
-  // Génération initiale sécurisée
-  useMemo(() => {
+  // Génération initiale sécurisée avec useEffect
+  useEffect(() => {
     if (tasks.length > 0 && !selection) {
       handleGenerate();
     }
-  }, [tasks.length]);
+  }, [tasks.length, selection]);
 
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) {
@@ -150,7 +150,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
         key={task.id} 
         className={`
           p-3 border rounded-lg transition-all bg-card text-foreground
-          ${isHigh ? 'border-system-error bg-system-error/5' : 'border-border'}
+          ${isHigh ? 'border-red-500 bg-red-50' : 'border-border'}
           hover:shadow-sm
         `}
       >
@@ -222,7 +222,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           {/* 1 Tâche Prioritaire */}
           <Card className="lg:col-span-1 bg-card border-border">
             <CardHeader className="bg-card">
-              <CardTitle className="text-lg" style={{ color: cssVarRGB('--color-error') }}>1 Prioritaire</CardTitle>
+              <CardTitle className="text-lg text-red-600">1 Prioritaire</CardTitle>
             </CardHeader>
             <CardContent className="bg-card">
               {selection.priority ? (
@@ -236,7 +236,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           {/* 3 Tâches Moyennes */}
           <Card className="lg:col-span-1 bg-card border-border">
             <CardHeader className="bg-card">
-              <CardTitle className="text-lg" style={{ color: cssVarRGB('--color-info') }}>3 Moyennes</CardTitle>
+              <CardTitle className="text-lg text-blue-600">3 Moyennes</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 bg-card">
               {selection.medium.length > 0 ? (
@@ -250,7 +250,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           {/* 5 Tâches Rapides */}
           <Card className="lg:col-span-1 bg-card border-border">
             <CardHeader className="bg-card">
-              <CardTitle className="text-lg" style={{ color: cssVarRGB('--color-success') }}>5 Rapides</CardTitle>
+              <CardTitle className="text-lg text-green-600">5 Rapides</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 bg-card">
               {selection.quick.length > 0 ? (
