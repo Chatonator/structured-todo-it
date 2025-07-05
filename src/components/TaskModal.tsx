@@ -1,20 +1,27 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Check, AlertTriangle } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Plus, Check, AlertTriangle, CalendarIcon } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task, TaskCategory, SubTaskCategory, TaskContext, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
 import { cssVarRGB } from '@/utils/colors';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  onAddTask?: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
   parentTask?: Task;
+  editingTask?: Task;
 }
 
 interface TaskDraft {
@@ -23,12 +30,38 @@ interface TaskDraft {
   subCategory: SubTaskCategory | '';
   context: TaskContext | '';
   estimatedTime: number | '';
+  scheduledDate?: Date;
+  scheduledTime?: string;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, parentTask }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onAddTask, 
+  onUpdateTask, 
+  parentTask, 
+  editingTask 
+}) => {
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([
     { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }
   ]);
+
+  // Si on édite une tâche, initialiser avec ses données
+  useEffect(() => {
+    if (editingTask) {
+      setTaskDrafts([{
+        name: editingTask.name,
+        category: editingTask.category,
+        subCategory: editingTask.subCategory || '',
+        context: editingTask.context,
+        estimatedTime: editingTask.estimatedTime,
+        scheduledDate: editingTask.scheduledDate,
+        scheduledTime: editingTask.scheduledTime
+      }]);
+    } else {
+      setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
+    }
+  }, [editingTask, isOpen]);
 
   const resetModal = () => {
     setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
@@ -40,39 +73,67 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
   };
 
   const addNewTaskDraft = () => {
-    setTaskDrafts([...taskDrafts, { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
+    if (!editingTask) { // Seulement permettre plusieurs tâches si on n'édite pas
+      setTaskDrafts([...taskDrafts, { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
+    }
   };
 
-  const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number) => {
+  const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number | Date) => {
     const updated = [...taskDrafts];
     updated[index] = { ...updated[index], [field]: value };
     setTaskDrafts(updated);
   };
 
   const removeTaskDraft = (index: number) => {
-    if (taskDrafts.length > 1) {
+    if (taskDrafts.length > 1 && !editingTask) {
       setTaskDrafts(taskDrafts.filter((_, i) => i !== index));
     }
   };
 
   const handleFinish = () => {
     const validTasks = taskDrafts.filter(draft => isTaskValid(draft));
-
-    validTasks.forEach(draft => {
-      const level = parentTask ? Math.min((parentTask.level + 1), 2) as 0 | 1 | 2 : 0;
-      
-      onAddTask({
-        name: draft.name.trim(),
-        category: parentTask ? parentTask.category : draft.category as TaskCategory,
-        subCategory: parentTask ? draft.subCategory as SubTaskCategory : undefined,
-        context: draft.context as TaskContext,
-        estimatedTime: Number(draft.estimatedTime),
-        parentId: parentTask?.id,
-        level,
-        isExpanded: true,
-        isCompleted: false
+    
+    if (editingTask && onUpdateTask) {
+      // Mode édition
+      const draft = validTasks[0];
+      if (draft) {
+        const updates: Partial<Task> = {
+          name: draft.name.trim(),
+          category: draft.category as TaskCategory,
+          subCategory: draft.subCategory as SubTaskCategory || undefined,
+          context: draft.context as TaskContext,
+          estimatedTime: Number(draft.estimatedTime),
+          scheduledDate: draft.scheduledDate,
+          scheduledTime: draft.scheduledTime,
+          startTime: draft.scheduledDate && draft.scheduledTime ? 
+            new Date(`${draft.scheduledDate.toISOString().split('T')[0]}T${draft.scheduledTime}:00`) : undefined,
+          duration: draft.scheduledDate && draft.scheduledTime ? Number(draft.estimatedTime) : undefined
+        };
+        onUpdateTask(editingTask.id, updates);
+      }
+    } else if (onAddTask) {
+      // Mode création
+      validTasks.forEach(draft => {
+        const level = parentTask ? Math.min((parentTask.level + 1), 2) as 0 | 1 | 2 : 0;
+        
+        onAddTask({
+          name: draft.name.trim(),
+          category: parentTask ? parentTask.category : draft.category as TaskCategory,
+          subCategory: parentTask ? draft.subCategory as SubTaskCategory : undefined,
+          context: draft.context as TaskContext,
+          estimatedTime: Number(draft.estimatedTime),
+          parentId: parentTask?.id,
+          level,
+          isExpanded: true,
+          isCompleted: false,
+          scheduledDate: draft.scheduledDate,
+          scheduledTime: draft.scheduledTime,
+          startTime: draft.scheduledDate && draft.scheduledTime ? 
+            new Date(`${draft.scheduledDate.toISOString().split('T')[0]}T${draft.scheduledTime}:00`) : undefined,
+          duration: draft.scheduledDate && draft.scheduledTime ? Number(draft.estimatedTime) : undefined
+        });
       });
-    });
+    }
 
     handleClose();
   };
@@ -96,7 +157,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
   const showLimitWarning = parentTask && taskDrafts.length > 3;
 
   // Calculer les colonnes selon le nombre de tâches
-  const shouldUseGrid = taskDrafts.length >= 2;
+  const shouldUseGrid = taskDrafts.length >= 2 && !editingTask;
   const gridCols = taskDrafts.length >= 4 ? 'grid-cols-2' : 'grid-cols-1 lg:grid-cols-2';
 
   return (
@@ -107,9 +168,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
       <DialogContent className={`max-w-4xl max-h-[85vh] overflow-y-auto ${shouldUseGrid ? 'min-w-[800px]' : 'max-w-md'}`}>
         <DialogHeader>
           <DialogTitle>
-            {parentTask 
-              ? `Créer des sous-tâches pour "${parentTask.name}"` 
-              : 'Nouvelle(s) tâche(s)'
+            {editingTask 
+              ? `Modifier "${editingTask.name}"`
+              : parentTask 
+                ? `Créer des sous-tâches pour "${parentTask.name}"` 
+                : 'Nouvelle(s) tâche(s)'
             }
           </DialogTitle>
         </DialogHeader>
@@ -132,9 +195,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                 <div key={index} className={`p-4 border rounded-lg space-y-4 ${!isValid ? 'border-red-300 bg-red-50' : 'bg-gray-50 border-gray-200'}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">
-                      Tâche {index + 1}
+                      {editingTask ? 'Modifier la tâche' : `Tâche ${index + 1}`}
                     </span>
-                    {taskDrafts.length > 1 && (
+                    {taskDrafts.length > 1 && !editingTask && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -164,11 +227,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                     </Label>
                     <div className="grid grid-cols-2 gap-2">
                       {Object.entries(CONTEXT_CONFIG).map(([context, config]) => {
-                        // Couleur résolue pour le contexte
-                        const resolvedContextColor = React.useMemo(() => 
-                          cssVarRGB(`--color-context-${context.toLowerCase()}`), 
-                          [context]
-                        );
+                        const resolvedContextColor = cssVarRGB(`--color-context-${context.toLowerCase()}`);
 
                         return (
                           <button
@@ -220,11 +279,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                         ))
                       ) : (
                         Object.entries(CATEGORY_CONFIG).map(([cat, config]) => {
-                          // Couleur résolue mémorisée
-                          const resolvedCategoryColor = React.useMemo(() => 
-                            cssVarRGB(`--color-${config.cssName}`), 
-                            [config.cssName]
-                          );
+                          const resolvedCategoryColor = cssVarRGB(`--color-${config.cssName}`);
 
                           return (
                             <button
@@ -274,6 +329,58 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                     </Select>
                   </div>
 
+                  {/* Planification optionnelle */}
+                  <div className="space-y-3 pt-3 border-t border-gray-200">
+                    <Label className="text-sm text-gray-700">Planification (optionnelle)</Label>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Sélection de date */}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "justify-start text-left font-normal",
+                              !draft.scheduledDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {draft.scheduledDate ? format(draft.scheduledDate, "d MMM", { locale: fr }) : "Date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={draft.scheduledDate}
+                            onSelect={(date) => updateTaskDraft(index, 'scheduledDate', date)}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+
+                      {/* Sélection d'heure */}
+                      <Select 
+                        value={draft.scheduledTime || ''} 
+                        onValueChange={(value) => updateTaskDraft(index, 'scheduledTime', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Heure" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }, (_, i) => {
+                            const hour = i.toString().padStart(2, '0');
+                            return (
+                              <SelectItem key={hour} value={`${hour}:00`}>
+                                {hour}:00
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   {isValid && (
                     <div className="text-xs text-green-600 flex items-center">
                       <Check className="w-3 h-3 mr-1" />
@@ -286,17 +393,19 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
           </div>
 
           <div className="flex justify-between pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addNewTaskDraft}
-              className="text-sm"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Ajouter une tâche
-            </Button>
+            {!editingTask && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addNewTaskDraft}
+                className="text-sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Ajouter une tâche
+              </Button>
+            )}
 
-            <div className="space-x-2">
+            <div className="space-x-2 ml-auto">
               <Button
                 type="button"
                 variant="outline"
@@ -312,7 +421,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onAddTask, paren
                 className="text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check className="w-4 h-4 mr-1" />
-                Terminer ({validTasksCount})
+                {editingTask ? 'Sauvegarder' : `Terminer (${validTasksCount})`}
               </Button>
             </div>
           </div>

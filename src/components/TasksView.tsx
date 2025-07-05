@@ -1,8 +1,11 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
-import { Clock, CheckSquare, Users, Calendar } from 'lucide-react';
+import { Clock, CheckSquare, Users, Calendar, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import TaskModal from './TaskModal';
 import { cssVarRGB } from '@/utils/colors';
 
 interface TasksViewProps {
@@ -10,6 +13,7 @@ interface TasksViewProps {
   mainTasks: Task[];
   getSubTasks: (parentId: string) => Task[];
   calculateTotalTime: (task: Task) => number;
+  onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
 }
 
 /**
@@ -19,13 +23,27 @@ const TasksView: React.FC<TasksViewProps> = ({
   tasks,
   mainTasks,
   getSubTasks,
-  calculateTotalTime
+  calculateTotalTime,
+  onUpdateTask
 }) => {
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingTask(null);
+    setIsEditModalOpen(false);
   };
 
   const renderTaskCard = (task: Task) => {
@@ -35,11 +53,7 @@ const TasksView: React.FC<TasksViewProps> = ({
     const subTasks = getSubTasks(task.id);
     const totalTime = calculateTotalTime(task);
 
-    // Couleur résolue mémorisée
-    const resolvedCategoryColor = React.useMemo(() => 
-      cssVarRGB(`--color-${categoryConfig.cssName}`), 
-      [categoryConfig.cssName]
-    );
+    const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig?.cssName || 'default'}`);
 
     return (
       <Card key={task.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 bg-theme-card" 
@@ -50,6 +64,14 @@ const TasksView: React.FC<TasksViewProps> = ({
               {task.name}
             </CardTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleEditTask(task)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
               {subCategoryConfig && (
                 <Badge 
                   variant="outline" 
@@ -89,13 +111,20 @@ const TasksView: React.FC<TasksViewProps> = ({
                 <Calendar className="w-4 h-4" />
                 <span>{task.createdAt.toLocaleDateString('fr-FR')}</span>
               </div>
+
+              {task.scheduledDate && task.scheduledTime && (
+                <div className="flex items-center gap-1 text-blue-600">
+                  <Calendar className="w-4 h-4" />
+                  <span>Planifiée {task.scheduledDate.toLocaleDateString('fr-FR')} à {task.scheduledTime}</span>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-2">
               <Badge 
                 variant="outline" 
                 className="text-xs"
-                categoryColor={`--color-${categoryConfig.cssName}`}
+                categoryColor={`--color-${categoryConfig?.cssName || 'default'}`}
               >
                 {task.category}
               </Badge>
@@ -138,80 +167,90 @@ const TasksView: React.FC<TasksViewProps> = ({
   const completedTasks = mainTasks.filter(task => task.isCompleted);
 
   return (
-    <div className="space-y-8 bg-theme-background text-theme-foreground">
-      {/* En-tête */}
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-theme-foreground mb-2">
-          Toutes les tâches
-        </h1>
-        <p className="text-theme-muted">
-          Vue d'ensemble de vos tâches avec un affichage détaillé et aéré
-        </p>
-      </div>
-
-      {/* Statistiques rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Card className="bg-theme-card border-theme-border">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-theme-foreground">{activeTasks.length}</div>
-            <div className="text-sm text-theme-muted">Tâches actives</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-theme-card border-theme-border">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-theme-foreground">{completedTasks.length}</div>
-            <div className="text-sm text-theme-muted">Tâches terminées</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-theme-card border-theme-border">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-theme-foreground">
-              {formatDuration(activeTasks.reduce((total, task) => total + calculateTotalTime(task), 0))}
-            </div>
-            <div className="text-sm text-theme-muted">Temps total estimé</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tâches actives */}
-      {activeTasks.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-semibold text-theme-foreground mb-4 flex items-center gap-2">
-            <div className="w-1 h-6 bg-theme-primary rounded"></div>
-            Tâches actives ({activeTasks.length})
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {activeTasks.map(task => renderTaskCard(task))}
-          </div>
-        </div>
-      )}
-
-      {/* Tâches terminées */}
-      {completedTasks.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-semibold text-theme-foreground mb-4 flex items-center gap-2">
-            <div className="w-1 h-6 bg-system-success rounded"></div>
-            Tâches terminées ({completedTasks.length})
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {completedTasks.map(task => renderTaskCard(task))}
-          </div>
-        </div>
-      )}
-
-      {/* Message si aucune tâche */}
-      {activeTasks.length === 0 && completedTasks.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">📝</div>
-          <h3 className="text-xl font-semibold text-theme-foreground mb-2">
-            Aucune tâche pour le moment
-          </h3>
+    <>
+      <div className="space-y-8 bg-theme-background text-theme-foreground">
+        {/* En-tête */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-theme-foreground mb-2">
+            Toutes les tâches
+          </h1>
           <p className="text-theme-muted">
-            Commencez par créer votre première tâche !
+            Vue d'ensemble de vos tâches avec un affichage détaillé et aéré
           </p>
         </div>
-      )}
-    </div>
+
+        {/* Statistiques rapides */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card className="bg-theme-card border-theme-border">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-theme-foreground">{activeTasks.length}</div>
+              <div className="text-sm text-theme-muted">Tâches actives</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-theme-card border-theme-border">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-theme-foreground">{completedTasks.length}</div>
+              <div className="text-sm text-theme-muted">Tâches terminées</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-theme-card border-theme-border">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-theme-foreground">
+                {formatDuration(activeTasks.reduce((total, task) => total + calculateTotalTime(task), 0))}
+              </div>
+              <div className="text-sm text-theme-muted">Temps total estimé</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tâches actives */}
+        {activeTasks.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-semibold text-theme-foreground mb-4 flex items-center gap-2">
+              <div className="w-1 h-6 bg-theme-primary rounded"></div>
+              Tâches actives ({activeTasks.length})
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {activeTasks.map(task => renderTaskCard(task))}
+            </div>
+          </div>
+        )}
+
+        {/* Tâches terminées */}
+        {completedTasks.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-semibold text-theme-foreground mb-4 flex items-center gap-2">
+              <div className="w-1 h-6 bg-system-success rounded"></div>
+              Tâches terminées ({completedTasks.length})
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {completedTasks.map(task => renderTaskCard(task))}
+            </div>
+          </div>
+        )}
+
+        {/* Message si aucune tâche */}
+        {activeTasks.length === 0 && completedTasks.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📝</div>
+            <h3 className="text-xl font-semibold text-theme-foreground mb-2">
+              Aucune tâche pour le moment
+            </h3>
+            <p className="text-theme-muted">
+              Commencez par créer votre première tâche !
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Modal d'édition */}
+      <TaskModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onUpdateTask={onUpdateTask}
+        editingTask={editingTask}
+      />
+    </>
   );
 };
 

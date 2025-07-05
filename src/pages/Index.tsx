@@ -42,7 +42,9 @@ const Index = () => {
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    restoreTask,
+    updateTask
   } = useTasks();
 
   // États locaux pour l'interface
@@ -97,6 +99,7 @@ const Index = () => {
             mainTasks={mainTasks}
             getSubTasks={getSubTasks}
             calculateTotalTime={calculateTotalTime}
+            onUpdateTask={updateTask}
           />
         );
       case 'priority':
@@ -120,7 +123,13 @@ const Index = () => {
       case 'calendar':
         return <CalendarView tasks={filteredTasks} />;
       case 'completed':
-        return <CompletedTasksView tasks={tasks.filter(t => t.isCompleted)} />;
+        return (
+          <CompletedTasksView 
+            tasks={tasks.filter(t => t.isCompleted)} 
+            onRestoreTask={restoreTask}
+            onRemoveTask={removeTask}
+          />
+        );
       default:
         return <div className="text-center text-theme-muted">Vue non trouvée</div>;
     }

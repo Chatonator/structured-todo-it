@@ -117,6 +117,42 @@ export const useTasks = () => {
     );
   };
 
+  // Nouvelle fonction pour restaurer une tâche terminée
+  const restoreTask = (taskId: string) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId
+          ? { ...task, isCompleted: false }
+          : task
+      )
+    );
+    console.log('Tâche restaurée:', taskId);
+  };
+
+  // Nouvelle fonction pour planifier une tâche avec startTime et duration
+  const scheduleTaskWithTime = (taskId: string, startTime: Date, duration: number) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId
+          ? { ...task, startTime, duration }
+          : task
+      )
+    );
+    console.log('Tâche planifiée avec horaire:', taskId, startTime, duration);
+  };
+
+  // Nouvelle fonction pour mettre à jour une tâche existante
+  const updateTask = (taskId: string, updates: Partial<Task>) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId
+          ? { ...task, ...updates }
+          : task
+      )
+    );
+    console.log('Tâche mise à jour:', taskId, updates);
+  };
+
   return {
     tasks,
     mainTasks,
@@ -143,6 +179,10 @@ export const useTasks = () => {
     scheduleTask,
     unscheduleTask,
     updateTaskDuration,
+    // Nouvelles fonctions
+    restoreTask,
+    scheduleTaskWithTime,
+    updateTask,
     // Sauvegarde et export
     backups,
     saveBackup,
