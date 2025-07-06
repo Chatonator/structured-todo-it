@@ -18,10 +18,11 @@ interface TasksViewProps {
 
 /**
  * Vue Tâches - Affichage aéré et visuellement agréable de toutes les tâches
+ * Sécurisée contre les données undefined/null
  */
 const TasksView: React.FC<TasksViewProps> = ({
-  tasks,
-  mainTasks,
+  tasks = [],
+  mainTasks = [],
   getSubTasks,
   calculateTotalTime,
   onUpdateTask
@@ -29,14 +30,23 @@ const TasksView: React.FC<TasksViewProps> = ({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  // Sécurisation des props
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeMainTasks = Array.isArray(mainTasks) ? mainTasks : [];
+
   const formatDuration = (minutes: number): string => {
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
+    const safeMinutes = Number(minutes) || 0;
+    if (safeMinutes < 60) return `${safeMinutes}m`;
+    const hours = Math.floor(safeMinutes / 60);
+    const remainingMinutes = safeMinutes % 60;
     return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
   };
 
   const handleEditTask = (task: Task) => {
+    if (!task || typeof task !== 'object') {
+      console.warn('Tentative d\'édition d\'une tâche invalide:', task);
+      return;
+    }
     setEditingTask(task);
     setIsEditModalOpen(true);
   };
@@ -47,13 +57,30 @@ const TasksView: React.FC<TasksViewProps> = ({
   };
 
   const renderTaskCard = (task: Task) => {
-    const categoryConfig = CATEGORY_CONFIG[task.category];
-    const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
-    const contextConfig = CONTEXT_CONFIG[task.context];
-    const subTasks = getSubTasks(task.id);
-    const totalTime = calculateTotalTime(task);
+    if (!task || typeof task !== 'object') {
+      console.warn('Tentative de rendu d\'une tâche invalide:', task);
+      return null;
+    }
 
-    const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig?.cssName || 'default'}`);
+    // Protection contre les catégories inconnues
+    const categoryConfig = CATEGORY_CONFIG[task.category] || { cssName: 'default' };
+    const subCategoryConfig = task.subCategory && SUB_CATEGORY_CONFIG[task.subCategory] 
+      ? SUB_CATEGORY_CONFIG[task.subCategory] 
+      : null;
+    
+    if (!CATEGORY_CONFIG[task.category]) {
+      console.warn('Catégorie inconnue:', task.category, task);
+    }
+    
+    if (task.subCategory && !SUB_CATEGORY_CONFIG[task.subCategory]) {
+      console.warn('Sous-catégorie inconnue:', task.subCategory, task);
+    }
+
+    const contextConfig = CONTEXT_CONFIG[task.context] || CONTEXT_CONFIG['Perso'];
+    const subTasks = getSubTasks ? getSubTasks(task.id || '') : [];
+    const totalTime = calculateTotalTime ? calculateTotalTime(task) : (Number(task.estimatedTime) || 0);
+
+    const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig.cssName}`);
 
     return (
       <Card key={task.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 bg-theme-card" 
@@ -61,7 +88,7 @@ const TasksView: React.FC<TasksViewProps> = ({
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <CardTitle className="text-lg font-semibold text-theme-foreground leading-tight">
-              {task.name}
+              {task.name || 'Tâche sans nom'}
             </CardTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button
@@ -84,9 +111,9 @@ const TasksView: React.FC<TasksViewProps> = ({
               <Badge 
                 variant="outline" 
                 className="text-xs" 
-                categoryColor={`--color-context-${task.context.toLowerCase()}`}
+                categoryColor={`--color-context-${(task.context || 'perso').toLowerCase()}`}
               >
-                {task.context}
+                {task.context || 'Perso'}
               </Badge>
             </div>
           </div>
@@ -100,7 +127,7 @@ const TasksView: React.FC<TasksViewProps> = ({
                 <span>{formatDuration(totalTime)}</span>
               </div>
               
-              {subTasks.length > 0 && (
+              {Array.isArray(subTasks) && subTasks.length > 0 && (
                 <div className="flex items-center gap-1">
                   <Users className="w-4 h-4" />
                   <span>{subTasks.length} tâche{subTasks.length > 1 ? 's' : ''}</span>
@@ -109,13 +136,13 @@ const TasksView: React.FC<TasksViewProps> = ({
               
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>{task.createdAt.toLocaleDateString('fr-FR')}</span>
+                <span>{task.createdAt ? new Date(task.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}</span>
               </div>
 
               {task.scheduledDate && task.scheduledTime && (
                 <div className="flex items-center gap-1 text-blue-600">
                   <Calendar className="w-4 h-4" />
-                  <span>Planifiée {task.scheduledDate.toLocaleDateString('fr-FR')} à {task.scheduledTime}</span>
+                  <span>Planifiée {new Date(task.scheduledDate).toLocaleDateString('fr-FR')} à {task.scheduledTime}</span>
                 </div>
               )}
             </div>
@@ -124,9 +151,9 @@ const TasksView: React.FC<TasksViewProps> = ({
               <Badge 
                 variant="outline" 
                 className="text-xs"
-                categoryColor={`--color-${categoryConfig?.cssName || 'default'}`}
+                categoryColor={`--color-${categoryConfig.cssName}`}
               >
-                {task.category}
+                {task.category || 'Non définie'}
               </Badge>
               
               {task.isCompleted && (
@@ -139,21 +166,25 @@ const TasksView: React.FC<TasksViewProps> = ({
           </div>
           
           {/* Sous-tâches si présentes */}
-          {subTasks.length > 0 && (
+          {Array.isArray(subTasks) && subTasks.length > 0 && (
             <div className="mt-4 space-y-2">
               <h4 className="text-sm font-medium text-theme-foreground">Sous-tâches :</h4>
               <div className="grid gap-2">
-                {subTasks.map(subTask => (
-                  <div key={subTask.id} className="flex items-center gap-2 p-2 bg-theme-accent rounded-md">
-                    <CheckSquare className={`w-3 h-3 ${subTask.isCompleted ? 'text-system-success' : 'text-theme-muted'}`} />
-                    <span className={`text-sm ${subTask.isCompleted ? 'line-through text-theme-muted' : 'text-theme-foreground'}`}>
-                      {subTask.name}
-                    </span>
-                    <span className="text-xs text-theme-muted ml-auto">
-                      {formatDuration(subTask.estimatedTime)}
-                    </span>
-                  </div>
-                ))}
+                {subTasks.map(subTask => {
+                  if (!subTask || typeof subTask !== 'object') return null;
+                  
+                  return (
+                    <div key={subTask.id} className="flex items-center gap-2 p-2 bg-theme-accent rounded-md">
+                      <CheckSquare className={`w-3 h-3 ${subTask.isCompleted ? 'text-system-success' : 'text-theme-muted'}`} />
+                      <span className={`text-sm ${subTask.isCompleted ? 'line-through text-theme-muted' : 'text-theme-foreground'}`}>
+                        {subTask.name || 'Sous-tâche sans nom'}
+                      </span>
+                      <span className="text-xs text-theme-muted ml-auto">
+                        {formatDuration(subTask.estimatedTime)}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -162,9 +193,9 @@ const TasksView: React.FC<TasksViewProps> = ({
     );
   };
 
-  // Séparer les tâches actives et terminées
-  const activeTasks = mainTasks.filter(task => !task.isCompleted);
-  const completedTasks = mainTasks.filter(task => task.isCompleted);
+  // Séparer les tâches actives et terminées de manière sécurisée
+  const activeTasks = safeMainTasks.filter(task => task && !task.isCompleted);
+  const completedTasks = safeMainTasks.filter(task => task && task.isCompleted);
 
   return (
     <>
@@ -196,7 +227,10 @@ const TasksView: React.FC<TasksViewProps> = ({
           <Card className="bg-theme-card border-theme-border">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-theme-foreground">
-                {formatDuration(activeTasks.reduce((total, task) => total + calculateTotalTime(task), 0))}
+                {formatDuration(activeTasks.reduce((total, task) => {
+                  const taskTime = calculateTotalTime ? calculateTotalTime(task) : (Number(task.estimatedTime) || 0);
+                  return total + taskTime;
+                }, 0))}
               </div>
               <div className="text-sm text-theme-muted">Temps total estimé</div>
             </CardContent>
@@ -211,7 +245,7 @@ const TasksView: React.FC<TasksViewProps> = ({
               Tâches actives ({activeTasks.length})
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {activeTasks.map(task => renderTaskCard(task))}
+              {activeTasks.map(task => renderTaskCard(task)).filter(Boolean)}
             </div>
           </div>
         )}
@@ -224,7 +258,7 @@ const TasksView: React.FC<TasksViewProps> = ({
               Tâches terminées ({completedTasks.length})
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {completedTasks.map(task => renderTaskCard(task))}
+              {completedTasks.map(task => renderTaskCard(task)).filter(Boolean)}
             </div>
           </div>
         )}
