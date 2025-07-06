@@ -45,6 +45,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([
     { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }
   ]);
+  const [schedulingError, setSchedulingError] = useState<string>('');
 
   // Si on édite une tâche, initialiser avec ses données
   useEffect(() => {
@@ -61,10 +62,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
     } else {
       setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
     }
+    setSchedulingError('');
   }, [editingTask, isOpen]);
 
   const resetModal = () => {
     setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
+    setSchedulingError('');
   };
 
   const handleClose = () => {
@@ -82,6 +85,14 @@ const TaskModal: React.FC<TaskModalProps> = ({
     const updated = [...taskDrafts];
     updated[index] = { ...updated[index], [field]: value };
     setTaskDrafts(updated);
+    
+    // Vérifier la cohérence date/heure
+    const draft = updated[index];
+    if ((draft.scheduledDate && !draft.scheduledTime) || (!draft.scheduledDate && draft.scheduledTime)) {
+      setSchedulingError('La date et l\'heure doivent être remplies ensemble ou laissées vides');
+    } else {
+      setSchedulingError('');
+    }
   };
 
   const removeTaskDraft = (index: number) => {
@@ -91,6 +102,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const handleFinish = () => {
+    // Vérifier qu'il n'y a pas d'erreur de planification
+    if (schedulingError) {
+      return;
+    }
+    
     const validTasks = taskDrafts.filter(draft => isTaskValid(draft));
     
     if (editingTask && onUpdateTask) {
@@ -143,16 +159,20 @@ const TaskModal: React.FC<TaskModalProps> = ({
     const hasEstimatedTime = task.estimatedTime !== '' && Number(task.estimatedTime) > 0;
     const hasContext = task.context !== '';
     
+    // Vérifier la cohérence de la planification
+    const schedulingValid = (!task.scheduledDate && !task.scheduledTime) || 
+                           (task.scheduledDate && task.scheduledTime);
+    
     if (parentTask) {
       const hasSubCategory = task.subCategory !== '';
-      return hasName && hasSubCategory && hasEstimatedTime && hasContext;
+      return hasName && hasSubCategory && hasEstimatedTime && hasContext && schedulingValid;
     } else {
       const hasCategory = task.category !== '';
-      return hasName && hasCategory && hasEstimatedTime && hasContext;
+      return hasName && hasCategory && hasEstimatedTime && hasContext && schedulingValid;
     }
   };
 
-  const allTasksValid = taskDrafts.length > 0 && taskDrafts.every(draft => isTaskValid(draft));
+  const allTasksValid = taskDrafts.length > 0 && taskDrafts.every(draft => isTaskValid(draft)) && !schedulingError;
   const validTasksCount = taskDrafts.filter(draft => isTaskValid(draft)).length;
   const showLimitWarning = parentTask && taskDrafts.length > 3;
 
@@ -183,6 +203,15 @@ const TaskModal: React.FC<TaskModalProps> = ({
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 Vous avez dépassé la limite recommandée de 3 sous-tâches. Cela peut nuire à la lisibilité.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {schedulingError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {schedulingError}
               </AlertDescription>
             </Alert>
           )}
