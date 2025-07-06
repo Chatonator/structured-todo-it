@@ -16,10 +16,15 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
   style,
   onClick
 }) => {
+  // Protection contre les catégories inconnues
   const categoryConfig = CATEGORY_CONFIG[event.task.category];
+  if (!categoryConfig) {
+    console.warn('Catégorie inconnue dans CalendarEvent', event.task.category, event.task);
+  }
+  const safeCategoryConfig = categoryConfig || { cssName: 'default', borderPattern: '' };
   
   // Remplacé useMemo par une constante simple
-  const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig.cssName}`);
+  const resolvedCategoryColor = cssVarRGB(`--color-${safeCategoryConfig.cssName}`);
 
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) return `${minutes}m`;
@@ -41,7 +46,7 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
         p-2 rounded-md border-l-4 cursor-pointer
         hover:shadow-md transition-shadow
         bg-theme-background text-theme-foreground
-        ${categoryConfig.borderPattern}
+        ${safeCategoryConfig.borderPattern}
       `}
       style={inlineStyles}
       onClick={() => onClick?.(event)}
