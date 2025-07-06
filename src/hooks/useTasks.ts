@@ -1,4 +1,3 @@
-
 import { Task } from '@/types/task';
 import { useTasksData } from './useTasksData';
 import { useTasksOperations } from './useTasksOperations';
@@ -156,8 +155,10 @@ export const useTasks = () => {
 
   return {
     tasks,
+    setTasks,
     mainTasks,
     pinnedTasks,
+    setPinnedTasks,
     addTask,
     removeTask,
     reorderTasks,

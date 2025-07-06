@@ -1,240 +1,127 @@
 
-import React, { useState, useEffect } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import TaskList from '@/components/TaskList';
-import TaskModal from '@/components/TaskModal';
-import TasksView from '@/components/TasksView';
-import PriorityView from '@/components/PriorityView';
-import DashboardView from '@/components/DashboardView';
-import EisenhowerView from '@/components/EisenhowerView';
-import CalendarView from '@/components/CalendarView';
-import CompletedTasksView from '@/components/CompletedTasksView';
-import AppHeader from '@/components/layout/AppHeader';
-import AppNavigation from '@/components/layout/AppNavigation';
+import React, { useState, useCallback } from 'react';
+import { Task } from '@/types/task';
 import { useTasks } from '@/hooks/useTasks';
-import { useTheme } from '@/hooks/useTheme';
+import TasksView from '@/components/TasksView';
+import TaskModal from '@/components/TaskModal';
+import AppHeader from '@/components/layout/AppHeader';
+import CalendarView from '@/components/CalendarView';
 
-/**
- * Page principale de l'application
- * Sécurisée contre les données undefined/null
- */
 const Index = () => {
-  const { theme } = useTheme();
-  
-  // Hook principal pour la gestion des tâches avec gestion d'erreur
-  const hookResult = useTasks();
-  
-  // Sécurisation de tous les retours du hook
-  const { 
-    tasks = [], 
-    mainTasks = [],
-    pinnedTasks = [],
-    addTask = () => {},
-    removeTask = () => {}, 
-    reorderTasks = () => {}, 
-    sortTasks = () => {},
-    toggleTaskExpansion = () => {},
-    toggleTaskCompletion = () => {},
-    togglePinTask = () => {},
-    getSubTasks = () => [],
-    calculateTotalTime = () => 0,
-    canHaveSubTasks = () => false,
-    tasksCount = 0,
-    totalProjectTime = 0,
-    completedTasks = 0,
-    completionRate = 0,
-    undo = () => {},
-    redo = () => {},
-    canUndo = false,
-    canRedo = false,
-    restoreTask = () => {},
-    updateTask = () => {}
-  } = hookResult || {};
+  const {
+    tasks,
+    mainTasks,
+    pinnedTasks,
+    addTask,
+    removeTask,
+    reorderTasks,
+    sortTasks,
+    toggleTaskExpansion,
+    toggleTaskCompletion,
+    togglePinTask,
+    getSubTasks,
+    calculateTotalTime,
+    canHaveSubTasks,
+    tasksCount,
+    totalProjectTime,
+    completedTasks,
+    completionRate,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    scheduleTask,
+    unscheduleTask,
+    updateTaskDuration,
+    restoreTask,
+    scheduleTaskWithTime,
+    updateTask,
+    backups,
+    saveBackup,
+    loadBackup,
+    deleteBackup,
+    exportToCSV,
+    importFromCSV,
+    setTasks,
+    setPinnedTasks
+  } = useTasks();
 
-  // États locaux pour l'interface
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('tasks');
+  const [selectedParentTask, setSelectedParentTask] = useState<Task | undefined>(undefined);
+  const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [isCalendarView, setIsCalendarView] = useState(false);
 
-  // Configuration de la navigation
-  const navigationItems = [
-    { key: 'tasks', title: 'Tâches', icon: '📝' },
-    { key: 'priority', title: 'Vue 1-3-5', icon: '🎲' },
-    { key: 'dashboard', title: 'Dashboard', icon: '📊' },
-    { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
-    { key: 'calendar', title: 'Calendrier', icon: '📅' },
-    { key: 'completed', title: 'Terminées', icon: '✅' }
-  ];
-
-  // Gestion de la sélection sécurisée
-  const handleToggleSelection = (taskId: string) => {
-    if (!taskId || typeof taskId !== 'string') {
-      console.warn('handleToggleSelection appelé avec un taskId invalide:', taskId);
-      return;
-    }
-    
-    setSelectedTasks(prev => {
-      const safePrev = Array.isArray(prev) ? prev : [];
-      return safePrev.includes(taskId) 
-        ? safePrev.filter(id => id !== taskId)
-        : [...safePrev, taskId];
-    });
+  const handleLoadTasks = (newTasks: Task[]) => {
+    setTasks(newTasks);
+    setPinnedTasks([]);
   };
 
-  // Filtrage des tâches selon la vue avec sécurisation
-  const getFilteredTasks = () => {
-    const safeTasks = Array.isArray(tasks) ? tasks : [];
-    
-    if (currentView === 'completed') {
-      return safeTasks.filter(task => task && task.isCompleted);
-    }
-    return safeTasks.filter(task => task && !task.isCompleted);
-  };
+  const handleTaskSelect = useCallback((taskId: string) => {
+    setSelectedTasks(prev =>
+      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
+    );
+  }, []);
 
-  const filteredTasks = getFilteredTasks();
-  
-  // Pour la liste de gauche, on exclut toujours les tâches terminées
-  const safeMainTasks = Array.isArray(mainTasks) ? mainTasks : [];
-  const filteredMainTasks = safeMainTasks.filter(task => task && !task.isCompleted);
-
-  // Application du thème
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme || 'light');
-  }, [theme]);
-
-  // Rendu de la vue courante avec gestion d'erreur
-  const renderCurrentView = () => {
-    try {
-      switch (currentView) {
-        case 'tasks':
-          return (
-            <TasksView 
-              tasks={filteredTasks}
-              mainTasks={safeMainTasks}
-              getSubTasks={getSubTasks}
-              calculateTotalTime={calculateTotalTime}
-              onUpdateTask={updateTask}
-            />
-          );
-        case 'priority':
-          return (
-            <PriorityView 
-              tasks={filteredTasks}
-              getSubTasks={getSubTasks}
-              calculateTotalTime={calculateTotalTime}
-            />
-          );
-        case 'dashboard':
-          return (
-            <DashboardView 
-              tasks={filteredTasks}
-              mainTasks={filteredMainTasks}
-              calculateTotalTime={calculateTotalTime}
-            />
-          );
-        case 'eisenhower':
-          return <EisenhowerView tasks={filteredTasks} />;
-        case 'calendar':
-          return <CalendarView tasks={filteredTasks} />;
-        case 'completed':
-          const completedTasksList = Array.isArray(tasks) ? tasks.filter(t => t && t.isCompleted) : [];
-          return (
-            <CompletedTasksView 
-              tasks={completedTasksList} 
-              onRestoreTask={restoreTask}
-              onRemoveTask={removeTask}
-            />
-          );
-        default:
-          return <div className="text-center text-theme-muted">Vue non trouvée</div>;
-      }
-    } catch (error) {
-      console.error('Erreur lors du rendu de la vue:', error);
-      return (
-        <div className="text-center text-red-500 p-8">
-          <h3 className="text-lg font-medium mb-2">Erreur de rendu</h3>
-          <p className="text-sm">Une erreur s'est produite lors de l'affichage de cette vue.</p>
-          <button 
-            onClick={() => setCurrentView('tasks')}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Retour aux tâches
-          </button>
-        </div>
-      );
-    }
-  };
-
-  // Calculs sécurisés pour les statistiques
-  const safeTasksCount = Array.isArray(tasks) ? tasks.filter(t => t && !t.isCompleted).length : 0;
-  const safeCompletedTasks = Number(completedTasks) || 0;
-  const safeCompletionRate = Number(completionRate) || 0;
+  const isTaskSelected = useCallback((taskId: string) => {
+    return selectedTasks.includes(taskId);
+  }, [selectedTasks]);
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex flex-col w-full bg-theme-background">
-        {/* Header avec statistiques et historique */}
-        <AppHeader
-          tasksCount={safeTasksCount}
-          completedTasks={safeCompletedTasks}
-          completionRate={safeCompletionRate}
-          canUndo={Boolean(canUndo)}
-          canRedo={Boolean(canRedo)}
-          onUndo={undo}
-          onRedo={redo}
-          onOpenModal={() => setIsModalOpen(true)}
-        />
+    <div className="min-h-screen bg-background">
+      <AppHeader
+        tasksCount={tasksCount}
+        completedTasks={completedTasks}
+        completionRate={completionRate}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        onOpenModal={() => {
+          setSelectedParentTask(undefined);
+          setEditingTask(undefined);
+          setIsModalOpen(true);
+        }}
+        onExportCSV={exportToCSV}
+        onImportCSV={importFromCSV}
+        onLoadTasks={handleLoadTasks}
+      />
 
-        {/* Navigation horizontale */}
-        <AppNavigation
-          currentView={currentView}
-          onViewChange={setCurrentView}
-          navigationItems={navigationItems}
-        />
+      <main className="container py-6">
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setIsCalendarView(!isCalendarView)}
+            className="px-4 py-2 bg-accent text-accent-foreground rounded-md text-sm"
+          >
+            {isCalendarView ? 'Afficher les tâches' : 'Afficher le calendrier'}
+          </button>
+        </div>
 
-        {/* Contenu principal avec layout optimisé */}
-        <main className="flex-1 flex">
-          {/* Colonne gauche : Liste des tâches actives */}
-          <div className="w-[25%] bg-theme-background border-r border-theme-border flex flex-col shadow-sm">
-            <TaskList 
-              tasks={Array.isArray(tasks) ? tasks : []}
-              mainTasks={filteredMainTasks}
-              pinnedTasks={Array.isArray(pinnedTasks) ? pinnedTasks : []}
-              onRemoveTask={removeTask}
-              onReorderTasks={reorderTasks}
-              onSortTasks={sortTasks}
-              onToggleExpansion={toggleTaskExpansion}
-              onToggleCompletion={toggleTaskCompletion}
-              onTogglePinTask={togglePinTask}
-              onAddTask={addTask}
-              getSubTasks={getSubTasks}
-              calculateTotalTime={calculateTotalTime}
-              canHaveSubTasks={canHaveSubTasks}
-              selectedTasks={Array.isArray(selectedTasks) ? selectedTasks : []}
-              onToggleSelection={handleToggleSelection}
-              canUndo={Boolean(canUndo)}
-              canRedo={Boolean(canRedo)}
-              onUndo={undo}
-              onRedo={redo}
-            />
-          </div>
+        {isCalendarView ? (
+          <CalendarView tasks={tasks} />
+        ) : (
+          <TasksView
+            tasks={tasks}
+            mainTasks={mainTasks}
+            pinnedTasks={pinnedTasks}
+            getSubTasks={getSubTasks}
+            calculateTotalTime={calculateTotalTime}
+            onUpdateTask={updateTask}
+          />
+        )}
+      </main>
 
-          {/* Section droite : Vue courante */}
-          <div className="flex-1 p-6 overflow-y-auto bg-theme-background">
-            <div className="bg-theme-background rounded-lg shadow-sm border border-theme-border p-6 h-full">
-              {renderCurrentView()}
-            </div>
-          </div>
-        </main>
-
-        {/* Modale de création de tâches */}
-        <TaskModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onAddTask={addTask}
-        />
-      </div>
-    </SidebarProvider>
+      <TaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddTask={(task) => {
+          addTask(task);
+        }}
+        onUpdateTask={updateTask}
+        parentTask={selectedParentTask}
+        editingTask={editingTask}
+      />
+    </div>
   );
 };
 

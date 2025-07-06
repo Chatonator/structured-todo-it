@@ -45,6 +45,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([
     { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }
   ]);
+  const [schedulingError, setSchedulingError] = useState<string>('');
 
   // Si on édite une tâche, initialiser avec ses données
   useEffect(() => {
@@ -61,10 +62,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
     } else {
       setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
     }
+    setSchedulingError('');
   }, [editingTask, isOpen]);
 
   const resetModal = () => {
     setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
+    setSchedulingError('');
   };
 
   const handleClose = () => {
@@ -82,6 +85,14 @@ const TaskModal: React.FC<TaskModalProps> = ({
     const updated = [...taskDrafts];
     updated[index] = { ...updated[index], [field]: value };
     setTaskDrafts(updated);
+    
+    // Vérifier la cohérence date/heure
+    const draft = updated[index];
+    if ((draft.scheduledDate && !draft.scheduledTime) || (!draft.scheduledDate && draft.scheduledTime)) {
+      setSchedulingError('La date et l\'heure doivent être remplies ensemble ou laissées vides');
+    } else {
+      setSchedulingError('');
+    }
   };
 
   const removeTaskDraft = (index: number) => {
@@ -91,6 +102,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const handleFinish = () => {
+    // Vérifier qu'il n'y a pas d'erreur de planification
+    if (schedulingError) {
+      return;
+    }
+    
     const validTasks = taskDrafts.filter(draft => isTaskValid(draft));
     
     if (editingTask && onUpdateTask) {
@@ -143,16 +159,21 @@ const TaskModal: React.FC<TaskModalProps> = ({
     const hasEstimatedTime = task.estimatedTime !== '' && Number(task.estimatedTime) > 0;
     const hasContext = task.context !== '';
     
+    // Vérifier la cohérence de la planification - both must be present or both must be absent
+    const hasScheduledDate = Boolean(task.scheduledDate);
+    const hasScheduledTime = Boolean(task.scheduledTime);
+    const schedulingValid = hasScheduledDate === hasScheduledTime;
+    
     if (parentTask) {
       const hasSubCategory = task.subCategory !== '';
-      return hasName && hasSubCategory && hasEstimatedTime && hasContext;
+      return hasName && hasSubCategory && hasEstimatedTime && hasContext && schedulingValid;
     } else {
       const hasCategory = task.category !== '';
-      return hasName && hasCategory && hasEstimatedTime && hasContext;
+      return hasName && hasCategory && hasEstimatedTime && hasContext && schedulingValid;
     }
   };
 
-  const allTasksValid = taskDrafts.length > 0 && taskDrafts.every(draft => isTaskValid(draft));
+  const allTasksValid = taskDrafts.length > 0 && taskDrafts.every(draft => isTaskValid(draft)) && !schedulingError;
   const validTasksCount = taskDrafts.filter(draft => isTaskValid(draft)).length;
   const showLimitWarning = parentTask && taskDrafts.length > 3;
 
@@ -183,6 +204,15 @@ const TaskModal: React.FC<TaskModalProps> = ({
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 Vous avez dépassé la limite recommandée de 3 sous-tâches. Cela peut nuire à la lisibilité.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {schedulingError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {schedulingError}
               </AlertDescription>
             </Alert>
           )}
@@ -228,6 +258,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     <div className="grid grid-cols-2 gap-2">
                       {Object.entries(CONTEXT_CONFIG).map(([context, config]) => {
                         const resolvedContextColor = cssVarRGB(`--color-context-${context.toLowerCase()}`);
+                        const isSelected = draft.context === context;
 
                         return (
                           <button
@@ -236,13 +267,13 @@ const TaskModal: React.FC<TaskModalProps> = ({
                             onClick={() => updateTaskDraft(index, 'context', context)}
                             className={`
                               flex items-center justify-center space-x-2 p-3 text-sm border rounded transition-all
-                              ${draft.context === context 
+                              ${isSelected 
                                 ? 'border-current shadow-sm' 
                                 : 'bg-white border-gray-200 hover:bg-gray-50'
                               }
                               ${!draft.context ? 'border-red-300' : ''}
                             `}
-                            style={draft.context === context ? {
+                            style={isSelected ? {
                               backgroundColor: `${resolvedContextColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
                               borderColor: resolvedContextColor,
                               color: resolvedContextColor
@@ -261,25 +292,29 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     </Label>
                     <div className="grid grid-cols-2 gap-1">
                       {parentTask ? (
-                        Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => (
-                          <button
-                            key={subCat}
-                            type="button"
-                            onClick={() => updateTaskDraft(index, 'subCategory', subCat)}
-                            className={`
-                              flex items-center space-x-1 p-2 text-xs border rounded transition-all
-                              ${draft.subCategory === subCat 
-                                ? `${config.color} border-current` 
-                                : 'bg-white border-gray-200 hover:bg-gray-50'
-                              }
-                            `}
-                          >
-                            <span className="font-medium truncate">{subCat}</span>
-                          </button>
-                        ))
+                        Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => {
+                          const isSelected = draft.subCategory === subCat;
+                          return (
+                            <button
+                              key={subCat}
+                              type="button"
+                              onClick={() => updateTaskDraft(index, 'subCategory', subCat)}
+                              className={`
+                                flex items-center space-x-1 p-2 text-xs border rounded transition-all
+                                ${isSelected 
+                                  ? `${config.color} border-current` 
+                                  : 'bg-white border-gray-200 hover:bg-gray-50'
+                                }
+                              `}
+                            >
+                              <span className="font-medium truncate">{subCat}</span>
+                            </button>
+                          );
+                        })
                       ) : (
                         Object.entries(CATEGORY_CONFIG).map(([cat, config]) => {
                           const resolvedCategoryColor = cssVarRGB(`--color-${config.cssName}`);
+                          const isSelected = draft.category === cat;
 
                           return (
                             <button
@@ -288,12 +323,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
                               onClick={() => updateTaskDraft(index, 'category', cat)}
                               className={`
                                 flex items-center space-x-1 p-2 text-xs border rounded transition-all
-                                ${draft.category === cat 
+                                ${isSelected 
                                   ? 'border-current shadow-sm' 
                                   : 'bg-white border-gray-200 hover:bg-gray-50'
                                 }
                               `}
-                              style={draft.category === cat ? {
+                              style={isSelected ? {
                                 backgroundColor: `${resolvedCategoryColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
                                 borderColor: resolvedCategoryColor,
                                 color: resolvedCategoryColor

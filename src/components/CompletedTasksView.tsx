@@ -128,10 +128,24 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
         <CardContent>
           <div className="space-y-3">
             {sortedTasks.map(task => {
+              // Protection contre les catégories inconnues
               const categoryConfig = CATEGORY_CONFIG[task.category];
-              const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
+              if (!categoryConfig) {
+                console.warn('Catégorie inconnue dans CompletedTasksView', task.category, task);
+              }
+              const safeCategoryConfig = categoryConfig || { cssName: 'default' };
               
-              const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig?.cssName || 'default'}`);
+              // Protection contre les sous-catégories inconnues
+              let subCategoryConfig = null;
+              if (task.subCategory) {
+                subCategoryConfig = SUB_CATEGORY_CONFIG[task.subCategory];
+                if (!subCategoryConfig) {
+                  console.warn('Sous-catégorie inconnue dans CompletedTasksView', task.subCategory, task);
+                }
+              }
+              
+              // Remplacé useMemo par une constante simple
+              const resolvedCategoryColor = cssVarRGB(`--color-${safeCategoryConfig.cssName}`);
               
               return (
                 <div 
