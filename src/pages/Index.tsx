@@ -43,7 +43,9 @@ const Index = () => {
     exportToCSV,
     importFromCSV,
     setTasks,
-    setPinnedTasks
+    setPinnedTasks,
+    loadError,
+    isLoading
   } = useTasks();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -98,15 +100,17 @@ const Index = () => {
         </div>
 
         {isCalendarView ? (
-          <CalendarView tasks={tasks} />
+          <CalendarView tasks={tasks || []} />
         ) : (
           <TasksView
-            tasks={tasks}
-            mainTasks={mainTasks}
-            pinnedTasks={pinnedTasks}
+            tasks={tasks || []}
+            mainTasks={mainTasks || []}
+            pinnedTasks={pinnedTasks || []}
             getSubTasks={getSubTasks}
             calculateTotalTime={calculateTotalTime}
             onUpdateTask={updateTask}
+            loadError={loadError}
+            isLoading={isLoading}
           />
         )}
       </main>

@@ -12,53 +12,89 @@ const PINNED_TASKS_KEY = 'todo-it-pinned-tasks';
 export const useTasksData = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [pinnedTasks, setPinnedTasks] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Charger les tâches depuis localStorage au démarrage avec validation
   useEffect(() => {
-    try {
-      const savedTasks = localStorage.getItem(STORAGE_KEY);
-      const savedPinnedTasks = localStorage.getItem(PINNED_TASKS_KEY);
+    const loadTasks = async () => {
+      setIsLoading(true);
+      setLoadError(null);
       
-      if (savedTasks) {
-        let parsedTasks = JSON.parse(savedTasks);
+      try {
+        const savedTasks = localStorage.getItem(STORAGE_KEY);
+        const savedPinnedTasks = localStorage.getItem(PINNED_TASKS_KEY);
         
-        // Normaliser les tâches avec valeurs par défaut
-        const tasksWithDates = parsedTasks.map((task: any) => ({
-          ...task,
-          createdAt: new Date(task.createdAt),
-          level: task.level ?? 0,
-          isExpanded: task.isExpanded ?? true,
-          isCompleted: task.isCompleted ?? false,
-          context: task.context || 'Perso'
-        }));
+        if (savedTasks) {
+          let parsedTasks = JSON.parse(savedTasks);
+          
+          // Vérifier que parsedTasks est un tableau
+          if (!Array.isArray(parsedTasks)) {
+            console.warn('Données de tâches invalides, initialisation avec tableau vide');
+            parsedTasks = [];
+          }
+          
+          // Normaliser les tâches avec valeurs par défaut
+          const tasksWithDates = parsedTasks.map((task: any) => ({
+            ...task,
+            createdAt: task.createdAt ? new Date(task.createdAt) : new Date(),
+            level: task.level ?? 0,
+            isExpanded: task.isExpanded ?? true,
+            isCompleted: task.isCompleted ?? false,
+            context: task.context || 'Perso',
+            category: task.category || 'Travail',
+            estimatedTime: task.estimatedTime || 30
+          }));
 
-        // Valider et réparer les données si nécessaire
-        const validationErrors = validateTaskList(tasksWithDates);
-        if (validationErrors.length > 0) {
-          console.warn('Problèmes de données détectés:', validationErrors);
-          const repairedTasks = repairTaskList(tasksWithDates);
-          setTasks(repairedTasks);
-          console.log('Données réparées automatiquement');
+          // Valider et réparer les données si nécessaire
+          const validationErrors = validateTaskList(tasksWithDates);
+          if (validationErrors.length > 0) {
+            console.warn('Problèmes de données détectés:', validationErrors);
+            const repairedTasks = repairTaskList(tasksWithDates);
+            setTasks(repairedTasks || []);
+            console.log('Données réparées automatiquement');
+          } else {
+            setTasks(tasksWithDates || []);
+          }
+          
+          console.log('Tâches chargées depuis localStorage:', tasksWithDates.length);
         } else {
-          setTasks(tasksWithDates);
+          // Aucune donnée sauvegardée, initialiser avec tableau vide
+          setTasks([]);
         }
         
-        console.log('Tâches chargées depuis localStorage:', tasksWithDates.length);
+        if (savedPinnedTasks) {
+          const parsedPinnedTasks = JSON.parse(savedPinnedTasks);
+          setPinnedTasks(Array.isArray(parsedPinnedTasks) ? parsedPinnedTasks : []);
+        } else {
+          setPinnedTasks([]);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des tâches:', error);
+        setLoadError('Erreur lors du chargement des données');
+        // Toujours initialiser avec des valeurs par défaut en cas d'erreur
+        setTasks([]);
+        setPinnedTasks([]);
+      } finally {
+        setIsLoading(false);
       }
-      
-      if (savedPinnedTasks) {
-        setPinnedTasks(JSON.parse(savedPinnedTasks));
-      }
-    } catch (error) {
-      console.error('Erreur lors du chargement des tâches:', error);
-      setTasks([]);
-      setPinnedTasks([]);
-    }
+    };
+
+    loadTasks();
   }, []);
 
   // Sauvegarder dans localStorage à chaque modification avec validation
   useEffect(() => {
+    // Ne pas sauvegarder si on est encore en train de charger
+    if (isLoading) return;
+    
     try {
+      // Vérifier que tasks est bien un tableau avant validation
+      if (!Array.isArray(tasks)) {
+        console.error('Tentative de sauvegarde avec des tâches non-tableau:', tasks);
+        return;
+      }
+
       const validationErrors = validateTaskList(tasks);
       if (validationErrors.length > 0) {
         console.error('Tentative de sauvegarde de données invalides:', validationErrors);
@@ -66,17 +102,20 @@ export const useTasksData = () => {
       }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-      localStorage.setItem(PINNED_TASKS_KEY, JSON.stringify(pinnedTasks));
+      localStorage.setItem(PINNED_TASKS_KEY, JSON.stringify(pinnedTasks || []));
       console.log('Tâches sauvegardées:', tasks.length);
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
+      setLoadError('Erreur lors de la sauvegarde des données');
     }
-  }, [tasks, pinnedTasks]);
+  }, [tasks, pinnedTasks, isLoading]);
 
   return {
-    tasks,
+    tasks: tasks || [],
     setTasks,
-    pinnedTasks,
-    setPinnedTasks
+    pinnedTasks: pinnedTasks || [],
+    setPinnedTasks,
+    loadError,
+    isLoading
   };
 };

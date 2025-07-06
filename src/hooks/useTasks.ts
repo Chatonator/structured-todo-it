@@ -10,7 +10,7 @@ import { useActionHistory } from './useActionHistory';
  * Refactorisé en modules plus petits et spécialisés
  */
 export const useTasks = () => {
-  const { tasks, setTasks, pinnedTasks, setPinnedTasks } = useTasksData();
+  const { tasks, setTasks, pinnedTasks, setPinnedTasks, loadError, isLoading } = useTasksData();
   const { undo, redo, canUndo, canRedo } = useActionHistory();
   
   const { addTask, removeTask, toggleTaskCompletion, scheduleTask } = useTasksOperations(
@@ -39,31 +39,41 @@ export const useTasks = () => {
   } = useTasksSaveLoad(tasks, pinnedTasks, setTasks, setPinnedTasks);
 
   const toggleTaskExpansion = (taskId: string) => {
+    if (!taskId || !Array.isArray(tasks)) return;
+    
     setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === taskId 
+      (prevTasks || []).map(task => 
+        task && task.id === taskId 
           ? { ...task, isExpanded: !task.isExpanded }
           : task
-      )
+      ).filter(Boolean)
     );
   };
 
   const togglePinTask = (taskId: string) => {
+    if (!taskId) return;
+    
     setPinnedTasks(prev => {
-      const isPinned = prev.includes(taskId);
+      const safePrev = Array.isArray(prev) ? prev : [];
+      const isPinned = safePrev.includes(taskId);
       if (isPinned) {
-        return prev.filter(id => id !== taskId);
+        return safePrev.filter(id => id !== taskId);
       } else {
-        return [taskId, ...prev];
+        return [taskId, ...safePrev];
       }
     });
     console.log('Tâche épinglage togglee:', taskId);
   };
 
   const reorderTasks = (startIndex: number, endIndex: number) => {
+    if (!Array.isArray(tasks) || startIndex < 0 || endIndex < 0) return;
+    
     setTasks(prevTasks => {
-      const mainTasksOnly = prevTasks.filter(t => t.level === 0);
-      const otherTasks = prevTasks.filter(t => t.level > 0);
+      const safePrevTasks = Array.isArray(prevTasks) ? prevTasks : [];
+      const mainTasksOnly = safePrevTasks.filter(t => t && t.level === 0);
+      const otherTasks = safePrevTasks.filter(t => t && t.level > 0);
+      
+      if (startIndex >= mainTasksOnly.length || endIndex >= mainTasksOnly.length) return safePrevTasks;
       
       const result = Array.from(mainTasksOnly);
       const [removed] = result.splice(startIndex, 1);
@@ -75,18 +85,23 @@ export const useTasks = () => {
   };
 
   const sortTasks = (sortBy: 'name' | 'duration' | 'category') => {
+    if (!Array.isArray(tasks)) return;
+    
     setTasks(prevTasks => {
-      const mainTasksOnly = prevTasks.filter(t => t.level === 0);
-      const otherTasks = prevTasks.filter(t => t.level > 0);
+      const safePrevTasks = Array.isArray(prevTasks) ? prevTasks : [];
+      const mainTasksOnly = safePrevTasks.filter(t => t && t.level === 0);
+      const otherTasks = safePrevTasks.filter(t => t && t.level > 0);
       
       const sorted = [...mainTasksOnly].sort((a, b) => {
+        if (!a || !b) return 0;
+        
         switch (sortBy) {
           case 'name':
-            return a.name.localeCompare(b.name);
+            return (a.name || '').localeCompare(b.name || '');
           case 'duration':
             return calculateTotalTime(a) - calculateTotalTime(b);
           case 'category':
-            return a.category.localeCompare(b.category);
+            return (a.category || '').localeCompare(b.category || '');
           default:
             return 0;
         }
@@ -154,10 +169,10 @@ export const useTasks = () => {
   };
 
   return {
-    tasks,
+    tasks: Array.isArray(tasks) ? tasks : [],
     setTasks,
-    mainTasks,
-    pinnedTasks,
+    mainTasks: Array.isArray(mainTasks) ? mainTasks : [],
+    pinnedTasks: Array.isArray(pinnedTasks) ? pinnedTasks : [],
     setPinnedTasks,
     addTask,
     removeTask,
@@ -169,7 +184,7 @@ export const useTasks = () => {
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
-    tasksCount: tasks.length,
+    tasksCount: Array.isArray(tasks) ? tasks.length : 0,
     totalProjectTime,
     completedTasks,
     completionRate,
@@ -191,6 +206,9 @@ export const useTasks = () => {
     loadBackup,
     deleteBackup,
     exportToCSV,
-    importFromCSV
+    importFromCSV,
+    // État de chargement et erreurs
+    loadError,
+    isLoading
   };
 };
