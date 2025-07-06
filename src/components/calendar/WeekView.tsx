@@ -30,9 +30,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
     const startMinute = event.startTime.getMinutes();
     const durationMinutes = event.duration;
     
-    // Nouvelle base 1440 minutes (24h)
-    const topPercentage = ((startHour * 60) + startMinute) / 1440 * 100;
-    const heightPercentage = durationMinutes / 1440 * 100;
+    const topPercentage = ((startHour - 8) * 60 + startMinute) / (12 * 60) * 100;
+    const heightPercentage = (durationMinutes / (12 * 60)) * 100;
     
     return {
       top: `${Math.max(0, topPercentage)}%`,
@@ -40,24 +39,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
     };
   };
 
-  // Détecter les événements qui se chevauchent pour un jour donné
-  const getOverlappingEventsForDay = (dayEvents: CalendarEvent[], targetEvent: CalendarEvent) => {
-    return dayEvents.filter(event => {
-      if (event.id === targetEvent.id) return false;
-      
-      const targetStart = targetEvent.startTime.getTime();
-      const targetEnd = targetEvent.endTime.getTime();
-      const eventStart = event.startTime.getTime();
-      const eventEnd = event.endTime.getTime();
-      
-      return (targetStart < eventEnd && targetEnd > eventStart);
-    });
-  };
-
   return (
     <div className="flex flex-col h-full">
       {/* En-tête des jours */}
-      <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-theme-border">
+      <div className="grid grid-cols-8 border-b border-theme-border">
         <div className="p-3 text-sm font-medium text-theme-muted">
           Heures
         </div>
@@ -75,20 +60,20 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
       {/* Grille horaire */}
       <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-[80px_repeat(7,1fr)] h-full min-h-[1200px]">
-          {/* Colonne des heures - largeur réduite */}
+        <div className="grid grid-cols-8 h-full min-h-[600px]">
+          {/* Colonne des heures */}
           <div className="border-r border-theme-border">
             {CALENDAR_HOURS.map(hour => (
               <div
                 key={hour}
-                className="h-12 flex items-start justify-end pr-2 pt-1 text-xs text-theme-muted border-b border-theme-border"
+                className="h-16 flex items-start justify-end pr-2 pt-1 text-xs text-theme-muted border-b border-theme-border"
               >
-                {hour.toString().padStart(2, '0')}:00
+                {hour}:00
               </div>
             ))}
           </div>
 
-          {/* Colonnes des jours - plus d'espace */}
+          {/* Colonnes des jours */}
           {weekDays.map(day => {
             const dayEvents = getEventsForDay(day);
             
@@ -98,32 +83,19 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 {CALENDAR_HOURS.map(hour => (
                   <div
                     key={hour}
-                    className="h-12 border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors"
+                    className="h-16 border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors"
                     onClick={() => onTimeSlotClick?.(day, `${hour}:00`)}
                   />
                 ))}
 
-                {/* Événements avec gestion des chevauchements */}
+                {/* Événements */}
                 {dayEvents.map(event => {
                   const position = getEventPosition(event);
-                  const overlappingEvents = getOverlappingEventsForDay(dayEvents, event);
-                  const overlappingCount = overlappingEvents.length + 1;
-                  const eventIndex = overlappingEvents.filter(e => e.startTime <= event.startTime).length;
-                  
-                  // Calcul de la largeur et position horizontale pour éviter les chevauchements
-                  const widthPercent = overlappingCount > 1 ? 95 / overlappingCount : 95;
-                  const leftPercent = overlappingCount > 1 ? (eventIndex * 95) / overlappingCount + 2 : 2;
-                  
                   return (
                     <div
                       key={event.id}
-                      className="absolute z-10"
-                      style={{
-                        ...position,
-                        width: `${widthPercent}%`,
-                        left: `${leftPercent}%`,
-                        minHeight: '24px' // Hauteur minimale pour la visibilité
-                      }}
+                      className="absolute left-1 right-1 z-10"
+                      style={position}
                     >
                       <CalendarEventComponent
                         event={event}

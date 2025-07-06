@@ -1,3 +1,4 @@
+
 import { Task } from '@/types/task';
 import { useTasksData } from './useTasksData';
 import { useTasksOperations } from './useTasksOperations';
@@ -10,7 +11,7 @@ import { useActionHistory } from './useActionHistory';
  * Refactorisé en modules plus petits et spécialisés
  */
 export const useTasks = () => {
-  const { tasks, setTasks, pinnedTasks, setPinnedTasks, loadError, isLoading } = useTasksData();
+  const { tasks, setTasks, pinnedTasks, setPinnedTasks } = useTasksData();
   const { undo, redo, canUndo, canRedo } = useActionHistory();
   
   const { addTask, removeTask, toggleTaskCompletion, scheduleTask } = useTasksOperations(
@@ -39,41 +40,31 @@ export const useTasks = () => {
   } = useTasksSaveLoad(tasks, pinnedTasks, setTasks, setPinnedTasks);
 
   const toggleTaskExpansion = (taskId: string) => {
-    if (!taskId || !Array.isArray(tasks)) return;
-    
     setTasks(prevTasks => 
-      (prevTasks || []).map(task => 
-        task && task.id === taskId 
+      prevTasks.map(task => 
+        task.id === taskId 
           ? { ...task, isExpanded: !task.isExpanded }
           : task
-      ).filter(Boolean)
+      )
     );
   };
 
   const togglePinTask = (taskId: string) => {
-    if (!taskId) return;
-    
     setPinnedTasks(prev => {
-      const safePrev = Array.isArray(prev) ? prev : [];
-      const isPinned = safePrev.includes(taskId);
+      const isPinned = prev.includes(taskId);
       if (isPinned) {
-        return safePrev.filter(id => id !== taskId);
+        return prev.filter(id => id !== taskId);
       } else {
-        return [taskId, ...safePrev];
+        return [taskId, ...prev];
       }
     });
     console.log('Tâche épinglage togglee:', taskId);
   };
 
   const reorderTasks = (startIndex: number, endIndex: number) => {
-    if (!Array.isArray(tasks) || startIndex < 0 || endIndex < 0) return;
-    
     setTasks(prevTasks => {
-      const safePrevTasks = Array.isArray(prevTasks) ? prevTasks : [];
-      const mainTasksOnly = safePrevTasks.filter(t => t && t.level === 0);
-      const otherTasks = safePrevTasks.filter(t => t && t.level > 0);
-      
-      if (startIndex >= mainTasksOnly.length || endIndex >= mainTasksOnly.length) return safePrevTasks;
+      const mainTasksOnly = prevTasks.filter(t => t.level === 0);
+      const otherTasks = prevTasks.filter(t => t.level > 0);
       
       const result = Array.from(mainTasksOnly);
       const [removed] = result.splice(startIndex, 1);
@@ -85,23 +76,18 @@ export const useTasks = () => {
   };
 
   const sortTasks = (sortBy: 'name' | 'duration' | 'category') => {
-    if (!Array.isArray(tasks)) return;
-    
     setTasks(prevTasks => {
-      const safePrevTasks = Array.isArray(prevTasks) ? prevTasks : [];
-      const mainTasksOnly = safePrevTasks.filter(t => t && t.level === 0);
-      const otherTasks = safePrevTasks.filter(t => t && t.level > 0);
+      const mainTasksOnly = prevTasks.filter(t => t.level === 0);
+      const otherTasks = prevTasks.filter(t => t.level > 0);
       
       const sorted = [...mainTasksOnly].sort((a, b) => {
-        if (!a || !b) return 0;
-        
         switch (sortBy) {
           case 'name':
-            return (a.name || '').localeCompare(b.name || '');
+            return a.name.localeCompare(b.name);
           case 'duration':
             return calculateTotalTime(a) - calculateTotalTime(b);
           case 'category':
-            return (a.category || '').localeCompare(b.category || '');
+            return a.category.localeCompare(b.category);
           default:
             return 0;
         }
@@ -169,11 +155,9 @@ export const useTasks = () => {
   };
 
   return {
-    tasks: Array.isArray(tasks) ? tasks : [],
-    setTasks,
-    mainTasks: Array.isArray(mainTasks) ? mainTasks : [],
-    pinnedTasks: Array.isArray(pinnedTasks) ? pinnedTasks : [],
-    setPinnedTasks,
+    tasks,
+    mainTasks,
+    pinnedTasks,
     addTask,
     removeTask,
     reorderTasks,
@@ -184,7 +168,7 @@ export const useTasks = () => {
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
-    tasksCount: Array.isArray(tasks) ? tasks.length : 0,
+    tasksCount: tasks.length,
     totalProjectTime,
     completedTasks,
     completionRate,
@@ -206,9 +190,6 @@ export const useTasks = () => {
     loadBackup,
     deleteBackup,
     exportToCSV,
-    importFromCSV,
-    // État de chargement et erreurs
-    loadError,
-    isLoading
+    importFromCSV
   };
 };

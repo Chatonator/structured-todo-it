@@ -1,4 +1,3 @@
-
 export type TaskCategory = 'Obligation' | 'Quotidien' | 'Envie' | 'Autres';
 export type SubTaskCategory = 'Le plus important' | 'Important' | 'Peut attendre' | 'Si j\'ai le temps';
 export type TaskContext = 'Pro' | 'Perso';
@@ -128,8 +127,7 @@ export const CALENDAR_VIEWS = {
 
 export type CalendarView = typeof CALENDAR_VIEWS[keyof typeof CALENDAR_VIEWS];
 
-// Nouvelle plage horaire 24h
-export const CALENDAR_HOURS = Array.from({ length: 24 }, (_, i) => i); // 0h à 23h
+export const CALENDAR_HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8h à 19h
 
 export interface CalendarEvent {
   id: string;

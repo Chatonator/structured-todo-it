@@ -32,28 +32,13 @@ export const DayView: React.FC<DayViewProps> = ({
     const startMinute = event.startTime.getMinutes();
     const durationMinutes = event.duration;
     
-    // Nouvelle base 1440 minutes (24h)
-    const topPercentage = ((startHour * 60) + startMinute) / 1440 * 100;
-    const heightPercentage = durationMinutes / 1440 * 100;
+    const topPercentage = ((startHour - 8) * 60 + startMinute) / (12 * 60) * 100;
+    const heightPercentage = (durationMinutes / (12 * 60)) * 100;
     
     return {
       top: `${Math.max(0, topPercentage)}%`,
       height: `${Math.min(heightPercentage, 100 - topPercentage)}%`
     };
-  };
-
-  // Détecter les événements qui se chevauchent
-  const getOverlappingEvents = (targetEvent: CalendarEvent) => {
-    return dayEvents.filter(event => {
-      if (event.id === targetEvent.id) return false;
-      
-      const targetStart = targetEvent.startTime.getTime();
-      const targetEnd = targetEvent.endTime.getTime();
-      const eventStart = event.startTime.getTime();
-      const eventEnd = event.endTime.getTime();
-      
-      return (targetStart < eventEnd && targetEnd > eventStart);
-    });
   };
 
   const handleSlotDragOver = (e: React.DragEvent, hour: number) => {
@@ -84,15 +69,15 @@ export const DayView: React.FC<DayViewProps> = ({
       <DayHeader currentDate={currentDate} eventsCount={dayEvents.length} />
 
       <div className="flex-1 overflow-auto" ref={containerRef}>
-        <div className="grid grid-cols-[80px_1fr] h-full min-h-[1200px]">
-          {/* Colonne des heures - largeur réduite */}
+        <div className="grid grid-cols-2 h-full min-h-[800px]">
+          {/* Colonne des heures */}
           <div className="border-r border-theme-border">
             {CALENDAR_HOURS.map(hour => (
               <HourLabel key={hour} hour={hour} />
             ))}
           </div>
 
-          {/* Colonne des créneaux - plus d'espace */}
+          {/* Colonne des créneaux */}
           <div className="relative">
             {CALENDAR_HOURS.map(hour => (
               <TimeSlot
@@ -106,27 +91,14 @@ export const DayView: React.FC<DayViewProps> = ({
               />
             ))}
 
-            {/* Événements avec gestion des chevauchements */}
-            {dayEvents.map((event, index) => {
+            {/* Événements */}
+            {dayEvents.map(event => {
               const position = getEventPosition(event);
-              const overlappingEvents = getOverlappingEvents(event);
-              const overlappingCount = overlappingEvents.length + 1;
-              const eventIndex = overlappingEvents.filter(e => e.startTime <= event.startTime).length;
-              
-              // Calcul de la largeur et position horizontale pour éviter les chevauchements
-              const width = overlappingCount > 1 ? `${95 / overlappingCount}%` : '95%';
-              const left = overlappingCount > 1 ? `${(eventIndex * 95) / overlappingCount + 2}%` : '2%';
-              
               return (
                 <div
                   key={event.id}
-                  className="absolute z-10"
-                  style={{
-                    ...position,
-                    width,
-                    left,
-                    minHeight: '24px' // Hauteur minimale pour la visibilité
-                  }}
+                  className="absolute left-2 right-2 z-10"
+                  style={position}
                 >
                   <CalendarEventComponent
                     event={event}
