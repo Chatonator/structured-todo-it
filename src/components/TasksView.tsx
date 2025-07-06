@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
 import { Clock, CheckSquare, Users, Calendar, Edit } from 'lucide-react';
@@ -10,7 +11,6 @@ import { cssVarRGB } from '@/utils/colors';
 interface TasksViewProps {
   tasks: Task[];
   mainTasks: Task[];
-  pinnedTasks: string[];
   getSubTasks: (parentId: string) => Task[];
   calculateTotalTime: (task: Task) => number;
   onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
@@ -47,28 +47,13 @@ const TasksView: React.FC<TasksViewProps> = ({
   };
 
   const renderTaskCard = (task: Task) => {
-    // Protection contre les catégories inconnues
     const categoryConfig = CATEGORY_CONFIG[task.category];
-    if (!categoryConfig) {
-      console.warn('Catégorie inconnue', task.category, task);
-    }
-    const safeCategoryConfig = categoryConfig || { cssName: 'default' };
-    
-    // Protection contre les sous-catégories inconnues
-    let subCategoryConfig = null;
-    if (task.subCategory) {
-      subCategoryConfig = SUB_CATEGORY_CONFIG[task.subCategory];
-      if (!subCategoryConfig) {
-        console.warn('Sous-catégorie inconnue', task.subCategory, task);
-      }
-    }
-    
+    const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
     const contextConfig = CONTEXT_CONFIG[task.context];
     const subTasks = getSubTasks(task.id);
     const totalTime = calculateTotalTime(task);
 
-    // Remplacé useMemo par une constante simple
-    const resolvedCategoryColor = cssVarRGB(`--color-${safeCategoryConfig.cssName}`);
+    const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig?.cssName || 'default'}`);
 
     return (
       <Card key={task.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 bg-theme-card" 
@@ -139,7 +124,7 @@ const TasksView: React.FC<TasksViewProps> = ({
               <Badge 
                 variant="outline" 
                 className="text-xs"
-                categoryColor={`--color-${safeCategoryConfig.cssName}`}
+                categoryColor={`--color-${categoryConfig?.cssName || 'default'}`}
               >
                 {task.category}
               </Badge>
