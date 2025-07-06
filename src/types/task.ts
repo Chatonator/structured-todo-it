@@ -17,6 +17,7 @@ export interface Task {
   scheduledDate?: Date;
   scheduledTime?: string;
   duration?: number;
+  startTime?: Date;
 }
 
 // Mapping technique pour les classes CSS (sans accents, minuscules)

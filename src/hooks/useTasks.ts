@@ -1,4 +1,5 @@
 
+import { Task } from '@/types/task';
 import { useTasksData } from './useTasksData';
 import { useTasksOperations } from './useTasksOperations';
 import { useTasksUtils } from './useTasksUtils';
