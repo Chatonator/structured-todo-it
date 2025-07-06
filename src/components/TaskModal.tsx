@@ -159,9 +159,10 @@ const TaskModal: React.FC<TaskModalProps> = ({
     const hasEstimatedTime = task.estimatedTime !== '' && Number(task.estimatedTime) > 0;
     const hasContext = task.context !== '';
     
-    // Vérifier la cohérence de la planification
-    const schedulingValid = (!task.scheduledDate && !task.scheduledTime) || 
-                           (task.scheduledDate && task.scheduledTime);
+    // Vérifier la cohérence de la planification - both must be present or both must be absent
+    const hasScheduledDate = Boolean(task.scheduledDate);
+    const hasScheduledTime = Boolean(task.scheduledTime);
+    const schedulingValid = hasScheduledDate === hasScheduledTime;
     
     if (parentTask) {
       const hasSubCategory = task.subCategory !== '';

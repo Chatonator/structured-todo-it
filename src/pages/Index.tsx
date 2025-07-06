@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Task } from '@/types/task';
 import { useTasks } from '@/hooks/useTasks';
@@ -103,32 +104,9 @@ const Index = () => {
             tasks={tasks}
             mainTasks={mainTasks}
             pinnedTasks={pinnedTasks}
-            toggleTaskExpansion={toggleTaskExpansion}
-            toggleTaskCompletion={toggleTaskCompletion}
-            togglePinTask={togglePinTask}
-            removeTask={removeTask}
-            reorderTasks={reorderTasks}
-            sortTasks={sortTasks}
             getSubTasks={getSubTasks}
             calculateTotalTime={calculateTotalTime}
-            canHaveSubTasks={canHaveSubTasks}
-            onOpenModal={(task) => {
-              setSelectedParentTask(task);
-              setEditingTask(undefined);
-              setIsModalOpen(true);
-            }}
-            onEditTask={(task) => {
-              setSelectedParentTask(undefined);
-              setEditingTask(task);
-              setIsModalOpen(true);
-            }}
-            selectedTasks={selectedTasks}
-            onTaskSelect={handleTaskSelect}
-            isTaskSelected={isTaskSelected}
-            restoreTask={restoreTask}
-            scheduleTask={scheduleTask}
-            unscheduleTask={unscheduleTask}
-            updateTaskDuration={updateTaskDuration}
+            onUpdateTask={updateTask}
           />
         )}
       </main>
