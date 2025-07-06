@@ -54,6 +54,7 @@ const TasksView: React.FC<TasksViewProps> = ({
     const subTasks = getSubTasks(task.id);
     const totalTime = calculateTotalTime(task);
 
+    // Remplacé useMemo par une constante simple
     const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig?.cssName || 'default'}`);
 
     return (

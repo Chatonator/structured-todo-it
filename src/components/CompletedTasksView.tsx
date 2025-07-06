@@ -131,6 +131,7 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
               const categoryConfig = CATEGORY_CONFIG[task.category];
               const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
               
+              // Remplacé useMemo par une constante simple
               const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig?.cssName || 'default'}`);
               
               return (

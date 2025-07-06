@@ -18,11 +18,8 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
 }) => {
   const categoryConfig = CATEGORY_CONFIG[event.task.category];
   
-  // Couleurs résolues mémorisées
-  const resolvedCategoryColor = React.useMemo(() => 
-    cssVarRGB(`--color-${categoryConfig.cssName}`), 
-    [categoryConfig.cssName]
-  );
+  // Remplacé useMemo par une constante simple
+  const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig.cssName}`);
 
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) return `${minutes}m`;
@@ -31,12 +28,12 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
     return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
   };
 
-  // Styles inline avec couleurs résolues
-  const inlineStyles = React.useMemo(() => ({
+  // Remplacé useMemo par une constante simple - styles inline avec couleurs résolues
+  const inlineStyles = {
     backgroundColor: `${resolvedCategoryColor}26`, // 15% d'opacité
     borderLeftColor: resolvedCategoryColor,
     ...style
-  }), [resolvedCategoryColor, style]);
+  };
 
   return (
     <div
