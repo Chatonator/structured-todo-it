@@ -11,6 +11,7 @@ import { cssVarRGB } from '@/utils/colors';
 interface TasksViewProps {
   tasks: Task[];
   mainTasks: Task[];
+  pinnedTasks: string[];
   getSubTasks: (parentId: string) => Task[];
   calculateTotalTime: (task: Task) => number;
   onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;

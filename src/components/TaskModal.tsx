@@ -257,6 +257,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     <div className="grid grid-cols-2 gap-2">
                       {Object.entries(CONTEXT_CONFIG).map(([context, config]) => {
                         const resolvedContextColor = cssVarRGB(`--color-context-${context.toLowerCase()}`);
+                        const isSelected = draft.context === context;
 
                         return (
                           <button
@@ -265,13 +266,13 @@ const TaskModal: React.FC<TaskModalProps> = ({
                             onClick={() => updateTaskDraft(index, 'context', context)}
                             className={`
                               flex items-center justify-center space-x-2 p-3 text-sm border rounded transition-all
-                              ${draft.context === context 
+                              ${isSelected 
                                 ? 'border-current shadow-sm' 
                                 : 'bg-white border-gray-200 hover:bg-gray-50'
                               }
                               ${!draft.context ? 'border-red-300' : ''}
                             `}
-                            style={draft.context === context ? {
+                            style={isSelected ? {
                               backgroundColor: `${resolvedContextColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
                               borderColor: resolvedContextColor,
                               color: resolvedContextColor
@@ -290,25 +291,29 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     </Label>
                     <div className="grid grid-cols-2 gap-1">
                       {parentTask ? (
-                        Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => (
-                          <button
-                            key={subCat}
-                            type="button"
-                            onClick={() => updateTaskDraft(index, 'subCategory', subCat)}
-                            className={`
-                              flex items-center space-x-1 p-2 text-xs border rounded transition-all
-                              ${draft.subCategory === subCat 
-                                ? `${config.color} border-current` 
-                                : 'bg-white border-gray-200 hover:bg-gray-50'
-                              }
-                            `}
-                          >
-                            <span className="font-medium truncate">{subCat}</span>
-                          </button>
-                        ))
+                        Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => {
+                          const isSelected = draft.subCategory === subCat;
+                          return (
+                            <button
+                              key={subCat}
+                              type="button"
+                              onClick={() => updateTaskDraft(index, 'subCategory', subCat)}
+                              className={`
+                                flex items-center space-x-1 p-2 text-xs border rounded transition-all
+                                ${isSelected 
+                                  ? `${config.color} border-current` 
+                                  : 'bg-white border-gray-200 hover:bg-gray-50'
+                                }
+                              `}
+                            >
+                              <span className="font-medium truncate">{subCat}</span>
+                            </button>
+                          );
+                        })
                       ) : (
                         Object.entries(CATEGORY_CONFIG).map(([cat, config]) => {
                           const resolvedCategoryColor = cssVarRGB(`--color-${config.cssName}`);
+                          const isSelected = draft.category === cat;
 
                           return (
                             <button
@@ -317,12 +322,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
                               onClick={() => updateTaskDraft(index, 'category', cat)}
                               className={`
                                 flex items-center space-x-1 p-2 text-xs border rounded transition-all
-                                ${draft.category === cat 
+                                ${isSelected 
                                   ? 'border-current shadow-sm' 
                                   : 'bg-white border-gray-200 hover:bg-gray-50'
                                 }
                               `}
-                              style={draft.category === cat ? {
+                              style={isSelected ? {
                                 backgroundColor: `${resolvedCategoryColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
                                 borderColor: resolvedCategoryColor,
                                 color: resolvedCategoryColor
