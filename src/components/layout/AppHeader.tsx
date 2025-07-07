@@ -1,7 +1,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Plus, Undo, Redo } from 'lucide-react';
+import { CheckSquare, Plus, Undo, Redo, Save, FolderOpen, Cloud, Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useTasks } from '@/hooks/useTasks';
 import UserOptionsMenu from '@/components/UserOptionsMenu';
 
 interface AppHeaderProps {
@@ -15,10 +17,6 @@ interface AppHeaderProps {
   onOpenModal: () => void;
 }
 
-/**
- * Composant header principal de l'application
- * Contient le titre, les statistiques et les actions principales
- */
 const AppHeader: React.FC<AppHeaderProps> = ({
   tasksCount,
   completedTasks,
@@ -29,6 +27,98 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   onRedo,
   onOpenModal
 }) => {
+  const { toast } = useToast();
+  const { exportToCSV, importFromCSV } = useTasks();
+
+  const handleExportCSV = async () => {
+    try {
+      await exportToCSV();
+      toast({
+        title: "Export réussi",
+        description: "Les tâches ont été exportées en CSV",
+      });
+    } catch (error) {
+      console.warn('Erreur export CSV:', error);
+      toast({
+        title: "Erreur d'export",
+        description: "Impossible d'exporter les tâches",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImportCSV = async () => {
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.csv';
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          try {
+            await importFromCSV(file);
+            toast({
+              title: "Import réussi",
+              description: "Les tâches ont été importées depuis le CSV",
+            });
+          } catch (error) {
+            console.warn('Erreur import CSV:', error);
+            toast({
+              title: "Erreur d'import",
+              description: "Impossible d'importer les tâches",
+              variant: "destructive",
+            });
+          }
+        }
+      };
+      input.click();
+    } catch (error) {
+      console.warn('Erreur sélection fichier:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sélectionner le fichier",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveToSupabase = async () => {
+    try {
+      // TODO: Implémenter saveTasksToSupabase
+      toast({
+        title: "Fonctionnalité en développement",
+        description: "La sauvegarde cloud sera disponible prochainement",
+      });
+    } catch (error) {
+      console.warn('Erreur sauvegarde Supabase:', error);
+      toast({
+        title: "Erreur réseau",
+        description: "Impossible de sauvegarder sur le cloud",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLoadFromSupabase = async () => {
+    try {
+      const confirmed = confirm("Cette action remplacera vos tâches actuelles. Continuer ?");
+      if (confirmed) {
+        // TODO: Implémenter loadTasksFromSupabase
+        toast({
+          title: "Fonctionnalité en développement",
+          description: "Le chargement cloud sera disponible prochainement",
+        });
+      }
+    } catch (error) {
+      console.warn('Erreur chargement Supabase:', error);
+      toast({
+        title: "Erreur réseau",
+        description: "Impossible de charger depuis le cloud",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <header className="bg-background shadow-sm border-b border-border">
       <div className="px-6 py-3">
@@ -44,7 +134,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* Historique relocalisé en haut */}
+            {/* Historique */}
             <div className="flex items-center gap-2 px-3 py-1 bg-accent rounded-lg border border-border">
               <span className="text-xs text-muted-foreground font-medium">Historique:</span>
               <Button
@@ -69,7 +159,51 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               </Button>
             </div>
 
-            {/* Statistiques en header */}
+            {/* Export/Import CSV */}
+            <div className="flex items-center gap-1 px-3 py-1 bg-accent rounded-lg border border-border">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleExportCSV}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                title="Exporter en CSV"
+              >
+                💾
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleImportCSV}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                title="Importer CSV"
+              >
+                📂
+              </Button>
+            </div>
+
+            {/* Cloud Supabase */}
+            <div className="flex items-center gap-1 px-3 py-1 bg-accent rounded-lg border border-border">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSaveToSupabase}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                title="Sauvegarder sur le cloud"
+              >
+                ☁️
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLoadFromSupabase}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                title="Charger depuis le cloud"
+              >
+                📥
+              </Button>
+            </div>
+
+            {/* Statistiques */}
             <div className="flex items-center space-x-4 text-xs text-muted-foreground">
               <span className="flex items-center space-x-1">
                 <div className="w-2 h-2 bg-primary rounded-full"></div>

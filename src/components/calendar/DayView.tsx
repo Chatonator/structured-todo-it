@@ -1,10 +1,8 @@
 
 import React, { useState, useRef } from 'react';
-import { CalendarEvent, CALENDAR_HOURS } from '@/types/task';
+import { CalendarEvent } from '@/types/task';
 import { CalendarEventComponent } from './CalendarEvent';
 import { DayHeader } from './day/DayHeader';
-import { HourLabel } from './day/HourLabel';
-import { TimeSlot } from './day/TimeSlot';
 import { isSameDay } from 'date-fns';
 
 interface DayViewProps {
@@ -14,6 +12,8 @@ interface DayViewProps {
   onTimeSlotClick?: (date: Date, time: string) => void;
   onTaskDrop?: (taskId: string, date: Date, time: string) => void;
 }
+
+const CALENDAR_HOURS = Array.from({ length: 24 }, (_, i) => i); // 0h à 23h
 
 export const DayView: React.FC<DayViewProps> = ({
   currentDate,
@@ -28,17 +28,36 @@ export const DayView: React.FC<DayViewProps> = ({
   const dayEvents = events.filter(event => isSameDay(event.startTime, currentDate));
   
   const getEventPosition = (event: CalendarEvent) => {
-    const startHour = event.startTime.getHours();
-    const startMinute = event.startTime.getMinutes();
-    const durationMinutes = event.duration;
-    
-    const topPercentage = ((startHour - 8) * 60 + startMinute) / (12 * 60) * 100;
-    const heightPercentage = (durationMinutes / (12 * 60)) * 100;
-    
-    return {
-      top: `${Math.max(0, topPercentage)}%`,
-      height: `${Math.min(heightPercentage, 100 - topPercentage)}%`
-    };
+    try {
+      const startHour = event.startTime.getHours();
+      const startMinute = event.startTime.getMinutes();
+      const durationMinutes = event.duration;
+      
+      // Base 1440 minutes (24h)
+      const topPercentage = (startHour * 60 + startMinute) / 1440 * 100;
+      const heightPercentage = durationMinutes / 1440 * 100;
+      
+      return {
+        top: `${Math.max(0, Math.min(topPercentage, 100))}%`,
+        height: `${Math.min(heightPercentage, 100 - topPercentage)}%`
+      };
+    } catch (error) {
+      console.warn('Erreur calcul position événement:', error, event);
+      return { top: '0%', height: '4%' };
+    }
+  };
+
+  const getOverlappingEvents = (targetEvent: CalendarEvent) => {
+    return dayEvents.filter(event => {
+      if (event.id === targetEvent.id) return false;
+      
+      const targetStart = targetEvent.startTime.getHours() * 60 + targetEvent.startTime.getMinutes();
+      const targetEnd = targetStart + targetEvent.duration;
+      const eventStart = event.startTime.getHours() * 60 + event.startTime.getMinutes();
+      const eventEnd = eventStart + event.duration;
+      
+      return (targetStart < eventEnd && targetEnd > eventStart);
+    });
   };
 
   const handleSlotDragOver = (e: React.DragEvent, hour: number) => {
@@ -55,13 +74,13 @@ export const DayView: React.FC<DayViewProps> = ({
     e.preventDefault();
     const taskId = e.dataTransfer.getData('text/plain');
     if (taskId && onTaskDrop) {
-      onTaskDrop(taskId, currentDate, `${hour}:00`);
+      onTaskDrop(taskId, currentDate, `${hour.toString().padStart(2, '0')}:00`);
     }
     setDragOverSlot(null);
   };
 
   const handleSlotClick = (hour: number) => {
-    onTimeSlotClick?.(currentDate, `${hour}:00`);
+    onTimeSlotClick?.(currentDate, `${hour.toString().padStart(2, '0')}:00`);
   };
 
   return (
@@ -69,36 +88,54 @@ export const DayView: React.FC<DayViewProps> = ({
       <DayHeader currentDate={currentDate} eventsCount={dayEvents.length} />
 
       <div className="flex-1 overflow-auto" ref={containerRef}>
-        <div className="grid grid-cols-2 h-full min-h-[800px]">
+        <div className="grid h-full min-h-[1200px]" style={{ gridTemplateColumns: '80px 1fr' }}>
           {/* Colonne des heures */}
           <div className="border-r border-theme-border">
             {CALENDAR_HOURS.map(hour => (
-              <HourLabel key={hour} hour={hour} />
+              <div
+                key={hour}
+                className="h-12 flex items-start justify-end pr-2 pt-1 text-xs text-theme-muted border-b border-theme-border"
+              >
+                {hour.toString().padStart(2, '0')}:00
+              </div>
             ))}
           </div>
 
           {/* Colonne des créneaux */}
           <div className="relative">
             {CALENDAR_HOURS.map(hour => (
-              <TimeSlot
+              <div
                 key={hour}
-                hour={hour}
-                isDropZone={dragOverSlot === `${hour}:00`}
-                onSlotClick={handleSlotClick}
-                onDragOver={handleSlotDragOver}
+                className={`h-12 border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors ${
+                  dragOverSlot === `${hour}:00` ? 'bg-blue-100' : ''
+                }`}
+                onClick={() => handleSlotClick(hour)}
+                onDragOver={(e) => handleSlotDragOver(e, hour)}
                 onDragLeave={handleSlotDragLeave}
-                onDrop={handleSlotDrop}
+                onDrop={(e) => handleSlotDrop(e, hour)}
               />
             ))}
 
             {/* Événements */}
-            {dayEvents.map(event => {
+            {dayEvents.map((event) => {
               const position = getEventPosition(event);
+              const overlapping = getOverlappingEvents(event);
+              const totalColumns = overlapping.length + 1;
+              const columnIndex = overlapping.filter(e => e.id < event.id).length;
+              
+              const width = totalColumns > 1 ? `${95 / totalColumns}%` : '95%';
+              const left = totalColumns > 1 ? `${columnIndex * 95 / totalColumns + 2}%` : '2%';
+              
               return (
                 <div
                   key={event.id}
-                  className="absolute left-2 right-2 z-10"
-                  style={position}
+                  className="absolute z-10"
+                  style={{
+                    ...position,
+                    width,
+                    left,
+                    minHeight: '24px'
+                  }}
                 >
                   <CalendarEventComponent
                     event={event}

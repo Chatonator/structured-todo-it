@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -45,8 +44,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([
     { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }
   ]);
+  const [schedulingError, setSchedulingError] = useState<string>('');
 
-  // Si on édite une tâche, initialiser avec ses données
   useEffect(() => {
     if (editingTask) {
       setTaskDrafts([{
@@ -65,6 +64,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
   const resetModal = () => {
     setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
+    setSchedulingError('');
   };
 
   const handleClose = () => {
@@ -73,7 +73,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const addNewTaskDraft = () => {
-    if (!editingTask) { // Seulement permettre plusieurs tâches si on n'édite pas
+    if (!editingTask) {
       setTaskDrafts([...taskDrafts, { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
     }
   };
@@ -82,6 +82,14 @@ const TaskModal: React.FC<TaskModalProps> = ({
     const updated = [...taskDrafts];
     updated[index] = { ...updated[index], [field]: value };
     setTaskDrafts(updated);
+    
+    if ((field === 'scheduledDate' || field === 'scheduledTime') && updated[index].scheduledDate && updated[index].scheduledTime) {
+      setSchedulingError('');
+    } else if ((field === 'scheduledDate' || field === 'scheduledTime') && (updated[index].scheduledDate || updated[index].scheduledTime)) {
+      if (!updated[index].scheduledDate || !updated[index].scheduledTime) {
+        setSchedulingError('Date + heure obligatoires pour la planification');
+      }
+    }
   };
 
   const removeTaskDraft = (index: number) => {
@@ -91,10 +99,18 @@ const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const handleFinish = () => {
+    const hasIncompleteScheduling = taskDrafts.some(draft => 
+      (draft.scheduledDate && !draft.scheduledTime) || (!draft.scheduledDate && draft.scheduledTime)
+    );
+    
+    if (hasIncompleteScheduling) {
+      setSchedulingError('Date + heure obligatoires pour la planification');
+      return;
+    }
+
     const validTasks = taskDrafts.filter(draft => isTaskValid(draft));
     
     if (editingTask && onUpdateTask) {
-      // Mode édition
       const draft = validTasks[0];
       if (draft) {
         const updates: Partial<Task> = {
@@ -112,7 +128,6 @@ const TaskModal: React.FC<TaskModalProps> = ({
         onUpdateTask(editingTask.id, updates);
       }
     } else if (onAddTask) {
-      // Mode création
       validTasks.forEach(draft => {
         const level = parentTask ? Math.min((parentTask.level + 1), 2) as 0 | 1 | 2 : 0;
         
@@ -155,15 +170,15 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const allTasksValid = taskDrafts.length > 0 && taskDrafts.every(draft => isTaskValid(draft));
   const validTasksCount = taskDrafts.filter(draft => isTaskValid(draft)).length;
   const showLimitWarning = parentTask && taskDrafts.length > 3;
+  const canSubmit = allTasksValid && !schedulingError;
 
-  // Calculer les colonnes selon le nombre de tâches
   const shouldUseGrid = taskDrafts.length >= 2 && !editingTask;
   const gridCols = taskDrafts.length >= 4 ? 'grid-cols-2' : 'grid-cols-1 lg:grid-cols-2';
 
   return (
     <Dialog 
       open={isOpen} 
-      onOpenChange={() => {}} // Empêcher la fermeture involontaire
+      onOpenChange={() => {}}
     >
       <DialogContent className={`max-w-4xl max-h-[85vh] overflow-y-auto ${shouldUseGrid ? 'min-w-[800px]' : 'max-w-md'}`}>
         <DialogHeader>
@@ -183,6 +198,15 @@ const TaskModal: React.FC<TaskModalProps> = ({
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 Vous avez dépassé la limite recommandée de 3 sous-tâches. Cela peut nuire à la lisibilité.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {schedulingError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {schedulingError}
               </AlertDescription>
             </Alert>
           )}
@@ -329,12 +353,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     </Select>
                   </div>
 
-                  {/* Planification optionnelle */}
+                  {/* Planification avec validation */}
                   <div className="space-y-3 pt-3 border-t border-gray-200">
                     <Label className="text-sm text-gray-700">Planification (optionnelle)</Label>
                     
                     <div className="grid grid-cols-2 gap-2">
-                      {/* Sélection de date */}
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -359,7 +382,6 @@ const TaskModal: React.FC<TaskModalProps> = ({
                         </PopoverContent>
                       </Popover>
 
-                      {/* Sélection d'heure */}
                       <Select 
                         value={draft.scheduledTime || ''} 
                         onValueChange={(value) => updateTaskDraft(index, 'scheduledTime', value)}
@@ -417,7 +439,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
               <Button
                 type="button"
                 onClick={handleFinish}
-                disabled={!allTasksValid || validTasksCount === 0}
+                disabled={!canSubmit || validTasksCount === 0}
                 className="text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check className="w-4 h-4 mr-1" />

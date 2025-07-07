@@ -6,10 +6,6 @@ import { useTasksUtils } from './useTasksUtils';
 import { useTasksSaveLoad } from './useTasksSaveLoad';
 import { useActionHistory } from './useActionHistory';
 
-/**
- * Hook principal pour la gestion des tâches
- * Refactorisé en modules plus petits et spécialisés
- */
 export const useTasks = () => {
   const { tasks, setTasks, pinnedTasks, setPinnedTasks } = useTasksData();
   const { undo, redo, canUndo, canRedo } = useActionHistory();
@@ -118,7 +114,6 @@ export const useTasks = () => {
     );
   };
 
-  // Nouvelle fonction pour restaurer une tâche terminée
   const restoreTask = (taskId: string) => {
     setTasks(prevTasks =>
       prevTasks.map(task =>
@@ -130,28 +125,36 @@ export const useTasks = () => {
     console.log('Tâche restaurée:', taskId);
   };
 
-  // Nouvelle fonction pour planifier une tâche avec startTime et duration
   const scheduleTaskWithTime = (taskId: string, startTime: Date, duration: number) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId
-          ? { ...task, startTime, duration }
-          : task
-      )
-    );
-    console.log('Tâche planifiée avec horaire:', taskId, startTime, duration);
+    try {
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === taskId
+            ? { ...task, startTime, duration }
+            : task
+        )
+      );
+      console.log('Tâche planifiée avec horaire:', taskId, startTime, duration);
+    } catch (error) {
+      console.warn('Erreur planification tâche:', error);
+      throw error;
+    }
   };
 
-  // Nouvelle fonction pour mettre à jour une tâche existante
   const updateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId
-          ? { ...task, ...updates }
-          : task
-      )
-    );
-    console.log('Tâche mise à jour:', taskId, updates);
+    try {
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === taskId
+            ? { ...task, ...updates }
+            : task
+        )
+      );
+      console.log('Tâche mise à jour:', taskId, updates);
+    } catch (error) {
+      console.warn('Erreur mise à jour tâche:', error);
+      throw error;
+    }
   };
 
   return {
@@ -172,7 +175,6 @@ export const useTasks = () => {
     totalProjectTime,
     completedTasks,
     completionRate,
-    // Historique
     undo,
     redo,
     canUndo,
@@ -180,11 +182,9 @@ export const useTasks = () => {
     scheduleTask,
     unscheduleTask,
     updateTaskDuration,
-    // Nouvelles fonctions
     restoreTask,
     scheduleTaskWithTime,
     updateTask,
-    // Sauvegarde et export
     backups,
     saveBackup,
     loadBackup,
