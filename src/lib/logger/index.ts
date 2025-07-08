@@ -4,6 +4,8 @@
  * Gestion uniforme des logs avec niveaux et contexte
  */
 
+import React from 'react';
+
 export enum LogLevel {
   DEBUG = 0,
   INFO = 1,

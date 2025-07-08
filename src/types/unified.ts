@@ -4,6 +4,10 @@
  * Consolidation et amélioration de la sécurité des types
  */
 
+// Import des types existants
+import { Task } from './task';
+import { FilterParams } from '../lib/types/common';
+
 // Re-export des types existants pour compatibilité
 export * from './task';
 export * from '../lib/types/common';
