@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
-import { useCalendar } from '@/hooks/useCalendar';
+import { useCalendar } from '@/hooks/calendar/useCalendar';
 import { useTasks } from '@/hooks/useTasks';
 import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';
 import { WeekView } from '@/components/calendar/WeekView';

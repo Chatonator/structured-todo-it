@@ -7,7 +7,7 @@ import TasksView from '@/components/TasksView';
 import PriorityView from '@/components/PriorityView';
 import DashboardView from '@/components/DashboardView';
 import EisenhowerView from '@/components/EisenhowerView';
-import CalendarView from '@/components/CalendarView';
+import CalendarView from '@/components/calendar/CalendarView';
 import CompletedTasksView from '@/components/CompletedTasksView';
 import AppHeader from '@/components/layout/AppHeader';
 import AppNavigation from '@/components/layout/AppNavigation';
