@@ -1,47 +1,39 @@
+import React from 'react';
+import { colorTokens } from "@/theme/colors.config";
 
 /**
  * Utilitaire pour convertir les variables CSS en couleurs RGB résolues
  * Résout le problème des styles inline avec var(...) non évalués par les navigateurs
  */
 
-/**
- * Mapping des couleurs hardcodées comme fallback si les variables CSS échouent
- * HARMONISÉ avec les nouvelles couleurs de colors.css
- */
+// On mappe chaque variable CSS vers le token centralisé
 const COLOR_FALLBACKS: Record<string, string> = {
-  // Couleurs de base du thème
-  '--color-background': '255, 255, 255',
-  '--color-foreground': '0, 0, 0',
-  '--color-muted': '71, 85, 105',
-  '--color-accent': '241, 245, 249',
-  '--color-border': '226, 232, 240',
-  '--color-card': '255, 255, 255',
-  '--color-input': '241, 245, 249',
-  '--color-primary': '99, 102, 241',
-  '--color-secondary': '79, 70, 229',
-  '--color-sidebar': '248, 250, 252',
-  
-  // Couleurs des catégories - MISES À JOUR
-  '--color-obligation': '220, 38, 38',      /* Rouge plus prononcé */
-  '--color-quotidien': '251, 191, 36',      /* Jaune plus brillant */
-  '--color-envie': '134, 239, 172',         /* Vert plus clair */
-  '--color-autres': '37, 99, 235',          /* Bleu plus prononcé */
-  
-  // Couleurs des contextes
-  '--color-context-pro': '59, 130, 246',
-  '--color-context-perso': '34, 197, 94',
-  
-  // Couleurs des priorités
-  '--color-priority-highest': '147, 51, 234',
-  '--color-priority-high': '59, 130, 246',
-  '--color-priority-medium': '234, 179, 8',
-  '--color-priority-low': '107, 114, 128',
-  
-  // Couleurs système
-  '--color-success': '34, 197, 94',
-  '--color-warning': '234, 179, 8',
-  '--color-error': '239, 68, 68',
-  '--color-info': '59, 130, 246'
+  '--color-background': colorTokens.background,
+  '--color-foreground': colorTokens.foreground,
+  '--color-muted': colorTokens.muted,
+  '--color-accent': colorTokens.accent,
+  '--color-border': colorTokens.border,
+  '--color-card': colorTokens.card,
+  '--color-input': colorTokens.input,
+  '--color-primary': colorTokens.primary,
+  '--color-secondary': colorTokens.secondary,
+  '--color-sidebar': colorTokens.sidebar,
+  '--color-obligation': colorTokens.obligation,
+  '--color-quotidien': colorTokens.quotidien,
+  '--color-envie': colorTokens.envie,
+  '--color-autres': colorTokens.autres,
+  '--color-context-pro': colorTokens.contextPro,
+  '--color-context-perso': colorTokens.contextPerso,
+  '--color-priority-highest': colorTokens.priorityHighest,
+  '--color-priority-high': colorTokens.priorityHigh,
+  '--color-priority-medium': colorTokens.priorityMedium,
+  '--color-priority-low': colorTokens.priorityLow,
+  '--color-success': colorTokens.success,
+  '--color-warning': colorTokens.warning,
+  '--color-error': colorTokens.error,
+  '--color-info': colorTokens.info,
+  '--color-drop-zone': colorTokens.dropZone,
+  '--color-drag-active': colorTokens.dragActive,
 };
 
 /**
@@ -53,31 +45,31 @@ export const cssVarRGB = (varName: string): string => {
   try {
     // Vérifier si nous sommes dans le navigateur
     if (typeof window === 'undefined' || !document?.documentElement) {
-      return `rgb(${COLOR_FALLBACKS[varName] || '0, 0, 0'})`;
+      return `rgb(${COLOR_FALLBACKS[varName] || '0 0 0'})`;
     }
 
     const value = getComputedStyle(document.documentElement)
       .getPropertyValue(varName)
       .trim();
-    
+
     if (value && value !== '') {
       return `rgb(${value})`;
     }
-    
-    // Fallback vers les couleurs hardcodées
+
+    // Fallback vers les couleurs centralisées
     const fallback = COLOR_FALLBACKS[varName];
     if (fallback) {
       console.warn(`Variable CSS ${varName} non trouvée, utilisation du fallback`);
       return `rgb(${fallback})`;
     }
-    
+
     console.warn(`Variable CSS ${varName} et fallback non trouvés`);
-    return 'rgb(0, 0, 0)';
-    
+    return 'rgb(0 0 0)';
+
   } catch (error) {
     console.error(`Erreur lors de la résolution de ${varName}:`, error);
     const fallback = COLOR_FALLBACKS[varName];
-    return fallback ? `rgb(${fallback})` : 'rgb(0, 0, 0)';
+    return fallback ? `rgb(${fallback})` : 'rgb(0 0 0)';
   }
 };
 
@@ -86,38 +78,35 @@ export const cssVarRGB = (varName: string): string => {
  */
 export const useResolvedColors = () => {
   const [colors, setColors] = React.useState<Record<string, string>>({});
-  
+
   React.useEffect(() => {
     const updateColors = () => {
       const newColors: Record<string, string> = {};
-      
+
       // Couleurs de catégories
       ['obligation', 'quotidien', 'envie', 'autres'].forEach(cat => {
         newColors[`category-${cat}`] = cssVarRGB(`--color-${cat}`);
       });
-      
+
       // Couleurs de thème
       ['primary', 'secondary', 'accent', 'muted'].forEach(theme => {
         newColors[`theme-${theme}`] = cssVarRGB(`--color-${theme}`);
       });
-      
+
       setColors(newColors);
     };
-    
+
     updateColors();
-    
+
     // Observer les changements de thème
     const observer = new MutationObserver(updateColors);
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class', 'data-theme']
     });
-    
+
     return () => observer.disconnect();
   }, []);
-  
+
   return colors;
 };
-
-// Export React pour le hook
-import React from 'react';
