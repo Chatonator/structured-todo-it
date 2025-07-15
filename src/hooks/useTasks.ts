@@ -142,20 +142,27 @@ export const useTasks = () => {
   };
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
-    try {
-      setTasks(prevTasks =>
-        prevTasks.map(task =>
-          task.id === taskId
-            ? { ...task, ...updates }
-            : task
-        )
-      );
-      console.log('Tâche mise à jour:', taskId, updates);
-    } catch (error) {
-      console.warn('Erreur mise à jour tâche:', error);
-      throw error;
-    }
-  };
+  try {
+    setTasks(prevTasks =>
+      prevTasks.map(task => {
+        if (task.id !== taskId) return task;
+
+        const updatedTask = { ...task, ...updates };
+
+        const hasChanged = Object.entries(updates).some(
+          ([key, value]) => task[key as keyof Task] !== value
+        );
+
+        return hasChanged ? updatedTask : task;
+      })
+    );
+    console.log('Tâche mise à jour:', taskId, updates);
+  } catch (error) {
+    console.warn('Erreur mise à jour tâche:', error);
+    throw error;
+  }
+};
+
 
   return {
     tasks,
