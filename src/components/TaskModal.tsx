@@ -45,10 +45,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
     { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }
   ]);
   const [schedulingError, setSchedulingError] = useState<string>('');
+useEffect(() => {
+  if (!isOpen) return;
 
-  useEffect(() => {
-    if (editingTask) {
-      setTaskDrafts([{
+  setTaskDrafts(editingTask
+    ? [{
         name: editingTask.name,
         category: editingTask.category,
         subCategory: editingTask.subCategory || '',
@@ -56,11 +57,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
         estimatedTime: editingTask.estimatedTime,
         scheduledDate: editingTask.scheduledDate,
         scheduledTime: editingTask.scheduledTime
-      }]);
-    } else {
-      setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
-    }
-  }, [editingTask, isOpen]);
+      }]
+    : [{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]
+  );
+}, [isOpen]);
+
 
   const resetModal = () => {
     setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);

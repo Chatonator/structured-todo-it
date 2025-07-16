@@ -278,12 +278,16 @@ const TasksView: React.FC<TasksViewProps> = ({
       </div>
 
       {/* Modal d'édition */}
-      <TaskModal
-        isOpen={isEditModalOpen}
-        onClose={handleCloseEditModal}
-        onUpdateTask={onUpdateTask}
-        editingTask={editingTask}
-      />
+      {isEditModalOpen && (
+  <TaskModal
+    key={editingTask?.id}
+    isOpen
+    onClose={handleCloseEditModal}
+    onUpdateTask={onUpdateTask}
+    editingTask={editingTask}
+  />
+)}
+
     </>
   );
 };

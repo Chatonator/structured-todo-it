@@ -143,19 +143,20 @@ export const useTasks = () => {
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
   try {
-    setTasks(prevTasks =>
-      prevTasks.map(task => {
+    setTasks(prevTasks => {
+      let changed = false;
+      const next = prevTasks.map(task => {
         if (task.id !== taskId) return task;
-
-        const updatedTask = { ...task, ...updates };
-
-        const hasChanged = Object.entries(updates).some(
+        const merged = { ...task, ...updates };
+        const taskHasChanged = Object.entries(updates).some(
           ([key, value]) => task[key as keyof Task] !== value
         );
-
-        return hasChanged ? updatedTask : task;
-      })
-    );
+        if (taskHasChanged) changed = true;
+        return taskHasChanged ? merged : task;
+      });
+      // Ne remplace l'état que s'il y a vraiment eu un changement
+      return changed ? next : prevTasks;
+    });
     console.log('Tâche mise à jour:', taskId, updates);
   } catch (error) {
     console.warn('Erreur mise à jour tâche:', error);
