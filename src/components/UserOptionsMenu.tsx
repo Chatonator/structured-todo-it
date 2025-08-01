@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Cog } from 'lucide-react';
+import { Cog, LogOut, User } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +11,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useTheme, Theme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/useAuth';
 
 const UserOptionsMenu = () => {
   const { theme, changeTheme } = useTheme();
+  const { user, signOut } = useAuth();
 
   const themes: { value: Theme; label: string; description: string }[] = [
     { value: 'light', label: 'Clair', description: 'Thème classique' },
@@ -21,6 +23,10 @@ const UserOptionsMenu = () => {
     { value: 'colorblind', label: 'Daltonien', description: 'Adapté aux daltoniens' },
     { value: 'high-contrast', label: 'Contraste élevé', description: 'Contraste renforcé' }
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <DropdownMenu>
@@ -34,10 +40,25 @@ const UserOptionsMenu = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 bg-background border-border">
+        <DropdownMenuLabel className="text-foreground flex items-center gap-2">
+          <User className="h-4 w-4" />
+          {user?.email || 'Utilisateur'}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-border" />
+        
+        <DropdownMenuItem 
+          onClick={handleSignOut}
+          className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
+        >
+          <LogOut className="h-4 w-4" />
+          Se déconnecter
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator className="bg-border" />
+        
         <DropdownMenuLabel className="text-foreground">
           Options d'apparence
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-border" />
         
         <div className="p-2">
           <div className="text-xs font-medium text-muted-foreground mb-2">Thème</div>
