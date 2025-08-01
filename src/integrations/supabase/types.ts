@@ -14,7 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          category: string
+          context: string
+          created_at: string
+          duration: number | null
+          estimatedTime: number
+          id: string
+          isCompleted: boolean
+          isExpanded: boolean
+          level: number
+          name: string
+          parentId: string | null
+          scheduledDate: string | null
+          scheduledTime: string | null
+          startTime: string | null
+          subCategory: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          context: string
+          created_at?: string
+          duration?: number | null
+          estimatedTime: number
+          id?: string
+          isCompleted?: boolean
+          isExpanded?: boolean
+          level?: number
+          name: string
+          parentId?: string | null
+          scheduledDate?: string | null
+          scheduledTime?: string | null
+          startTime?: string | null
+          subCategory?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          context?: string
+          created_at?: string
+          duration?: number | null
+          estimatedTime?: number
+          id?: string
+          isCompleted?: boolean
+          isExpanded?: boolean
+          level?: number
+          name?: string
+          parentId?: string | null
+          scheduledDate?: string | null
+          scheduledTime?: string | null
+          startTime?: string | null
+          subCategory?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
