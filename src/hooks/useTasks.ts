@@ -7,14 +7,32 @@ import { useTasksSaveLoad } from './useTasksSaveLoad';
 import { useActionHistory } from './useActionHistory';
 
 export const useTasks = () => {
-  const { tasks, setTasks, pinnedTasks, setPinnedTasks } = useTasksData();
+  const { tasks, setTasks, pinnedTasks, setPinnedTasks, saveTask, completeTask } = useTasksData();
   const { undo, redo, canUndo, canRedo } = useActionHistory();
   
-  const { addTask, removeTask, toggleTaskCompletion, scheduleTask } = useTasksOperations(
+  const { addTask, removeTask, scheduleTask } = useTasksOperations(
     tasks,
     setTasks,  
     setPinnedTasks
   );
+
+  // Use database-aware completion function for recurring tasks
+  const toggleTaskCompletion = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    if (task.isRecurring && !task.isCompleted) {
+      // For recurring tasks, use the database completion method
+      await completeTask(taskId);
+    } else {
+      // For non-recurring tasks, use the regular toggle
+      setTasks(prevTasks =>
+        prevTasks.map(t =>
+          t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t
+        )
+      );
+    }
+  };
 
   const {
     getSubTasks,
@@ -46,15 +64,15 @@ export const useTasks = () => {
   };
 
   const togglePinTask = (taskId: string) => {
-    setPinnedTasks(prev => {
-      const isPinned = prev.includes(taskId);
-      if (isPinned) {
-        return prev.filter(id => id !== taskId);
-      } else {
-        return [taskId, ...prev];
-      }
-    });
-    console.log('Tâche épinglage togglee:', taskId);
+    const currentPinned = Array.isArray(pinnedTasks) ? pinnedTasks : [];
+    const isPinned = currentPinned.includes(taskId);
+    
+    const newPinnedTasks = isPinned 
+      ? currentPinned.filter(id => id !== taskId)
+      : [taskId, ...currentPinned];
+    
+    setPinnedTasks(newPinnedTasks);
+    console.log('Tâche épinglage togglee:', taskId, 'Nouvelles tâches épinglées:', newPinnedTasks);
   };
 
   const reorderTasks = (startIndex: number, endIndex: number) => {

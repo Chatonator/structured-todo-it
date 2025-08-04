@@ -385,7 +385,3 @@ body {
   opacity: 1;
 }
 
-/* Débogage visuel temporaire */
-body {
-  outline: 4px solid red !important;
-}
