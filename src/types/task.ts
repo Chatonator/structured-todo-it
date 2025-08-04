@@ -1,6 +1,7 @@
 export type TaskCategory = 'Obligation' | 'Quotidien' | 'Envie' | 'Autres';
 export type SubTaskCategory = 'Le plus important' | 'Important' | 'Peut attendre' | 'Si j\'ai le temps';
 export type TaskContext = 'Pro' | 'Perso';
+export type RecurrenceInterval = 'daily' | 'weekly' | 'bi-monthly' | 'monthly';
 
 export interface Task {
   id: string;
@@ -18,6 +19,9 @@ export interface Task {
   scheduledTime?: string;
   duration?: number;
   startTime?: Date;
+  isRecurring?: boolean;
+  recurrenceInterval?: RecurrenceInterval;
+  lastCompletedAt?: Date;
 }
 
 // Mapping technique pour les classes CSS (sans accents, minuscules)
@@ -115,6 +119,13 @@ export const TIME_OPTIONS = [
   { value: 300, label: '5h' },
   { value: 360, label: '6h' },
   { value: 480, label: '8h' }
+];
+
+export const RECURRENCE_OPTIONS = [
+  { value: 'daily' as RecurrenceInterval, label: 'Quotidien' },
+  { value: 'weekly' as RecurrenceInterval, label: 'Hebdomadaire' },
+  { value: 'bi-monthly' as RecurrenceInterval, label: 'Bi-mensuel (15 jours)' },
+  { value: 'monthly' as RecurrenceInterval, label: 'Mensuel' }
 ];
 
 // Nouvelles constantes pour le calendrier

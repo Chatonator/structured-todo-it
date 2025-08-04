@@ -48,11 +48,14 @@ export type Database = {
           id: string
           isCompleted: boolean
           isExpanded: boolean
+          isrecurring: boolean | null
           isRecurring: boolean | null
+          lastcompletedat: string | null
           lastCompletedAt: string | null
           level: number
           name: string
           parentId: string | null
+          recurrenceinterval: string | null
           recurrenceInterval: string | null
           scheduledDate: string | null
           scheduledTime: string | null
@@ -69,11 +72,14 @@ export type Database = {
           id?: string
           isCompleted?: boolean
           isExpanded?: boolean
+          isrecurring?: boolean | null
           isRecurring?: boolean | null
+          lastcompletedat?: string | null
           lastCompletedAt?: string | null
           level?: number
           name: string
           parentId?: string | null
+          recurrenceinterval?: string | null
           recurrenceInterval?: string | null
           scheduledDate?: string | null
           scheduledTime?: string | null
@@ -90,11 +96,14 @@ export type Database = {
           id?: string
           isCompleted?: boolean
           isExpanded?: boolean
+          isrecurring?: boolean | null
           isRecurring?: boolean | null
+          lastcompletedat?: string | null
           lastCompletedAt?: string | null
           level?: number
           name?: string
           parentId?: string | null
+          recurrenceinterval?: string | null
           recurrenceInterval?: string | null
           scheduledDate?: string | null
           scheduledTime?: string | null

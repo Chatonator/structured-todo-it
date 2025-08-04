@@ -52,6 +52,9 @@ export const useTasksDatabase = () => {
         scheduledDate: task.scheduledDate ? new Date(task.scheduledDate) : undefined,
         startTime: task.startTime ? new Date(task.startTime) : undefined,
         scheduledTime: task.scheduledTime || undefined,
+        isRecurring: task.isRecurring || false,
+        recurrenceInterval: task.recurrenceInterval as Task['recurrenceInterval'],
+        lastCompletedAt: task.lastCompletedAt ? new Date(task.lastCompletedAt) : undefined,
         createdAt: new Date(task.created_at),
       }));
 
@@ -102,6 +105,9 @@ export const useTasksDatabase = () => {
         scheduledDate: task.scheduledDate?.toISOString().split('T')[0],
         startTime: task.startTime?.toISOString(),
         scheduledTime: task.scheduledTime,
+        isRecurring: task.isRecurring || false,
+        recurrenceInterval: task.recurrenceInterval,
+        lastCompletedAt: task.lastCompletedAt?.toISOString(),
         user_id: user.id,
       };
 
@@ -183,6 +189,53 @@ export const useTasksDatabase = () => {
     }
   }, [isAuthenticated, user, toast]);
 
+  // Complete task with recurring logic
+  const completeTask = useCallback(async (taskId: string): Promise<boolean> => {
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return false;
+
+      const updates: any = { isCompleted: true };
+      
+      // If it's a recurring task, record when it was completed
+      if (task.isRecurring) {
+        updates.lastCompletedAt = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('tasks')
+        .update(updates)
+        .eq('id', taskId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state
+      setTasks(prev => prev.map(t => 
+        t.id === taskId 
+          ? { ...t, isCompleted: true, lastCompletedAt: task.isRecurring ? new Date() : t.lastCompletedAt }
+          : t
+      ));
+
+      logger.debug('Task completed successfully', { taskId, isRecurring: task.isRecurring });
+      return true;
+    } catch (error: any) {
+      logger.error('Failed to complete task', { error: error.message, taskId });
+      toast({
+        title: "Error",
+        description: "Failed to complete task. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [isAuthenticated, user, tasks, toast]);
+
   // Save pinned tasks
   const savePinnedTasks = useCallback((newPinnedTasks: string[]) => {
     if (!user) return;
@@ -205,6 +258,7 @@ export const useTasksDatabase = () => {
     setPinnedTasks: savePinnedTasks,
     saveTask,
     deleteTask,
+    completeTask,
     reloadTasks: loadTasks,
   };
 };
