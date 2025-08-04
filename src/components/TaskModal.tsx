@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Check, AlertTriangle, CalendarIcon } from 'lucide-react';
+import { Plus, Check, AlertTriangle, CalendarIcon, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Task, TaskCategory, SubTaskCategory, TaskContext, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
+import { Task, TaskCategory, SubTaskCategory, TaskContext, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG, RECURRENCE_OPTIONS, RecurrenceInterval } from '@/types/task';
 import { cssVarRGB } from '@/utils/colors';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -31,6 +31,8 @@ interface TaskDraft {
   estimatedTime: number | '';
   scheduledDate?: Date;
   scheduledTime?: string;
+  isRecurring?: boolean;
+  recurrenceInterval?: RecurrenceInterval;
 }
 
 const TaskModal: React.FC<TaskModalProps> = ({ 
@@ -56,9 +58,11 @@ useEffect(() => {
         context: editingTask.context,
         estimatedTime: editingTask.estimatedTime,
         scheduledDate: editingTask.scheduledDate,
-        scheduledTime: editingTask.scheduledTime
+        scheduledTime: editingTask.scheduledTime,
+        isRecurring: editingTask.isRecurring || false,
+        recurrenceInterval: editingTask.recurrenceInterval
       }]
-    : [{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]
+    : [{ name: '', category: '', subCategory: '', context: '', estimatedTime: '', isRecurring: false }]
   );
 }, [isOpen]);
 
@@ -79,7 +83,7 @@ useEffect(() => {
     }
   };
 
-  const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number | Date) => {
+  const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number | Date | boolean) => {
     const updated = [...taskDrafts];
     updated[index] = { ...updated[index], [field]: value };
     setTaskDrafts(updated);
@@ -124,7 +128,9 @@ useEffect(() => {
           scheduledTime: draft.scheduledTime,
           startTime: draft.scheduledDate && draft.scheduledTime ? 
             new Date(`${draft.scheduledDate.toISOString().split('T')[0]}T${draft.scheduledTime}:00`) : undefined,
-          duration: draft.scheduledDate && draft.scheduledTime ? Number(draft.estimatedTime) : undefined
+          duration: draft.scheduledDate && draft.scheduledTime ? Number(draft.estimatedTime) : undefined,
+          isRecurring: draft.isRecurring || false,
+          recurrenceInterval: draft.isRecurring ? draft.recurrenceInterval : undefined
         };
         onUpdateTask(editingTask.id, updates);
       }
@@ -401,8 +407,47 @@ useEffect(() => {
                           })}
                         </SelectContent>
                       </Select>
-                    </div>
-                  </div>
+                     </div>
+                   </div>
+
+                   {/* Section récurrence */}
+                   <div className="space-y-3 pt-3 border-t border-gray-200">
+                     <Label className="text-sm text-gray-700">Récurrence (optionnelle)</Label>
+                     
+                     <div className="space-y-2">
+                       <div className="flex items-center space-x-2">
+                         <input
+                           type="checkbox"
+                           id={`recurring-${index}`}
+                           checked={draft.isRecurring || false}
+                           onChange={(e) => updateTaskDraft(index, 'isRecurring', e.target.checked)}
+                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                         />
+                         <label htmlFor={`recurring-${index}`} className="text-sm text-gray-700 flex items-center">
+                           <RefreshCw className="w-4 h-4 mr-1" />
+                           Tâche récurrente
+                         </label>
+                       </div>
+                       
+                       {draft.isRecurring && (
+                         <Select
+                           value={draft.recurrenceInterval || ''}
+                           onValueChange={(value) => updateTaskDraft(index, 'recurrenceInterval', value)}
+                         >
+                           <SelectTrigger className="h-9 text-sm">
+                             <SelectValue placeholder="Fréquence de récurrence..." />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {RECURRENCE_OPTIONS.map((option) => (
+                               <SelectItem key={option.value} value={option.value}>
+                                 {option.label}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       )}
+                     </div>
+                   </div>
 
                   {isValid && (
                     <div className="text-xs text-green-600 flex items-center">

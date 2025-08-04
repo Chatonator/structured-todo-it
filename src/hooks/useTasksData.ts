@@ -16,6 +16,7 @@ export const useTasksData = () => {
     setPinnedTasks,
     saveTask,
     deleteTask,
+    completeTask,
     reloadTasks,
   } = useTasksDatabase();
 
@@ -48,6 +49,7 @@ export const useTasksData = () => {
     // Additional database-specific methods
     saveTask,
     deleteTask,
+    completeTask,
     reloadTasks,
   };
 };

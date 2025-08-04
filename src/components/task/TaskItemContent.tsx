@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
+import { RecurringTaskBadge } from '@/components/RecurringTaskBadge';
 import { Clock } from 'lucide-react';
 import { cssVarRGB } from '@/utils/colors';
 
@@ -35,6 +36,9 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
         <h3 className="font-semibold text-foreground text-sm leading-tight flex-1 min-w-0 line-clamp-3 break-words">
           {task.name}
         </h3>
+        {task.isRecurring && task.recurrenceInterval && (
+          <RecurringTaskBadge recurrenceInterval={task.recurrenceInterval} />
+        )}
       </div>
       
       {/* Informations détaillées - en mode étendu ou hover */}
