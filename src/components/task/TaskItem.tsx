@@ -160,7 +160,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
 		className={`
-		task-card
+		group task-card
 		${isPinned ? 'task-pinned' : ''}
 		${!isPinned ? backgroundClass : ''}
 		${!isPinned ? borderColorClass : ''}
