@@ -152,7 +152,7 @@ const TaskList: React.FC<TaskListProps> = ({
         onDragEnter={() => handleDragEnter(taskIndex)}
         onDragLeave={handleDragLeave}
         data-category={task.category}
-		className="task-item"
+		className={`task-item ${isPinned ? 'task-pinned' : ''}`}
       >
         <TaskItem
           task={task}

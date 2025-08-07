@@ -159,20 +159,18 @@ const TaskItem: React.FC<TaskItemProps> = ({
         onDrop={handleDrop}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-		className={`
-		group task-card
-		${isPinned ? 'task-pinned' : ''}
-		${!isPinned ? backgroundClass : ''}
-		${!isPinned ? borderColorClass : ''}
-		${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
-		${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
-		${isDragOver && !isDragging ? 'scale-102' : ''}
-		${dragIndex === taskIndex && !isDragging ? 'bg-accent border-primary' : ''}
-`}
-
-
+        className={`
+          group flex items-start gap-2 p-3 border rounded-lg 
+          transition-all duration-300 mb-1 text-sm task-item relative
+          ${borderColorClass} ${backgroundClass}
+          ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
+          ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
+          ${isDragOver && !isDragging ? 'scale-102' : ''}
+          ${dragIndex === taskIndex && !isDragging ? 'bg-accent border-primary' : ''}
+          border-border text-foreground
+        `}
         data-category={task.category}
-       style={!isPinned ? inlineStyles : undefined}
+        style={inlineStyles}
       >
         {/* Indicateur de drop zone */}
         {isDragOver && !isDragging && (
