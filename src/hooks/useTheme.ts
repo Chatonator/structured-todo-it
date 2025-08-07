@@ -1,28 +1,18 @@
 
 import { useState, useEffect } from 'react';
 
-export type Theme = 'light' | 'dark' | 'colorblind' | 'high-contrast' | 'precious';
+export type Theme = 'light';
 
 export const useTheme = () => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('todo-it-theme') as Theme;
-    return savedTheme || 'light';
-  });
+  const [theme] = useState<Theme>('light');
 
   useEffect(() => {
-    localStorage.setItem('todo-it-theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
-
-  // Code de débogage pour diagnostiquer les problèmes de thème
-  useEffect(() => {
-    console.log('theme-debug',
-      document.documentElement.getAttribute('data-theme'),
-      getComputedStyle(document.documentElement).getPropertyValue('--color-background'));
-  }, [theme]);
+    localStorage.setItem('todo-it-theme', 'light');
+    document.documentElement.setAttribute('data-theme', 'light');
+  }, []);
 
   const changeTheme = (newTheme: Theme) => {
-    setTheme(newTheme);
+    // Ne fait rien car on n'a qu'un seul thème
   };
 
   return {

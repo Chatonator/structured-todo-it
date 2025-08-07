@@ -74,38 +74,25 @@ export const cssVarRGB = (varName: string): string => {
 };
 
 /**
- * Hook pour obtenir les couleurs résolues avec mise à jour lors des changements de thème
+ * Hook pour obtenir les couleurs résolues (simplifié car un seul thème)
  */
 export const useResolvedColors = () => {
   const [colors, setColors] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
-    const updateColors = () => {
-      const newColors: Record<string, string> = {};
+    const newColors: Record<string, string> = {};
 
-      // Couleurs de catégories
-      ['obligation', 'quotidien', 'envie', 'autres'].forEach(cat => {
-        newColors[`category-${cat}`] = cssVarRGB(`--color-${cat}`);
-      });
-
-      // Couleurs de thème
-      ['primary', 'secondary', 'accent', 'muted'].forEach(theme => {
-        newColors[`theme-${theme}`] = cssVarRGB(`--color-${theme}`);
-      });
-
-      setColors(newColors);
-    };
-
-    updateColors();
-
-    // Observer les changements de thème
-    const observer = new MutationObserver(updateColors);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class', 'data-theme']
+    // Couleurs de catégories
+    ['obligation', 'quotidien', 'envie', 'autres'].forEach(cat => {
+      newColors[`category-${cat}`] = cssVarRGB(`--color-${cat}`);
     });
 
-    return () => observer.disconnect();
+    // Couleurs de thème
+    ['primary', 'secondary', 'accent', 'muted'].forEach(theme => {
+      newColors[`theme-${theme}`] = cssVarRGB(`--color-${theme}`);
+    });
+
+    setColors(newColors);
   }, []);
 
   return colors;
