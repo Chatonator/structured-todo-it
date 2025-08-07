@@ -21,7 +21,8 @@ const UserOptionsMenu = () => {
     { value: 'light', label: 'Clair', description: 'Thème classique' },
     { value: 'dark', label: 'Sombre', description: 'Thème sombre' },
     { value: 'colorblind', label: 'Daltonien', description: 'Adapté aux daltoniens' },
-    { value: 'high-contrast', label: 'Contraste élevé', description: 'Contraste renforcé' }
+    { value: 'high-contrast', label: 'Contraste élevé', description: 'Contraste renforcé' },
+    { value: 'precious', label: 'Précieux', description: 'Or, argent, cuivre, bronze' }
   ];
 
   const handleSignOut = async () => {

@@ -123,6 +123,42 @@
   --color-context-perso: 0 128 0;
 }
 
+/* ===== THÈME PRÉCIEUX ===== */
+[data-theme="precious"] {
+  --color-background: 25 20 15;         /* Brun très sombre */
+  --color-foreground: 255 248 240;      /* Crème doré */
+  --color-muted: 139 125 107;           /* Bronze terne */
+  --color-accent: 52 42 32;             /* Brun foncé */
+  --color-border: 184 134 11;           /* Or foncé */
+  --color-card: 41 33 25;               /* Brun charbon */
+  --color-input: 52 42 32;              /* Brun foncé */
+  --color-primary: 251 191 36;          /* Or brillant */
+  --color-secondary: 180 83 9;          /* Cuivre */
+  --color-sidebar: 30 25 20;            /* Brun très sombre */
+  
+  /* Catégories - palette métaux précieux */
+  --color-obligation: 180 83 9;         /* Cuivre - urgent */
+  --color-quotidien: 251 191 36;        /* Or - quotidien */
+  --color-envie: 156 163 175;           /* Argent - envies */
+  --color-autres: 163 123 93;           /* Bronze - autres */
+  
+  /* Contextes */
+  --color-context-pro: 180 83 9;        /* Cuivre pro */
+  --color-context-perso: 251 191 36;    /* Or perso */
+  
+  /* Priorités */
+  --color-priority-highest: 229 229 229; /* Platine */
+  --color-priority-high: 251 191 36;     /* Or */
+  --color-priority-medium: 180 83 9;     /* Cuivre */
+  --color-priority-low: 163 123 93;      /* Bronze */
+  
+  /* Système */
+  --color-success: 156 163 175;         /* Argent */
+  --color-warning: 251 191 36;          /* Or */
+  --color-error: 180 83 9;              /* Cuivre */
+  --color-info: 163 123 93;             /* Bronze */
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
