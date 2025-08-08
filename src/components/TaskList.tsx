@@ -77,14 +77,21 @@ const TaskList: React.FC<TaskListProps> = ({
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
   const [isExtendedView, setIsExtendedView] = useState(false);
 
-  // Filtres locaux
+  // Filtres locaux – on place les tâches épinglées en tête avant filtrage/recherche
+  const mainActive = mainTasks.filter(task => !task.isCompleted);
+  const preOrdered = [...mainActive].sort((a, b) => {
+    const aPinned = pinnedTasks.includes(a.id);
+    const bPinned = pinnedTasks.includes(b.id);
+    return aPinned === bPinned ? 0 : aPinned ? -1 : 1;
+  });
+
   const {
     searchQuery,
     setSearchQuery,
     categoryFilter,
     setCategoryFilter,
     filteredTasks: localFilteredTasks
-  } = useTaskFilters(mainTasks.filter(task => !task.isCompleted));
+  } = useTaskFilters(preOrdered);
 
   // Opérations sur les tâches
   const { handleBulkComplete, handleBulkDelete } = useTaskOperations(
