@@ -32,18 +32,22 @@ export const DayView: React.FC<DayViewProps> = ({
       const startHour = event.startTime.getHours();
       const startMinute = event.startTime.getMinutes();
       const durationMinutes = event.duration;
-      
-      // Base 1440 minutes (24h)
-      const topPercentage = (startHour * 60 + startMinute) / 1440 * 100;
-      const heightPercentage = durationMinutes / 1440 * 100;
-      
+
+      // Alignement exact avec la hauteur des lignes horaires (h-12 = 48px)
+      const HOUR_ROW_PX = 48;
+      const pxPerMinute = HOUR_ROW_PX / 60; // 0.8px par minute
+
+      const startMinutes = startHour * 60 + startMinute;
+      const topPx = startMinutes * pxPerMinute;
+      const heightPx = Math.max(24, durationMinutes * pxPerMinute); // min 24px pour visibilité
+
       return {
-        top: `${Math.max(0, Math.min(topPercentage, 100))}%`,
-        height: `${Math.min(heightPercentage, 100 - topPercentage)}%`
+        top: `${topPx}px`,
+        height: `${heightPx}px`
       };
     } catch (error) {
       console.warn('Erreur calcul position événement:', error, event);
-      return { top: '0%', height: '4%' };
+      return { top: '0px', height: '24px' };
     }
   };
 
@@ -88,7 +92,7 @@ export const DayView: React.FC<DayViewProps> = ({
       <DayHeader currentDate={currentDate} eventsCount={dayEvents.length} />
 
       <div className="flex-1 overflow-auto" ref={containerRef}>
-        <div className="grid h-full min-h-[1200px]" style={{ gridTemplateColumns: '80px 1fr' }}>
+        <div className="grid h-full h-[1152px]" style={{ gridTemplateColumns: '80px 1fr' }}>
           {/* Colonne des heures */}
           <div className="border-r border-theme-border">
             {CALENDAR_HOURS.map(hour => (
@@ -107,7 +111,7 @@ export const DayView: React.FC<DayViewProps> = ({
               <div
                 key={hour}
                 className={`h-12 border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors ${
-                  dragOverSlot === `${hour}:00` ? 'bg-blue-100' : ''
+                  dragOverSlot === `${hour}:00` ? 'bg-theme-accent' : ''
                 }`}
                 onClick={() => handleSlotClick(hour)}
                 onDragOver={(e) => handleSlotDragOver(e, hour)}

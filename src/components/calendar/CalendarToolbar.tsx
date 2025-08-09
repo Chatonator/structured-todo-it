@@ -25,7 +25,8 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
     { key: CALENDAR_VIEWS.DAY, label: 'Jour' },
     { key: CALENDAR_VIEWS.WEEK, label: 'Semaine' },
     { key: CALENDAR_VIEWS.MONTH, label: 'Mois' },
-    { key: CALENDAR_VIEWS.THREE_MONTHS, label: '3 Mois' }
+    { key: CALENDAR_VIEWS.THREE_MONTHS, label: '3 Mois' },
+    { key: CALENDAR_VIEWS.SIX_MONTHS, label: '6 Mois' }
   ];
 
   return (

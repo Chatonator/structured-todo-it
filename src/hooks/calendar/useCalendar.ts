@@ -41,6 +41,9 @@ export const useCalendar = (tasks: Task[]) => {
       case CALENDAR_VIEWS.THREE_MONTHS:
         setCurrentDate(prev => addMonths(prev, -3));
         break;
+      case CALENDAR_VIEWS.SIX_MONTHS:
+        setCurrentDate(prev => addMonths(prev, -6));
+        break;
     }
   };
 
@@ -57,6 +60,9 @@ export const useCalendar = (tasks: Task[]) => {
         break;
       case CALENDAR_VIEWS.THREE_MONTHS:
         setCurrentDate(prev => addMonths(prev, 3));
+        break;
+      case CALENDAR_VIEWS.SIX_MONTHS:
+        setCurrentDate(prev => addMonths(prev, 6));
         break;
     }
   };
@@ -87,6 +93,11 @@ export const useCalendar = (tasks: Task[]) => {
         return {
           start: startOfMonth(currentDate),
           end: endOfMonth(addMonths(currentDate, 2))
+        };
+      case CALENDAR_VIEWS.SIX_MONTHS:
+        return {
+          start: startOfMonth(currentDate),
+          end: endOfMonth(addMonths(currentDate, 5))
         };
       default:
         return {
@@ -136,6 +147,9 @@ export const useCalendar = (tasks: Task[]) => {
       case CALENDAR_VIEWS.THREE_MONTHS:
         const end3Months = addMonths(currentDate, 2);
         return `${format(currentDate, 'MMM', { locale: fr })} - ${format(end3Months, 'MMM yyyy', { locale: fr })}`;
+      case CALENDAR_VIEWS.SIX_MONTHS:
+        const end6Months = addMonths(currentDate, 5);
+        return `${format(currentDate, 'MMM', { locale: fr })} - ${format(end6Months, 'MMM yyyy', { locale: fr })}`;
       default:
         return '';
     }
@@ -160,6 +174,7 @@ export const useCalendar = (tasks: Task[]) => {
     currentDate,
     currentView,
     setCurrentView,
+    setCurrentDate,
     navigatePrevious,
     navigateNext,
     navigateToday,

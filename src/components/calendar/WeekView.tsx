@@ -32,18 +32,22 @@ export const WeekView: React.FC<WeekViewProps> = ({
       const startHour = event.startTime.getHours();
       const startMinute = event.startTime.getMinutes();
       const durationMinutes = event.duration;
-      
-      // Base 1440 minutes (24h)
-      const topPercentage = (startHour * 60 + startMinute) / 1440 * 100;
-      const heightPercentage = durationMinutes / 1440 * 100;
-      
+
+      // Alignement exact avec la hauteur des lignes horaires (h-12 = 48px)
+      const HOUR_ROW_PX = 48;
+      const pxPerMinute = HOUR_ROW_PX / 60; // 0.8px par minute
+
+      const startMinutes = startHour * 60 + startMinute;
+      const topPx = startMinutes * pxPerMinute;
+      const heightPx = Math.max(24, durationMinutes * pxPerMinute); // min 24px pour visibilité
+
       return {
-        top: `${Math.max(0, Math.min(topPercentage, 100))}%`,
-        height: `${Math.min(heightPercentage, 100 - topPercentage)}%`
+        top: `${topPx}px`,
+        height: `${heightPx}px`
       };
     } catch (error) {
       console.warn('Erreur calcul position événement:', error, event);
-      return { top: '0%', height: '4%' };
+      return { top: '0px', height: '24px' };
     }
   };
 
@@ -81,7 +85,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
       {/* Grille horaire */}
       <div className="flex-1 overflow-auto">
-        <div className="grid h-full min-h-[1200px]" style={{ gridTemplateColumns: '80px repeat(7, 1fr)' }}>
+        <div className="grid h-full h-[1152px]" style={{ gridTemplateColumns: '80px repeat(7, 1fr)' }}>
           {/* Colonne des heures */}
           <div className="border-r border-theme-border">
             {CALENDAR_HOURS.map(hour => (

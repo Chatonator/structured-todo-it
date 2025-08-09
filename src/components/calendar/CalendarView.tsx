@@ -6,13 +6,14 @@ import { useTasks } from '@/hooks/useTasks';
 import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';
 import { WeekView } from '@/components/calendar/WeekView';
 import { DayView } from '@/components/calendar/DayView';
+import MultiMonthView from '@/components/calendar/MultiMonthView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
-import { CATEGORY_CONFIG } from '@/types/task';
+import { CATEGORY_CONFIG, CALENDAR_VIEWS } from '@/types/task';
 import { cssVarRGB } from '@/utils/colors';
 
 interface CalendarViewProps {
@@ -30,6 +31,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
     currentDate,
     currentView,
     setCurrentView,
+    setCurrentDate,
     navigatePrevious,
     navigateNext,
     navigateToday,
@@ -143,18 +145,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
               onTimeSlotClick={handleTimeSlotClick}
             />
           )}
-          
-          {!['week', 'day'].includes(currentView) && (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <h3 className="text-lg font-medium text-theme-foreground mb-2">
-                  Vue {currentView} en développement
-                </h3>
-                <p className="text-theme-muted">
-                  Cette vue sera disponible prochainement
-                </p>
-              </div>
-            </div>
+
+          {currentView === CALENDAR_VIEWS.MONTH && (
+            <MultiMonthView
+              currentDate={currentDate}
+              months={1}
+              events={calendarEvents}
+              onDayClick={(date) => { setCurrentDate(date); setCurrentView(CALENDAR_VIEWS.DAY); }}
+            />
+          )}
+
+          {currentView === CALENDAR_VIEWS.THREE_MONTHS && (
+            <MultiMonthView
+              currentDate={currentDate}
+              months={3}
+              events={calendarEvents}
+              onDayClick={(date) => { setCurrentDate(date); setCurrentView(CALENDAR_VIEWS.DAY); }}
+            />
+          )}
+
+          {currentView === CALENDAR_VIEWS.SIX_MONTHS && (
+            <MultiMonthView
+              currentDate={currentDate}
+              months={6}
+              events={calendarEvents}
+              onDayClick={(date) => { setCurrentDate(date); setCurrentView(CALENDAR_VIEWS.DAY); }}
+            />
           )}
         </div>
       </div>
