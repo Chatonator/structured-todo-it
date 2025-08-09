@@ -52,6 +52,9 @@
   --color-hover-overlay: 0 0 0;
   --color-active-overlay: 0 0 0;
   --color-disabled-overlay: 107 114 128;
+
+  /* ===== CALENDRIER ===== */
+  --calendar-hour-height: 48px;
 }
 
 @tailwind base;
