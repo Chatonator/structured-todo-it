@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -48,14 +48,11 @@ export type Database = {
           id: string
           isCompleted: boolean
           isExpanded: boolean
-          isrecurring: boolean | null
           isRecurring: boolean | null
-          lastcompletedat: string | null
           lastCompletedAt: string | null
           level: number
           name: string
           parentId: string | null
-          recurrenceinterval: string | null
           recurrenceInterval: string | null
           scheduledDate: string | null
           scheduledTime: string | null
@@ -72,14 +69,11 @@ export type Database = {
           id?: string
           isCompleted?: boolean
           isExpanded?: boolean
-          isrecurring?: boolean | null
           isRecurring?: boolean | null
-          lastcompletedat?: string | null
           lastCompletedAt?: string | null
           level?: number
           name: string
           parentId?: string | null
-          recurrenceinterval?: string | null
           recurrenceInterval?: string | null
           scheduledDate?: string | null
           scheduledTime?: string | null
@@ -96,14 +90,11 @@ export type Database = {
           id?: string
           isCompleted?: boolean
           isExpanded?: boolean
-          isrecurring?: boolean | null
           isRecurring?: boolean | null
-          lastcompletedat?: string | null
           lastCompletedAt?: string | null
           level?: number
           name?: string
           parentId?: string | null
-          recurrenceinterval?: string | null
           recurrenceInterval?: string | null
           scheduledDate?: string | null
           scheduledTime?: string | null
