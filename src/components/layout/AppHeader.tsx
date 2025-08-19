@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckSquare, Plus, Undo, Redo } from 'lucide-react';
 import UserOptionsMenu from '@/components/UserOptionsMenu';
+import { SaveStatus } from '@/components/ui/save-status';
 
 interface AppHeaderProps {
   tasksCount: number;
@@ -12,6 +13,13 @@ interface AppHeaderProps {
   onUndo: () => void;
   onRedo: () => void;
   onOpenModal: () => void;
+  // Save status props
+  saveStatus?: 'saving' | 'saved' | 'unsaved' | 'error';
+  hasUnsavedChanges?: boolean;
+  canSave?: boolean;
+  lastSaved?: Date | null;
+  lastError?: string | null;
+  onManualSave?: () => Promise<boolean>;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -22,7 +30,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   canRedo,
   onUndo,
   onRedo,
-  onOpenModal
+  onOpenModal,
+  saveStatus = 'saved',
+  hasUnsavedChanges = false,
+  canSave = false,
+  lastSaved,
+  lastError,
+  onManualSave
 }) => {
   return (
     <header className="bg-background shadow-sm border-b border-border">
@@ -39,6 +53,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
           
           <div className="flex items-center space-x-4">
+            {/* Save Status */}
+            <SaveStatus
+              status={saveStatus}
+              hasUnsavedChanges={hasUnsavedChanges}
+              canSave={canSave}
+              lastSaved={lastSaved}
+              lastError={lastError}
+              onManualSave={onManualSave}
+            />
+            
             {/* Historique */}
             <div className="flex items-center gap-2 px-3 py-1 bg-accent rounded-lg border border-border">
               <span className="text-xs text-muted-foreground font-medium">Historique:</span>

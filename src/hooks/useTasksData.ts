@@ -1,6 +1,7 @@
 import { useTasksDatabase } from '@/hooks/useTasksDatabase';
 import { Task } from '@/types/task';
 import { logger } from '@/lib/logger';
+import { useAutoSave } from '@/hooks/useAutoSave';
 
 /**
  * Hook for task data management using Supabase database
@@ -39,6 +40,26 @@ export const useTasksData = () => {
     }
   };
 
+  // Auto-save hook pour sauvegarder automatiquement les tâches
+  const autoSave = useAutoSave(Array.isArray(tasks) ? tasks : [], {
+    debounceMs: 3000, // 3 secondes de délai
+    enabled: true,
+    onSave: async (tasksToSave: Task[]) => {
+      try {
+        // Sauvegarder toutes les tâches modifiées
+        const savePromises = tasksToSave.map(task => saveTask(task));
+        const results = await Promise.all(savePromises);
+        return results.every(result => result);
+      } catch (error) {
+        logger.error('Auto-save failed', { error });
+        return false;
+      }
+    },
+    onError: (error) => {
+      logger.error('Auto-save error', { error });
+    }
+  });
+
   return {
     tasks: Array.isArray(tasks) ? tasks : [],
     setTasks: safeSetTasks,
@@ -51,5 +72,7 @@ export const useTasksData = () => {
     deleteTask,
     completeTask,
     reloadTasks,
+    // Auto-save functionality
+    autoSave,
   };
 };

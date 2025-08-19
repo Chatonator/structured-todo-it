@@ -7,7 +7,7 @@ import { useTasksSaveLoad } from './useTasksSaveLoad';
 import { useActionHistory } from './useActionHistory';
 
 export const useTasks = () => {
-  const { tasks, setTasks, pinnedTasks, setPinnedTasks, saveTask, completeTask } = useTasksData();
+  const { tasks, setTasks, pinnedTasks, setPinnedTasks, saveTask, completeTask, autoSave } = useTasksData();
   const { undo, redo, canUndo, canRedo } = useActionHistory();
   
   const { addTask, removeTask, scheduleTask } = useTasksOperations(
@@ -216,6 +216,8 @@ export const useTasks = () => {
     loadBackup,
     deleteBackup,
     exportToCSV,
-    importFromCSV
+    importFromCSV,
+    // Auto-save functionality
+    autoSave
   };
 };
