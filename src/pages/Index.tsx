@@ -173,7 +173,7 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex flex-col w-full bg-theme-background">
-        {/* Header avec statistiques, sauvegarde et historique */}
+        {/* Header avec statistiques et historique */}
         <AppHeader
           tasksCount={safeTasksCount}
           completedTasks={safeCompletedTasks}
@@ -183,13 +183,6 @@ const Index = () => {
           onUndo={undo}
           onRedo={redo}
           onOpenModal={() => setIsModalOpen(true)}
-          // Save status props
-          saveStatus={hookResult?.autoSave?.getSaveStatus?.() || 'saved'}
-          hasUnsavedChanges={hookResult?.autoSave?.hasUnsavedChanges || false}
-          canSave={hookResult?.autoSave?.canSave || false}
-          lastSaved={hookResult?.autoSave?.lastSaved || null}
-          lastError={hookResult?.autoSave?.lastError || null}
-          onManualSave={hookResult?.autoSave?.manualSave}
         />
 
         {/* Navigation horizontale */}
