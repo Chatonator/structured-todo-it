@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/supabaseClient'
 import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/task';
 import { logger } from '@/lib/logger';
