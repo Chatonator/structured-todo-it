@@ -1,10 +1,10 @@
-import { defineConfig } from 'vite'
+﻿import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
 import { componentTagger } from 'lovable-tagger'
 
 export default defineConfig(({ mode }) => ({
-  base: '/structured-todo-it/', // IMPORTANT pour GitHub Pages
+  base: '/structured-todo-it/',, // IMPORTANT pour GitHub Pages
   server: {
     host: '::',
     port: 8080,
@@ -19,3 +19,4 @@ export default defineConfig(({ mode }) => ({
     },
   },
 }))
+
