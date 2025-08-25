@@ -41,6 +41,9 @@
   --color-error: 239 68 68;
   --color-info: 59 130 246;
   
+  /* Couleur dédiée pour les tâches épinglées */
+  --color-pinned: 234 179 8;
+  
   /* ===== COULEURS DE DRAG & DROP ===== */
   --color-drop-zone: 59 130 246;
   --color-drag-active: 147 197 253;
@@ -49,86 +52,14 @@
   --color-hover-overlay: 0 0 0;
   --color-active-overlay: 0 0 0;
   --color-disabled-overlay: 107 114 128;
-}
 
-/* ===== THÈME SOMBRE ===== */
-[data-theme="dark"] {
-  --color-background: 20 20 20;
-  --color-foreground: 255 255 255;
-  --color-muted: 156 163 175;
-  --color-accent: 30 41 59;
-  --color-border: 55 65 81;
-  --color-card: 30 41 59;
-  --color-input: 30 41 59;
-  --color-primary: 99 102 241;
-  --color-secondary: 79 70 229;
-  --color-sidebar: 24 24 27;
-  
-  /* Catégories - couleurs adaptées pour le mode sombre */
-  --color-obligation: 248 113 113;   /* Rouge plus clair en sombre */
-  --color-quotidien: 253 224 71;     /* Jaune plus clair en sombre */
-  --color-envie: 134 239 172;        /* Vert plus clair en sombre */
-  --color-autres: 96 165 250;        /* Bleu plus clair en sombre */
-  
-  /* Contextes */
-  --color-context-pro: 96 165 250;
-  --color-context-perso: 74 222 128;
-}
-
-/* ===== THÈME DALTONIEN ===== */
-[data-theme="colorblind"] {
-  --color-background: 255 255 255;
-  --color-foreground: 0 0 0;
-  --color-muted: 71 85 105;
-  --color-accent: 241 245 249;
-  --color-border: 226 232 240;
-  --color-card: 255 255 255;
-  --color-input: 241 245 249;
-  --color-primary: 99 102 241;
-  --color-secondary: 79 70 229;
-  --color-sidebar: 248 250 252;
-  
-  /* Catégories - palette optimisée pour daltoniens */
-  --color-obligation: 220 38 38;     /* Rouge foncé */
-  --color-quotidien: 245 158 11;     /* Orange au lieu de jaune */
-  --color-envie: 34 197 94;          /* Vert */
-  --color-autres: 37 99 235;         /* Bleu foncé */
-  
-  /* Contextes */
-  --color-context-pro: 29 78 216;
-  --color-context-perso: 21 128 61;
-}
-
-/* ===== THÈME CONTRASTE ÉLEVÉ ===== */
-[data-theme="high-contrast"] {
-  --color-background: 255 255 255;
-  --color-foreground: 0 0 0;
-  --color-muted: 64 64 64;
-  --color-accent: 240 240 240;
-  --color-border: 0 0 0;
-  --color-card: 255 255 255;
-  --color-input: 255 255 255;
-  --color-primary: 0 0 255;
-  --color-secondary: 128 0 128;
-  --color-sidebar: 245 245 245;
-  
-  /* Catégories - couleurs haute contraste */
-  --color-obligation: 255 0 0;       /* Rouge pur */
-  --color-quotidien: 255 215 0;      /* Jaune pur */
-  --color-envie: 0 128 0;            /* Vert pur */
-  --color-autres: 0 0 0;             /* Noir */
-  
-  /* Contextes */
-  --color-context-pro: 0 0 255;
-  --color-context-perso: 0 128 0;
+  /* ===== CALENDRIER ===== */
+  --calendar-hour-height: 48px;
 }
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import des couleurs centralisées - OBLIGATOIRE pour que toutes les variables CSS soient disponibles */
-/* @import './styles/colors.css'; */
 
 /* Styles de base pour l'application */
 body {
@@ -278,9 +209,9 @@ body {
 }
 
 .task-pinned {
-  background: rgba(var(--color-warning), 0.12) !important;
-  border: 1px solid rgba(var(--color-warning), 0.3);
-  box-shadow: 0 2px 6px rgba(var(--color-warning), 0.15);
+  background: rgba(var(--color-pinned), 0.12) !important;
+  border: 1px solid rgba(var(--color-pinned), 0.3);
+  box-shadow: 0 2px 6px rgba(var(--color-pinned), 0.15);
 }
 
 /* Ombres colorées harmonisées avec les variables CSS */
@@ -384,16 +315,5 @@ body {
 .modal-content.open {
   transform: scale(1);
   opacity: 1;
-}
-
-.task-card {
-  @apply flex items-start gap-2 p-3 border rounded-lg 
-         transition-all duration-300 mb-1 text-sm relative text-foreground;
-}
-
-.task-card.task-pinned {
-  background: rgba(var(--color-warning), 0.12);
-  border: 1px solid rgba(var(--color-warning), 0.3);
-  box-shadow: 0 2px 6px rgba(var(--color-warning), 0.15);
 }
 

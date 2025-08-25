@@ -128,12 +128,12 @@ export const RECURRENCE_OPTIONS = [
   { value: 'monthly' as RecurrenceInterval, label: 'Mensuel' }
 ];
 
-// Nouvelles constantes pour le calendrier
 export const CALENDAR_VIEWS = {
   DAY: 'day',
   WEEK: 'week',
   MONTH: 'month',
-  THREE_MONTHS: 'three-months'
+  THREE_MONTHS: 'three-months',
+  SIX_MONTHS: 'six-months'
 } as const;
 
 export type CalendarView = typeof CALENDAR_VIEWS[keyof typeof CALENDAR_VIEWS];

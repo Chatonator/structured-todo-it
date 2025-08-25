@@ -125,29 +125,22 @@ const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   // Styles inline avec couleurs résolues
-  const inlineStyles = useMemo(() => ({
-    borderLeftColor: !isSelected && !isPinned ? resolvedCategoryColor : undefined,
-    boxShadow: isHovered && !isDragging 
-      ? `0 8px 25px -5px ${resolvedCategoryColor}40, 0 4px 6px -2px ${resolvedCategoryColor}1A`
-      : isDragging 
-      ? `0 20px 40px -10px ${resolvedCategoryColor}99`
-      : `0 1px 3px 0 ${resolvedCategoryColor}33`
-  }), [resolvedCategoryColor, isHovered, isDragging, isSelected, isPinned]);
+  const inlineStyles = useMemo(() => {
+    const leftColor = isPinned
+      ? cssVarRGB('--color-pinned')
+      : isSelected
+      ? cssVarRGB('--color-primary')
+      : resolvedCategoryColor;
 
-  // Construction des classes CSS harmonisées avec variables CSS
-  const borderColorClass = isSelected 
-    ? 'border-l-primary' 
-    : isPinned 
-    ? 'border-l-system-warning' 
-    : 'border-l-8'; // On force la taille avec une couleur inline
-
-  const backgroundClass = isSelected 
-    ? 'bg-accent' 
-    : levelConfig.bgColor === 'bg-white' 
-    ? 'bg-background' 
-    : levelConfig.bgColor === 'bg-gray-50' 
-    ? 'bg-accent' 
-    : 'bg-muted';
+    return {
+      borderLeftColor: leftColor,
+      boxShadow: isHovered && !isDragging 
+        ? `0 8px 25px -5px ${resolvedCategoryColor}40, 0 4px 6px -2px ${resolvedCategoryColor}1A`
+        : isDragging 
+        ? `0 20px 40px -10px ${resolvedCategoryColor}99`
+        : `0 1px 3px 0 ${resolvedCategoryColor}33`
+    } as React.CSSProperties;
+  }, [resolvedCategoryColor, isHovered, isDragging, isSelected, isPinned]);
 
   return (
     <div className={indentClass}>
@@ -159,20 +152,18 @@ const TaskItem: React.FC<TaskItemProps> = ({
         onDrop={handleDrop}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-		className={`
-		group task-card
-		${isPinned ? 'task-pinned' : ''}
-		${!isPinned ? backgroundClass : ''}
-		${!isPinned ? borderColorClass : ''}
-		${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
-		${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
-		${isDragOver && !isDragging ? 'scale-102' : ''}
-		${dragIndex === taskIndex && !isDragging ? 'bg-accent border-primary' : ''}
-`}
-
-
+        className={`
+          group flex items-start gap-2 p-3 border rounded-lg 
+          transition-all duration-300 mb-1 text-sm task-item relative
+          border-l-8 ${isSelected ? 'bg-accent' : 'bg-card'}
+          ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
+          ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
+          ${isDragOver && !isDragging ? 'scale-102' : ''}
+          ${dragIndex === taskIndex && !isDragging ? 'bg-accent border-primary' : ''}
+          border-border text-foreground
+        `}
         data-category={task.category}
-       style={!isPinned ? inlineStyles : undefined}
+        style={inlineStyles}
       >
         {/* Indicateur de drop zone */}
         {isDragOver && !isDragging && (

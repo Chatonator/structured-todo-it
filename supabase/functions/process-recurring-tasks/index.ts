@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     // Fetch all completed recurring tasks
     const { data: recurringTasks, error: fetchError } = await supabase
       .from('tasks')
-      .select('id, isRecurring, recurrenceInterval, lastCompletedAt, isCompleted')
+      .select('id, "isRecurring", "recurrenceInterval", "lastCompletedAt", "isCompleted"')
       .eq('isRecurring', true)
       .eq('isCompleted', true)
       .not('lastCompletedAt', 'is', null);

@@ -32,18 +32,33 @@ export const DayView: React.FC<DayViewProps> = ({
       const startHour = event.startTime.getHours();
       const startMinute = event.startTime.getMinutes();
       const durationMinutes = event.duration;
-      
-      // Base 1440 minutes (24h)
-      const topPercentage = (startHour * 60 + startMinute) / 1440 * 100;
-      const heightPercentage = durationMinutes / 1440 * 100;
-      
+
+      // Calcul basé sur la variable CSS --calendar-hour-height
+      const getHourRowPx = () => {
+        try {
+          const val = getComputedStyle(document.documentElement)
+            .getPropertyValue('--calendar-hour-height')
+            .trim();
+          const n = parseFloat(val);
+          return Number.isFinite(n) ? n : 48;
+        } catch {
+          return 48;
+        }
+      };
+      const hourRowPx = getHourRowPx();
+      const pxPerMinute = hourRowPx / 60;
+
+      const startMinutes = startHour * 60 + startMinute;
+      const topPx = startMinutes * pxPerMinute;
+      const heightPx = Math.max(24, durationMinutes * pxPerMinute); // min 24px pour visibilité
+
       return {
-        top: `${Math.max(0, Math.min(topPercentage, 100))}%`,
-        height: `${Math.min(heightPercentage, 100 - topPercentage)}%`
+        top: `${topPx}px`,
+        height: `${heightPx}px`
       };
     } catch (error) {
       console.warn('Erreur calcul position événement:', error, event);
-      return { top: '0%', height: '4%' };
+      return { top: '0px', height: '24px' };
     }
   };
 
@@ -88,13 +103,17 @@ export const DayView: React.FC<DayViewProps> = ({
       <DayHeader currentDate={currentDate} eventsCount={dayEvents.length} />
 
       <div className="flex-1 overflow-auto" ref={containerRef}>
-        <div className="grid h-full min-h-[1200px]" style={{ gridTemplateColumns: '80px 1fr' }}>
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: '80px 1fr', height: 'calc(var(--calendar-hour-height) * 24)' }}
+        >
           {/* Colonne des heures */}
           <div className="border-r border-theme-border">
             {CALENDAR_HOURS.map(hour => (
               <div
                 key={hour}
-                className="h-12 flex items-start justify-end pr-2 pt-1 text-xs text-theme-muted border-b border-theme-border"
+                className="flex items-start justify-end pr-2 pt-1 text-xs text-theme-muted border-b border-theme-border"
+                style={{ height: 'var(--calendar-hour-height)' }}
               >
                 {hour.toString().padStart(2, '0')}:00
               </div>
@@ -106,9 +125,8 @@ export const DayView: React.FC<DayViewProps> = ({
             {CALENDAR_HOURS.map(hour => (
               <div
                 key={hour}
-                className={`h-12 border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors ${
-                  dragOverSlot === `${hour}:00` ? 'bg-blue-100' : ''
-                }`}
+                className={`border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors ${dragOverSlot === `${hour}:00` ? 'bg-theme-accent' : ''}`}
+                style={{ height: 'var(--calendar-hour-height)' }}
                 onClick={() => handleSlotClick(hour)}
                 onDragOver={(e) => handleSlotDragOver(e, hour)}
                 onDragLeave={handleSlotDragLeave}
