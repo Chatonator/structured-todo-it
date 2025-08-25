@@ -3,9 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-
   "homepage": "https://Chatonator.github.io/structured-todo-it/",
-
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,11 +11,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
 
-    "postbuild": "node -e \"const fs=require('fs');fs.copyFileSync('dist/index.html','dist/404.html')\"",
-    "predeploy": "npm run build",
+    "postbuild": "node -e \"const fs=require('fs');fs.mkdirSync('docs',{recursive:true});fs.cpSync('dist','docs',{recursive:true});fs.copyFileSync('docs/index.html','docs/404.html');fs.writeFileSync('docs/.nojekyll','')\"",
+
+    "predeploy": "vite build",
     "deploy": "gh-pages -d dist"
   },
-
   "dependencies": {
     "@radix-ui/react-dialog": "1.1.6",
     "@radix-ui/react-dismissable-layer": "1.1.6",
