@@ -91,7 +91,7 @@ const App = () => (
       <ThemeProvider>
         <TooltipProvider>
           <Toaster />
-          <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
             <Routes>
               <Route 
                 path="/" 
