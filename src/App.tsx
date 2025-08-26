@@ -35,6 +35,7 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
@@ -119,3 +120,6 @@ const App = () => (
 );
 
 export default App;
+
+
+    
