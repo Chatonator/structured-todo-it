@@ -33,6 +33,7 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
@@ -121,5 +122,7 @@ const App = () => (
 
 export default App;
 
+
+    
 
     
