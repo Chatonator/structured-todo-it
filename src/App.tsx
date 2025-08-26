@@ -91,7 +91,7 @@ const App = () => (
       <ThemeProvider>
         <TooltipProvider>
           <Toaster />
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
+     <<BrowserRouter basename={import.meta.env.DEV ? '/' : '/structured-todo-it/'}>
             <Routes>
               <Route 
                 path="/" 
