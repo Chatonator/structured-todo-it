@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -93,7 +94,7 @@ const App = () => (
       <ThemeProvider>
         <TooltipProvider>
           <Toaster />
-     <<BrowserRouter basename={import.meta.env.DEV ? '/' : '/structured-todo-it/'}>
+<BrowserRouter basename={import.meta.env.DEV ? '/' : '/structured-todo-it/'}>
             <Routes>
               <Route 
                 path="/" 
