@@ -1,4 +1,4 @@
-import { supabase } from '@/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 export const testRecurringTasks = async () => {
   try {
