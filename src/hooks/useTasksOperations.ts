@@ -9,11 +9,13 @@ import { useActionHistory } from './useActionHistory';
 export const useTasksOperations = (
   tasks: Task[],
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
-  setPinnedTasks: React.Dispatch<React.SetStateAction<string[]>>
+  setPinnedTasks: React.Dispatch<React.SetStateAction<string[]>>,
+  saveTask: (task: Task) => Promise<boolean>,
+  dbOperations: { deleteTask: (taskId: string) => Promise<boolean> }
 ) => {
   const { addAction } = useActionHistory();
 
-  const addTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+  const addTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     // Nettoyer et valider les données d'entrée
     const sanitizedData = sanitizeTask(taskData);
     
@@ -39,23 +41,27 @@ export const useTasksOperations = (
       return newTasks;
     });
     
+    // Save to database
+    await saveTask(newTask);
+    
     console.log('Nouvelle tâche ajoutée:', newTask);
     return newTask;
   };
 
-  const removeTask = (taskId: string) => {
+  const removeTask = async (taskId: string) => {
+    const taskToRemove = tasks.find(t => t.id === taskId);
+    if (!taskToRemove) return;
+
+    const removeTaskAndChildren = (id: string): string[] => {
+      const children = tasks.filter(t => t.parentId === id);
+      const childrenIds = children.flatMap(child => removeTaskAndChildren(child.id));
+      return [id, ...childrenIds];
+    };
+
+    const idsToRemove = removeTaskAndChildren(taskId);
+    const removedTasks = tasks.filter(task => idsToRemove.includes(task.id));
+    
     setTasks(prevTasks => {
-      const taskToRemove = prevTasks.find(t => t.id === taskId);
-      if (!taskToRemove) return prevTasks;
-
-      const removeTaskAndChildren = (id: string): string[] => {
-        const children = prevTasks.filter(t => t.parentId === id);
-        const childrenIds = children.flatMap(child => removeTaskAndChildren(child.id));
-        return [id, ...childrenIds];
-      };
-
-      const idsToRemove = removeTaskAndChildren(taskId);
-      const removedTasks = prevTasks.filter(task => idsToRemove.includes(task.id));
       const newTasks = prevTasks.filter(task => !idsToRemove.includes(task.id));
       
       addAction({
@@ -72,7 +78,11 @@ export const useTasksOperations = (
       return newTasks;
     });
     
-    setPinnedTasks(prev => prev.filter(id => id !== taskId));
+    // Delete from database
+    const deletePromises = idsToRemove.map(id => dbOperations.deleteTask(id));
+    await Promise.all(deletePromises);
+    
+    setPinnedTasks(prev => prev.filter(id => !idsToRemove.includes(id)));
     console.log('Tâche supprimée:', taskId);
   };
 
@@ -107,15 +117,15 @@ export const useTasksOperations = (
     console.log('Tâche completion togglee:', taskId);
   };
 
-  const scheduleTask = (taskId: string, date: Date, time: string) => {
-    setTasks(prevTasks => {
-      const task = prevTasks.find(t => t.id === taskId);
-      if (!task) return prevTasks;
+  const scheduleTask = async (taskId: string, date: Date, time: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
 
+    const updatedTask = { ...task, scheduledDate: date, scheduledTime: time };
+    
+    setTasks(prevTasks => {
       const newTasks = prevTasks.map(t => 
-        t.id === taskId 
-          ? { ...t, scheduledDate: date, scheduledTime: time }
-          : t
+        t.id === taskId ? updatedTask : t
       );
       
       addAction({
@@ -139,6 +149,10 @@ export const useTasksOperations = (
       
       return newTasks;
     });
+    
+    // Save to database
+    await saveTask(updatedTask);
+    
     console.log('Tâche planifiée:', taskId, date, time);
   };
 
