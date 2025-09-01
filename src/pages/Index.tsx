@@ -24,32 +24,48 @@ const Index = () => {
   // Hook principal pour la gestion des tâches avec gestion d'erreur
   const hookResult = useTasks();
   
-  // Sécurisation de tous les retours du hook
+  // Sécurisation de tous les retours du hook avec vraies fonctions
   const { 
     tasks = [], 
     mainTasks = [],
     pinnedTasks = [],
-    addTask = () => {},
-    removeTask = () => {}, 
-    reorderTasks = () => {}, 
-    sortTasks = () => {},
-    toggleTaskExpansion = () => {},
-    toggleTaskCompletion = () => {},
-    togglePinTask = () => {},
-    getSubTasks = () => [],
-    calculateTotalTime = () => 0,
-    canHaveSubTasks = () => false,
+    addTask,
+    removeTask,
+    reorderTasks, 
+    sortTasks,
+    toggleTaskExpansion,
+    toggleTaskCompletion,
+    togglePinTask,
+    getSubTasks,
+    calculateTotalTime,
+    canHaveSubTasks,
     tasksCount = 0,
     totalProjectTime = 0,
     completedTasks = 0,
     completionRate = 0,
-    undo = () => {},
-    redo = () => {},
+    undo,
+    redo,
     canUndo = false,
     canRedo = false,
-    restoreTask = () => {},
-    updateTask = () => {}
+    restoreTask,
+    updateTask
   } = hookResult || {};
+
+  // Fonctions de sécurité uniquement si undefined
+  const safeAddTask = addTask || (() => {});
+  const safeRemoveTask = removeTask || (() => {});
+  const safeReorderTasks = reorderTasks || (() => {});
+  const safeSortTasks = sortTasks || (() => {});
+  const safeToggleTaskExpansion = toggleTaskExpansion || (() => {});
+  const safeToggleTaskCompletion = toggleTaskCompletion || (() => {});
+  const safeTogglePinTask = togglePinTask || (() => {});
+  const safeGetSubTasks = getSubTasks || (() => []);
+  const safeCalculateTotalTime = calculateTotalTime || (() => 0);
+  const safeCanHaveSubTasks = canHaveSubTasks || (() => false);
+  const safeUndo = undo || (() => {});
+  const safeRedo = redo || (() => {});
+  const safeRestoreTask = restoreTask || (() => {});
+  const safeUpdateTask = updateTask || (() => {});
 
   // États locaux pour l'interface
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -111,17 +127,17 @@ const Index = () => {
             <TasksView 
               tasks={filteredTasks}
               mainTasks={safeMainTasks}
-              getSubTasks={getSubTasks}
-              calculateTotalTime={calculateTotalTime}
-              onUpdateTask={updateTask}
+              getSubTasks={safeGetSubTasks}
+              calculateTotalTime={safeCalculateTotalTime}
+              onUpdateTask={safeUpdateTask}
             />
           );
         case 'priority':
           return (
             <PriorityView 
               tasks={filteredTasks}
-              getSubTasks={getSubTasks}
-              calculateTotalTime={calculateTotalTime}
+              getSubTasks={safeGetSubTasks}
+              calculateTotalTime={safeCalculateTotalTime}
             />
           );
         case 'dashboard':
@@ -129,7 +145,7 @@ const Index = () => {
             <DashboardView 
               tasks={filteredTasks}
               mainTasks={filteredMainTasks}
-              calculateTotalTime={calculateTotalTime}
+              calculateTotalTime={safeCalculateTotalTime}
             />
           );
         case 'eisenhower':
@@ -141,8 +157,8 @@ const Index = () => {
           return (
             <CompletedTasksView 
               tasks={completedTasksList} 
-              onRestoreTask={restoreTask}
-              onRemoveTask={removeTask}
+              onRestoreTask={safeRestoreTask}
+              onRemoveTask={safeRemoveTask}
             />
           );
         default:
@@ -200,22 +216,22 @@ const Index = () => {
               tasks={Array.isArray(tasks) ? tasks : []}
               mainTasks={filteredMainTasks}
               pinnedTasks={Array.isArray(pinnedTasks) ? pinnedTasks : []}
-              onRemoveTask={removeTask}
-              onReorderTasks={reorderTasks}
-              onSortTasks={sortTasks}
-              onToggleExpansion={toggleTaskExpansion}
-              onToggleCompletion={toggleTaskCompletion}
-              onTogglePinTask={togglePinTask}
-              onAddTask={addTask}
-              getSubTasks={getSubTasks}
-              calculateTotalTime={calculateTotalTime}
-              canHaveSubTasks={canHaveSubTasks}
+              onRemoveTask={safeRemoveTask}
+              onReorderTasks={safeReorderTasks}
+              onSortTasks={safeSortTasks}
+              onToggleExpansion={safeToggleTaskExpansion}
+              onToggleCompletion={safeToggleTaskCompletion}
+              onTogglePinTask={safeTogglePinTask}
+              onAddTask={safeAddTask}
+              getSubTasks={safeGetSubTasks}
+              calculateTotalTime={safeCalculateTotalTime}
+              canHaveSubTasks={safeCanHaveSubTasks}
               selectedTasks={Array.isArray(selectedTasks) ? selectedTasks : []}
               onToggleSelection={handleToggleSelection}
               canUndo={Boolean(canUndo)}
               canRedo={Boolean(canRedo)}
-              onUndo={undo}
-              onRedo={redo}
+              onUndo={safeUndo}
+              onRedo={safeRedo}
             />
           </div>
 
@@ -231,7 +247,7 @@ const Index = () => {
         <TaskModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onAddTask={addTask}
+          onAddTask={safeAddTask}
         />
       </div>
     </SidebarProvider>
