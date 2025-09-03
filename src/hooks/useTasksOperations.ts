@@ -49,8 +49,13 @@ export const useTasksOperations = (
   };
 
   const removeTask = async (taskId: string) => {
+    console.log('🗑️ Tentative de suppression de la tâche:', taskId);
+    
     const taskToRemove = tasks.find(t => t.id === taskId);
-    if (!taskToRemove) return;
+    if (!taskToRemove) {
+      console.warn('❌ Tâche introuvable pour suppression:', taskId);
+      return;
+    }
 
     const removeTaskAndChildren = (id: string): string[] => {
       const children = tasks.filter(t => t.parentId === id);
@@ -61,8 +66,40 @@ export const useTasksOperations = (
     const idsToRemove = removeTaskAndChildren(taskId);
     const removedTasks = tasks.filter(task => idsToRemove.includes(task.id));
     
+    console.log('🗑️ IDs à supprimer:', idsToRemove);
+    console.log('🗑️ Tâches à supprimer:', removedTasks.map(t => t.name));
+    
+    // Delete from database first
+    try {
+      console.log('🗑️ Suppression de la base de données...');
+      const deletePromises = idsToRemove.map(async (id) => {
+        console.log('🗑️ Suppression DB pour ID:', id);
+        const result = await dbOperations.deleteTask(id);
+        console.log('🗑️ Résultat suppression DB pour', id, ':', result);
+        return result;
+      });
+      
+      const results = await Promise.all(deletePromises);
+      console.log('🗑️ Résultats de toutes les suppressions DB:', results);
+      
+      // Check if all deletions were successful
+      const allSuccessful = results.every(result => result === true);
+      if (!allSuccessful) {
+        console.error('❌ Certaines suppressions de base de données ont échoué:', results);
+        throw new Error('Database deletion failed for some tasks');
+      }
+      
+      console.log('✅ Suppression de la base de données réussie');
+    } catch (error) {
+      console.error('❌ Erreur lors de la suppression de la base de données:', error);
+      // Don't update local state if database deletion failed
+      return;
+    }
+    
+    // Only update local state if database deletion was successful
     setTasks(prevTasks => {
       const newTasks = prevTasks.filter(task => !idsToRemove.includes(task.id));
+      console.log('🗑️ État local mis à jour, nouvelles tâches:', newTasks.length);
       
       addAction({
         type: 'remove',
@@ -78,12 +115,13 @@ export const useTasksOperations = (
       return newTasks;
     });
     
-    // Delete from database
-    const deletePromises = idsToRemove.map(id => dbOperations.deleteTask(id));
-    await Promise.all(deletePromises);
+    setPinnedTasks(prev => {
+      const newPinned = prev.filter(id => !idsToRemove.includes(id));
+      console.log('🗑️ Tâches épinglées mises à jour:', newPinned);
+      return newPinned;
+    });
     
-    setPinnedTasks(prev => prev.filter(id => !idsToRemove.includes(id)));
-    console.log('Tâche supprimée:', taskId);
+    console.log('✅ Tâche supprimée avec succès:', taskId);
   };
 
   const toggleTaskCompletion = (taskId: string) => {
