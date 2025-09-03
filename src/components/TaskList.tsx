@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { Clock, ChevronsDown, ChevronsUp } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
