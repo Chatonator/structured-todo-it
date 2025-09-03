@@ -158,32 +158,34 @@ export const useTasksDatabase = () => {
     }
   }, [isAuthenticated, user, saveTask]);
 
-  // Delete task from database
+  // Delete task from database (robuste avec RLS)
   const deleteTask = useCallback(async (taskId: string): Promise<boolean> => {
-    if (!isAuthenticated || !user) {
-      return false;
-    }
+    if (!isAuthenticated || !user) return false;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .delete()
         .eq('id', taskId)
-        .eq('user_id', user.id);
+        .select(); // renvoie les lignes supprimées
 
-      if (error) {
-        throw error;
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        // Aucune ligne supprimée ⇒ RLS/permissions/données incohérentes
+        throw new Error('No task was deleted (RLS/permission mismatch).');
       }
 
-      setTasks(prev => prev.filter(task => task.id !== taskId));
-      logger.debug('Task deleted successfully', { taskId });
+      // Succès : purge du state local
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      logger.debug('Task deleted', { taskId });
       return true;
-    } catch (error: any) {
-      logger.error('Failed to delete task', { error: error.message, taskId });
+    } catch (err: any) {
+      logger.error('Delete failed', { taskId, error: err?.message });
       toast({
-        title: "Error",
-        description: "Failed to delete task. Please try again.",
-        variant: "destructive",
+        title: 'Suppression impossible',
+        description: "Vérifiez vos permissions ou réessayez.",
+        variant: 'destructive',
       });
       return false;
     }
