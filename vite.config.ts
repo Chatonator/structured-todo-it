@@ -4,11 +4,8 @@ import path from 'path'
 import { componentTagger } from 'lovable-tagger'
 
 export default defineConfig(({ mode }) => ({
-  // Détecte l'environnement Lovable vs GitHub Pages
-  base: process.env.NODE_ENV === 'development' || 
-        (typeof window !== 'undefined' && window.location.hostname.includes('lovable.dev')) ||
-        (typeof window !== 'undefined' && window.location.hostname.includes('sandbox.lovable.dev')) 
-        ? '/' : '/structured-todo-it/',
+  // Utilise '/' pour le développement (Lovable) et '/structured-todo-it/' pour la production (GitHub Pages)
+  base: mode === 'development' ? '/' : '/structured-todo-it/',
   server: {
     host: '::',
     port: 8080,
