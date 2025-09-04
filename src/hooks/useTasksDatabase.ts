@@ -166,7 +166,31 @@ export const useTasksDatabase = () => {
     }
 
     console.log('🗑️ DB: Tentative de suppression pour taskId:', taskId);
-    console.log('🔐 User ID:', user.id);
+    console.log('🔐 User ID actuel:', user.id);
+
+    // DIAGNOSTIC: Vérifier à qui appartient la tâche
+    try {
+      const { data: taskOwner } = await supabase
+        .from('tasks')
+        .select('user_id, name')
+        .eq('id', taskId)
+        .single();
+      
+      console.log('📋 Tâche à supprimer:', taskOwner);
+      console.log(`🔍 MATCH user_id ? ${user.id} === ${taskOwner?.user_id} = ${user.id === taskOwner?.user_id}`);
+      
+      if (taskOwner?.user_id !== user.id) {
+        console.error('❌ PROBLÈME IDENTIFIÉ: User ID mismatch !');
+        toast({
+          title: '🚨 Problème d\'authentification détecté',
+          description: `User connecté: ${user.id.slice(0,8)}... vs Tâche: ${taskOwner?.user_id?.slice(0,8)}...`,
+          variant: 'destructive',
+          duration: 8000,
+        });
+      }
+    } catch (err) {
+      console.error('❌ Impossible de vérifier le propriétaire de la tâche:', err);
+    }
 
     try {
       const { data, error } = await supabase
