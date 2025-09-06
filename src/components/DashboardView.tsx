@@ -82,9 +82,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
   if (totalTasks === 0) {
     return (
       <div className="text-center py-8">
-        <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">Aucune donnée disponible</h3>
-        <p className="text-sm text-muted-foreground">Créez des tâches pour voir les statistiques</p>
+        <BarChart3 className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium text-gray-500 mb-2">Aucune donnée disponible</h3>
+        <p className="text-sm text-gray-400">Créez des tâches pour voir les statistiques</p>
       </div>
     );
   }

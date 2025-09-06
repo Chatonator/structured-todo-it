@@ -19,7 +19,7 @@ export const RecurringTaskBadge: React.FC<RecurringTaskBadgeProps> = ({
   className = '' 
 }) => {
   return (
-    <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium bg-system-info/20 text-system-info ${className}`}>
+    <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 ${className}`}>
       <RefreshCw className="w-3 h-3" />
       <span>{INTERVAL_LABELS[recurrenceInterval] || recurrenceInterval}</span>
     </div>
