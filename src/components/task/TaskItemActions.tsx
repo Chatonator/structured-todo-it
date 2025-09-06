@@ -32,7 +32,7 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
           variant="ghost"
           size="sm"
           onClick={() => onCreateSubTask(task)}
-          className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
+          className="h-6 w-6 p-0 text-primary hover:text-primary/80"
           title="Diviser"
         >
           <Divide className="w-3 h-3" />
@@ -42,7 +42,7 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
         variant="ghost"
         size="sm"
         onClick={() => onToggleCompletion(task.id)}
-        className="h-6 w-6 p-0 text-green-500 hover:text-green-700"
+        className="h-6 w-6 p-0 text-system-success hover:text-system-success/80"
         title="Terminer"
       >
         <CheckSquare className="w-3 h-3" />
@@ -51,7 +51,7 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
         variant="ghost"
         size="sm"
         onClick={() => onRemoveTask(task.id)}
-        className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
         title="Supprimer"
       >
         <X className="w-3 h-3" />

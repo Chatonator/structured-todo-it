@@ -51,7 +51,7 @@ const TaskListHeader: React.FC<TaskListHeaderProps> = ({
             size="sm"
             onClick={onUndo}
             disabled={!canUndo}
-            className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 disabled:opacity-50"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-primary disabled:opacity-50"
             title="Annuler (Ctrl+Z)"
           >
             <Undo className="w-3 h-3" />
@@ -61,7 +61,7 @@ const TaskListHeader: React.FC<TaskListHeaderProps> = ({
             size="sm"
             onClick={onRedo}
             disabled={!canRedo}
-            className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 disabled:opacity-50"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-primary disabled:opacity-50"
             title="Refaire (Ctrl+Y)"
           >
             <Redo className="w-3 h-3" />
@@ -83,7 +83,7 @@ const TaskListHeader: React.FC<TaskListHeaderProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => onSearchChange('')}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <X className="w-3 h-3" />
           </Button>

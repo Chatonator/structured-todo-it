@@ -8,7 +8,7 @@ import TaskItem from './task/TaskItem';
 import TaskListHeader from './task/TaskListHeader';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
-import { TaskListActions } from './task/TaskListActions';
+
 
 interface TaskListProps {
   tasks: Task[];
@@ -30,17 +30,6 @@ interface TaskListProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
-  backups?: Array<{
-    id: string;
-    name: string;
-    createdAt: Date;
-    tasks: any[];
-  }>;
-  onSaveBackup?: (name: string) => void;
-  onLoadBackup?: (backupId: string) => void;
-  onDeleteBackup?: (backupId: string) => void;
-  onExportCSV?: () => void;
-  onImportCSV?: (file: File) => Promise<void>;
 }
 
 const TaskList: React.FC<TaskListProps> = ({ 
@@ -62,13 +51,7 @@ const TaskList: React.FC<TaskListProps> = ({
   canUndo,
   canRedo,
   onUndo,
-  onRedo,
-  backups = [],
-  onSaveBackup,
-  onLoadBackup,
-  onDeleteBackup,
-  onExportCSV,
-  onImportCSV
+  onRedo
 }) => {
   // États locaux
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -210,25 +193,14 @@ const TaskList: React.FC<TaskListProps> = ({
         onRedo={() => {}}
       />
 
-      {/* Actions de sauvegarde et export */}
-      {(onSaveBackup || onExportCSV) && (
-        <TaskListActions
-          backups={backups}
-          onSaveBackup={onSaveBackup || (() => {})}
-          onLoadBackup={onLoadBackup || (() => {})}
-          onDeleteBackup={onDeleteBackup || (() => {})}
-          onExportCSV={onExportCSV || (() => {})}
-          onImportCSV={onImportCSV || (async () => {})}
-        />
-      )}
 
       {/* Bouton de vue étendue */}
-      <div className="px-2 py-1 border-b border-theme-border bg-theme-background">
+      <div className="px-2 py-1 border-b border-border bg-accent">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsExtendedView(!isExtendedView)}
-          className="w-full justify-start text-xs text-theme-muted hover:text-theme-foreground"
+          className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
         >
           {isExtendedView ? (
             <>
@@ -251,13 +223,13 @@ const TaskList: React.FC<TaskListProps> = ({
             {localFilteredTasks.length === 0 ? (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center py-8">
-                  <div className="text-gray-400 mb-3">
+                  <div className="text-muted-foreground mb-3">
                     <Clock className="w-8 h-8 mx-auto mb-2" />
                   </div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
                     {searchQuery || categoryFilter !== 'all' ? 'Aucune tâche trouvée' : 'Aucune tâche active'}
                   </h3>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     {searchQuery || categoryFilter !== 'all' ? 'Modifiez vos filtres' : 'Créez votre première tâche !'}
                   </p>
                 </div>

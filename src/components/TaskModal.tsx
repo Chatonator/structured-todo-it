@@ -223,9 +223,9 @@ useEffect(() => {
               const isValid = isTaskValid(draft);
               
               return (
-                <div key={index} className={`p-4 border rounded-lg space-y-4 ${!isValid ? 'border-red-300 bg-red-50' : 'bg-gray-50 border-gray-200'}`}>
+                <div key={index} className={`p-4 border rounded-lg space-y-4 ${!isValid ? 'border-destructive bg-destructive/10' : 'bg-card border-border'}`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-foreground">
                       {editingTask ? 'Modifier la tâche' : `Tâche ${index + 1}`}
                     </span>
                     {taskDrafts.length > 1 && !editingTask && (
@@ -234,7 +234,7 @@ useEffect(() => {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeTaskDraft(index)}
-                        className="h-6 w-6 p-0 text-red-500"
+                        className="h-6 w-6 p-0 text-destructive"
                       >
                         ×
                       </Button>
@@ -247,95 +247,72 @@ useEffect(() => {
                       value={draft.name}
                       onChange={(e) => updateTaskDraft(index, 'name', e.target.value)}
                       placeholder="Nom de la tâche..."
-                      className={`text-sm ${!draft.name.trim() ? 'border-red-300' : ''}`}
+                      className={`text-sm ${!draft.name.trim() ? 'border-destructive' : ''}`}
                     />
                   </div>
 
                   {/* Boutons contexte Pro/Perso OBLIGATOIRES */}
                   <div>
-                    <Label className="text-sm text-gray-700 mb-2 block">
-                      Contexte <span className="text-red-500">*</span>
+                    <Label className="text-sm text-foreground mb-2 block">
+                      Contexte <span className="text-destructive">*</span>
                     </Label>
                     <div className="grid grid-cols-2 gap-2">
                       {Object.entries(CONTEXT_CONFIG).map(([context, config]) => {
                         const resolvedContextColor = cssVarRGB(`--color-context-${context.toLowerCase()}`);
 
                         return (
-                          <button
-                            key={context}
-                            type="button"
-                            onClick={() => updateTaskDraft(index, 'context', context)}
-                            className={`
-                              flex items-center justify-center space-x-2 p-3 text-sm border rounded transition-all
-                              ${draft.context === context 
-                                ? 'border-current shadow-sm' 
-                                : 'bg-white border-gray-200 hover:bg-gray-50'
-                              }
-                              ${!draft.context ? 'border-red-300' : ''}
-                            `}
-                            style={draft.context === context ? {
-                              backgroundColor: `${resolvedContextColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
-                              borderColor: resolvedContextColor,
-                              color: resolvedContextColor
-                            } : {}}
-                          >
-                            <span className="font-medium">{config.label}</span>
-                          </button>
+                            <Button
+                              key={context}
+                              type="button"
+                              variant={draft.context === context ? "default" : "outline"}
+                              onClick={() => updateTaskDraft(index, 'context', context)}
+                              className={`
+                                flex items-center justify-center space-x-2 p-3 text-sm transition-all
+                                ${!draft.context ? 'border-destructive' : ''}
+                              `}
+                            >
+                              <span className="font-medium">{config.label}</span>
+                            </Button>
                         );
                       })}
                     </div>
                   </div>
 
                   <div>
-                    <Label className="text-sm text-gray-700 mb-2 block">
+                    <Label className="text-sm text-foreground mb-2 block">
                       {parentTask ? 'Priorité' : 'Catégorie'}
                     </Label>
                     <div className="grid grid-cols-2 gap-1">
                       {parentTask ? (
                         Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => (
-                          <button
+                          <Button
                             key={subCat}
                             type="button"
+                            variant={draft.subCategory === subCat ? "default" : "outline"}
                             onClick={() => updateTaskDraft(index, 'subCategory', subCat)}
-                            className={`
-                              flex items-center space-x-1 p-2 text-xs border rounded transition-all
-                              ${draft.subCategory === subCat 
-                                ? `${config.color} border-current` 
-                                : 'bg-white border-gray-200 hover:bg-gray-50'
-                              }
-                            `}
+                            className="flex items-center space-x-1 p-2 text-xs transition-all"
                           >
                             <span className="font-medium truncate">{subCat}</span>
-                          </button>
+                          </Button>
                         ))
                       ) : (
                         Object.entries(CATEGORY_CONFIG).map(([cat, config]) => {
                           const resolvedCategoryColor = cssVarRGB(`--color-${config.cssName}`);
 
                           return (
-                            <button
+                            <Button
                               key={cat}
                               type="button"
+                              variant={draft.category === cat ? "default" : "outline"}
                               onClick={() => updateTaskDraft(index, 'category', cat)}
-                              className={`
-                                flex items-center space-x-1 p-2 text-xs border rounded transition-all
-                                ${draft.category === cat 
-                                  ? 'border-current shadow-sm' 
-                                  : 'bg-white border-gray-200 hover:bg-gray-50'
-                                }
-                              `}
-                              style={draft.category === cat ? {
-                                backgroundColor: `${resolvedCategoryColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
-                                borderColor: resolvedCategoryColor,
-                                color: resolvedCategoryColor
-                              } : {}}
+                              className="flex items-center space-x-1 p-2 text-xs transition-all"
                             >
                               <div 
                                 className="w-2 h-2 rounded-full" 
                                 style={{ backgroundColor: resolvedCategoryColor }}
                               />
                               <span className="font-medium truncate">{cat}</span>
-                            </button>
+                            </Button>
                           );
                         })
                       )}
@@ -347,7 +324,7 @@ useEffect(() => {
                       value={draft.estimatedTime.toString()} 
                       onValueChange={(value) => updateTaskDraft(index, 'estimatedTime', Number(value))}
                     >
-                      <SelectTrigger className={`h-9 text-sm ${!draft.estimatedTime ? 'border-red-300' : ''}`}>
+                      <SelectTrigger className={`h-9 text-sm ${!draft.estimatedTime ? 'border-destructive' : ''}`}>
                         <SelectValue placeholder="Temps estimé..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -362,7 +339,7 @@ useEffect(() => {
 
                   {/* Planification avec validation */}
                   <div className="space-y-3 pt-3 border-t border-gray-200">
-                    <Label className="text-sm text-gray-700">Planification (optionnelle)</Label>
+                    <Label className="text-sm text-foreground">Planification (optionnelle)</Label>
                     
                     <div className="grid grid-cols-2 gap-2">
                       <Popover>
@@ -412,7 +389,7 @@ useEffect(() => {
 
                    {/* Section récurrence */}
                    <div className="space-y-3 pt-3 border-t border-gray-200">
-                     <Label className="text-sm text-gray-700">Récurrence (optionnelle)</Label>
+                     <Label className="text-sm text-foreground">Récurrence (optionnelle)</Label>
                      
                      <div className="space-y-2">
                        <div className="flex items-center space-x-2">
@@ -421,9 +398,9 @@ useEffect(() => {
                            id={`recurring-${index}`}
                            checked={draft.isRecurring || false}
                            onChange={(e) => updateTaskDraft(index, 'isRecurring', e.target.checked)}
-                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                           className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
                          />
-                         <label htmlFor={`recurring-${index}`} className="text-sm text-gray-700 flex items-center">
+                         <label htmlFor={`recurring-${index}`} className="text-sm text-foreground flex items-center">
                            <RefreshCw className="w-4 h-4 mr-1" />
                            Tâche récurrente
                          </label>
@@ -450,7 +427,7 @@ useEffect(() => {
                    </div>
 
                   {isValid && (
-                    <div className="text-xs text-green-600 flex items-center">
+                    <div className="text-xs text-system-success flex items-center">
                       <Check className="w-3 h-3 mr-1" />
                       Tâche prête
                     </div>
@@ -486,7 +463,7 @@ useEffect(() => {
                 type="button"
                 onClick={handleFinish}
                 disabled={!canSubmit || validTasksCount === 0}
-                className="text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-sm bg-system-success hover:bg-system-success/90 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check className="w-4 h-4 mr-1" />
                 {editingTask ? 'Sauvegarder' : `Terminer (${validTasksCount})`}

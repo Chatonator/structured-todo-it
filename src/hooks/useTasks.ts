@@ -3,7 +3,7 @@ import { Task } from '@/types/task';
 import { useTasksData } from './useTasksData';
 import { useTasksOperations } from './useTasksOperations';
 import { useTasksUtils } from './useTasksUtils';
-import { useTasksSaveLoad } from './useTasksSaveLoad';
+
 import { useActionHistory } from './useActionHistory';
 
 export const useTasks = () => {
@@ -49,14 +49,7 @@ export const useTasks = () => {
     completionRate
   } = useTasksUtils(tasks, pinnedTasks);
 
-  const {
-    backups,
-    saveBackup,
-    loadBackup,
-    deleteBackup,
-    exportToCSV,
-    importFromCSV
-  } = useTasksSaveLoad(tasks, pinnedTasks, setTasks, setPinnedTasks);
+  
 
   const toggleTaskExpansion = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
@@ -257,11 +250,6 @@ export const useTasks = () => {
     restoreTask,
     scheduleTaskWithTime,
     updateTask,
-    backups,
-    saveBackup,
-    loadBackup,
-    deleteBackup,
-    exportToCSV,
-    importFromCSV
+    
   };
 };
