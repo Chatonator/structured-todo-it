@@ -50,10 +50,10 @@ const TaskItemControls: React.FC<TaskItemControlsProps> = ({
         variant="ghost"
         size="sm"
         onClick={() => onToggleSelection(task.id)}
-        className="h-5 w-5 p-0 text-muted-foreground hover:text-primary"
+        className="h-5 w-5 p-0 text-gray-500 hover:text-blue-600"
       >
         {isSelected ? 
-          <CheckSquare className="w-3 h-3 text-primary" /> : 
+          <CheckSquare className="w-3 h-3 text-blue-600" /> : 
           <Square className="w-3 h-3" />
         }
       </Button>
@@ -64,7 +64,7 @@ const TaskItemControls: React.FC<TaskItemControlsProps> = ({
           variant="ghost"
           size="sm"
           onClick={() => onToggleExpansion(task.id)}
-          className={`h-5 w-5 p-0 text-muted-foreground transition-opacity duration-200 ${
+          className={`h-5 w-5 p-0 text-gray-500 transition-opacity duration-200 ${
             isExtended ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
         >

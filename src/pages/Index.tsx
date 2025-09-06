@@ -1,5 +1,4 @@
 
-import { Button } from '@/components/ui/button';
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import TaskList from '@/components/TaskList';
@@ -163,20 +162,20 @@ const Index = () => {
             />
           );
         default:
-          return <div className="text-center text-muted-foreground">Vue non trouvée</div>;
+          return <div className="text-center text-theme-muted">Vue non trouvée</div>;
       }
     } catch (error) {
       console.error('Erreur lors du rendu de la vue:', error);
       return (
-        <div className="text-center text-destructive p-8">
+        <div className="text-center text-red-500 p-8">
           <h3 className="text-lg font-medium mb-2">Erreur de rendu</h3>
           <p className="text-sm">Une erreur s'est produite lors de l'affichage de cette vue.</p>
-          <Button 
+          <button 
             onClick={() => setCurrentView('tasks')}
-            className="mt-4"
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Retour aux tâches
-          </Button>
+          </button>
         </div>
       );
     }
@@ -189,7 +188,7 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col w-full bg-background">
+      <div className="min-h-screen flex flex-col w-full bg-theme-background">
         {/* Header avec statistiques et historique */}
         <AppHeader
           tasksCount={safeTasksCount}
@@ -212,7 +211,7 @@ const Index = () => {
         {/* Contenu principal avec layout optimisé */}
         <main className="flex-1 flex">
           {/* Colonne gauche : Liste des tâches actives */}
-          <div className="w-[25%] bg-background border-r border-border flex flex-col shadow-sm">
+          <div className="w-[25%] bg-theme-background border-r border-theme-border flex flex-col shadow-sm">
             <TaskList 
               tasks={Array.isArray(tasks) ? tasks : []}
               mainTasks={filteredMainTasks}
@@ -237,8 +236,8 @@ const Index = () => {
           </div>
 
           {/* Section droite : Vue courante */}
-          <div className="flex-1 p-6 overflow-y-auto bg-background">
-            <div className="bg-card rounded-lg shadow-sm border border-border p-6 h-full">
+          <div className="flex-1 p-6 overflow-y-auto bg-theme-background">
+            <div className="bg-theme-background rounded-lg shadow-sm border border-theme-border p-6 h-full">
               {renderCurrentView()}
             </div>
           </div>
