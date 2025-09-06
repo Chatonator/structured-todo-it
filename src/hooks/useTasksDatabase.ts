@@ -60,13 +60,18 @@ export const useTasksDatabase = () => {
 
       setTasks(formattedTasks);
 
-      // Load pinned tasks from user profile or a separate table if needed
-      // For now, we'll store pinned tasks in localStorage as a fallback
-      const storedPinned = localStorage.getItem(`pinnedTasks_${user.id}`);
-      if (storedPinned) {
-        setPinnedTasks(JSON.parse(storedPinned));
-      } else {
+      // Load pinned tasks from database
+      const { data: pinnedData, error: pinnedError } = await supabase
+        .from('pinned_tasks')
+        .select('task_id')
+        .eq('user_id', user.id);
+
+      if (pinnedError) {
+        logger.warn('Failed to load pinned tasks', { error: pinnedError.message });
         setPinnedTasks([]);
+      } else {
+        const pinnedTaskIds = (pinnedData || []).map(p => p.task_id);
+        setPinnedTasks(pinnedTaskIds);
       }
 
       logger.info('Tasks loaded successfully', { taskCount: formattedTasks.length });
@@ -241,13 +246,44 @@ export const useTasksDatabase = () => {
     }
   }, [isAuthenticated, user, tasks, toast]);
 
-  // Save pinned tasks
-  const savePinnedTasks = useCallback((newPinnedTasks: string[]) => {
+  // Save pinned tasks to database
+  const savePinnedTasks = useCallback(async (newPinnedTasks: string[]) => {
     if (!user) return;
     
-    setPinnedTasks(newPinnedTasks);
-    localStorage.setItem(`pinnedTasks_${user.id}`, JSON.stringify(newPinnedTasks));
-  }, [user]);
+    try {
+      // Delete all current pinned tasks for user
+      await supabase
+        .from('pinned_tasks')
+        .delete()
+        .eq('user_id', user.id);
+
+      // Insert new pinned tasks
+      if (newPinnedTasks.length > 0) {
+        const pinnedData = newPinnedTasks.map(taskId => ({
+          user_id: user.id,
+          task_id: taskId
+        }));
+
+        const { error } = await supabase
+          .from('pinned_tasks')
+          .insert(pinnedData);
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      setPinnedTasks(newPinnedTasks);
+      logger.debug('Pinned tasks saved successfully', { count: newPinnedTasks.length });
+    } catch (error: any) {
+      logger.error('Failed to save pinned tasks', { error: error.message });
+      toast({
+        title: "Error",
+        description: "Failed to save pinned tasks. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [user, toast]);
 
   // Load tasks when auth state changes
   useEffect(() => {

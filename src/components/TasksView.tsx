@@ -140,7 +140,7 @@ const TasksView: React.FC<TasksViewProps> = ({
               </div>
 
               {task.scheduledDate && task.scheduledTime && (
-                <div className="flex items-center gap-1 text-blue-600">
+                <div className="flex items-center gap-1 text-primary">
                   <Calendar className="w-4 h-4" />
                   <span>Planifiée {new Date(task.scheduledDate).toLocaleDateString('fr-FR')} à {task.scheduledTime}</span>
                 </div>
