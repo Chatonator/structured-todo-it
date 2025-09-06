@@ -71,7 +71,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <span>{tasksCount} actives</span>
               </span>
               <span className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-system-success rounded-full"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span>{completedTasks} terminées</span>
               </span>
               <span>{completionRate}% complet</span>

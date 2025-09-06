@@ -83,12 +83,12 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
         key={task.id}
         className={`
           p-3 border rounded-lg hover:shadow-sm transition-all
-          ${task.isCompleted ? 'opacity-60 bg-muted' : 'bg-card'}
+          ${task.isCompleted ? 'opacity-60 bg-gray-50' : 'bg-theme-background'}
           ${categoryConfig.borderPattern}
         `}
       >
         <div className="flex items-start justify-between mb-2">
-          <h4 className={`text-sm font-medium ${task.isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+          <h4 className={`text-sm font-medium ${task.isCompleted ? 'line-through text-gray-500' : 'text-theme-foreground'}`}>
             {task.name}
           </h4>
           <div 
@@ -101,7 +101,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
           <Clock className="w-3 h-3" />
           <span>{formatDuration(task.estimatedTime)}</span>
           {task.isCompleted && (
-            <Badge variant="outline" className="text-xs bg-system-success/10 text-system-success">
+            <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
               Terminée
             </Badge>
           )}
@@ -113,9 +113,9 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
   if (tasks.length === 0) {
     return (
       <div className="text-center py-8">
-        <Target className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">Aucune tâche à organiser</h3>
-        <p className="text-sm text-muted-foreground">Créez des tâches pour voir la matrice d'Eisenhower</p>
+        <Target className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium text-gray-500 mb-2">Aucune tâche à organiser</h3>
+        <p className="text-sm text-gray-400">Créez des tâches pour voir la matrice d'Eisenhower</p>
       </div>
     );
   }
