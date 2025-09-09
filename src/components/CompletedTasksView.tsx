@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckSquare, Clock, Calendar, Trash2, RotateCcw, ArrowUpDown } from 'lucide-react';
-import { cssVarRGB } from '@/utils/colors';
 
 interface CompletedTasksViewProps {
   tasks: Task[];
@@ -35,6 +34,14 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
       month: 'short',
       year: 'numeric'
     }).format(date);
+  };
+
+  // Mapping statique des couleurs de catégorie
+  const CATEGORY_COLORS = {
+    'Obligation': '#DC2626',
+    'Quotidien': '#FBBF24', 
+    'Envie': '#86EFAC',
+    'Autres': '#2563EB'
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
@@ -90,10 +97,10 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tâches Terminées</CardTitle>
-            <CheckSquare className="h-4 w-4 text-system-success" />
+            <CheckSquare className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-system-success">{tasks.length}</div>
+            <div className="text-2xl font-bold text-green-600">{tasks.length}</div>
           </CardContent>
         </Card>
 
@@ -131,7 +138,11 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
               const categoryConfig = CATEGORY_CONFIG[task.category];
               const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
               
-              const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig?.cssName || 'default'}`);
+              // Couleur de catégorie statique
+              const categoryColorKey = categoryConfig?.cssName === 'obligation' ? 'Obligation' :
+                                     categoryConfig?.cssName === 'quotidien' ? 'Quotidien' :
+                                     categoryConfig?.cssName === 'envie' ? 'Envie' : 'Autres';
+              const categoryColor = CATEGORY_COLORS[categoryColorKey];
               
               return (
                 <div 
@@ -139,11 +150,11 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
                   className="flex items-center justify-between p-3 bg-card border border-border rounded-lg"
                 >
                   <div className="flex items-center space-x-3 flex-1">
-                    <CheckSquare className="w-5 h-5 text-system-success" />
+                    <CheckSquare className="w-5 h-5 text-green-600" />
                     <div className="flex items-center space-x-2 flex-1">
                       <div 
                         className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: resolvedCategoryColor }}
+                        style={{ backgroundColor: categoryColor }}
                       />
                         <div className="flex-1">
                           <h4 className="font-medium text-foreground line-through">{task.name}</h4>

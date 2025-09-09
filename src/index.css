@@ -1,62 +1,3 @@
-/* =============================================================================
-   COULEURS CENTRALISÉES - SOURCE DE VÉRITÉ UNIQUE
-   Toutes les couleurs de l'application sont définies ici
-   ============================================================================= */
-
-:root {
-  /* ===== COULEURS DE BASE DU THÈME ===== */
-  --color-background: 255 255 255;
-  --color-foreground: 0 0 0;
-  --color-muted: 71 85 105;
-  --color-accent: 241 245 249;
-  --color-border: 226 232 240;
-  --color-card: 255 255 255;
-  --color-input: 241 245 249;
-  --color-primary: 99 102 241;
-  --color-secondary: 79 70 229;
-  --color-sidebar: 248 250 252;
-  
-  /* ===== VARIABLES SHADCN/UI COMPATIBLES (pour radius) ===== */
-  --radius: 0.5rem;
-  
-  /* ===== COULEURS DES CATÉGORIES DE TÂCHES - COULEURS AMÉLIORÉES ===== */
-  --color-obligation: 220 38 38;      /* Rouge plus prononcé */
-  --color-quotidien: 251 191 36;      /* Jaune plus brillant */
-  --color-envie: 134 239 172;         /* Vert plus clair */
-  --color-autres: 37 99 235;          /* Bleu plus prononcé */
-  
-  /* ===== COULEURS DES CONTEXTES ===== */
-  --color-context-pro: 59 130 246;
-  --color-context-perso: 34 197 94;
-  
-  /* ===== COULEURS DES PRIORITÉS ===== */
-  --color-priority-highest: 147 51 234;
-  --color-priority-high: 59 130 246;
-  --color-priority-medium: 234 179 8;
-  --color-priority-low: 107 114 128;
-  
-  /* ===== COULEURS SYSTÈME ===== */
-  --color-success: 34 197 94;
-  --color-warning: 234 179 8;
-  --color-error: 239 68 68;
-  --color-info: 59 130 246;
-  
-  /* Couleur dédiée pour les tâches épinglées */
-  --color-pinned: 234 179 8;
-  
-  /* ===== COULEURS DE DRAG & DROP ===== */
-  --color-drop-zone: 59 130 246;
-  --color-drag-active: 147 197 253;
-  
-  /* ===== COULEURS D'ÉTATS ===== */
-  --color-hover-overlay: 0 0 0;
-  --color-active-overlay: 0 0 0;
-  --color-disabled-overlay: 107 114 128;
-
-  /* ===== CALENDRIER ===== */
-  --calendar-hour-height: 48px;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -164,18 +105,6 @@ body {
   @apply relative px-4 py-3 leading-normal bg-card text-foreground border border-border rounded;
 }
 
-.alert-success {
-  color: rgb(var(--color-success));
-  background-color: rgba(var(--color-success), 0.1);
-  border-color: rgb(var(--color-success));
-}
-
-.alert-error {
-  color: rgb(var(--color-error));
-  background-color: rgba(var(--color-error), 0.1);
-  border-color: rgb(var(--color-error));
-}
-
 /* ===== ANIMATIONS ET INTERACTIONS ===== */
 
 /* Animations pour le drag & drop */
@@ -187,9 +116,7 @@ body {
 }
 
 .drop-zone-active {
-  background: rgba(var(--color-primary), 0.1) !important;
-  border-color: rgb(var(--color-primary)) !important;
-  box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.3), inset 0 2px 8px rgba(var(--color-primary), 0.1);
+  @apply bg-primary/10 border-2 border-dashed border-primary shadow-lg;
   transform: scale(1.02);
 }
 
@@ -209,30 +136,24 @@ body {
 }
 
 .task-pinned {
-  background: rgba(var(--color-pinned), 0.12) !important;
-  border: 1px solid rgba(var(--color-pinned), 0.3);
-  box-shadow: 0 2px 6px rgba(var(--color-pinned), 0.15);
+  @apply bg-yellow-400/10 border border-yellow-400/30 shadow-md;
 }
 
-/* Ombres colorées harmonisées avec les variables CSS */
+/* Ombres colorées par catégorie */
 .task-item[data-category="Obligation"]:hover {
-  box-shadow: 0 8px 25px -5px rgba(var(--color-obligation), 0.25), 
-              0 4px 6px -2px rgba(var(--color-obligation), 0.1);
+  @apply shadow-lg shadow-red-600/25;
 }
 
 .task-item[data-category="Quotidien"]:hover {
-  box-shadow: 0 8px 25px -5px rgba(var(--color-quotidien), 0.25), 
-              0 4px 6px -2px rgba(var(--color-quotidien), 0.1);
+  @apply shadow-lg shadow-yellow-400/25;
 }
 
 .task-item[data-category="Envie"]:hover {
-  box-shadow: 0 8px 25px -5px rgba(var(--color-envie), 0.25), 
-              0 4px 6px -2px rgba(var(--color-envie), 0.1);
+  @apply shadow-lg shadow-green-300/25;
 }
 
 .task-item[data-category="Autres"]:hover {
-  box-shadow: 0 8px 25px -5px rgba(var(--color-autres), 0.25), 
-              0 4px 6px -2px rgba(var(--color-autres), 0.1);
+  @apply shadow-lg shadow-blue-600/25;
 }
 
 /* Calendrier - créneaux horaires */
@@ -247,9 +168,7 @@ body {
 }
 
 .calendar-time-slot.drop-zone {
-  background: rgba(var(--color-primary), 0.1);
-  border: 2px dashed rgb(var(--color-primary));
-  box-shadow: inset 0 2px 8px rgba(var(--color-primary), 0.1);
+  @apply bg-primary/10 border-2 border-dashed border-primary shadow-inner;
 }
 
 /* Animations de bounce pour les indicateurs */
@@ -278,31 +197,25 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(var(--color-muted), 0.05);
-  border-radius: 4px;
+  @apply bg-muted/5 rounded;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(var(--color-muted), 0.2);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+  @apply bg-muted/20 rounded transition-colors;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--color-muted), 0.3);
+  @apply bg-muted/30;
 }
 
 /* États de focus améliorés */
 .focus-ring:focus-visible {
-  outline: 2px solid rgb(var(--color-primary));
-  outline-offset: 2px;
+  @apply outline-2 outline-primary outline-offset-2;
 }
 
 /* Transitions fluides pour les modales */
 .modal-overlay {
-  background: rgba(var(--color-foreground), 0.5);
-  backdrop-filter: blur(4px);
-  transition: all 0.2s ease;
+  @apply bg-foreground/50 backdrop-blur transition-all duration-200;
 }
 
 .modal-content {
@@ -316,4 +229,3 @@ body {
   transform: scale(1);
   opacity: 1;
 }
-

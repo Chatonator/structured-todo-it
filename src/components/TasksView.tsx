@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
-import { cssVarRGB } from '@/utils/colors';
 
 interface TasksViewProps {
   tasks: Task[];
@@ -33,6 +32,14 @@ const TasksView: React.FC<TasksViewProps> = ({
   // Sécurisation des props
   const safeTasks = Array.isArray(tasks) ? tasks : [];
   const safeMainTasks = Array.isArray(mainTasks) ? mainTasks : [];
+
+  // Mapping statique des couleurs
+  const CATEGORY_COLORS = {
+    'Obligation': '#DC2626',
+    'Quotidien': '#FBBF24', 
+    'Envie': '#86EFAC',
+    'Autres': '#2563EB'
+  };
 
   const formatDuration = (minutes: number): string => {
     const safeMinutes = Number(minutes) || 0;
@@ -80,14 +87,18 @@ const TasksView: React.FC<TasksViewProps> = ({
     const subTasks = getSubTasks ? getSubTasks(task.id || '') : [];
     const totalTime = calculateTotalTime ? calculateTotalTime(task) : (Number(task.estimatedTime) || 0);
 
-    const resolvedCategoryColor = cssVarRGB(`--color-${categoryConfig.cssName}`);
+    // Couleur de catégorie statique 
+    const categoryColorKey = categoryConfig.cssName === 'obligation' ? 'Obligation' :
+                           categoryConfig.cssName === 'quotidien' ? 'Quotidien' :
+                           categoryConfig.cssName === 'envie' ? 'Envie' : 'Autres';
+    const categoryColor = CATEGORY_COLORS[categoryColorKey];
 
     return (
-      <Card key={task.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 bg-theme-card" 
-            style={{ borderLeftColor: resolvedCategoryColor }}>
+      <Card key={task.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 bg-card" 
+            style={{ borderLeftColor: categoryColor }}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <CardTitle className="text-lg font-semibold text-theme-foreground leading-tight">
+            <CardTitle className="text-lg font-semibold text-foreground leading-tight">
               {task.name || 'Tâche sans nom'}
             </CardTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -102,16 +113,21 @@ const TasksView: React.FC<TasksViewProps> = ({
               {subCategoryConfig && (
                 <Badge 
                   variant="outline" 
-                  className="text-xs" 
-                  categoryColor={`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`}
+                  className={`text-xs ${
+                    subCategoryConfig.priority > 3 ? 'bg-purple-500/10 border-purple-500 text-purple-500' :
+                    subCategoryConfig.priority > 2 ? 'bg-blue-500/10 border-blue-500 text-blue-500' :
+                    subCategoryConfig.priority > 1 ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500' :
+                    'bg-gray-500/10 border-gray-500 text-gray-500'
+                  }`}
                 >
                   {subCategoryConfig.priority}★
                 </Badge>
               )}
               <Badge 
                 variant="outline" 
-                className="text-xs" 
-                categoryColor={`--color-context-${(task.context || 'perso').toLowerCase()}`}
+                className={`text-xs ${
+                  (task.context || 'perso').toLowerCase() === 'pro' ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-green-500/10 border-green-500 text-green-500'
+                }`}
               >
                 {task.context || 'Perso'}
               </Badge>
@@ -150,14 +166,18 @@ const TasksView: React.FC<TasksViewProps> = ({
             <div className="flex items-center gap-2">
               <Badge 
                 variant="outline" 
-                className="text-xs"
-                categoryColor={`--color-${categoryConfig.cssName}`}
+                className={`text-xs ${
+                  categoryColorKey === 'Obligation' ? 'bg-red-600/10 border-red-600 text-red-600' :
+                  categoryColorKey === 'Quotidien' ? 'bg-yellow-400/10 border-yellow-400 text-yellow-400' :
+                  categoryColorKey === 'Envie' ? 'bg-green-300/10 border-green-300 text-green-300' :
+                  'bg-blue-600/10 border-blue-600 text-blue-600'
+                }`}
               >
                 {task.category || 'Non définie'}
               </Badge>
               
               {task.isCompleted && (
-                <div className="flex items-center gap-1 text-system-success">
+                <div className="flex items-center gap-1 text-green-600">
                   <CheckSquare className="w-4 h-4" />
                   <span className="text-xs">Terminée</span>
                 </div>
@@ -174,12 +194,12 @@ const TasksView: React.FC<TasksViewProps> = ({
                   if (!subTask || typeof subTask !== 'object') return null;
                   
                   return (
-                    <div key={subTask.id} className="flex items-center gap-2 p-2 bg-theme-accent rounded-md">
-                      <CheckSquare className={`w-3 h-3 ${subTask.isCompleted ? 'text-system-success' : 'text-theme-muted'}`} />
-                      <span className={`text-sm ${subTask.isCompleted ? 'line-through text-theme-muted' : 'text-theme-foreground'}`}>
+                    <div key={subTask.id} className="flex items-center gap-2 p-2 bg-accent rounded-md">
+                      <CheckSquare className={`w-3 h-3 ${subTask.isCompleted ? 'text-green-600' : 'text-muted-foreground'}`} />
+                      <span className={`text-sm ${subTask.isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                         {subTask.name || 'Sous-tâche sans nom'}
                       </span>
-                      <span className="text-xs text-theme-muted ml-auto">
+                      <span className="text-xs text-muted-foreground ml-auto">
                         {formatDuration(subTask.estimatedTime)}
                       </span>
                     </div>
@@ -199,40 +219,40 @@ const TasksView: React.FC<TasksViewProps> = ({
 
   return (
     <>
-      <div className="space-y-8 bg-theme-background text-theme-foreground">
+      <div className="space-y-8 bg-background text-foreground">
         {/* En-tête */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-theme-foreground mb-2">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             Toutes les tâches
           </h1>
-          <p className="text-theme-muted">
+          <p className="text-muted-foreground">
             Vue d'ensemble de vos tâches avec un affichage détaillé et aéré
           </p>
         </div>
 
         {/* Statistiques rapides */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-theme-card border-theme-border">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-theme-foreground">{activeTasks.length}</div>
-              <div className="text-sm text-theme-muted">Tâches actives</div>
+              <div className="text-2xl font-bold text-foreground">{activeTasks.length}</div>
+              <div className="text-sm text-muted-foreground">Tâches actives</div>
             </CardContent>
           </Card>
-          <Card className="bg-theme-card border-theme-border">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-theme-foreground">{completedTasks.length}</div>
-              <div className="text-sm text-theme-muted">Tâches terminées</div>
+              <div className="text-2xl font-bold text-foreground">{completedTasks.length}</div>
+              <div className="text-sm text-muted-foreground">Tâches terminées</div>
             </CardContent>
           </Card>
-          <Card className="bg-theme-card border-theme-border">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-theme-foreground">
+              <div className="text-2xl font-bold text-foreground">
                 {formatDuration(activeTasks.reduce((total, task) => {
                   const taskTime = calculateTotalTime ? calculateTotalTime(task) : (Number(task.estimatedTime) || 0);
                   return total + taskTime;
                 }, 0))}
               </div>
-              <div className="text-sm text-theme-muted">Temps total estimé</div>
+              <div className="text-sm text-muted-foreground">Temps total estimé</div>
             </CardContent>
           </Card>
         </div>
@@ -240,8 +260,8 @@ const TasksView: React.FC<TasksViewProps> = ({
         {/* Tâches actives */}
         {activeTasks.length > 0 && (
           <div>
-            <h2 className="text-2xl font-semibold text-theme-foreground mb-4 flex items-center gap-2">
-              <div className="w-1 h-6 bg-theme-primary rounded"></div>
+            <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
+              <div className="w-1 h-6 bg-primary rounded"></div>
               Tâches actives ({activeTasks.length})
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -253,8 +273,8 @@ const TasksView: React.FC<TasksViewProps> = ({
         {/* Tâches terminées */}
         {completedTasks.length > 0 && (
           <div>
-            <h2 className="text-2xl font-semibold text-theme-foreground mb-4 flex items-center gap-2">
-              <div className="w-1 h-6 bg-system-success rounded"></div>
+            <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
+              <div className="w-1 h-6 bg-green-600 rounded"></div>
               Tâches terminées ({completedTasks.length})
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -267,10 +287,10 @@ const TasksView: React.FC<TasksViewProps> = ({
         {activeTasks.length === 0 && completedTasks.length === 0 && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📝</div>
-            <h3 className="text-xl font-semibold text-theme-foreground mb-2">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               Aucune tâche pour le moment
             </h3>
-            <p className="text-theme-muted">
+            <p className="text-muted-foreground">
               Commencez par créer votre première tâche !
             </p>
           </div>

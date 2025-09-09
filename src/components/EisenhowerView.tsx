@@ -4,7 +4,6 @@ import { Task, CATEGORY_CONFIG, CATEGORY_CSS_NAMES } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, AlertTriangle, Target, Calendar, Archive } from 'lucide-react';
-import { cssVarRGB } from '@/utils/colors';
 
 interface EisenhowerViewProps {
   tasks: Task[];

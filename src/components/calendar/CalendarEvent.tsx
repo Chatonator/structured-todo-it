@@ -3,7 +3,6 @@ import React from 'react';
 import { CalendarEvent, CATEGORY_CONFIG } from '@/types/task';
 import { Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { cssVarRGB } from '@/utils/colors';
 
 interface CalendarEventProps {
   event: CalendarEvent;

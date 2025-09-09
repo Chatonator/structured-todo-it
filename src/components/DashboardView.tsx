@@ -3,7 +3,6 @@ import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CATEGORY_CSS_NAMES } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, PieChart, Timer, Hash } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { cssVarRGB } from '@/utils/colors';
 
 interface DashboardViewProps {
   tasks: Task[];
@@ -12,29 +11,34 @@ interface DashboardViewProps {
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calculateTotalTime }) => {
+  // Mapping statique des couleurs
+  const CATEGORY_COLORS = {
+    'Obligation': '#DC2626',
+    'Quotidien': '#FBBF24', 
+    'Envie': '#86EFAC',
+    'Autres': '#2563EB'
+  };
+
   // Calculs statistiques
   const totalTasks = tasks.length;
   const totalTime = mainTasks.reduce((sum, task) => sum + calculateTotalTime(task), 0);
   const averageTime = totalTasks > 0 ? Math.round(totalTime / totalTasks) : 0;
 
-  // Mémorisation des couleurs résolues pour éviter les recalculs
-  const resolvedColors = React.useMemo(() => {
-    const colors: Record<string, string> = {};
-    Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
-      colors[category] = cssVarRGB(`--color-${config.cssName}`);
-    });
-    return colors;
-  }, []); // Pas de dépendance au thème pour l'instant, on peut l'ajouter si nécessaire
-
-  // Répartition par catégories principales avec couleurs résolues
+  // Répartition par catégories principales avec couleurs statiques
   const categoryStats = Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
     const categoryTasks = tasks.filter(task => task.category === category);
     const categoryTime = categoryTasks.reduce((sum, task) => sum + task.estimatedTime, 0);
+    
+    // Mapping vers les couleurs statiques
+    const colorKey = config.cssName === 'obligation' ? 'Obligation' :
+                   config.cssName === 'quotidien' ? 'Quotidien' :
+                   config.cssName === 'envie' ? 'Envie' : 'Autres';
+    
     return {
       name: category,
       count: categoryTasks.length,
       time: categoryTime,
-      color: resolvedColors[category],
+      color: CATEGORY_COLORS[colorKey],
       bgColor: config.color
     };
   }).filter(stat => stat.count > 0);
@@ -62,7 +66,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
     category: stat.name,
     temps: stat.time,
     taches: stat.count,
-    fill: resolvedColors[stat.name] // Couleur résolue pour chaque barre
+    fill: stat.color // Couleur statique pour chaque barre
   }));
 
   // Fonctions de formatage
@@ -92,59 +96,59 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-theme-foreground">Dashboard</h2>
-        <p className="text-sm text-theme-muted">Vue d'ensemble de vos tâches et statistiques</p>
+        <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
+        <p className="text-sm text-muted-foreground">Vue d'ensemble de vos tâches et statistiques</p>
       </div>
 
       {/* Cartes de statistiques principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-theme-border bg-theme-background">
+        <Card className="border-border bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-theme-foreground">Total Tâches</CardTitle>
-            <Hash className="h-4 w-4 text-theme-muted" />
+            <CardTitle className="text-sm font-medium text-foreground">Total Tâches</CardTitle>
+            <Hash className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-theme-foreground">{totalTasks}</div>
-            <p className="text-xs text-theme-muted">
+            <div className="text-2xl font-bold text-foreground">{totalTasks}</div>
+            <p className="text-xs text-muted-foreground">
               {mainTasks.length} principales, {totalTasks - mainTasks.length} sous-tâches
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-theme-border bg-theme-background">
+        <Card className="border-border bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-theme-foreground">Temps Total</CardTitle>
-            <Clock className="h-4 w-4 text-theme-muted" />
+            <CardTitle className="text-sm font-medium text-foreground">Temps Total</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-theme-foreground">{formatHours(totalTime)}</div>
-            <p className="text-xs text-theme-muted">
+            <div className="text-2xl font-bold text-foreground">{formatHours(totalTime)}</div>
+            <p className="text-xs text-muted-foreground">
               {formatDuration(totalTime)} estimé
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-theme-border bg-theme-background">
+        <Card className="border-border bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-theme-foreground">Durée Moyenne</CardTitle>
-            <Timer className="h-4 w-4 text-theme-muted" />
+            <CardTitle className="text-sm font-medium text-foreground">Durée Moyenne</CardTitle>
+            <Timer className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-theme-foreground">{averageTime}</div>
-            <p className="text-xs text-theme-muted">
+            <div className="text-2xl font-bold text-foreground">{averageTime}</div>
+            <p className="text-xs text-muted-foreground">
               minutes par tâche
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-theme-border bg-theme-background">
+        <Card className="border-border bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-theme-foreground">Catégories</CardTitle>
-            <PieChart className="h-4 w-4 text-theme-muted" />
+            <CardTitle className="text-sm font-medium text-foreground">Catégories</CardTitle>
+            <PieChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-theme-foreground">{categoryStats.length}</div>
-            <p className="text-xs text-theme-muted">
+            <div className="text-2xl font-bold text-foreground">{categoryStats.length}</div>
+            <p className="text-xs text-muted-foreground">
               types différents
             </p>
           </CardContent>
@@ -154,9 +158,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
       {/* Graphiques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Répartition par catégories (Camembert) */}
-        <Card className="border-theme-border bg-theme-background">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-theme-foreground">Répartition par Catégories</CardTitle>
+            <CardTitle className="text-foreground">Répartition par Catégories</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -184,8 +188,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                     className="w-3 h-3 rounded-full" 
                     style={{ backgroundColor: stat.color }}
                   />
-                  <span className="text-sm text-theme-foreground">{stat.name}</span>
-                  <span className="text-xs text-theme-muted">({stat.count})</span>
+                  <span className="text-sm text-foreground">{stat.name}</span>
+                  <span className="text-xs text-muted-foreground">({stat.count})</span>
                 </div>
               ))}
             </div>
@@ -193,9 +197,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
         </Card>
 
         {/* Temps par catégorie (Histogramme) */}
-        <Card className="border-theme-border bg-theme-background">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-theme-foreground">Temps par Catégorie</CardTitle>
+            <CardTitle className="text-foreground">Temps par Catégorie</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -212,7 +216,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                   />
                   <Bar 
                     dataKey="temps" 
-                    fill={cssVarRGB('--color-primary')}
+                    fill="#3B82F6"
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -222,27 +226,27 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
       </div>
 
       {/* Détails par catégorie */}
-      <Card className="border-theme-border bg-theme-background">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-theme-foreground">Détails par Catégorie</CardTitle>
+          <CardTitle className="text-foreground">Détails par Catégorie</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {categoryStats.map(stat => (
-              <div key={stat.name} className="flex items-center justify-between p-3 bg-theme-accent rounded-lg">
+              <div key={stat.name} className="flex items-center justify-between p-3 bg-accent rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div 
                     className="w-4 h-4 rounded-full" 
                     style={{ backgroundColor: stat.color }}
                   />
                   <div>
-                    <h4 className="font-medium text-theme-foreground">{stat.name}</h4>
-                    <p className="text-sm text-theme-muted">{stat.count} tâche{stat.count > 1 ? 's' : ''}</p>
+                    <h4 className="font-medium text-foreground">{stat.name}</h4>
+                    <p className="text-sm text-muted-foreground">{stat.count} tâche{stat.count > 1 ? 's' : ''}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-theme-foreground">{formatDuration(stat.time)}</p>
-                  <p className="text-xs text-theme-muted">{Math.round(stat.time / stat.count)} min/tâche</p>
+                  <p className="font-medium text-foreground">{formatDuration(stat.time)}</p>
+                  <p className="text-xs text-muted-foreground">{Math.round(stat.time / stat.count)} min/tâche</p>
                 </div>
               </div>
             ))}
@@ -252,23 +256,23 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
 
       {/* Sous-catégories (si présentes) */}
       {subCategoryStats.length > 0 && (
-        <Card className="border-theme-border bg-theme-background">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-theme-foreground">Sous-catégories</CardTitle>
+            <CardTitle className="text-foreground">Sous-catégories</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {subCategoryStats.map(stat => (
-                <div key={stat.name} className="flex items-center justify-between p-3 bg-theme-accent rounded-lg">
+                <div key={stat.name} className="flex items-center justify-between p-3 bg-accent rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div>
-                      <h4 className="font-medium text-theme-foreground">{stat.name}</h4>
-                      <p className="text-sm text-theme-muted">{stat.count} sous-tâche{stat.count > 1 ? 's' : ''}</p>
+                      <h4 className="font-medium text-foreground">{stat.name}</h4>
+                      <p className="text-sm text-muted-foreground">{stat.count} sous-tâche{stat.count > 1 ? 's' : ''}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-theme-foreground">{formatDuration(stat.time)}</p>
-                    <p className="text-xs text-theme-muted">{Math.round(stat.time / stat.count)} min/tâche</p>
+                    <p className="font-medium text-foreground">{formatDuration(stat.time)}</p>
+                    <p className="text-xs text-muted-foreground">{Math.round(stat.time / stat.count)} min/tâche</p>
                   </div>
                 </div>
               ))}

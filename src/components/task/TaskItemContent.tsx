@@ -3,7 +3,6 @@ import React from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
 import { RecurringTaskBadge } from '@/components/RecurringTaskBadge';
 import { Clock } from 'lucide-react';
-import { cssVarRGB } from '@/utils/colors';
 
 interface TaskItemContentProps {
   task: Task;
@@ -61,26 +60,22 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
           {/* Badges - plus compacts avec couleurs harmonisées */}
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Badge contexte */}
-            <span 
-              className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border border-border bg-card"
-              style={{
-                backgroundColor: `${cssVarRGB(`--color-context-${task.context.toLowerCase()}`).replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
-                borderColor: cssVarRGB(`--color-context-${task.context.toLowerCase()}`),
-                color: cssVarRGB(`--color-context-${task.context.toLowerCase()}`)
-              }}
-            >
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${
+              task.context === 'Pro' ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-green-500/10 border-green-500 text-green-500'
+            }`}>
               {task.context}
             </span>
             {/* Badge priorité */}
             {subCategoryConfig && (
-              <span 
-                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border border-border bg-card"
-                style={{
-                  backgroundColor: `${cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`).replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
-                  borderColor: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`),
-                  color: cssVarRGB(`--color-priority-${subCategoryConfig.priority > 3 ? 'highest' : subCategoryConfig.priority > 2 ? 'high' : subCategoryConfig.priority > 1 ? 'medium' : 'low'}`)
-                }}
-              >
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${
+                subCategoryConfig.priority > 3 
+                  ? 'bg-purple-500/10 border-purple-500 text-purple-500'
+                  : subCategoryConfig.priority > 2 
+                    ? 'bg-blue-500/10 border-blue-500 text-blue-500'
+                    : subCategoryConfig.priority > 1 
+                      ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500'
+                      : 'bg-gray-500/10 border-gray-500 text-gray-500'
+              }`}>
                 {subCategoryConfig.priority}★
               </span>
             )}

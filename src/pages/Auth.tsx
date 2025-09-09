@@ -192,20 +192,12 @@ const Auth = () => {
 
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" 
-           style={{ 
-             background: 'linear-gradient(135deg, hsl(var(--color-primary) / 0.1), hsl(var(--color-secondary) / 0.05))' 
-           }}>
-        <Card className="w-full max-w-md shadow-xl border-0" 
-              style={{ 
-                background: 'rgba(255, 255, 255, 0.95)',
-                backdropFilter: 'blur(20px)' 
-              }}>
-          <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center"
-                 style={{ background: 'hsl(var(--color-primary) / 0.1)' }}>
-              <Mail className="w-8 h-8" style={{ color: 'hsl(var(--color-primary))' }} />
-            </div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 to-secondary/5">
+      <Card className="w-full max-w-md shadow-xl border-0 bg-white/95 backdrop-blur-xl">
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <Mail className="w-8 h-8 text-primary" />
+          </div>
             <div>
               <CardTitle className="text-2xl font-bold">Mot de passe oublié</CardTitle>
               <CardDescription className="text-base mt-2">
@@ -216,9 +208,8 @@ const Auth = () => {
           <CardContent className="space-y-6">
             {resetEmailSent ? (
               <div className="text-center space-y-4">
-                <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center"
-                     style={{ background: 'hsl(var(--color-success) / 0.1)' }}>
-                  <CheckCircle2 className="w-8 h-8" style={{ color: 'hsl(var(--color-success))' }} />
+                <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-green-500" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">Email envoyé !</h3>
@@ -280,19 +271,11 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" 
-         style={{ 
-           background: 'linear-gradient(135deg, hsl(var(--color-primary) / 0.1), hsl(var(--color-secondary) / 0.05))' 
-         }}>
-      <Card className="w-full max-w-md shadow-xl border-0" 
-            style={{ 
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)' 
-            }}>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 to-secondary/5">
+      <Card className="w-full max-w-md shadow-xl border-0 bg-white/95 backdrop-blur-xl">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center"
-               style={{ background: 'hsl(var(--color-primary) / 0.1)' }}>
-            <span className="text-3xl font-bold" style={{ color: 'hsl(var(--color-primary))' }}>✓</span>
+          <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-3xl font-bold text-primary">✓</span>
           </div>
           <div>
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
