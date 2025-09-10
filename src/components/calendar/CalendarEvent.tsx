@@ -32,14 +32,6 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
 
   const categoryConfig = getCategoryConfig();
   
-  const resolvedCategoryColor = React.useMemo(() => {
-    try {
-      return cssVarRGB(`--color-${categoryConfig.cssName}`);
-    } catch (error) {
-      console.warn('Erreur couleur catégorie:', error);
-      return 'rgb(107, 114, 128)'; // gray-500 par défaut
-    }
-  }, [categoryConfig.cssName]);
 
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) return `${minutes}m`;
@@ -49,11 +41,9 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
   };
 
   const inlineStyles = React.useMemo(() => ({
-    backgroundColor: `${resolvedCategoryColor}26`, // 15% d'opacité
-    borderLeftColor: resolvedCategoryColor,
     minHeight: '24px',
     ...style
-  }), [resolvedCategoryColor, style]);
+  }), [style]);
 
   return (
     <div
@@ -61,6 +51,7 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
         p-2 rounded-md border-l-4 cursor-pointer
         hover:shadow-md transition-shadow
         bg-theme-background text-theme-foreground
+        bg-category-${categoryConfig.cssName}/10 border-l-category-${categoryConfig.cssName}
         ${categoryConfig.borderPattern}
       `}
       style={inlineStyles}

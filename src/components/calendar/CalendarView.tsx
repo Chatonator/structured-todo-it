@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
 import { CATEGORY_CONFIG, CALENDAR_VIEWS } from '@/types/task';
-import { cssVarRGB } from '@/utils/colors';
+
 
 interface CalendarViewProps {
   tasks: Task[];
@@ -94,18 +94,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
     setSortBy('name');
   };
 
-  const getCategoryColor = (category: string) => {
-    try {
-      const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG];
-      if (!config) {
-        console.warn('Catégorie inconnue:', category);
-        return cssVarRGB('--color-default');
-      }
-      return cssVarRGB(`--color-${config.cssName}`);
-    } catch (error) {
-      console.warn('Erreur couleur catégorie:', error, category);
-      return cssVarRGB('--color-default');
+  const getCategoryConfig = (category: string) => {
+    const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG];
+    if (!config) {
+      console.warn('Catégorie inconnue:', category);
+      return { cssName: 'default' };
     }
+    return config;
   };
 
   const formatDuration = (minutes: number): string => {
@@ -226,14 +221,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
               <ScrollArea className="max-h-80 overflow-auto">
                 <div className="space-y-3">
                   {filteredAndSortedTasks.map(task => {
-                    const categoryColor = getCategoryColor(task.category);
+                    const categoryConfig = getCategoryConfig(task.category);
                     
                     return (
                       <Button
                         key={task.id}
                         variant="outline"
-                        className="w-full justify-start h-auto p-3 border-l-4"
-                        style={{ borderLeftColor: categoryColor }}
+                        className={`w-full justify-start h-auto p-3 border-l-4 bg-category-${categoryConfig.cssName}/10 border-l-category-${categoryConfig.cssName} hover:bg-category-${categoryConfig.cssName}/20`}
                         onClick={() => handleTaskSelect(task)}
                       >
                         <div className="flex flex-col items-start gap-1">

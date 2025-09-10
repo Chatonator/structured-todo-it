@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Plus, Check, AlertTriangle, CalendarIcon, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task, TaskCategory, SubTaskCategory, TaskContext, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG, RECURRENCE_OPTIONS, RecurrenceInterval } from '@/types/task';
-import { cssVarRGB } from '@/utils/colors';
+
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -257,24 +257,20 @@ useEffect(() => {
                       Contexte <span className="text-destructive">*</span>
                     </Label>
                     <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(CONTEXT_CONFIG).map(([context, config]) => {
-                        const resolvedContextColor = cssVarRGB(`--color-context-${context.toLowerCase()}`);
-
-                        return (
-                            <Button
-                              key={context}
-                              type="button"
-                              variant={draft.context === context ? "default" : "outline"}
-                              onClick={() => updateTaskDraft(index, 'context', context)}
-                              className={`
-                                flex items-center justify-center space-x-2 p-3 text-sm transition-all
-                                ${!draft.context ? 'border-destructive' : ''}
-                              `}
-                            >
-                              <span className="font-medium">{config.label}</span>
-                            </Button>
-                        );
-                      })}
+                      {Object.entries(CONTEXT_CONFIG).map(([context, config]) => (
+                        <Button
+                          key={context}
+                          type="button"
+                          variant={draft.context === context ? "default" : "outline"}
+                          onClick={() => updateTaskDraft(index, 'context', context)}
+                          className={`
+                            flex items-center justify-center space-x-2 p-3 text-sm transition-all
+                            ${!draft.context ? 'border-destructive' : ''}
+                          `}
+                        >
+                          <span className="font-medium">{config.label}</span>
+                        </Button>
+                      ))}
                     </div>
                   </div>
 
@@ -296,25 +292,18 @@ useEffect(() => {
                           </Button>
                         ))
                       ) : (
-                        Object.entries(CATEGORY_CONFIG).map(([cat, config]) => {
-                          const resolvedCategoryColor = cssVarRGB(`--color-${config.cssName}`);
-
-                          return (
-                            <Button
-                              key={cat}
-                              type="button"
-                              variant={draft.category === cat ? "default" : "outline"}
-                              onClick={() => updateTaskDraft(index, 'category', cat)}
-                              className="flex items-center space-x-1 p-2 text-xs transition-all"
-                            >
-                              <div 
-                                className="w-2 h-2 rounded-full" 
-                                style={{ backgroundColor: resolvedCategoryColor }}
-                              />
-                              <span className="font-medium truncate">{cat}</span>
-                            </Button>
-                          );
-                        })
+                        Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
+                          <Button
+                            key={cat}
+                            type="button"
+                            variant={draft.category === cat ? "default" : "outline"}
+                            onClick={() => updateTaskDraft(index, 'category', cat)}
+                            className={`flex items-center space-x-1 p-2 text-xs transition-all bg-category-${config.cssName}/10 border-category-${config.cssName}/20 hover:bg-category-${config.cssName}/20`}
+                          >
+                            <div className={`w-2 h-2 rounded-full bg-category-${config.cssName}`} />
+                            <span className="font-medium truncate">{cat}</span>
+                          </Button>
+                        ))
                       )}
                     </div>
                   </div>

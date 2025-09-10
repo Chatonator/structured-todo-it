@@ -71,12 +71,6 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
     const categoryConfig = CATEGORY_CONFIG[task.category];
     const cssName = CATEGORY_CSS_NAMES[task.category];
     
-    // Couleur résolue mémorisée
-    const resolvedCategoryColor = React.useMemo(() => 
-      cssVarRGB(`--color-${cssName}`), 
-      [cssName]
-    );
-    
     return (
       <div
         key={task.id}
@@ -90,10 +84,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
           <h4 className={`text-sm font-medium ${task.isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
             {task.name}
           </h4>
-          <div 
-            className="w-3 h-3 rounded-full" 
-            style={{ backgroundColor: resolvedCategoryColor }}
-          />
+          <div className={`w-3 h-3 rounded-full bg-category-${cssName}`} />
         </div>
         
         <div className="flex items-center space-x-2 text-xs text-theme-muted">
@@ -130,22 +121,11 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
         {/* Statistiques globales */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           {Object.entries(quadrants).map(([key, quadrant]) => {
-            // Mémoriser la couleur résolue pour chaque quadrant
-            const resolvedIconColor = React.useMemo(() => {
-              if (quadrant.tasks.length > 0) {
-                const firstTaskCategory = quadrant.tasks[0].category;
-                const cssName = CATEGORY_CSS_NAMES[firstTaskCategory];
-                return cssVarRGB(`--color-${cssName}`);
-              }
-              return 'currentColor';
-            }, [quadrant.tasks]);
-
             return (
               <div key={key} className="text-center p-3 bg-theme-background border border-theme-border rounded-lg">
                 <div className="flex items-center justify-center mb-1">
                   {React.cloneElement(quadrant.icon, { 
-                    className: "w-5 h-5", 
-                    style: { color: resolvedIconColor } 
+                    className: "w-5 h-5 text-primary" 
                   })}
                 </div>
                 <div className="text-lg font-bold text-theme-foreground">{quadrant.tasks.length}</div>
@@ -160,21 +140,13 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       {/* Matrice 2x2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {Object.entries(quadrants).map(([key, quadrant]) => {
-          const resolvedColor = cssVarRGB(quadrant.cssColorVar);
           return (
           <Card 
             key={key} 
-            className="cursor-pointer transition-all hover:shadow-md border-2"
-            style={{
-              backgroundColor: `${resolvedColor.replace('rgb(', 'rgba(').replace(')', ', 0.1)')}`,
-              borderColor: resolvedColor
-            }}
+            className="cursor-pointer transition-all hover:shadow-md border-2 bg-card border-border"
             onClick={() => setSelectedQuadrant(selectedQuadrant === key ? null : key)}
           >
-            <CardHeader 
-              className="py-3 rounded-t-lg text-white"
-              style={{ backgroundColor: resolvedColor }}
-            >
+            <CardHeader className="py-3 rounded-t-lg text-white bg-primary">
               <CardTitle className="flex items-center justify-between text-sm">
                 <div className="flex items-center space-x-2">
                   {quadrant.icon}
@@ -226,19 +198,19 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
         <CardContent className="text-sm text-theme-foreground">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h4 className="font-semibold mb-1" style={{ color: cssVarRGB('--color-obligation') }}>🔥 Urgent & Important</h4>
+              <h4 className="font-semibold mb-1 text-category-obligation">🔥 Urgent & Important</h4>
               <p className="text-xs text-theme-muted">Traitez immédiatement ces tâches. Elles ne peuvent pas attendre.</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-1" style={{ color: cssVarRGB('--color-envie') }}>🎯 Important & Non Urgent</h4>
+              <h4 className="font-semibold mb-1 text-category-envie">🎯 Important & Non Urgent</h4>
               <p className="text-xs text-theme-muted">Planifiez du temps dédié. C'est ici que vous devez investir le plus.</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-1" style={{ color: cssVarRGB('--color-quotidien') }}>⚡ Urgent & Non Important</h4>
+              <h4 className="font-semibold mb-1 text-category-quotidien">⚡ Urgent & Non Important</h4>
               <p className="text-xs text-theme-muted">Déléguez si possible, ou traitez rapidement.</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-1" style={{ color: cssVarRGB('--color-autres') }}>🗑️ Non Urgent & Non Important</h4>
+              <h4 className="font-semibold mb-1 text-category-autres">🗑️ Non Urgent & Non Important</h4>
               <p className="text-xs text-theme-muted">Éliminez ou minimisez ces activités.</p>
             </div>
           </div>

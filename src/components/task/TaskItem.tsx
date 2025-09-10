@@ -5,7 +5,7 @@ import { RecurringTaskBadge } from '@/components/RecurringTaskBadge';
 import TaskItemControls from './TaskItemControls';
 import TaskItemContent from './TaskItemContent';
 import TaskItemActions from './TaskItemActions';
-import { cssVarRGB } from '@/utils/colors';
+
 
 interface TaskItemProps {
   task: Task;
@@ -61,23 +61,17 @@ const TaskItem: React.FC<TaskItemProps> = ({
   const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-3' : 'ml-6';
   const isExtended = isSelected || forceExtended || isHovered;
 
-  // Mémorisation des couleurs résolues avec fallback
-  const resolvedCategoryColor = useMemo(() => {
-    const color = cssVarRGB(`--color-${cssName}`);
-    console.log(`Couleur résolue pour ${task.category}:`, color);
-    return color;
-  }, [cssName]);
 
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('text/plain', task.id);
     
-    // Image de drag améliorée avec plus de style
+    // Image de drag simplifiée
     const dragImage = document.createElement('div');
     dragImage.innerHTML = `
       <div style="
-        background: ${resolvedCategoryColor};
+        background: hsl(var(--primary));
         color: white;
         padding: 12px 16px;
         border-radius: 8px;
@@ -124,23 +118,6 @@ const TaskItem: React.FC<TaskItemProps> = ({
     }
   };
 
-  // Styles inline avec couleurs résolues
-  const inlineStyles = useMemo(() => {
-    const leftColor = isPinned
-      ? cssVarRGB('--color-pinned')
-      : isSelected
-      ? cssVarRGB('--color-primary')
-      : resolvedCategoryColor;
-
-    return {
-      borderLeftColor: leftColor,
-      boxShadow: isHovered && !isDragging 
-        ? `0 8px 25px -5px ${resolvedCategoryColor}40, 0 4px 6px -2px ${resolvedCategoryColor}1A`
-        : isDragging 
-        ? `0 20px 40px -10px ${resolvedCategoryColor}99`
-        : `0 1px 3px 0 ${resolvedCategoryColor}33`
-    } as React.CSSProperties;
-  }, [resolvedCategoryColor, isHovered, isDragging, isSelected, isPinned]);
 
   return (
     <div className={indentClass}>
@@ -155,7 +132,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
         className={`
           group flex items-start gap-2 p-3 border rounded-lg 
           transition-all duration-300 mb-1 text-sm task-item relative
-          border-l-8 ${isSelected ? 'bg-accent' : 'bg-card'}
+          border-l-8 ${isSelected ? 'bg-accent border-l-primary' : `bg-card border-l-category-${cssName}`}
+          ${isPinned ? 'border-l-pinned' : ''}
           ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
           ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
           ${isDragOver && !isDragging ? 'scale-102' : ''}
@@ -163,14 +141,10 @@ const TaskItem: React.FC<TaskItemProps> = ({
           border-border text-foreground
         `}
         data-category={task.category}
-        style={inlineStyles}
       >
         {/* Indicateur de drop zone */}
         {isDragOver && !isDragging && (
-          <div 
-            className="absolute inset-0 border-2 border-dashed rounded-lg pointer-events-none animate-pulse bg-accent/20" 
-            style={{ borderColor: cssVarRGB('--color-primary') }}
-          />
+          <div className="absolute inset-0 border-2 border-dashed border-primary rounded-lg pointer-events-none animate-pulse bg-accent/20" />
         )}
 
         {/* Contrôles à gauche */}
