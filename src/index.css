@@ -136,24 +136,24 @@ body {
 }
 
 .task-pinned {
-  @apply bg-yellow-400/10 border border-yellow-400/30 shadow-md;
+  @apply bg-pinned/10 border border-pinned/30 shadow-md;
 }
 
 /* Ombres colorées par catégorie */
 .task-item[data-category="Obligation"]:hover {
-  @apply shadow-lg shadow-red-600/25;
+  @apply shadow-lg shadow-category-obligation/25;
 }
 
 .task-item[data-category="Quotidien"]:hover {
-  @apply shadow-lg shadow-yellow-400/25;
+  @apply shadow-lg shadow-category-quotidien/25;
 }
 
 .task-item[data-category="Envie"]:hover {
-  @apply shadow-lg shadow-green-300/25;
+  @apply shadow-lg shadow-category-envie/25;
 }
 
 .task-item[data-category="Autres"]:hover {
-  @apply shadow-lg shadow-blue-600/25;
+  @apply shadow-lg shadow-category-autres/25;
 }
 
 /* Calendrier - créneaux horaires */
