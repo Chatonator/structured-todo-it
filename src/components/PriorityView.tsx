@@ -165,10 +165,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
         }`}
       >
         <div className="flex items-center space-x-2 mb-2">
-          <div 
-            className="w-3 h-3 rounded-full border border-border"
-            style={{ backgroundColor: categoryColor }}
-          />
+          <div className={`w-3 h-3 rounded-full border border-border bg-category-${task.category.toLowerCase()}`} />
           <h3 className="font-medium flex-1 text-foreground">
             {task.name}
           </h3>

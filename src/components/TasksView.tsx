@@ -94,8 +94,7 @@ const TasksView: React.FC<TasksViewProps> = ({
     const categoryColor = CATEGORY_COLORS[categoryColorKey];
 
     return (
-      <Card key={task.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 bg-card" 
-            style={{ borderLeftColor: categoryColor }}>
+      <Card key={task.id} className={`group hover:shadow-lg transition-all duration-200 border-l-4 bg-card border-l-category-${task.category.toLowerCase()}`}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <CardTitle className="text-lg font-semibold text-foreground leading-tight">

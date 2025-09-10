@@ -103,17 +103,13 @@ export const DayView: React.FC<DayViewProps> = ({
       <DayHeader currentDate={currentDate} eventsCount={dayEvents.length} />
 
       <div className="flex-1 overflow-auto" ref={containerRef}>
-        <div
-          className="grid"
-          style={{ gridTemplateColumns: '80px 1fr', height: 'calc(var(--calendar-hour-height) * 24)' }}
-        >
+        <div className="grid grid-cols-[80px_1fr] h-[1152px]">
           {/* Colonne des heures */}
           <div className="border-r border-theme-border">
             {CALENDAR_HOURS.map(hour => (
               <div
                 key={hour}
-                className="flex items-start justify-end pr-2 pt-1 text-xs text-theme-muted border-b border-theme-border"
-                style={{ height: 'var(--calendar-hour-height)' }}
+                className="flex items-start justify-end pr-2 pt-1 text-xs text-theme-muted border-b border-theme-border h-12"
               >
                 {hour.toString().padStart(2, '0')}:00
               </div>
@@ -125,8 +121,7 @@ export const DayView: React.FC<DayViewProps> = ({
             {CALENDAR_HOURS.map(hour => (
               <div
                 key={hour}
-                className={`border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors ${dragOverSlot === `${hour}:00` ? 'bg-theme-accent' : ''}`}
-                style={{ height: 'var(--calendar-hour-height)' }}
+                className={`border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors h-12 ${dragOverSlot === `${hour}:00` ? 'bg-theme-accent' : ''}`}
                 onClick={() => handleSlotClick(hour)}
                 onDragOver={(e) => handleSlotDragOver(e, hour)}
                 onDragLeave={handleSlotDragLeave}

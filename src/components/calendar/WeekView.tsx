@@ -67,7 +67,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   return (
     <div className="flex flex-col h-full">
       {/* En-tête des jours */}
-      <div className="grid border-b border-theme-border" style={{ gridTemplateColumns: '80px repeat(7, 1fr)' }}>
+      <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-theme-border">
         <div className="p-3 text-sm font-medium text-theme-muted">
           Heures
         </div>
@@ -85,7 +85,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
       {/* Grille horaire */}
       <div className="flex-1 overflow-auto">
-        <div className="grid h-full h-[1152px]" style={{ gridTemplateColumns: '80px repeat(7, 1fr)' }}>
+        <div className="grid h-full h-[1152px] grid-cols-[80px_repeat(7,1fr)]">
           {/* Colonne des heures */}
           <div className="border-r border-theme-border">
             {CALENDAR_HOURS.map(hour => (

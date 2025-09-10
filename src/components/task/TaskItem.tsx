@@ -71,7 +71,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
     const dragImage = document.createElement('div');
     dragImage.innerHTML = `
       <div style="
-        background: hsl(var(--primary));
+        background: #3b82f6;
         color: white;
         padding: 12px 16px;
         border-radius: 8px;

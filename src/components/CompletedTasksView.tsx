@@ -152,10 +152,7 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
                   <div className="flex items-center space-x-3 flex-1">
                     <CheckSquare className="w-5 h-5 text-green-600" />
                     <div className="flex items-center space-x-2 flex-1">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: categoryColor }}
-                      />
+                      <div className={`w-3 h-3 rounded-full bg-category-${task.category.toLowerCase()}`} />
                         <div className="flex-1">
                           <h4 className="font-medium text-foreground line-through">{task.name}</h4>
                           <div className="flex items-center space-x-2 text-sm text-muted-foreground">

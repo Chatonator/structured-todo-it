@@ -184,10 +184,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
             <div className="grid grid-cols-2 gap-2 mt-4">
               {categoryStats.map((stat) => (
                 <div key={stat.name} className="flex items-center space-x-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: stat.color }}
-                  />
+                  <div className={`w-3 h-3 rounded-full bg-category-${stat.name.toLowerCase()}`} />
                   <span className="text-sm text-foreground">{stat.name}</span>
                   <span className="text-xs text-muted-foreground">({stat.count})</span>
                 </div>
@@ -235,10 +232,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
             {categoryStats.map(stat => (
               <div key={stat.name} className="flex items-center justify-between p-3 bg-accent rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div 
-                    className="w-4 h-4 rounded-full" 
-                    style={{ backgroundColor: stat.color }}
-                  />
+                  <div className={`w-4 h-4 rounded-full bg-category-${stat.name.toLowerCase()}`} />
                   <div>
                     <h4 className="font-medium text-foreground">{stat.name}</h4>
                     <p className="text-sm text-muted-foreground">{stat.count} tâche{stat.count > 1 ? 's' : ''}</p>
