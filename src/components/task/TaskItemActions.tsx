@@ -32,7 +32,7 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
           variant="ghost"
           size="sm"
           onClick={() => onCreateSubTask(task)}
-          className="h-6 w-6 p-0 text-primary hover:text-primary/80"
+          className="h-6 w-6 p-0"
           title="Diviser"
         >
           <Divide className="w-3 h-3" />
@@ -48,10 +48,10 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
         <CheckSquare className="w-3 h-3" />
       </Button>
       <Button
-        variant="ghost"
+        variant="destructive"
         size="sm"
         onClick={() => onRemoveTask(task.id)}
-        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+        className="h-6 w-6 p-0"
         title="Supprimer"
       >
         <X className="w-3 h-3" />

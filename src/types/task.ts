@@ -101,8 +101,8 @@ export const CONTEXT_CONFIG = {
 
 export const TASK_LEVELS = {
   0: { symbol: '●', bgColor: 'bg-white', textSize: 'text-sm' },
-  1: { symbol: '◦', bgColor: 'bg-gray-50', textSize: 'text-xs' },
-  2: { symbol: '▫', bgColor: 'bg-gray-100', textSize: 'text-xs' }
+  1: { symbol: '◦', bgColor: 'bg-muted', textSize: 'text-xs' },
+  2: { symbol: '▫', bgColor: 'bg-muted/50', textSize: 'text-xs' }
 } as const;
 
 export const TIME_OPTIONS = [

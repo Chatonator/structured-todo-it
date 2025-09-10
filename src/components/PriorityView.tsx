@@ -170,10 +170,10 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
             {task.name}
           </h3>
           <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${
-            categoryColorKey === 'Obligation' ? 'bg-red-600/10 border-red-600 text-red-600' :
-            categoryColorKey === 'Quotidien' ? 'bg-yellow-400/10 border-yellow-400 text-yellow-400' :
-            categoryColorKey === 'Envie' ? 'bg-green-300/10 border-green-300 text-green-300' :
-            'bg-blue-600/10 border-blue-600 text-blue-600'
+            categoryColorKey === 'Obligation' ? 'bg-category-obligation/10 border-category-obligation text-category-obligation' :
+            categoryColorKey === 'Quotidien' ? 'bg-category-quotidien/10 border-category-quotidien text-category-quotidien' :
+            categoryColorKey === 'Envie' ? 'bg-category-envie/10 border-category-envie text-category-envie' :
+            'bg-category-autres/10 border-category-autres text-category-autres'
           }`}>
             {task.category || 'Sans catégorie'}
           </span>
@@ -182,10 +182,10 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
         {subCategoryConfig && (
           <div className="mb-2">
             <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${
-              subCategoryConfig.priority > 3 ? 'bg-purple-500/10 border-purple-500 text-purple-500' :
-              subCategoryConfig.priority > 2 ? 'bg-blue-500/10 border-blue-500 text-blue-500' :
-              subCategoryConfig.priority > 1 ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500' :
-              'bg-gray-500/10 border-gray-500 text-gray-500'
+              subCategoryConfig.priority > 3 ? 'bg-priority-highest/10 border-priority-highest text-priority-highest' :
+              subCategoryConfig.priority > 2 ? 'bg-priority-high/10 border-priority-high text-priority-high' :
+              subCategoryConfig.priority > 1 ? 'bg-priority-medium/10 border-priority-medium text-priority-medium' :
+              'bg-priority-low/10 border-priority-low text-priority-low'
             }`}>
               {task.subCategory}
             </span>
@@ -239,7 +239,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           {/* 1 Tâche Prioritaire */}
           <Card className="lg:col-span-1 bg-card border-border">
             <CardHeader className="bg-card">
-              <CardTitle className="text-lg text-red-500">
+              <CardTitle className="text-lg text-priority-highest">
                 1 Prioritaire
               </CardTitle>
             </CardHeader>
@@ -257,7 +257,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           {/* 3 Tâches Moyennes */}
           <Card className="lg:col-span-1 bg-card border-border">
             <CardHeader className="bg-card">
-              <CardTitle className="text-lg text-blue-500">
+              <CardTitle className="text-lg text-priority-medium">
                 3 Moyennes
               </CardTitle>
             </CardHeader>
@@ -275,7 +275,7 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           {/* 5 Tâches Rapides */}
           <Card className="lg:col-span-1 bg-card border-border">
             <CardHeader className="bg-card">
-              <CardTitle className="text-lg text-green-500">
+              <CardTitle className="text-lg text-priority-low">
                 5 Rapides
               </CardTitle>
             </CardHeader>

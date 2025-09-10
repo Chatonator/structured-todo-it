@@ -47,7 +47,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 size="sm"
                 onClick={onUndo}
                 disabled={!canUndo}
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-primary disabled:opacity-50"
+                className="h-6 w-6 p-0 disabled:opacity-50"
                 title="Annuler (Ctrl+Z)"
               >
                 <Undo className="w-3 h-3" />
@@ -57,7 +57,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 size="sm"
                 onClick={onRedo}
                 disabled={!canRedo}
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-primary disabled:opacity-50"
+                className="h-6 w-6 p-0 disabled:opacity-50"
                 title="Refaire (Ctrl+Y)"
               >
                 <Redo className="w-3 h-3" />
@@ -79,7 +79,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             
             <Button
               onClick={onOpenModal}
-              className="bg-primary hover:opacity-90 text-primary-foreground transition-opacity"
               size="sm"
             >
               <Plus className="w-4 h-4 mr-2" />

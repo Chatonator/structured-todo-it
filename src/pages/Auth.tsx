@@ -208,8 +208,8 @@ const Auth = () => {
           <CardContent className="space-y-6">
             {resetEmailSent ? (
               <div className="text-center space-y-4">
-                <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-green-500" />
+                <div className="mx-auto w-16 h-16 rounded-full bg-system-success/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-system-success" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">Email envoyé !</h3>

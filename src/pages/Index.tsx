@@ -173,7 +173,6 @@ const Index = () => {
           <p className="text-sm">Une erreur s'est produite lors de l'affichage de cette vue.</p>
           <Button 
             onClick={() => setCurrentView('tasks')}
-            className="mt-4"
           >
             Retour aux tâches
           </Button>

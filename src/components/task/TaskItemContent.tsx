@@ -61,7 +61,7 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Badge contexte */}
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${
-              task.context === 'Pro' ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-green-500/10 border-green-500 text-green-500'
+              task.context === 'Pro' ? 'bg-context-pro/10 border-context-pro text-context-pro' : 'bg-context-perso/10 border-context-perso text-context-perso'
             }`}>
               {task.context}
             </span>
@@ -69,12 +69,12 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
             {subCategoryConfig && (
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${
                 subCategoryConfig.priority > 3 
-                  ? 'bg-purple-500/10 border-purple-500 text-purple-500'
+                  ? 'bg-priority-highest/10 border-priority-highest text-priority-highest'
                   : subCategoryConfig.priority > 2 
-                    ? 'bg-blue-500/10 border-blue-500 text-blue-500'
+                    ? 'bg-priority-high/10 border-priority-high text-priority-high'
                     : subCategoryConfig.priority > 1 
-                      ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500'
-                      : 'bg-gray-500/10 border-gray-500 text-gray-500'
+                      ? 'bg-priority-medium/10 border-priority-medium text-priority-medium'
+                      : 'bg-priority-low/10 border-priority-low text-priority-low'
               }`}>
                 {subCategoryConfig.priority}★
               </span>

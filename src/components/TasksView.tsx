@@ -112,11 +112,11 @@ const TasksView: React.FC<TasksViewProps> = ({
               {subCategoryConfig && (
                 <Badge 
                   variant="outline" 
-                  className={`text-xs ${
-                    subCategoryConfig.priority > 3 ? 'bg-purple-500/10 border-purple-500 text-purple-500' :
-                    subCategoryConfig.priority > 2 ? 'bg-blue-500/10 border-blue-500 text-blue-500' :
-                    subCategoryConfig.priority > 1 ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500' :
-                    'bg-gray-500/10 border-gray-500 text-gray-500'
+                 className={`text-xs ${
+                    subCategoryConfig.priority > 3 ? 'bg-priority-highest/10 border-priority-highest text-priority-highest' :
+                    subCategoryConfig.priority > 2 ? 'bg-priority-high/10 border-priority-high text-priority-high' :
+                    subCategoryConfig.priority > 1 ? 'bg-priority-medium/10 border-priority-medium text-priority-medium' :
+                    'bg-priority-low/10 border-priority-low text-priority-low'
                   }`}
                 >
                   {subCategoryConfig.priority}★
@@ -125,7 +125,7 @@ const TasksView: React.FC<TasksViewProps> = ({
               <Badge 
                 variant="outline" 
                 className={`text-xs ${
-                  (task.context || 'perso').toLowerCase() === 'pro' ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-green-500/10 border-green-500 text-green-500'
+                  (task.context || 'perso').toLowerCase() === 'pro' ? 'bg-context-pro/10 border-context-pro text-context-pro' : 'bg-context-perso/10 border-context-perso text-context-perso'
                 }`}
               >
                 {task.context || 'Perso'}
@@ -166,17 +166,17 @@ const TasksView: React.FC<TasksViewProps> = ({
               <Badge 
                 variant="outline" 
                 className={`text-xs ${
-                  categoryColorKey === 'Obligation' ? 'bg-red-600/10 border-red-600 text-red-600' :
-                  categoryColorKey === 'Quotidien' ? 'bg-yellow-400/10 border-yellow-400 text-yellow-400' :
-                  categoryColorKey === 'Envie' ? 'bg-green-300/10 border-green-300 text-green-300' :
-                  'bg-blue-600/10 border-blue-600 text-blue-600'
+                  categoryColorKey === 'Obligation' ? 'bg-category-obligation/10 border-category-obligation text-category-obligation' :
+                  categoryColorKey === 'Quotidien' ? 'bg-category-quotidien/10 border-category-quotidien text-category-quotidien' :
+                  categoryColorKey === 'Envie' ? 'bg-category-envie/10 border-category-envie text-category-envie' :
+                  'bg-category-autres/10 border-category-autres text-category-autres'
                 }`}
               >
                 {task.category || 'Non définie'}
               </Badge>
               
               {task.isCompleted && (
-                <div className="flex items-center gap-1 text-green-600">
+                <div className="flex items-center gap-1 text-system-success">
                   <CheckSquare className="w-4 h-4" />
                   <span className="text-xs">Terminée</span>
                 </div>
@@ -194,7 +194,7 @@ const TasksView: React.FC<TasksViewProps> = ({
                   
                   return (
                     <div key={subTask.id} className="flex items-center gap-2 p-2 bg-accent rounded-md">
-                      <CheckSquare className={`w-3 h-3 ${subTask.isCompleted ? 'text-green-600' : 'text-muted-foreground'}`} />
+                      <CheckSquare className={`w-3 h-3 ${subTask.isCompleted ? 'text-system-success' : 'text-muted-foreground'}`} />
                       <span className={`text-sm ${subTask.isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                         {subTask.name || 'Sous-tâche sans nom'}
                       </span>
@@ -273,7 +273,7 @@ const TasksView: React.FC<TasksViewProps> = ({
         {completedTasks.length > 0 && (
           <div>
             <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
-              <div className="w-1 h-6 bg-green-600 rounded"></div>
+              <div className="w-1 h-6 bg-system-success rounded"></div>
               Tâches terminées ({completedTasks.length})
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

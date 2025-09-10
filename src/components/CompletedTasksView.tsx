@@ -97,10 +97,10 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tâches Terminées</CardTitle>
-            <CheckSquare className="h-4 w-4 text-green-600" />
+            <CheckSquare className="h-4 w-4 text-system-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{tasks.length}</div>
+            <div className="text-2xl font-bold text-system-success">{tasks.length}</div>
           </CardContent>
         </Card>
 
@@ -150,7 +150,7 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
                   className="flex items-center justify-between p-3 bg-card border border-border rounded-lg"
                 >
                   <div className="flex items-center space-x-3 flex-1">
-                    <CheckSquare className="w-5 h-5 text-green-600" />
+                    <CheckSquare className="w-5 h-5 text-system-success" />
                     <div className="flex items-center space-x-2 flex-1">
                       <div className={`w-3 h-3 rounded-full bg-category-${task.category.toLowerCase()}`} />
                         <div className="flex-1">
@@ -177,17 +177,15 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
                           variant="outline"
                           size="sm"
                           onClick={() => onRestoreTask(task.id)}
-                          className="text-primary hover:text-primary/80"
                         >
                           <RotateCcw className="w-4 h-4" />
                         </Button>
                       )}
                       {onRemoveTask && (
                         <Button
-                          variant="outline"
+                          variant="destructive"
                           size="sm"
                           onClick={() => onRemoveTask(task.id)}
-                          className="text-destructive hover:text-destructive/80"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
