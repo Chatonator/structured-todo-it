@@ -87,7 +87,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
           <div className={`w-3 h-3 rounded-full bg-category-${cssName}`} />
         </div>
         
-        <div className="flex items-center space-x-2 text-xs text-theme-muted">
+        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
           <Clock className="w-3 h-3" />
           <span>{formatDuration(task.estimatedTime)}</span>
           {task.isCompleted && (
@@ -113,8 +113,8 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-theme-foreground mb-2">Matrice d'Eisenhower</h2>
-        <p className="text-sm text-theme-muted mb-4">
+        <h2 className="text-2xl font-bold text-foreground mb-2">Matrice d'Eisenhower</h2>
+        <p className="text-sm text-muted-foreground mb-4">
           Organisez vos tâches selon leur urgence et leur importance
         </p>
         
@@ -122,15 +122,15 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
         <div className="grid grid-cols-4 gap-4 mb-6">
           {Object.entries(quadrants).map(([key, quadrant]) => {
             return (
-              <div key={key} className="text-center p-3 bg-theme-background border border-theme-border rounded-lg">
+              <div key={key} className="text-center p-3 bg-card border border-border rounded-lg">
                 <div className="flex items-center justify-center mb-1">
                   {React.cloneElement(quadrant.icon, { 
                     className: "w-5 h-5 text-primary" 
                   })}
                 </div>
-                <div className="text-lg font-bold text-theme-foreground">{quadrant.tasks.length}</div>
-                <div className="text-xs text-theme-muted">tâches</div>
-                <div className="text-xs text-theme-muted">{formatDuration(getTotalTime(quadrant.tasks))}</div>
+                <div className="text-lg font-bold text-foreground">{quadrant.tasks.length}</div>
+                <div className="text-xs text-muted-foreground">tâches</div>
+                <div className="text-xs text-muted-foreground">{formatDuration(getTotalTime(quadrant.tasks))}</div>
               </div>
             );
           })}
@@ -162,7 +162,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
             </CardHeader>
             
             <CardContent className="p-4">
-              <p className="text-xs text-theme-muted mb-3 italic">
+              <p className="text-xs text-muted-foreground mb-3 italic">
                 {quadrant.description}
               </p>
               
@@ -170,15 +170,15 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
                 {quadrant.tasks.length > 0 ? (
                   quadrant.tasks.map(task => renderTaskCard(task))
                 ) : (
-                  <div className="text-center py-4 text-theme-muted">
+                  <div className="text-center py-4 text-muted-foreground">
                     <div className="text-xs">Aucune tâche dans ce quadrant</div>
                   </div>
                 )}
               </div>
               
               {quadrant.tasks.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-theme-border">
-                  <div className="flex items-center justify-between text-xs text-theme-muted">
+                <div className="mt-3 pt-3 border-t border-border">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>Total: {quadrant.tasks.length} tâche{quadrant.tasks.length > 1 ? 's' : ''}</span>
                     <span>{formatDuration(getTotalTime(quadrant.tasks))}</span>
                   </div>
@@ -191,27 +191,27 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       </div>
 
       {/* Conseils d'action */}
-      <Card className="bg-theme-accent border-theme-border">
+      <Card className="bg-accent border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-theme-foreground">💡 Conseils d'action</CardTitle>
+          <CardTitle className="text-lg text-foreground">💡 Conseils d'action</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-theme-foreground">
+        <CardContent className="text-sm text-foreground">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h4 className="font-semibold mb-1 text-category-obligation">🔥 Urgent & Important</h4>
-              <p className="text-xs text-theme-muted">Traitez immédiatement ces tâches. Elles ne peuvent pas attendre.</p>
+              <p className="text-xs text-muted-foreground">Traitez immédiatement ces tâches. Elles ne peuvent pas attendre.</p>
             </div>
             <div>
               <h4 className="font-semibold mb-1 text-category-envie">🎯 Important & Non Urgent</h4>
-              <p className="text-xs text-theme-muted">Planifiez du temps dédié. C'est ici que vous devez investir le plus.</p>
+              <p className="text-xs text-muted-foreground">Planifiez du temps dédié. C'est ici que vous devez investir le plus.</p>
             </div>
             <div>
               <h4 className="font-semibold mb-1 text-category-quotidien">⚡ Urgent & Non Important</h4>
-              <p className="text-xs text-theme-muted">Déléguez si possible, ou traitez rapidement.</p>
+              <p className="text-xs text-muted-foreground">Déléguez si possible, ou traitez rapidement.</p>
             </div>
             <div>
               <h4 className="font-semibold mb-1 text-category-autres">🗑️ Non Urgent & Non Important</h4>
-              <p className="text-xs text-theme-muted">Éliminez ou minimisez ces activités.</p>
+              <p className="text-xs text-muted-foreground">Éliminez ou minimisez ces activités.</p>
             </div>
           </div>
         </CardContent>

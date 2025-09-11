@@ -326,9 +326,9 @@ useEffect(() => {
                     </Select>
                   </div>
 
-                  {/* Planification avec validation */}
-                  <div className="space-y-3 pt-3 border-t border-gray-200">
-                    <Label className="text-sm text-foreground">Planification (optionnelle)</Label>
+                    {/* Planification avec validation */}
+                   <div className="space-y-3 pt-3 border-t border-border">
+                     <Label className="text-sm text-foreground">Planification (optionnelle)</Label>
                     
                     <div className="grid grid-cols-2 gap-2">
                       <Popover>
@@ -376,9 +376,9 @@ useEffect(() => {
                      </div>
                    </div>
 
-                   {/* Section récurrence */}
-                   <div className="space-y-3 pt-3 border-t border-gray-200">
-                     <Label className="text-sm text-foreground">Récurrence (optionnelle)</Label>
+                    {/* Section récurrence */}
+                    <div className="space-y-3 pt-3 border-t border-border">
+                      <Label className="text-sm text-foreground">Récurrence (optionnelle)</Label>
                      
                      <div className="space-y-2">
                        <div className="flex items-center space-x-2">

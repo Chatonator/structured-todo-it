@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 
 interface NavigationItem {
   key: string;
@@ -26,19 +27,14 @@ const AppNavigation: React.FC<AppNavigationProps> = ({
     <nav className="px-6 pb-3">
       <div className="flex space-x-1">
         {navigationItems.map((item) => (
-          <button
+          <Button
             key={item.key}
+            variant={currentView === item.key ? "default" : "ghost"}
             onClick={() => onViewChange(item.key)}
-            className={`
-              flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-              ${currentView === item.key 
-                ? 'bg-primary text-primary-foreground shadow-sm' 
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-              }
-            `}
+            className="flex items-center space-x-2"
           >
-            <span className="text-base">{item.title}</span>
-          </button>
+            <span>{item.title}</span>
+          </Button>
         ))}
       </div>
     </nav>

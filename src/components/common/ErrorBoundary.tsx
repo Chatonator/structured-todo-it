@@ -89,19 +89,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Interface d'erreur par défaut
       return (
-        <div className="min-h-screen flex items-center justify-center bg-theme-background p-4">
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
           <Card className="w-full max-w-lg">
             <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-error-100 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-6 h-6 text-error-600" />
+              <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle className="w-6 h-6 text-destructive" />
               </div>
-              <CardTitle className="text-error-900">
+              <CardTitle className="text-destructive">
                 Une erreur s'est produite
               </CardTitle>
             </CardHeader>
             
             <CardContent className="space-y-4">
-              <p className="text-theme-muted text-center">
+              <p className="text-muted-foreground text-center">
                 L'application a rencontré une erreur inattendue. 
                 Nos équipes ont été notifiées.
               </p>
@@ -149,7 +149,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </Button>
               </div>
 
-              <p className="text-xs text-theme-muted text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 Si le problème persiste, contactez le support technique.
               </p>
             </CardContent>

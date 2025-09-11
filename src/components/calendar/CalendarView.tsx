@@ -122,7 +122,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
           onNavigateToday={navigateToday}
         />
 
-        <div className="flex-1 bg-theme-background rounded-lg border border-theme-border overflow-hidden">
+        <div className="flex-1 bg-card rounded-lg border border-border overflow-hidden">
           {currentView === 'week' && (
             <WeekView
               currentDate={currentDate}

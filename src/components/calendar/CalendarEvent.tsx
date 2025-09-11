@@ -50,7 +50,7 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
       className={`
         p-2 rounded-md border-l-4 cursor-pointer
         hover:shadow-md transition-shadow
-        bg-theme-background text-theme-foreground
+        bg-card text-foreground
         bg-category-${categoryConfig.cssName}/10 border-l-category-${categoryConfig.cssName}
         ${categoryConfig.borderPattern}
       `}
@@ -60,7 +60,7 @@ export const CalendarEventComponent: React.FC<CalendarEventProps> = ({
       <div className="font-medium text-sm line-clamp-2 mb-1">
         {event.task.name}
       </div>
-      <div className="flex items-center gap-2 text-xs text-theme-muted">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Clock className="w-3 h-3" />
         <span>{format(event.startTime, 'HH:mm')}</span>
         <span>•</span>

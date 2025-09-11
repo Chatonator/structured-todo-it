@@ -30,7 +30,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   ];
 
   return (
-    <div className="flex items-center justify-between mb-6 bg-theme-background p-4 rounded-lg border border-theme-border">
+    <div className="flex items-center justify-between mb-6 bg-card p-4 rounded-lg border border-border">
       {/* Navigation temporelle */}
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={onNavigatePrevious}>
@@ -46,12 +46,12 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
       </div>
 
       {/* Titre de la période */}
-      <h2 className="text-xl font-semibold text-theme-foreground">
+      <h2 className="text-xl font-semibold text-foreground">
         {viewTitle}
       </h2>
 
       {/* Sélecteur de vue */}
-      <div className="flex bg-theme-accent rounded-lg p-1">
+      <div className="flex bg-accent rounded-lg p-1">
         {viewButtons.map(({ key, label }) => (
           <Button
             key={key}

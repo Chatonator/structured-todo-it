@@ -135,7 +135,7 @@ const TasksView: React.FC<TasksViewProps> = ({
         </CardHeader>
         
         <CardContent className="pt-0">
-          <div className="flex items-center justify-between text-sm text-theme-muted">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -187,7 +187,7 @@ const TasksView: React.FC<TasksViewProps> = ({
           {/* Sous-tâches si présentes */}
           {Array.isArray(subTasks) && subTasks.length > 0 && (
             <div className="mt-4 space-y-2">
-              <h4 className="text-sm font-medium text-theme-foreground">Sous-tâches :</h4>
+              <h4 className="text-sm font-medium text-foreground">Sous-tâches :</h4>
               <div className="grid gap-2">
                 {subTasks.map(subTask => {
                   if (!subTask || typeof subTask !== 'object') return null;

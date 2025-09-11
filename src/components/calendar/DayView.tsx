@@ -99,17 +99,17 @@ export const DayView: React.FC<DayViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-theme-background">
+    <div className="flex flex-col h-full bg-card">
       <DayHeader currentDate={currentDate} eventsCount={dayEvents.length} />
 
       <div className="flex-1 overflow-auto" ref={containerRef}>
         <div className="grid grid-cols-[80px_1fr] h-[1152px]">
           {/* Colonne des heures */}
-          <div className="border-r border-theme-border">
+          <div className="border-r border-border">
             {CALENDAR_HOURS.map(hour => (
               <div
                 key={hour}
-                className="flex items-start justify-end pr-2 pt-1 text-xs text-theme-muted border-b border-theme-border h-12"
+                className="flex items-start justify-end pr-2 pt-1 text-xs text-muted-foreground border-b border-border h-12"
               >
                 {hour.toString().padStart(2, '0')}:00
               </div>
@@ -121,7 +121,7 @@ export const DayView: React.FC<DayViewProps> = ({
             {CALENDAR_HOURS.map(hour => (
               <div
                 key={hour}
-                className={`border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors h-12 ${dragOverSlot === `${hour}:00` ? 'bg-theme-accent' : ''}`}
+                className={`border-b border-border hover:bg-accent cursor-pointer transition-colors h-12 ${dragOverSlot === `${hour}:00` ? 'bg-accent' : ''}`}
                 onClick={() => handleSlotClick(hour)}
                 onDragOver={(e) => handleSlotDragOver(e, hour)}
                 onDragLeave={handleSlotDragLeave}

@@ -67,16 +67,16 @@ export const WeekView: React.FC<WeekViewProps> = ({
   return (
     <div className="flex flex-col h-full">
       {/* En-tête des jours */}
-      <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-theme-border">
-        <div className="p-3 text-sm font-medium text-theme-muted">
+      <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-border">
+        <div className="p-3 text-sm font-medium text-muted-foreground">
           Heures
         </div>
         {weekDays.map(day => (
-          <div key={day.toISOString()} className="p-3 text-center border-l border-theme-border">
-            <div className="text-sm font-medium text-theme-foreground">
+          <div key={day.toISOString()} className="p-3 text-center border-l border-border">
+            <div className="text-sm font-medium text-foreground">
               {format(day, 'EEE', { locale: fr })}
             </div>
-            <div className="text-lg font-semibold text-theme-foreground">
+            <div className="text-lg font-semibold text-foreground">
               {format(day, 'd')}
             </div>
           </div>
@@ -87,11 +87,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
       <div className="flex-1 overflow-auto">
         <div className="grid h-full h-[1152px] grid-cols-[80px_repeat(7,1fr)]">
           {/* Colonne des heures */}
-          <div className="border-r border-theme-border">
+          <div className="border-r border-border">
             {CALENDAR_HOURS.map(hour => (
               <div
                 key={hour}
-                className="h-12 flex items-start justify-end pr-2 pt-1 text-xs text-theme-muted border-b border-theme-border"
+                className="h-12 flex items-start justify-end pr-2 pt-1 text-xs text-muted-foreground border-b border-border"
               >
                 {hour.toString().padStart(2, '0')}:00
               </div>
@@ -103,12 +103,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
             const dayEvents = getEventsForDay(day);
             
             return (
-              <div key={day.toISOString()} className="relative border-l border-theme-border">
+              <div key={day.toISOString()} className="relative border-l border-border">
                 {/* Slots horaires */}
                 {CALENDAR_HOURS.map(hour => (
                   <div
                     key={hour}
-                    className="h-12 border-b border-theme-border hover:bg-theme-accent cursor-pointer transition-colors"
+                    className="h-12 border-b border-border hover:bg-accent cursor-pointer transition-colors"
                     onClick={() => onTimeSlotClick?.(day, `${hour.toString().padStart(2, '0')}:00`)}
                   />
                 ))}

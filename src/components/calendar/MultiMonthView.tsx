@@ -20,7 +20,7 @@ export const MultiMonthView: React.FC<MultiMonthViewProps> = ({ currentDate, mon
 
   return (
     <div className="h-full overflow-auto p-4">
-      <div className={cn('rounded-lg border border-theme-border bg-theme-background p-2')}>
+      <div className={cn('rounded-lg border border-border bg-card p-2')}>
         <Calendar
           mode="single"
           month={startMonth}
