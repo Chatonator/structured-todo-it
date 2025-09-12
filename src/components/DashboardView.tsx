@@ -1,5 +1,5 @@
 import React from 'react';
-import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CATEGORY_CSS_NAMES } from '@/types/task';
+import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, PieChart, Timer, Hash } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -11,39 +11,25 @@ interface DashboardViewProps {
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calculateTotalTime }) => {
-  // Mapping statique des couleurs
-  const CATEGORY_COLORS = {
-    'Obligation': '#DC2626',
-    'Quotidien': '#FBBF24', 
-    'Envie': '#86EFAC',
-    'Autres': '#2563EB'
-  };
-
   // Calculs statistiques
   const totalTasks = tasks.length;
   const totalTime = mainTasks.reduce((sum, task) => sum + calculateTotalTime(task), 0);
   const averageTime = totalTasks > 0 ? Math.round(totalTime / totalTasks) : 0;
 
-  // Répartition par catégories principales avec couleurs statiques
+  // Répartition par catégories principales
   const categoryStats = Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
     const categoryTasks = tasks.filter(task => task.category === category);
     const categoryTime = categoryTasks.reduce((sum, task) => sum + task.estimatedTime, 0);
-    
-    // Mapping vers les couleurs statiques
-    const colorKey = config.cssName === 'obligation' ? 'Obligation' :
-                   config.cssName === 'quotidien' ? 'Quotidien' :
-                   config.cssName === 'envie' ? 'Envie' : 'Autres';
-    
+
     return {
       name: category,
       count: categoryTasks.length,
       time: categoryTime,
-      color: CATEGORY_COLORS[colorKey],
-      bgColor: config.color
+      cssName: config.cssName
     };
   }).filter(stat => stat.count > 0);
 
-  // Répartition par sous-catégories (pour les sous-tâches)
+  // Répartition par sous-catégories
   const subCategoryStats = Object.entries(SUB_CATEGORY_CONFIG).map(([subCategory, config]) => {
     const subCategoryTasks = tasks.filter(task => task.subCategory === subCategory);
     const subCategoryTime = subCategoryTasks.reduce((sum, task) => sum + task.estimatedTime, 0);
@@ -55,25 +41,23 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
     };
   }).filter(stat => stat.count > 0);
 
-  // Données pour les graphiques avec couleurs résolues
+  // Données pour les graphiques
   const pieData = categoryStats.map((stat) => ({
     name: stat.name,
     value: stat.count,
-    fill: stat.color
+    cssName: stat.cssName
   }));
 
   const barData = categoryStats.map(stat => ({
     category: stat.name,
     temps: stat.time,
     taches: stat.count,
-    fill: stat.color // Couleur statique pour chaque barre
+    cssName: stat.cssName
   }));
 
   // Fonctions de formatage
   const formatDuration = (minutes: number): string => {
-    if (minutes < 60) {
-      return `${minutes} min`;
-    }
+    if (minutes < 60) return `${minutes} min`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
@@ -135,9 +119,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">{averageTime}</div>
-            <p className="text-xs text-muted-foreground">
-              minutes par tâche
-            </p>
+            <p className="text-xs text-muted-foreground">minutes par tâche</p>
           </CardContent>
         </Card>
 
@@ -148,9 +130,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">{categoryStats.length}</div>
-            <p className="text-xs text-muted-foreground">
-              types différents
-            </p>
+            <p className="text-xs text-muted-foreground">types différents</p>
           </CardContent>
         </Card>
       </div>
@@ -166,15 +146,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
-                  >
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value">
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                      <Cell key={`cell-${index}`} className={`fill-category-${entry.cssName}`} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -184,7 +158,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
             <div className="grid grid-cols-2 gap-2 mt-4">
               {categoryStats.map((stat) => (
                 <div key={stat.name} className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full bg-category-${stat.name.toLowerCase()}`} />
+                  <div className={`w-3 h-3 rounded-full bg-category-${stat.cssName}`} />
                   <span className="text-sm text-foreground">{stat.name}</span>
                   <span className="text-xs text-muted-foreground">({stat.count})</span>
                 </div>
@@ -205,16 +179,17 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="category" />
                   <YAxis />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value, name) => [
                       name === 'temps' ? `${value} min` : value,
                       name === 'temps' ? 'Temps' : 'Tâches'
                     ]}
                   />
-                  <Bar 
-                    dataKey="temps" 
-                    fill="#3B82F6"
-                  />
+                  <Bar dataKey="temps">
+                    {barData.map((entry, index) => (
+                      <Cell key={`cell-bar-${index}`} className={`fill-category-${entry.cssName}`} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -232,7 +207,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
             {categoryStats.map(stat => (
               <div key={stat.name} className="flex items-center justify-between p-3 bg-accent rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className={`w-4 h-4 rounded-full bg-category-${stat.name.toLowerCase()}`} />
+                  <div className={`w-4 h-4 rounded-full bg-category-${stat.cssName}`} />
                   <div>
                     <h4 className="font-medium text-foreground">{stat.name}</h4>
                     <p className="text-sm text-muted-foreground">{stat.count} tâche{stat.count > 1 ? 's' : ''}</p>
@@ -248,7 +223,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
         </CardContent>
       </Card>
 
-      {/* Sous-catégories (si présentes) */}
+      {/* Sous-catégories */}
       {subCategoryStats.length > 0 && (
         <Card className="border-border bg-card">
           <CardHeader>

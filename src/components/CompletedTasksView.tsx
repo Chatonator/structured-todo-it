@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,9 +19,7 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'name'>('date');
 
   const formatDuration = (minutes: number): string => {
-    if (minutes < 60) {
-      return `${minutes} min`;
-    }
+    if (minutes < 60) return `${minutes} min`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
@@ -34,14 +31,6 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
       month: 'short',
       year: 'numeric'
     }).format(date);
-  };
-
-  // Mapping statique des couleurs de catégorie
-  const CATEGORY_COLORS = {
-    'Obligation': '#DC2626',
-    'Quotidien': '#FBBF24', 
-    'Envie': '#86EFAC',
-    'Autres': '#2563EB'
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
@@ -137,13 +126,7 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
             {sortedTasks.map(task => {
               const categoryConfig = CATEGORY_CONFIG[task.category];
               const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
-              
-              // Couleur de catégorie statique
-              const categoryColorKey = categoryConfig?.cssName === 'obligation' ? 'Obligation' :
-                                     categoryConfig?.cssName === 'quotidien' ? 'Quotidien' :
-                                     categoryConfig?.cssName === 'envie' ? 'Envie' : 'Autres';
-              const categoryColor = CATEGORY_COLORS[categoryColorKey];
-              
+
               return (
                 <div 
                   key={task.id} 
@@ -152,14 +135,12 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
                   <div className="flex items-center space-x-3 flex-1">
                     <CheckSquare className="w-5 h-5 text-system-success" />
                     <div className="flex items-center space-x-2 flex-1">
-                      <div className={`w-3 h-3 rounded-full bg-category-${task.category.toLowerCase()}`} />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-foreground line-through">{task.name}</h4>
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                      <div className={`w-3 h-3 rounded-full bg-category-${categoryConfig?.cssName || 'autres'}`} />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-foreground line-through">{task.name}</h4>
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                           <span>{task.category}</span>
-                          {subCategoryConfig && (
-                            <span>{task.subCategory}</span>
-                          )}
+                          {subCategoryConfig && <span>{task.subCategory}</span>}
                         </div>
                       </div>
                     </div>
