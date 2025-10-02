@@ -132,30 +132,9 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
   };
 
-  // Créer un mapping statique des couleurs pour éviter les calculs CSS
-  const CATEGORY_COLORS = {
-    'Obligation': '#DC2626',
-    'Quotidien': '#FBBF24', 
-    'Envie': '#86EFAC',
-    'Autres': '#2563EB'
-  };
-
-  const PRIORITY_COLORS = {
-    'highest': '#9333EA',
-    'high': '#3B82F6',
-    'medium': '#EAB308',
-    'low': '#6B7280'
-  };
-
   const renderTask = (task: Task, isHigh: boolean = false) => {
     const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
     const totalTime = calculateTotalTime(task);
-
-    // Couleurs statiques
-    const categoryColorKey = task.category?.toLowerCase() === 'obligation' ? 'Obligation' :
-                           task.category?.toLowerCase() === 'quotidien' ? 'Quotidien' :
-                           task.category?.toLowerCase() === 'envie' ? 'Envie' : 'Autres';
-    const categoryColor = CATEGORY_COLORS[categoryColorKey];
 
     return (
       <div 
@@ -170,9 +149,9 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
             {task.name}
           </h3>
           <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${
-            categoryColorKey === 'Obligation' ? 'bg-category-obligation/10 border-category-obligation text-category-obligation' :
-            categoryColorKey === 'Quotidien' ? 'bg-category-quotidien/10 border-category-quotidien text-category-quotidien' :
-            categoryColorKey === 'Envie' ? 'bg-category-envie/10 border-category-envie text-category-envie' :
+            task.category?.toLowerCase() === 'obligation' ? 'bg-category-obligation/10 border-category-obligation text-category-obligation' :
+            task.category?.toLowerCase() === 'quotidien' ? 'bg-category-quotidien/10 border-category-quotidien text-category-quotidien' :
+            task.category?.toLowerCase() === 'envie' ? 'bg-category-envie/10 border-category-envie text-category-envie' :
             'bg-category-autres/10 border-category-autres text-category-autres'
           }`}>
             {task.category || 'Sans catégorie'}

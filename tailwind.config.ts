@@ -19,97 +19,98 @@ export default {
     },
     extend: {
       colors: {
-        // ===== COULEURS SHADCN/UI BASE (STATIQUES) =====
-        border: '#e2e8f0',
-        input: '#e2e8f0', 
-        ring: '#3b82f6',
-        background: '#ffffff',
-        foreground: '#0f172a',
+        // ===== PALETTE UNIFIÉE (15 COULEURS) =====
+        // Noir/Texte
+        border: '#e2e8f0',              // #1 - Gris clair (bordures)
+        input: '#e2e8f0',
+        ring: '#3b82f6',                // #2 - Bleu vif (focus)
+        background: '#ffffff',          // #3 - Blanc pur
+        foreground: '#0f172a',          // #4 - Noir bleuté (texte principal)
         
         primary: {
-          DEFAULT: '#3b82f6',
-          foreground: '#ffffff'
+          DEFAULT: '#3b82f6',           // #2 - Bleu vif
+          foreground: '#ffffff'         // #3 - Blanc pur
         },
         secondary: {
-          DEFAULT: '#f1f5f9',
-          foreground: '#0f172a'
+          DEFAULT: '#f1f5f9',           // #5 - Gris très clair
+          foreground: '#0f172a'         // #4 - Noir bleuté
         },
         destructive: {
-          DEFAULT: '#ef4444',
-          foreground: '#ffffff'
+          DEFAULT: '#dc2626',           // #6 - Rouge foncé
+          foreground: '#ffffff'         // #3 - Blanc pur
         },
         muted: {
-          DEFAULT: '#f8fafc',
-          foreground: '#64748b'
+          DEFAULT: '#f8fafc',           // #7 - Gris proche du blanc
+          foreground: '#64748b'         // #8 - Gris moyen
         },
         accent: {
-          DEFAULT: '#f1f5f9',
-          foreground: '#0f172a'
+          DEFAULT: '#f1f5f9',           // #5 - Gris très clair
+          foreground: '#0f172a'         // #4 - Noir bleuté
         },
         popover: {
-          DEFAULT: '#ffffff',
-          foreground: '#0f172a'
+          DEFAULT: '#ffffff',           // #3 - Blanc pur
+          foreground: '#0f172a'         // #4 - Noir bleuté
         },
         card: {
-          DEFAULT: '#ffffff',
-          foreground: '#0f172a'
+          DEFAULT: '#ffffff',           // #3 - Blanc pur
+          foreground: '#0f172a'         // #4 - Noir bleuté
         },
         sidebar: {
-          DEFAULT: '#f8fafc',
-          foreground: '#0f172a',
-          primary: '#3b82f6',
-          'primary-foreground': '#ffffff',
-          accent: '#f1f5f9',
-          'accent-foreground': '#0f172a',
-          border: '#e2e8f0',
-          ring: '#3b82f6'
+          DEFAULT: '#f8fafc',           // #7 - Gris proche du blanc
+          foreground: '#0f172a',        // #4 - Noir bleuté
+          primary: '#3b82f6',           // #2 - Bleu vif
+          'primary-foreground': '#ffffff', // #3 - Blanc pur
+          accent: '#f1f5f9',            // #5 - Gris très clair
+          'accent-foreground': '#0f172a', // #4 - Noir bleuté
+          border: '#e2e8f0',            // #1 - Gris clair
+          ring: '#3b82f6'               // #2 - Bleu vif
         },
         
         // ===== COULEURS SYSTÈME =====
         system: {
-          success: '#16a34a',
-          warning: '#f59e0b', 
-          error: '#ef4444',
-          info: '#3b82f6'
+          success: '#16a34a',           // #9 - Vert vif
+          warning: '#f59e0b',           // #10 - Orange vif
+          error: '#dc2626',             // #6 - Rouge foncé
+          info: '#3b82f6'               // #2 - Bleu vif
         },
 
         // ===== COULEURS CATÉGORIES =====
         category: {
-          obligation: '#dc2626',    // Rouge intense pour les obligations
-          quotidien: '#f59e0b',     // Orange/jaune pour le quotidien
-          envie: '#16a34a',         // Vert pour les envies/plaisirs
-          autres: '#6366f1',        // Violet pour autres
-          // Variantes light pour les backgrounds
-          'obligation-light': '#fef2f2',
-          'quotidien-light': '#fffbeb', 
-          'envie-light': '#f0fdf4',
-          'autres-light': '#eef2ff'
+          obligation: '#dc2626',        // #6 - Rouge foncé
+          quotidien: '#f59e0b',         // #10 - Orange vif
+          envie: '#16a34a',             // #9 - Vert vif
+          autres: '#8b5cf6',            // #11 - Violet
+          // Variantes light
+          'obligation-light': '#fffbeb', // #12 - Jaune très pâle
+          'quotidien-light': '#fffbeb',  // #12 - Jaune très pâle
+          'envie-light': '#f0fdf4',      // #13 - Vert très pâle
+          'autres-light': '#eff6ff'      // #14 - Bleu très pâle
         },
 
         // ===== COULEURS PRIORITÉS =====
         priority: {
-          highest: '#dc2626',       // Rouge intense
-          high: '#f59e0b',          // Orange
-          medium: '#eab308',        // Jaune
-          low: '#22c55e',           // Vert
+          highest: '#dc2626',           // #6 - Rouge foncé
+          high: '#f59e0b',              // #10 - Orange vif
+          medium: '#eab308',            // #15 - Jaune vif
+          low: '#16a34a',               // #9 - Vert vif
           // Variantes light
-          'highest-light': '#fef2f2',
-          'high-light': '#fffbeb',
-          'medium-light': '#fefce8',
-          'low-light': '#f0fdf4'
+          'highest-light': '#fffbeb',   // #12 - Jaune très pâle
+          'high-light': '#fffbeb',      // #12 - Jaune très pâle
+          'medium-light': '#fffbeb',    // #12 - Jaune très pâle
+          'low-light': '#f0fdf4'        // #13 - Vert très pâle
         },
 
         // ===== COULEURS CONTEXTES =====
         context: {
-          pro: '#3b82f6',           // Bleu professionnel
-          perso: '#8b5cf6',         // Violet personnel
+          pro: '#3b82f6',               // #2 - Bleu vif
+          perso: '#8b5cf6',             // #11 - Violet
           // Variantes light
-          'pro-light': '#eff6ff',
-          'perso-light': '#f5f3ff'
+          'pro-light': '#eff6ff',       // #14 - Bleu très pâle
+          'perso-light': '#f5f3ff'      // Violet très pâle (proche #14)
         },
 
         // ===== COULEUR ÉPINGLÉ =====
-        pinned: '#f59e0b'           // Orange pour les tâches épinglées
+        pinned: '#f59e0b'               // #10 - Orange vif
       },
       borderRadius: {
         lg: '0.5rem',

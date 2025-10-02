@@ -3,6 +3,7 @@ import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CATEGORY_CSS_NAMES } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, PieChart, Timer, Hash } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { getCategoryColor, colors } from '@/lib/colors';
 
 interface DashboardViewProps {
   tasks: Task[];
@@ -11,34 +12,21 @@ interface DashboardViewProps {
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calculateTotalTime }) => {
-  // Mapping statique des couleurs
-  const CATEGORY_COLORS = {
-    'Obligation': '#DC2626',
-    'Quotidien': '#FBBF24', 
-    'Envie': '#86EFAC',
-    'Autres': '#2563EB'
-  };
-
   // Calculs statistiques
   const totalTasks = tasks.length;
   const totalTime = mainTasks.reduce((sum, task) => sum + calculateTotalTime(task), 0);
   const averageTime = totalTasks > 0 ? Math.round(totalTime / totalTasks) : 0;
 
-  // Répartition par catégories principales avec couleurs statiques
+  // Répartition par catégories principales
   const categoryStats = Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
     const categoryTasks = tasks.filter(task => task.category === category);
     const categoryTime = categoryTasks.reduce((sum, task) => sum + task.estimatedTime, 0);
-    
-    // Mapping vers les couleurs statiques
-    const colorKey = config.cssName === 'obligation' ? 'Obligation' :
-                   config.cssName === 'quotidien' ? 'Quotidien' :
-                   config.cssName === 'envie' ? 'Envie' : 'Autres';
     
     return {
       name: category,
       count: categoryTasks.length,
       time: categoryTime,
-      color: CATEGORY_COLORS[colorKey],
+      color: getCategoryColor(category),
       bgColor: config.color
     };
   }).filter(stat => stat.count > 0);
@@ -213,7 +201,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
                   />
                   <Bar 
                     dataKey="temps" 
-                    fill="#3B82F6"
+                    fill={colors.primary}
                   />
                 </BarChart>
               </ResponsiveContainer>

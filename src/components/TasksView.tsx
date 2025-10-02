@@ -33,14 +33,6 @@ const TasksView: React.FC<TasksViewProps> = ({
   const safeTasks = Array.isArray(tasks) ? tasks : [];
   const safeMainTasks = Array.isArray(mainTasks) ? mainTasks : [];
 
-  // Mapping statique des couleurs
-  const CATEGORY_COLORS = {
-    'Obligation': '#DC2626',
-    'Quotidien': '#FBBF24', 
-    'Envie': '#86EFAC',
-    'Autres': '#2563EB'
-  };
-
   const formatDuration = (minutes: number): string => {
     const safeMinutes = Number(minutes) || 0;
     if (safeMinutes < 60) return `${safeMinutes}m`;
@@ -86,12 +78,6 @@ const TasksView: React.FC<TasksViewProps> = ({
     const contextConfig = CONTEXT_CONFIG[task.context] || CONTEXT_CONFIG['Perso'];
     const subTasks = getSubTasks ? getSubTasks(task.id || '') : [];
     const totalTime = calculateTotalTime ? calculateTotalTime(task) : (Number(task.estimatedTime) || 0);
-
-    // Couleur de catégorie statique 
-    const categoryColorKey = categoryConfig.cssName === 'obligation' ? 'Obligation' :
-                           categoryConfig.cssName === 'quotidien' ? 'Quotidien' :
-                           categoryConfig.cssName === 'envie' ? 'Envie' : 'Autres';
-    const categoryColor = CATEGORY_COLORS[categoryColorKey];
 
     return (
       <Card key={task.id} className={`group hover:shadow-lg transition-all duration-200 border-l-4 bg-card border-l-category-${task.category.toLowerCase()}`}>
@@ -166,9 +152,9 @@ const TasksView: React.FC<TasksViewProps> = ({
               <Badge 
                 variant="outline" 
                 className={`text-xs ${
-                  categoryColorKey === 'Obligation' ? 'bg-category-obligation/10 border-category-obligation text-category-obligation' :
-                  categoryColorKey === 'Quotidien' ? 'bg-category-quotidien/10 border-category-quotidien text-category-quotidien' :
-                  categoryColorKey === 'Envie' ? 'bg-category-envie/10 border-category-envie text-category-envie' :
+                  task.category?.toLowerCase() === 'obligation' ? 'bg-category-obligation/10 border-category-obligation text-category-obligation' :
+                  task.category?.toLowerCase() === 'quotidien' ? 'bg-category-quotidien/10 border-category-quotidien text-category-quotidien' :
+                  task.category?.toLowerCase() === 'envie' ? 'bg-category-envie/10 border-category-envie text-category-envie' :
                   'bg-category-autres/10 border-category-autres text-category-autres'
                 }`}
               >

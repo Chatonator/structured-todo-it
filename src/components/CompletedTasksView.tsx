@@ -36,14 +36,6 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
     }).format(date);
   };
 
-  // Mapping statique des couleurs de catégorie
-  const CATEGORY_COLORS = {
-    'Obligation': '#DC2626',
-    'Quotidien': '#FBBF24', 
-    'Envie': '#86EFAC',
-    'Autres': '#2563EB'
-  };
-
   const sortedTasks = [...tasks].sort((a, b) => {
     switch (sortBy) {
       case 'date':
@@ -137,12 +129,6 @@ const CompletedTasksView: React.FC<CompletedTasksViewProps> = ({
             {sortedTasks.map(task => {
               const categoryConfig = CATEGORY_CONFIG[task.category];
               const subCategoryConfig = task.subCategory ? SUB_CATEGORY_CONFIG[task.subCategory] : null;
-              
-              // Couleur de catégorie statique
-              const categoryColorKey = categoryConfig?.cssName === 'obligation' ? 'Obligation' :
-                                     categoryConfig?.cssName === 'quotidien' ? 'Quotidien' :
-                                     categoryConfig?.cssName === 'envie' ? 'Envie' : 'Autres';
-              const categoryColor = CATEGORY_COLORS[categoryColorKey];
               
               return (
                 <div 

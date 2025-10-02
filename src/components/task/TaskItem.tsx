@@ -67,24 +67,12 @@ const TaskItem: React.FC<TaskItemProps> = ({
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('text/plain', task.id);
     
-    // Image de drag simplifiée
+    // Image de drag avec classes Tailwind inlines
     const dragImage = document.createElement('div');
+    dragImage.className = 'fixed opacity-0 pointer-events-none';
     dragImage.innerHTML = `
-      <div style="
-        background: #3b82f6;
-        color: white;
-        padding: 12px 16px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        transform: rotate(2deg) scale(1.05);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 200px;
-      ">
-        <span style="font-size: 16px;">📅</span>
+      <div class="bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold shadow-2xl transform rotate-2 scale-105 flex items-center gap-2 min-w-[200px]">
+        <span class="text-base">📅</span>
         <span>${task.name}</span>
       </div>
     `;
