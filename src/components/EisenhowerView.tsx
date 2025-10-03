@@ -23,7 +23,6 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
     'urgent-important': {
       title: 'Urgent & Important',
       subtitle: 'À FAIRE MAINTENANT',
-      cssColorVar: '--color-obligation',
       icon: <AlertTriangle className="w-5 h-5 text-white" />,
       description: 'Crises, urgences, problèmes pressants',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-important')
@@ -31,7 +30,6 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
     'important-not-urgent': {
       title: 'Important & Non Urgent',
       subtitle: 'À PLANIFIER',
-      cssColorVar: '--color-envie',
       icon: <Target className="w-5 h-5 text-white" />,
       description: 'Prévention, amélioration, développement',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'important-not-urgent')
@@ -39,7 +37,6 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
     'urgent-not-important': {
       title: 'Urgent & Non Important',
       subtitle: 'À DÉLÉGUER',
-      cssColorVar: '--color-quotidien',
       icon: <Calendar className="w-5 h-5 text-white" />,
       description: 'Interruptions, certains appels, emails',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-not-important')
@@ -47,7 +44,6 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
     'not-urgent-not-important': {
       title: 'Non Urgent & Non Important',
       subtitle: 'À ÉLIMINER',
-      cssColorVar: '--color-autres',
       icon: <Archive className="w-5 h-5 text-white" />,
       description: 'Distractions, certaines activités',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'not-urgent-not-important')
