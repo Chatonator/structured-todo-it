@@ -25,6 +25,8 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       subtitle: 'À FAIRE MAINTENANT',
       icon: <AlertTriangle className="w-5 h-5 text-white" />,
       description: 'Crises, urgences, problèmes pressants',
+      bgColor: 'bg-category-obligation',
+      borderColor: 'border-category-obligation',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-important')
     },
     'important-not-urgent': {
@@ -32,6 +34,8 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       subtitle: 'À PLANIFIER',
       icon: <Target className="w-5 h-5 text-white" />,
       description: 'Prévention, amélioration, développement',
+      bgColor: 'bg-category-envie',
+      borderColor: 'border-category-envie',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'important-not-urgent')
     },
     'urgent-not-important': {
@@ -39,6 +43,8 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       subtitle: 'À DÉLÉGUER',
       icon: <Calendar className="w-5 h-5 text-white" />,
       description: 'Interruptions, certains appels, emails',
+      bgColor: 'bg-category-quotidien',
+      borderColor: 'border-category-quotidien',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-not-important')
     },
     'not-urgent-not-important': {
@@ -46,6 +52,8 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       subtitle: 'À ÉLIMINER',
       icon: <Archive className="w-5 h-5 text-white" />,
       description: 'Distractions, certaines activités',
+      bgColor: 'bg-category-autres',
+      borderColor: 'border-category-autres',
       tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'not-urgent-not-important')
     }
   }), [tasks]);
@@ -139,10 +147,10 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
           return (
           <Card 
             key={key} 
-            className="cursor-pointer transition-all hover:shadow-md border-2 bg-card border-border"
+            className={`cursor-pointer transition-all hover:shadow-md border-2 bg-card ${quadrant.borderColor}`}
             onClick={() => setSelectedQuadrant(selectedQuadrant === key ? null : key)}
           >
-            <CardHeader className="py-3 rounded-t-lg text-white bg-primary">
+            <CardHeader className={`py-3 rounded-t-lg text-white ${quadrant.bgColor}`}>
               <CardTitle className="flex items-center justify-between text-sm">
                 <div className="flex items-center space-x-2">
                   {quadrant.icon}

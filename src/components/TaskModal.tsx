@@ -152,7 +152,9 @@ useEffect(() => {
           scheduledTime: draft.scheduledTime,
           startTime: draft.scheduledDate && draft.scheduledTime ? 
             new Date(`${draft.scheduledDate.toISOString().split('T')[0]}T${draft.scheduledTime}:00`) : undefined,
-          duration: draft.scheduledDate && draft.scheduledTime ? Number(draft.estimatedTime) : undefined
+          duration: draft.scheduledDate && draft.scheduledTime ? Number(draft.estimatedTime) : undefined,
+          isRecurring: draft.isRecurring || false,
+          recurrenceInterval: draft.isRecurring ? draft.recurrenceInterval : undefined
         });
       });
     }
@@ -185,7 +187,7 @@ useEffect(() => {
   return (
     <Dialog 
       open={isOpen} 
-      onOpenChange={() => {}}
+      onOpenChange={handleClose}
     >
       <DialogContent className={`max-w-4xl max-h-[85vh] overflow-y-auto ${shouldUseGrid ? 'min-w-[800px]' : 'max-w-md'}`}>
         <DialogHeader>
@@ -426,7 +428,7 @@ useEffect(() => {
             })}
           </div>
 
-          <div className="flex justify-between pt-4 border-t">
+          <div className="flex items-center justify-between pt-4 border-t gap-2">
             {!editingTask && (
               <Button
                 type="button"
@@ -435,11 +437,11 @@ useEffect(() => {
                 className="text-sm"
               >
                 <Plus className="w-4 h-4 mr-1" />
-                Ajouter une tâche
+                Ajouter
               </Button>
             )}
 
-            <div className="space-x-2 ml-auto">
+            <div className="flex items-center gap-2 ml-auto">
               <Button
                 type="button"
                 variant="outline"

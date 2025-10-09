@@ -120,8 +120,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
         className={`
           group flex items-start gap-2 p-3 border rounded-lg 
           transition-all duration-300 mb-1 text-sm task-item relative
-          border-l-8 ${isSelected ? 'bg-accent border-l-primary' : `bg-card border-l-category-${cssName}`}
-          ${isPinned ? 'border-l-pinned' : ''}
+          border-l-8 
+          ${isSelected ? 'bg-accent border-l-primary shadow-md ring-2 ring-primary/20' : `bg-card border-l-category-${cssName}`}
+          ${isPinned && !isSelected ? 'border-l-pinned shadow-sm ring-1 ring-pinned/30' : ''}
           ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
           ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
           ${isDragOver && !isDragging ? 'scale-102' : ''}
