@@ -193,20 +193,20 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
   }
 
   return (
-    <div className="space-y-6 bg-background text-foreground">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 bg-background text-foreground">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-xl md:text-2xl font-bold text-foreground">
             Vue 1-3-5
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs md:text-sm text-muted-foreground">
             Priorisation intelligente de vos tâches
           </p>
         </div>
         <Button 
           onClick={handleGenerate} 
           variant="outline"
-          className="bg-background text-foreground border-border"
+          className="bg-background text-foreground border-border w-full sm:w-auto"
         >
           <RefreshCw className="w-4 h-4 mr-2" />
           Régénérer
@@ -214,11 +214,11 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
       </div>
 
       {selection && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
           {/* 1 Tâche Prioritaire */}
-          <Card className="lg:col-span-1 bg-card border-border">
+          <Card className="md:col-span-1 bg-card border-border">
             <CardHeader className="bg-card">
-              <CardTitle className="text-lg text-priority-highest">
+              <CardTitle className="text-base md:text-lg text-priority-highest">
                 1 Prioritaire
               </CardTitle>
             </CardHeader>
@@ -234,9 +234,9 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           </Card>
 
           {/* 3 Tâches Moyennes */}
-          <Card className="lg:col-span-1 bg-card border-border">
+          <Card className="md:col-span-1 bg-card border-border">
             <CardHeader className="bg-card">
-              <CardTitle className="text-lg text-priority-medium">
+              <CardTitle className="text-base md:text-lg text-priority-medium">
                 3 Moyennes
               </CardTitle>
             </CardHeader>
@@ -252,13 +252,13 @@ const PriorityView: React.FC<PriorityViewProps> = ({ tasks, getSubTasks, calcula
           </Card>
 
           {/* 5 Tâches Rapides */}
-          <Card className="lg:col-span-1 bg-card border-border">
+          <Card className="md:col-span-1 bg-card border-border">
             <CardHeader className="bg-card">
-              <CardTitle className="text-lg text-priority-low">
+              <CardTitle className="text-base md:text-lg text-priority-low">
                 5 Rapides
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 bg-card">
+            <CardContent className="space-y-2 md:space-y-3 bg-card">
               {selection.quick.length > 0 ? (
                 selection.quick.map(task => renderTask(task))
               ) : (

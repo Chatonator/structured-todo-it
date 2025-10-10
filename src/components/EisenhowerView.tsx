@@ -115,34 +115,34 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">Matrice d'Eisenhower</h2>
-        <p className="text-sm text-muted-foreground mb-4">
+        <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">Matrice d'Eisenhower</h2>
+        <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">
           Organisez vos tâches selon leur urgence et leur importance
         </p>
         
-        {/* Statistiques globales */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        {/* Statistiques globales - responsive */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
           {Object.entries(quadrants).map(([key, quadrant]) => {
             return (
-              <div key={key} className="text-center p-3 bg-card border border-border rounded-lg">
+              <div key={key} className="text-center p-2 md:p-3 bg-card border border-border rounded-lg">
                 <div className="flex items-center justify-center mb-1">
                   {React.cloneElement(quadrant.icon, { 
-                    className: "w-5 h-5 text-primary" 
+                    className: "w-4 h-4 md:w-5 md:h-5 text-primary" 
                   })}
                 </div>
-                <div className="text-lg font-bold text-foreground">{quadrant.tasks.length}</div>
+                <div className="text-base md:text-lg font-bold text-foreground">{quadrant.tasks.length}</div>
                 <div className="text-xs text-muted-foreground">tâches</div>
-                <div className="text-xs text-muted-foreground">{formatDuration(getTotalTime(quadrant.tasks))}</div>
+                <div className="text-xs text-muted-foreground hidden sm:block">{formatDuration(getTotalTime(quadrant.tasks))}</div>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Matrice 2x2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Matrice 2x2 - responsive */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         {Object.entries(quadrants).map(([key, quadrant]) => {
           return (
           <Card 

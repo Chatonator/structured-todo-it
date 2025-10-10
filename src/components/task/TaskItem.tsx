@@ -118,12 +118,13 @@ const TaskItem: React.FC<TaskItemProps> = ({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={`
-          group flex items-start gap-2 p-3 border rounded-lg 
-          transition-all duration-300 mb-1 text-sm task-item relative
-          border-l-8 
+          group flex items-start gap-2 p-3 md:p-3 border rounded-lg 
+          transition-all duration-300 mb-1 text-sm md:text-sm task-item relative
+          border-l-4 md:border-l-8
+          min-h-[44px]
           ${isSelected ? 'bg-accent border-l-primary shadow-md ring-2 ring-primary/20' : `bg-card border-l-category-${cssName}`}
           ${isPinned && !isSelected ? 'border-l-pinned shadow-sm ring-1 ring-pinned/30' : ''}
-          ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
+          ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing touch-none' : 'cursor-default'}
           ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
           ${isDragOver && !isDragging ? 'scale-102' : ''}
           ${dragIndex === taskIndex && !isDragging ? 'bg-accent border-primary' : ''}

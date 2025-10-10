@@ -189,7 +189,11 @@ useEffect(() => {
       open={isOpen} 
       onOpenChange={handleClose}
     >
-      <DialogContent className={`max-w-4xl max-h-[85vh] overflow-y-auto ${shouldUseGrid ? 'min-w-[800px]' : 'max-w-md'}`}>
+      <DialogContent className={`
+        w-full max-w-4xl max-h-[85vh] overflow-y-auto
+        sm:max-w-md md:max-w-2xl lg:max-w-4xl
+        ${shouldUseGrid ? 'lg:min-w-[800px]' : ''}
+      `}>
         <DialogHeader>
           <DialogTitle>
             {editingTask 
@@ -220,12 +224,12 @@ useEffect(() => {
             </Alert>
           )}
 
-          <div className={shouldUseGrid ? `grid ${gridCols} gap-4` : 'space-y-4'}>
+          <div className={shouldUseGrid ? `grid ${gridCols} gap-3 md:gap-4` : 'space-y-3 md:space-y-4'}>
             {taskDrafts.map((draft, index) => {
               const isValid = isTaskValid(draft);
               
               return (
-                <div key={index} className={`p-4 border rounded-lg space-y-4 ${!isValid ? 'border-destructive bg-destructive/10' : 'bg-card border-border'}`}>
+                <div key={index} className={`p-3 md:p-4 border rounded-lg space-y-3 md:space-y-4 ${!isValid ? 'border-destructive bg-destructive/10' : 'bg-card border-border'}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-foreground">
                       {editingTask ? 'Modifier la tâche' : `Tâche ${index + 1}`}

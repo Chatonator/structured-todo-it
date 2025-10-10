@@ -1,7 +1,8 @@
-
 import { Button } from '@/components/ui/button';
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Menu } from 'lucide-react';
 import TaskList from '@/components/TaskList';
 import TaskModal from '@/components/TaskModal';
 import TasksView from '@/components/TasksView';
@@ -12,8 +13,10 @@ import CalendarView from '@/components/calendar/CalendarView';
 import CompletedTasksView from '@/components/CompletedTasksView';
 import AppHeader from '@/components/layout/AppHeader';
 import AppNavigation from '@/components/layout/AppNavigation';
+import BottomNavigation from '@/components/layout/BottomNavigation';
 import { useTasks } from '@/hooks/useTasks';
 import { useTheme } from '@/hooks/useTheme';
+import { useIsMobile } from '@/hooks/shared/use-mobile';
 
 /**
  * Page principale de l'application
@@ -21,6 +24,7 @@ import { useTheme } from '@/hooks/useTheme';
  */
 const Index = () => {
   const { theme } = useTheme();
+  const isMobile = useIsMobile();
   
   // Hook principal pour la gestion des tâches avec gestion d'erreur
   const hookResult = useTasks();
@@ -72,6 +76,7 @@ const Index = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState('tasks');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [isTaskListOpen, setIsTaskListOpen] = useState(false);
 
   // Configuration de la navigation
   const navigationItems = [
@@ -188,7 +193,7 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col w-full bg-background">
+      <div className={`min-h-screen flex flex-col w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
         {/* Header avec statistiques et historique */}
         <AppHeader
           tasksCount={safeTasksCount}
@@ -199,49 +204,93 @@ const Index = () => {
           onUndo={undo}
           onRedo={redo}
           onOpenModal={() => setIsModalOpen(true)}
+          onOpenTaskList={() => setIsTaskListOpen(true)}
+          isMobile={isMobile}
         />
 
-        {/* Navigation horizontale */}
-        <AppNavigation
-          currentView={currentView}
-          onViewChange={setCurrentView}
-          navigationItems={navigationItems}
-        />
+        {/* Navigation horizontale - cachée sur mobile */}
+        {!isMobile && (
+          <AppNavigation
+            currentView={currentView}
+            onViewChange={setCurrentView}
+            navigationItems={navigationItems}
+          />
+        )}
 
-        {/* Contenu principal avec layout optimisé */}
-        <main className="flex-1 flex">
-          {/* Colonne gauche : Liste des tâches actives */}
-          <div className="w-[25%] bg-background border-r border-border flex flex-col shadow-sm">
-            <TaskList 
-              tasks={Array.isArray(tasks) ? tasks : []}
-              mainTasks={filteredMainTasks}
-              pinnedTasks={Array.isArray(pinnedTasks) ? pinnedTasks : []}
-              onRemoveTask={safeRemoveTask}
-              onReorderTasks={safeReorderTasks}
-              onSortTasks={safeSortTasks}
-              onToggleExpansion={safeToggleTaskExpansion}
-              onToggleCompletion={safeToggleTaskCompletion}
-              onTogglePinTask={safeTogglePinTask}
-              onAddTask={safeAddTask}
-              getSubTasks={safeGetSubTasks}
-              calculateTotalTime={safeCalculateTotalTime}
-              canHaveSubTasks={safeCanHaveSubTasks}
-              selectedTasks={Array.isArray(selectedTasks) ? selectedTasks : []}
-              onToggleSelection={handleToggleSelection}
-              canUndo={Boolean(canUndo)}
-              canRedo={Boolean(canRedo)}
-              onUndo={safeUndo}
-              onRedo={safeRedo}
-            />
-          </div>
+        {/* Contenu principal avec layout adaptatif */}
+        <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          {/* Desktop: Colonne gauche fixe */}
+          {!isMobile && (
+            <div className="w-full md:w-[25%] lg:w-[20%] bg-background border-r border-border flex flex-col shadow-sm">
+              <TaskList 
+                tasks={Array.isArray(tasks) ? tasks : []}
+                mainTasks={filteredMainTasks}
+                pinnedTasks={Array.isArray(pinnedTasks) ? pinnedTasks : []}
+                onRemoveTask={safeRemoveTask}
+                onReorderTasks={safeReorderTasks}
+                onSortTasks={safeSortTasks}
+                onToggleExpansion={safeToggleTaskExpansion}
+                onToggleCompletion={safeToggleTaskCompletion}
+                onTogglePinTask={safeTogglePinTask}
+                onAddTask={safeAddTask}
+                getSubTasks={safeGetSubTasks}
+                calculateTotalTime={safeCalculateTotalTime}
+                canHaveSubTasks={safeCanHaveSubTasks}
+                selectedTasks={Array.isArray(selectedTasks) ? selectedTasks : []}
+                onToggleSelection={handleToggleSelection}
+                canUndo={Boolean(canUndo)}
+                canRedo={Boolean(canRedo)}
+                onUndo={safeUndo}
+                onRedo={safeRedo}
+              />
+            </div>
+          )}
+
+          {/* Mobile: TaskList en drawer */}
+          {isMobile && (
+            <Sheet open={isTaskListOpen} onOpenChange={setIsTaskListOpen}>
+              <SheetContent side="left" className="w-full sm:w-[400px] p-0">
+                <TaskList 
+                  tasks={Array.isArray(tasks) ? tasks : []}
+                  mainTasks={filteredMainTasks}
+                  pinnedTasks={Array.isArray(pinnedTasks) ? pinnedTasks : []}
+                  onRemoveTask={safeRemoveTask}
+                  onReorderTasks={safeReorderTasks}
+                  onSortTasks={safeSortTasks}
+                  onToggleExpansion={safeToggleTaskExpansion}
+                  onToggleCompletion={safeToggleTaskCompletion}
+                  onTogglePinTask={safeTogglePinTask}
+                  onAddTask={safeAddTask}
+                  getSubTasks={safeGetSubTasks}
+                  calculateTotalTime={safeCalculateTotalTime}
+                  canHaveSubTasks={safeCanHaveSubTasks}
+                  selectedTasks={Array.isArray(selectedTasks) ? selectedTasks : []}
+                  onToggleSelection={handleToggleSelection}
+                  canUndo={Boolean(canUndo)}
+                  canRedo={Boolean(canRedo)}
+                  onUndo={safeUndo}
+                  onRedo={safeRedo}
+                />
+              </SheetContent>
+            </Sheet>
+          )}
 
           {/* Section droite : Vue courante */}
-          <div className="flex-1 p-6 overflow-y-auto bg-background">
-            <div className="bg-card rounded-lg shadow-sm border border-border p-6 h-full">
+          <div className="flex-1 p-3 md:p-6 overflow-y-auto bg-background">
+            <div className="bg-card rounded-lg shadow-sm border border-border p-3 md:p-6 h-full">
               {renderCurrentView()}
             </div>
           </div>
         </main>
+
+        {/* Navigation inférieure mobile */}
+        {isMobile && (
+          <BottomNavigation
+            currentView={currentView}
+            onViewChange={setCurrentView}
+            navigationItems={navigationItems}
+          />
+        )}
 
         {/* Modale de création de tâches */}
         <TaskModal

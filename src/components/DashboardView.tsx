@@ -82,14 +82,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-        <p className="text-sm text-muted-foreground">Vue d'ensemble de vos tâches et statistiques</p>
+        <h2 className="text-xl md:text-2xl font-bold text-foreground">Dashboard</h2>
+        <p className="text-xs md:text-sm text-muted-foreground">Vue d'ensemble de vos tâches et statistiques</p>
       </div>
 
       {/* Cartes de statistiques principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         <Card className="border-border bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-foreground">Total Tâches</CardTitle>
@@ -144,14 +144,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
       </div>
 
       {/* Graphiques */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Répartition par catégories (Camembert) */}
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">Répartition par Catégories</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
                   <Pie
@@ -187,7 +187,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
             <CardTitle className="text-foreground">Temps par Catégorie</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -216,18 +216,18 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
           <CardTitle className="text-foreground">Détails par Catégorie</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             {categoryStats.map(stat => (
-              <div key={stat.name} className="flex items-center justify-between p-3 bg-accent rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-4 h-4 rounded-full bg-category-${stat.name.toLowerCase()}`} />
+              <div key={stat.name} className="flex items-center justify-between p-2 md:p-3 bg-accent rounded-lg">
+                <div className="flex items-center space-x-2 md:space-x-3">
+                  <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full bg-category-${stat.name.toLowerCase()}`} />
                   <div>
-                    <h4 className="font-medium text-foreground">{stat.name}</h4>
-                    <p className="text-sm text-muted-foreground">{stat.count} tâche{stat.count > 1 ? 's' : ''}</p>
+                    <h4 className="font-medium text-sm md:text-base text-foreground">{stat.name}</h4>
+                    <p className="text-xs md:text-sm text-muted-foreground">{stat.count} tâche{stat.count > 1 ? 's' : ''}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-foreground">{formatDuration(stat.time)}</p>
+                  <p className="font-medium text-sm md:text-base text-foreground">{formatDuration(stat.time)}</p>
                   <p className="text-xs text-muted-foreground">{Math.round(stat.time / stat.count)} min/tâche</p>
                 </div>
               </div>
@@ -243,17 +243,17 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, mainTasks, calcula
             <CardTitle className="text-foreground">Sous-catégories</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {subCategoryStats.map(stat => (
-                <div key={stat.name} className="flex items-center justify-between p-3 bg-accent rounded-lg">
-                  <div className="flex items-center space-x-3">
+                <div key={stat.name} className="flex items-center justify-between p-2 md:p-3 bg-accent rounded-lg">
+                  <div className="flex items-center space-x-2 md:space-x-3">
                     <div>
-                      <h4 className="font-medium text-foreground">{stat.name}</h4>
-                      <p className="text-sm text-muted-foreground">{stat.count} sous-tâche{stat.count > 1 ? 's' : ''}</p>
+                      <h4 className="font-medium text-sm md:text-base text-foreground">{stat.name}</h4>
+                      <p className="text-xs md:text-sm text-muted-foreground">{stat.count} sous-tâche{stat.count > 1 ? 's' : ''}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-foreground">{formatDuration(stat.time)}</p>
+                    <p className="font-medium text-sm md:text-base text-foreground">{formatDuration(stat.time)}</p>
                     <p className="text-xs text-muted-foreground">{Math.round(stat.time / stat.count)} min/tâche</p>
                   </div>
                 </div>

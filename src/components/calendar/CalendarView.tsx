@@ -170,9 +170,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
         </div>
       </div>
 
-      {/* Modal de sélection de tâche améliorée */}
+      {/* Modal de sélection de tâche - responsive */}
       <Dialog open={isTaskListOpen} onOpenChange={handleCloseTaskList}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-full max-w-md sm:max-w-lg max-h-[90vh] sm:max-h-[85vh]">
           <DialogHeader>
             <DialogTitle>
               Planifier une tâche
@@ -186,7 +186,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
             </p>
           </DialogHeader>
 
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {/* Contrôles de recherche et tri */}
             <div className="space-y-2">
               <div className="relative">
@@ -218,8 +218,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
                 </p>
               </div>
             ) : (
-              <ScrollArea className="max-h-80 overflow-auto">
-                <div className="space-y-3">
+              <ScrollArea className="max-h-[50vh] md:max-h-80 overflow-auto">
+                <div className="space-y-2 md:space-y-3">
                   {filteredAndSortedTasks.map(task => {
                     const categoryConfig = getCategoryConfig(task.category);
                     
@@ -227,17 +227,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
                       <Button
                         key={task.id}
                         variant="outline"
-                        className={`w-full justify-start h-auto p-3 border-l-4 bg-category-${categoryConfig.cssName}/10 border-l-category-${categoryConfig.cssName} hover:bg-category-${categoryConfig.cssName}/20`}
+                        className={`w-full justify-start h-auto min-h-[44px] p-3 md:p-3 border-l-4 bg-category-${categoryConfig.cssName}/10 border-l-category-${categoryConfig.cssName} hover:bg-category-${categoryConfig.cssName}/20`}
                         onClick={() => handleTaskSelect(task)}
                       >
-                        <div className="flex flex-col items-start gap-1">
-                          <div className="font-medium">{task.name}</div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <div className="flex flex-col items-start gap-1 w-full">
+                          <div className="font-medium text-sm md:text-base">{task.name}</div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-1 md:gap-2">
                             <span>{task.category}</span>
-                            <span>•</span>
+                            <span className="hidden sm:inline">•</span>
                             <span>{formatDuration(task.estimatedTime)}</span>
-                            <span>•</span>
-                            <span>{task.context}</span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="hidden sm:inline">{task.context}</span>
                           </div>
                         </div>
                       </Button>
