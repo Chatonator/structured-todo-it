@@ -77,6 +77,7 @@ const Index = () => {
   const [currentView, setCurrentView] = useState('tasks');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [isTaskListOpen, setIsTaskListOpen] = useState(false);
+  const [isTaskListCollapsed, setIsTaskListCollapsed] = useState(false);
 
   // Configuration de la navigation
   const navigationItems = [
@@ -219,9 +220,15 @@ const Index = () => {
 
         {/* Contenu principal avec layout adaptatif */}
         <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          {/* Desktop: Colonne gauche fixe */}
+          {/* Desktop: Colonne gauche avec largeur dynamique */}
           {!isMobile && (
-            <div className="w-full md:w-[25%] lg:w-[20%] bg-background border-r border-border flex flex-col shadow-sm">
+            <div 
+              className={`
+                bg-background border-r border-border flex flex-col shadow-sm
+                transition-all duration-300 ease-in-out
+                ${isTaskListCollapsed ? 'w-12' : 'w-full md:w-[25%] lg:w-[20%]'}
+              `}
+            >
               <TaskList 
                 tasks={Array.isArray(tasks) ? tasks : []}
                 mainTasks={filteredMainTasks}
@@ -242,6 +249,7 @@ const Index = () => {
                 canRedo={Boolean(canRedo)}
                 onUndo={safeUndo}
                 onRedo={safeRedo}
+                onCollapsedChange={setIsTaskListCollapsed}
               />
             </div>
           )}

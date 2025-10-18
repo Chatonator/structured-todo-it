@@ -30,6 +30,7 @@ interface TaskListProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({ 
@@ -51,7 +52,8 @@ const TaskList: React.FC<TaskListProps> = ({
   canUndo,
   canRedo,
   onUndo,
-  onRedo
+  onRedo,
+  onCollapsedChange
 }) => {
   // États locaux
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -60,6 +62,12 @@ const TaskList: React.FC<TaskListProps> = ({
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
   const [isExtendedView, setIsExtendedView] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Notifier le parent quand l'état collapsed change
+  const handleToggleCollapsed = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    onCollapsedChange?.(collapsed);
+  };
 
   // Filtres locaux – on place les tâches épinglées en tête avant filtrage/recherche
   const mainActive = mainTasks.filter(task => !task.isCompleted);
@@ -190,20 +198,28 @@ const TaskList: React.FC<TaskListProps> = ({
       >
         {isCollapsed ? (
           /* Vue repliée - Fine bande avec bouton */
-          <div className="h-full flex flex-col items-center justify-start pt-4 bg-accent/50">
+          <div className="h-full flex flex-col items-center justify-start pt-6 bg-muted/30 border-r border-border">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsCollapsed(false)}
-              className="w-10 h-10 p-0"
-              title="Déplier"
+              onClick={() => handleToggleCollapsed(false)}
+              className="w-10 h-10 p-0 hover:bg-primary/10 rounded-lg transition-colors"
+              title="Déplier la liste"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-5 h-5 text-primary" />
             </Button>
             
             {/* Compteur de tâches vertical */}
-            <div className="mt-6 writing-mode-vertical-rl rotate-180 text-xs text-muted-foreground">
-              {localFilteredTasks.length} tâche{localFilteredTasks.length !== 1 ? 's' : ''}
+            <div 
+              className="mt-8 flex flex-col items-center gap-2"
+              style={{ writingMode: 'vertical-rl' }}
+            >
+              <span className="text-xs font-medium text-muted-foreground rotate-180">
+                {localFilteredTasks.length}
+              </span>
+              <span className="text-xs text-muted-foreground/70 rotate-180">
+                {localFilteredTasks.length !== 1 ? 'tâches' : 'tâche'}
+              </span>
             </div>
           </div>
         ) : (
@@ -229,11 +245,11 @@ const TaskList: React.FC<TaskListProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsCollapsed(true)}
-                className="absolute top-2 right-2 w-8 h-8 p-0"
-                title="Replier"
+                onClick={() => handleToggleCollapsed(true)}
+                className="absolute top-2 right-2 w-8 h-8 p-0 hover:bg-muted rounded-md transition-colors"
+                title="Replier la liste"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4 text-muted-foreground hover:text-foreground" />
               </Button>
             </div>
 
