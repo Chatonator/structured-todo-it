@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Task } from '@/types/task';
-import { Clock, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { Clock, ChevronsDown, ChevronsUp, ChevronRight, ChevronLeft } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
@@ -59,6 +59,7 @@ const TaskList: React.FC<TaskListProps> = ({
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
   const [isExtendedView, setIsExtendedView] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Filtres locaux – on place les tâches épinglées en tête avant filtrage/recherche
   const mainActive = mainTasks.filter(task => !task.isCompleted);
@@ -177,90 +178,135 @@ const TaskList: React.FC<TaskListProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* En-tête avec contrôles */}
-      <TaskListHeader
-        tasksCount={localFilteredTasks.length}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        categoryFilter={categoryFilter}
-        onCategoryFilterChange={setCategoryFilter}
-        sortBy={sortBy}
-        onSortChange={handleSort}
-        canUndo={false}
-        canRedo={false}
-        onUndo={() => {}}
-        onRedo={() => {}}
-      />
+    <div className="relative h-full flex">
+      {/* Barre latérale repliable */}
+      <div 
+        className={`
+          h-full border-r border-border bg-background
+          transition-all duration-300 ease-in-out
+          ${isCollapsed ? 'w-12' : 'w-full'}
+          overflow-hidden
+        `}
+      >
+        {isCollapsed ? (
+          /* Vue repliée - Fine bande avec bouton */
+          <div className="h-full flex flex-col items-center justify-start pt-4 bg-accent/50">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCollapsed(false)}
+              className="w-10 h-10 p-0"
+              title="Déplier"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            
+            {/* Compteur de tâches vertical */}
+            <div className="mt-6 writing-mode-vertical-rl rotate-180 text-xs text-muted-foreground">
+              {localFilteredTasks.length} tâche{localFilteredTasks.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+        ) : (
+          /* Vue dépliée - Contenu complet */
+          <div className="flex flex-col h-full">
+            {/* En-tête avec contrôles et bouton de repli */}
+            <div className="relative">
+              <TaskListHeader
+                tasksCount={localFilteredTasks.length}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                categoryFilter={categoryFilter}
+                onCategoryFilterChange={setCategoryFilter}
+                sortBy={sortBy}
+                onSortChange={handleSort}
+                canUndo={false}
+                canRedo={false}
+                onUndo={() => {}}
+                onRedo={() => {}}
+              />
+              
+              {/* Bouton de repli en haut à droite */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCollapsed(true)}
+                className="absolute top-2 right-2 w-8 h-8 p-0"
+                title="Replier"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+            </div>
 
+            {/* Bouton de vue étendue */}
+            <div className="px-2 py-1 border-b border-border bg-accent">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExtendedView(!isExtendedView)}
+                className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+              >
+                {isExtendedView ? (
+                  <>
+                    <ChevronsUp className="w-3 h-3 mr-2" />
+                    Vue condensée
+                  </>
+                ) : (
+                  <>
+                    <ChevronsDown className="w-3 h-3 mr-2" />
+                    Vue étendue
+                  </>
+                )}
+              </Button>
+            </div>
 
-      {/* Bouton de vue étendue */}
-      <div className="px-2 py-1 border-b border-border bg-accent">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsExtendedView(!isExtendedView)}
-          className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
-        >
-          {isExtendedView ? (
-            <>
-              <ChevronsUp className="w-3 h-3 mr-2" />
-              Vue condensée
-            </>
-          ) : (
-            <>
-              <ChevronsDown className="w-3 h-3 mr-2" />
-              Vue étendue
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* Liste des tâches avec scrollbar améliorée */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full w-full custom-scrollbar">
-          <div className="p-2 space-y-1">
-            {localFilteredTasks.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center py-8">
-                  <div className="text-muted-foreground mb-3">
-                    <Clock className="w-8 h-8 mx-auto mb-2" />
-                  </div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                    {searchQuery || categoryFilter !== 'all' ? 'Aucune tâche trouvée' : 'Aucune tâche active'}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {searchQuery || categoryFilter !== 'all' ? 'Modifiez vos filtres' : 'Créez votre première tâche !'}
-                  </p>
+            {/* Liste des tâches avec scrollbar améliorée */}
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full w-full custom-scrollbar">
+                <div className="p-2 space-y-1">
+                  {localFilteredTasks.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center py-8">
+                        <div className="text-muted-foreground mb-3">
+                          <Clock className="w-8 h-8 mx-auto mb-2" />
+                        </div>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          {searchQuery || categoryFilter !== 'all' ? 'Aucune tâche trouvée' : 'Aucune tâche active'}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {searchQuery || categoryFilter !== 'all' ? 'Modifiez vos filtres' : 'Créez votre première tâche !'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    localFilteredTasks.map(task => renderTask(task))
+                  )}
                 </div>
-              </div>
-            ) : (
-              localFilteredTasks.map(task => renderTask(task))
+              </ScrollArea>
+            </div>
+
+            {/* Modale pour sous-tâches */}
+            {selectedParentTask && (
+              <TaskModal
+                isOpen={isSubTaskModalOpen}
+                onClose={() => {
+                  setIsSubTaskModalOpen(false);
+                  setSelectedParentTask(null);
+                }}
+                onAddTask={(taskData) => {
+                  onAddTask({
+                    ...taskData,
+                    parentId: selectedParentTask.id,
+                    level: (selectedParentTask.level + 1) as 0 | 1 | 2
+                  });
+                  setIsSubTaskModalOpen(false);
+                  setSelectedParentTask(null);
+                }}
+                parentTask={selectedParentTask}
+              />
             )}
           </div>
-        </ScrollArea>
+        )}
       </div>
-
-      {/* Modale pour sous-tâches */}
-      {selectedParentTask && (
-        <TaskModal
-          isOpen={isSubTaskModalOpen}
-          onClose={() => {
-            setIsSubTaskModalOpen(false);
-            setSelectedParentTask(null);
-          }}
-          onAddTask={(taskData) => {
-            onAddTask({
-              ...taskData,
-              parentId: selectedParentTask.id,
-              level: (selectedParentTask.level + 1) as 0 | 1 | 2
-            });
-            setIsSubTaskModalOpen(false);
-            setSelectedParentTask(null);
-          }}
-          parentTask={selectedParentTask}
-        />
-      )}
     </div>
   );
 };
