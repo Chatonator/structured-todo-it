@@ -226,7 +226,7 @@ const Index = () => {
               className={`
                 bg-background border-r border-border flex flex-col shadow-sm
                 transition-all duration-300 ease-in-out
-                ${isTaskListCollapsed ? 'w-12' : 'w-full md:w-[25%] lg:w-[20%]'}
+                ${isTaskListCollapsed ? 'w-16' : 'w-full md:w-[30%] lg:w-[25%]'}
               `}
             >
               <TaskList 

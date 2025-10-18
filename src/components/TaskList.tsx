@@ -192,35 +192,20 @@ const TaskList: React.FC<TaskListProps> = ({
         className={`
           h-full border-r border-border bg-background
           transition-all duration-300 ease-in-out
-          ${isCollapsed ? 'w-12' : 'w-full'}
-          overflow-hidden
+          ${isCollapsed ? 'w-16' : 'w-full'}
+          overflow-hidden relative
         `}
       >
         {isCollapsed ? (
-          /* Vue repliée - Fine bande avec bouton */
-          <div className="h-full flex flex-col items-center justify-start pt-6 bg-muted/30 border-r border-border">
+          /* Vue repliée - Seulement le bouton flottant */
+          <div className="h-full w-full relative">
             <Button
-              variant="ghost"
-              size="sm"
               onClick={() => handleToggleCollapsed(false)}
-              className="w-10 h-10 p-0 hover:bg-primary/10 rounded-lg transition-colors"
-              title="Déplier la liste"
+              className="sticky top-4 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 z-50"
+              title="Déplier la liste des tâches"
             >
-              <ChevronRight className="w-5 h-5 text-primary" />
+              <ChevronRight className="w-6 h-6" />
             </Button>
-            
-            {/* Compteur de tâches vertical */}
-            <div 
-              className="mt-8 flex flex-col items-center gap-2"
-              style={{ writingMode: 'vertical-rl' }}
-            >
-              <span className="text-xs font-medium text-muted-foreground rotate-180">
-                {localFilteredTasks.length}
-              </span>
-              <span className="text-xs text-muted-foreground/70 rotate-180">
-                {localFilteredTasks.length !== 1 ? 'tâches' : 'tâche'}
-              </span>
-            </div>
           </div>
         ) : (
           /* Vue dépliée - Contenu complet */
