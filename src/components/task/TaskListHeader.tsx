@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter, SortAsc, X, Undo, Redo } from 'lucide-react';
+import { Filter, SortAsc, X } from 'lucide-react';
 import { TaskCategory, CATEGORY_CONFIG } from '@/types/task';
 
 interface TaskListHeaderProps {
@@ -14,10 +14,6 @@ interface TaskListHeaderProps {
   onCategoryFilterChange: (category: TaskCategory | 'all') => void;
   sortBy: 'name' | 'duration' | 'category';
   onSortChange: (sortBy: 'name' | 'duration' | 'category') => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
 }
 
 /**
@@ -31,43 +27,13 @@ const TaskListHeader: React.FC<TaskListHeaderProps> = ({
   categoryFilter,
   onCategoryFilterChange,
   sortBy,
-  onSortChange,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo
+  onSortChange
 }) => {
   return (
     <div className="p-3 border-b border-border bg-accent space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">
-          Tâches Actives ({tasksCount})
-        </h2>
-        
-        {/* Historique */}
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onUndo}
-            disabled={!canUndo}
-            className="h-7 w-7 p-0 disabled:opacity-50"
-            title="Annuler (Ctrl+Z)"
-          >
-            <Undo className="w-3 h-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRedo}
-            disabled={!canRedo}
-            className="h-7 w-7 p-0 disabled:opacity-50"
-            title="Refaire (Ctrl+Y)"
-          >
-            <Redo className="w-3 h-3" />
-          </Button>
-        </div>
-      </div>
+      <h2 className="text-sm font-semibold text-foreground">
+        Tâches Actives ({tasksCount})
+      </h2>
 
       {/* Recherche locale */}
       <div className="relative">

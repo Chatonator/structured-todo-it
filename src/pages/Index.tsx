@@ -200,10 +200,6 @@ const Index = () => {
           tasksCount={safeTasksCount}
           completedTasks={safeCompletedTasks}
           completionRate={safeCompletionRate}
-          canUndo={Boolean(canUndo)}
-          canRedo={Boolean(canRedo)}
-          onUndo={undo}
-          onRedo={redo}
           onOpenModal={() => setIsModalOpen(true)}
           onOpenTaskList={() => setIsTaskListOpen(true)}
           isMobile={isMobile}

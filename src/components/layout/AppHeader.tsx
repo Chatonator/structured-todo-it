@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Plus, Undo, Redo, Menu } from 'lucide-react';
+import { CheckSquare, Plus, Menu } from 'lucide-react';
 import UserOptionsMenu from '@/components/UserOptionsMenu';
 import {
   DropdownMenu,
@@ -13,10 +13,6 @@ interface AppHeaderProps {
   tasksCount: number;
   completedTasks: number;
   completionRate: number;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
   onOpenModal: () => void;
   onOpenTaskList?: () => void;
   isMobile?: boolean;
@@ -26,10 +22,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   tasksCount,
   completedTasks,
   completionRate,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
   onOpenModal,
   onOpenTaskList,
   isMobile = false
@@ -96,28 +88,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         <span className="text-muted-foreground">Progression</span>
                         <span className="font-medium">{completionRate}%</span>
                       </div>
-                      <div className="pt-2 border-t flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={onUndo}
-                          disabled={!canUndo}
-                          className="flex-1 h-8"
-                        >
-                          <Undo className="w-3 h-3 mr-1" />
-                          Annuler
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={onRedo}
-                          disabled={!canRedo}
-                          className="flex-1 h-8"
-                        >
-                          <Redo className="w-3 h-3 mr-1" />
-                          Refaire
-                        </Button>
-                      </div>
                     </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -127,31 +97,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             ) : (
               /* Version desktop: affichage complet */
               <>
-                {/* Historique */}
-                <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-accent rounded-lg border border-border">
-                  <span className="text-xs text-muted-foreground font-medium">Historique:</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onUndo}
-                    disabled={!canUndo}
-                    className="h-6 w-6 p-0 disabled:opacity-50"
-                    title="Annuler (Ctrl+Z)"
-                  >
-                    <Undo className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onRedo}
-                    disabled={!canRedo}
-                    className="h-6 w-6 p-0 disabled:opacity-50"
-                    title="Refaire (Ctrl+Y)"
-                  >
-                    <Redo className="w-3 h-3" />
-                  </Button>
-                </div>
-
                 {/* Statistiques */}
                 <div className="hidden md:flex items-center space-x-3 lg:space-x-4 text-xs text-muted-foreground">
                   <span className="flex items-center space-x-1">

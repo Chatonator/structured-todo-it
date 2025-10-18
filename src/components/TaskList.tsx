@@ -220,10 +220,6 @@ const TaskList: React.FC<TaskListProps> = ({
                 onCategoryFilterChange={setCategoryFilter}
                 sortBy={sortBy}
                 onSortChange={handleSort}
-                canUndo={false}
-                canRedo={false}
-                onUndo={() => {}}
-                onRedo={() => {}}
               />
               
               {/* Bouton de repli en haut à droite */}
