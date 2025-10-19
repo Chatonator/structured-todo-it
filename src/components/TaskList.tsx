@@ -192,25 +192,21 @@ const TaskList: React.FC<TaskListProps> = ({
           </div>
         ) : (
           /* Vue dépliée - Contenu complet */
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full relative">
+            {/* Bouton de repli sticky - même style que le bouton de dépli */}
+            <Button
+              onClick={() => handleToggleCollapsed(true)}
+              className="sticky top-4 right-4 ml-auto mr-4 mt-4 w-12 h-12 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 z-50"
+              title="Replier la liste des tâches"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
+
             {/* En-tête simplifié */}
-            <div className="relative p-3 border-b border-border bg-accent">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Tâches Actives ({localFilteredTasks.length})
-                </h2>
-                
-                {/* Bouton de repli */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleToggleCollapsed(true)}
-                  className="w-8 h-8 p-0 hover:bg-muted rounded-md transition-colors"
-                  title="Replier la liste"
-                >
-                  <ChevronLeft className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                </Button>
-              </div>
+            <div className="relative px-3 pb-3 border-b border-border bg-accent">
+              <h2 className="text-sm font-semibold text-foreground text-center">
+                Tâches Actives ({localFilteredTasks.length})
+              </h2>
             </div>
 
             {/* Bouton de vue étendue */}
