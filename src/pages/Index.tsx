@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
+import { Task } from '@/types/task';
 import TaskList from '@/components/TaskList';
 import TaskModal from '@/components/TaskModal';
 import TasksView from '@/components/TasksView';
@@ -110,21 +111,21 @@ const Index = () => {
     });
   };
 
-  // Filtrage des tâches selon la vue + filtres globaux
-  const getFilteredTasks = () => {
-    const safeTasks = Array.isArray(tasks) ? tasks : [];
+  // Fonction pour appliquer les filtres globaux
+  const applyFilters = (taskList: Task[]) => {
+    let filtered = taskList;
     
-    let filtered = currentView === 'completed' 
-      ? safeTasks.filter(task => task && task.isCompleted)
-      : safeTasks.filter(task => task && !task.isCompleted);
-    
-    // Appliquer les filtres
+    // Filtrer par contexte (Pro/Perso)
     if (contextFilter !== 'all') {
       filtered = filtered.filter(task => task.context === contextFilter);
     }
+    
+    // Filtrer par catégorie
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(task => task.category === categoryFilter);
     }
+    
+    // Filtrer par recherche
     if (searchQuery) {
       filtered = filtered.filter(task => 
         task.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -134,15 +135,29 @@ const Index = () => {
     return filtered;
   };
 
+  // Filtrage des tâches selon la vue + filtres globaux
+  const getFilteredTasks = () => {
+    const safeTasks = Array.isArray(tasks) ? tasks : [];
+    
+    // D'abord filtrer par statut (actif/complété)
+    let filtered = currentView === 'completed' 
+      ? safeTasks.filter(task => task && task.isCompleted)
+      : safeTasks.filter(task => task && !task.isCompleted);
+    
+    // Appliquer les filtres globaux
+    return applyFilters(filtered);
+  };
+
   const filteredTasks = getFilteredTasks();
   
-  // Pour la liste de gauche, on applique les mêmes filtres
+  // Pour la liste de gauche et les vues, appliquer les mêmes filtres
   const safeMainTasks = Array.isArray(mainTasks) ? mainTasks : [];
-  const filteredMainTasks = safeMainTasks
-    .filter(task => task && !task.isCompleted)
-    .filter(task => contextFilter === 'all' || task.context === contextFilter)
-    .filter(task => categoryFilter === 'all' || task.category === categoryFilter)
-    .filter(task => !searchQuery || task.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredMainTasks = applyFilters(
+    safeMainTasks.filter(task => task && !task.isCompleted)
+  );
+  
+  // Filtrer toutes les tâches (pour les vues qui ont besoin de toutes les tâches)
+  const allFilteredTasks = applyFilters(Array.isArray(tasks) ? tasks : []);
 
   // Application du thème
   useEffect(() => {
@@ -156,8 +171,8 @@ const Index = () => {
         case 'tasks':
           return (
             <TasksView 
-              tasks={filteredTasks}
-              mainTasks={safeMainTasks}
+              tasks={allFilteredTasks}
+              mainTasks={filteredMainTasks}
               getSubTasks={safeGetSubTasks}
               calculateTotalTime={safeCalculateTotalTime}
               onUpdateTask={safeUpdateTask}
@@ -166,7 +181,7 @@ const Index = () => {
         case 'priority':
           return (
             <PriorityView 
-              tasks={filteredTasks}
+              tasks={allFilteredTasks.filter(t => !t.isCompleted)}
               getSubTasks={safeGetSubTasks}
               calculateTotalTime={safeCalculateTotalTime}
             />
@@ -174,17 +189,19 @@ const Index = () => {
         case 'dashboard':
           return (
             <DashboardView 
-              tasks={filteredTasks}
+              tasks={allFilteredTasks}
               mainTasks={filteredMainTasks}
               calculateTotalTime={safeCalculateTotalTime}
             />
           );
         case 'eisenhower':
-          return <EisenhowerView tasks={filteredTasks} />;
+          return <EisenhowerView tasks={allFilteredTasks.filter(t => !t.isCompleted)} />;
         case 'calendar':
-          return <CalendarView tasks={filteredTasks} />;
+          return <CalendarView tasks={allFilteredTasks} />;
         case 'completed':
-          const completedTasksList = Array.isArray(tasks) ? tasks.filter(t => t && t.isCompleted) : [];
+          const completedTasksList = applyFilters(
+            Array.isArray(tasks) ? tasks.filter(t => t && t.isCompleted) : []
+          );
           return (
             <CompletedTasksView 
               tasks={completedTasksList} 
