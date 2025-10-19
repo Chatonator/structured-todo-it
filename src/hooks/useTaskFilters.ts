@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Task, TaskCategory } from '@/types/task';
+import { Task, TaskCategory, TaskContext } from '@/types/task';
 
 /**
  * Hook personnalisé pour gérer les filtres des tâches
@@ -9,6 +9,7 @@ import { Task, TaskCategory } from '@/types/task';
 export const useTaskFilters = (tasks: Task[]) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<TaskCategory | 'all'>('all');
+  const [contextFilter, setContextFilter] = useState<TaskContext | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending'>('all');
 
   // Filtrage mémorisé pour éviter les recalculs inutiles
@@ -16,17 +17,19 @@ export const useTaskFilters = (tasks: Task[]) => {
     return tasks.filter(task => {
       const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
+      const matchesContext = contextFilter === 'all' || task.context === contextFilter;
       const matchesStatus = statusFilter === 'all' || 
         (statusFilter === 'completed' && task.isCompleted) ||
         (statusFilter === 'pending' && !task.isCompleted);
       
-      return matchesSearch && matchesCategory && matchesStatus;
+      return matchesSearch && matchesCategory && matchesContext && matchesStatus;
     });
-  }, [tasks, searchQuery, categoryFilter, statusFilter]);
+  }, [tasks, searchQuery, categoryFilter, contextFilter, statusFilter]);
 
   const clearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('all');
+    setContextFilter('all');
     setStatusFilter('all');
   };
 
@@ -35,10 +38,12 @@ export const useTaskFilters = (tasks: Task[]) => {
     setSearchQuery,
     categoryFilter,
     setCategoryFilter,
+    contextFilter,
+    setContextFilter,
     statusFilter,
     setStatusFilter,
     filteredTasks,
     clearFilters,
-    hasActiveFilters: searchQuery !== '' || categoryFilter !== 'all' || statusFilter !== 'all'
+    hasActiveFilters: searchQuery !== '' || categoryFilter !== 'all' || contextFilter !== 'all' || statusFilter !== 'all'
   };
 };

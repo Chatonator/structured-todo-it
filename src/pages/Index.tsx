@@ -78,6 +78,12 @@ const Index = () => {
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [isTaskListOpen, setIsTaskListOpen] = useState(false);
   const [isTaskListCollapsed, setIsTaskListCollapsed] = useState(false);
+  
+  // États pour les filtres globaux
+  const [contextFilter, setContextFilter] = useState<'Pro' | 'Perso' | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<any>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'duration' | 'category'>('name');
 
   // Configuration de la navigation
   const navigationItems = [
@@ -104,21 +110,39 @@ const Index = () => {
     });
   };
 
-  // Filtrage des tâches selon la vue avec sécurisation
+  // Filtrage des tâches selon la vue + filtres globaux
   const getFilteredTasks = () => {
     const safeTasks = Array.isArray(tasks) ? tasks : [];
     
-    if (currentView === 'completed') {
-      return safeTasks.filter(task => task && task.isCompleted);
+    let filtered = currentView === 'completed' 
+      ? safeTasks.filter(task => task && task.isCompleted)
+      : safeTasks.filter(task => task && !task.isCompleted);
+    
+    // Appliquer les filtres
+    if (contextFilter !== 'all') {
+      filtered = filtered.filter(task => task.context === contextFilter);
     }
-    return safeTasks.filter(task => task && !task.isCompleted);
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(task => task.category === categoryFilter);
+    }
+    if (searchQuery) {
+      filtered = filtered.filter(task => 
+        task.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return filtered;
   };
 
   const filteredTasks = getFilteredTasks();
   
-  // Pour la liste de gauche, on exclut toujours les tâches terminées
+  // Pour la liste de gauche, on applique les mêmes filtres
   const safeMainTasks = Array.isArray(mainTasks) ? mainTasks : [];
-  const filteredMainTasks = safeMainTasks.filter(task => task && !task.isCompleted);
+  const filteredMainTasks = safeMainTasks
+    .filter(task => task && !task.isCompleted)
+    .filter(task => contextFilter === 'all' || task.context === contextFilter)
+    .filter(task => categoryFilter === 'all' || task.category === categoryFilter)
+    .filter(task => !searchQuery || task.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   // Application du thème
   useEffect(() => {
@@ -195,7 +219,7 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className={`min-h-screen flex flex-col w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
-        {/* Header avec statistiques et historique */}
+        {/* Header avec statistiques, filtres et actions */}
         <AppHeader
           tasksCount={safeTasksCount}
           completedTasks={safeCompletedTasks}
@@ -203,6 +227,17 @@ const Index = () => {
           onOpenModal={() => setIsModalOpen(true)}
           onOpenTaskList={() => setIsTaskListOpen(true)}
           isMobile={isMobile}
+          contextFilter={contextFilter}
+          onContextFilterChange={setContextFilter}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          categoryFilter={categoryFilter}
+          onCategoryFilterChange={setCategoryFilter}
+          sortBy={sortBy}
+          onSortChange={(newSort) => {
+            setSortBy(newSort);
+            safeSortTasks(newSort);
+          }}
         />
 
         {/* Navigation horizontale - cachée sur mobile */}
@@ -226,7 +261,7 @@ const Index = () => {
               `}
             >
               <TaskList 
-                tasks={Array.isArray(tasks) ? tasks : []}
+                tasks={filteredTasks}
                 mainTasks={filteredMainTasks}
                 pinnedTasks={Array.isArray(pinnedTasks) ? pinnedTasks : []}
                 onRemoveTask={safeRemoveTask}
@@ -255,7 +290,7 @@ const Index = () => {
             <Sheet open={isTaskListOpen} onOpenChange={setIsTaskListOpen}>
               <SheetContent side="left" className="w-full sm:w-[400px] p-0">
                 <TaskList 
-                  tasks={Array.isArray(tasks) ? tasks : []}
+                  tasks={filteredTasks}
                   mainTasks={filteredMainTasks}
                   pinnedTasks={Array.isArray(pinnedTasks) ? pinnedTasks : []}
                   onRemoveTask={safeRemoveTask}

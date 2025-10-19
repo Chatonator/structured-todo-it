@@ -2,6 +2,9 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckSquare, Plus, Menu } from 'lucide-react';
 import UserOptionsMenu from '@/components/UserOptionsMenu';
+import ContextSwitch from '@/components/filters/ContextSwitch';
+import SecondaryFilters from '@/components/filters/SecondaryFilters';
+import { TaskCategory, TaskContext } from '@/types/task';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +19,15 @@ interface AppHeaderProps {
   onOpenModal: () => void;
   onOpenTaskList?: () => void;
   isMobile?: boolean;
+  // Filtres
+  contextFilter: TaskContext | 'all';
+  onContextFilterChange: (context: TaskContext | 'all') => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  categoryFilter: TaskCategory | 'all';
+  onCategoryFilterChange: (category: TaskCategory | 'all') => void;
+  sortBy: 'name' | 'duration' | 'category';
+  onSortChange: (sortBy: 'name' | 'duration' | 'category') => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -24,11 +36,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   completionRate,
   onOpenModal,
   onOpenTaskList,
-  isMobile = false
+  isMobile = false,
+  contextFilter,
+  onContextFilterChange,
+  searchQuery,
+  onSearchChange,
+  categoryFilter,
+  onCategoryFilterChange,
+  sortBy,
+  onSortChange
 }) => {
   return (
     <header className="bg-background shadow-sm border-b border-border">
-      <div className="px-3 md:px-6 py-2 md:py-3">
+      <div className="px-3 md:px-6 py-2 md:py-3 space-y-3">
+        {/* Première ligne : Logo, titre, stats, actions */}
         <div className="flex items-center justify-between gap-2">
           {/* Logo et titre */}
           <div className="flex items-center gap-2 md:gap-3">
@@ -132,6 +153,30 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             )}
           </div>
         </div>
+
+        {/* Deuxième ligne : Switch Pro/Perso + Filtres secondaires */}
+        {!isMobile && (
+          <div className="flex items-center justify-between gap-4">
+            {/* Switch principal Pro/Perso */}
+            <ContextSwitch 
+              value={contextFilter}
+              onValueChange={onContextFilterChange}
+            />
+            
+            {/* Séparateur visuel */}
+            <div className="h-6 w-px bg-border" />
+            
+            {/* Filtres secondaires */}
+            <SecondaryFilters
+              searchQuery={searchQuery}
+              onSearchChange={onSearchChange}
+              categoryFilter={categoryFilter}
+              onCategoryFilterChange={onCategoryFilterChange}
+              sortBy={sortBy}
+              onSortChange={onSortChange}
+            />
+          </div>
+        )}
       </div>
     </header>
   );

@@ -5,8 +5,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
 import TaskItem from './task/TaskItem';
-import TaskListHeader from './task/TaskListHeader';
-import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
 
 
@@ -69,21 +67,13 @@ const TaskList: React.FC<TaskListProps> = ({
     onCollapsedChange?.(collapsed);
   };
 
-  // Filtres locaux – on place les tâches épinglées en tête avant filtrage/recherche
+  // Tâches actives triées avec épinglées en tête
   const mainActive = mainTasks.filter(task => !task.isCompleted);
-  const preOrdered = [...mainActive].sort((a, b) => {
+  const localFilteredTasks = [...mainActive].sort((a, b) => {
     const aPinned = pinnedTasks.includes(a.id);
     const bPinned = pinnedTasks.includes(b.id);
     return aPinned === bPinned ? 0 : aPinned ? -1 : 1;
   });
-
-  const {
-    searchQuery,
-    setSearchQuery,
-    categoryFilter,
-    setCategoryFilter,
-    filteredTasks: localFilteredTasks
-  } = useTaskFilters(preOrdered);
 
   // Opérations sur les tâches
   const { handleBulkComplete, handleBulkDelete } = useTaskOperations(
@@ -92,13 +82,6 @@ const TaskList: React.FC<TaskListProps> = ({
     onTogglePinTask
   );
 
-  // État local pour le tri
-  const [sortBy, setSortBy] = useState<'name' | 'duration' | 'category'>('name');
-
-  const handleSort = (newSortBy: 'name' | 'duration' | 'category') => {
-    setSortBy(newSortBy);
-    onSortTasks(newSortBy);
-  };
 
   // Gestion du drag & drop améliorée
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -210,46 +193,42 @@ const TaskList: React.FC<TaskListProps> = ({
         ) : (
           /* Vue dépliée - Contenu complet */
           <div className="flex flex-col h-full">
-            {/* En-tête avec contrôles et bouton de repli */}
-            <div className="relative">
-              <TaskListHeader
-                tasksCount={localFilteredTasks.length}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                categoryFilter={categoryFilter}
-                onCategoryFilterChange={setCategoryFilter}
-                sortBy={sortBy}
-                onSortChange={handleSort}
-              />
-              
-              {/* Bouton de repli en haut à droite */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleToggleCollapsed(true)}
-                className="absolute top-2 right-2 w-8 h-8 p-0 hover:bg-muted rounded-md transition-colors"
-                title="Replier la liste"
-              >
-                <ChevronLeft className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-              </Button>
+            {/* En-tête simplifié */}
+            <div className="relative p-3 border-b border-border bg-accent">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-foreground">
+                  Tâches Actives ({localFilteredTasks.length})
+                </h2>
+                
+                {/* Bouton de repli */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleToggleCollapsed(true)}
+                  className="w-8 h-8 p-0 hover:bg-muted rounded-md transition-colors"
+                  title="Replier la liste"
+                >
+                  <ChevronLeft className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                </Button>
+              </div>
             </div>
 
             {/* Bouton de vue étendue */}
-            <div className="px-2 py-1 border-b border-border bg-accent">
+            <div className="px-3 py-2 border-b border-border bg-background">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsExtendedView(!isExtendedView)}
-                className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+                className="w-full justify-center text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               >
                 {isExtendedView ? (
                   <>
-                    <ChevronsUp className="w-3 h-3 mr-2" />
+                    <ChevronsUp className="w-4 h-4 mr-2" />
                     Vue condensée
                   </>
                 ) : (
                   <>
-                    <ChevronsDown className="w-3 h-3 mr-2" />
+                    <ChevronsDown className="w-4 h-4 mr-2" />
                     Vue étendue
                   </>
                 )}
@@ -267,10 +246,10 @@ const TaskList: React.FC<TaskListProps> = ({
                           <Clock className="w-8 h-8 mx-auto mb-2" />
                         </div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                          {searchQuery || categoryFilter !== 'all' ? 'Aucune tâche trouvée' : 'Aucune tâche active'}
+                          Aucune tâche active
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          {searchQuery || categoryFilter !== 'all' ? 'Modifiez vos filtres' : 'Créez votre première tâche !'}
+                          Créez votre première tâche !
                         </p>
                       </div>
                     </div>
