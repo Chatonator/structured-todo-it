@@ -64,7 +64,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragging(true);
-    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', task.id);
     
     // Image de drag avec classes Tailwind inlines
@@ -72,7 +72,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
     dragImage.className = 'fixed opacity-0 pointer-events-none';
     dragImage.innerHTML = `
       <div class="bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold shadow-2xl transform rotate-2 scale-105 flex items-center gap-2 min-w-[200px]">
-        <span class="text-base">📅</span>
+        <span class="text-base">${task.level > 0 ? '📋' : '📅'}</span>
         <span>${task.name}</span>
       </div>
     `;
@@ -82,9 +82,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
     e.dataTransfer.setDragImage(dragImage, 100, 25);
     setTimeout(() => document.body.removeChild(dragImage), 100);
     
-    if (task.level === 0) {
-      onDragStart?.(e, taskIndex || 0);
-    }
+    // Permettre le drag pour toutes les tâches (y compris sous-tâches)
+    onDragStart?.(e, taskIndex || 0);
   };
 
   const handleDragEnd = () => {
@@ -92,18 +91,16 @@ const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    if (task.level === 0) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      onDragOver?.(e);
-    }
+    // Permettre le drop pour toutes les tâches
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    onDragOver?.(e);
   };
 
   const handleDrop = (e: React.DragEvent) => {
-    if (task.level === 0) {
-      e.preventDefault();
-      onDrop?.(e, taskIndex || 0);
-    }
+    // Permettre le drop pour toutes les tâches
+    e.preventDefault();
+    onDrop?.(e, taskIndex || 0);
   };
 
 

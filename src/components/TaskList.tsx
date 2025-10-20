@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
 import TaskItem from './task/TaskItem';
+import QuickAddTask from './QuickAddTask';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
 
 
@@ -120,13 +121,50 @@ const TaskList: React.FC<TaskListProps> = ({
     setIsSubTaskModalOpen(true);
   };
 
+  // Gestion du drag & drop pour les sous-tâches
+  const handleSubTaskReorder = (parentId: string, subTasks: Task[], startIndex: number, endIndex: number) => {
+    const result = Array.from(subTasks);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    
+    // Mise à jour de l'ordre global
+    const globalStartIndex = tasks.findIndex(t => t.id === subTasks[startIndex].id);
+    const globalEndIndex = tasks.findIndex(t => t.id === subTasks[endIndex].id);
+    
+    if (globalStartIndex !== -1 && globalEndIndex !== -1) {
+      onReorderTasks(globalStartIndex, globalEndIndex);
+    }
+  };
+
   // Rendu d'une tâche avec ses sous-tâches - ajout de data-category pour les ombres
-  const renderTask = (task: Task): React.ReactNode => {
+  const renderTask = (task: Task, parentSubTasks?: Task[]): React.ReactNode => {
     const subTasks = getSubTasks(task.id).filter(t => !t.isCompleted);
     const totalTime = calculateTotalTime(task);
     const isSelected = selectedTasks.includes(task.id);
     const isPinned = pinnedTasks.includes(task.id);
-    const taskIndex = localFilteredTasks.findIndex(t => t.id === task.id);
+    const taskIndex = parentSubTasks 
+      ? parentSubTasks.findIndex(t => t.id === task.id)
+      : localFilteredTasks.findIndex(t => t.id === task.id);
+
+    const handleSubTaskDragStart = (e: React.DragEvent, index: number) => {
+      if (parentSubTasks) {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+      } else {
+        handleDragStart(e, index);
+      }
+    };
+
+    const handleSubTaskDrop = (e: React.DragEvent, dropIndex: number) => {
+      if (parentSubTasks && draggedIndex !== null) {
+        e.preventDefault();
+        handleSubTaskReorder(task.parentId!, parentSubTasks, draggedIndex, dropIndex);
+        setDraggedIndex(null);
+        setDragOverIndex(null);
+      } else {
+        handleDrop(e, dropIndex);
+      }
+    };
 
     return (
       <div 
@@ -150,9 +188,9 @@ const TaskList: React.FC<TaskListProps> = ({
           onTogglePinTask={onTogglePinTask}
           onRemoveTask={onRemoveTask}
           onCreateSubTask={handleCreateSubTasks}
-          onDragStart={handleDragStart}
+          onDragStart={parentSubTasks ? handleSubTaskDragStart : handleDragStart}
           onDragOver={handleDragOver}
-          onDrop={handleDrop}
+          onDrop={parentSubTasks ? handleSubTaskDrop : handleDrop}
           dragIndex={draggedIndex}
           taskIndex={taskIndex}
           isDragOver={dragOverIndex === taskIndex}
@@ -161,7 +199,7 @@ const TaskList: React.FC<TaskListProps> = ({
         {/* Sous-tâches */}
         {subTasks.length > 0 && task.isExpanded && (
           <div className="mt-1 space-y-1">
-            {subTasks.map(subTask => renderTask(subTask))}
+            {subTasks.map(subTask => renderTask(subTask, subTasks))}
           </div>
         )}
       </div>
@@ -202,9 +240,12 @@ const TaskList: React.FC<TaskListProps> = ({
               <ChevronLeft className="w-6 h-6" />
             </Button>
 
+            {/* Bloc d'ajout rapide */}
+            <QuickAddTask onAddTask={onAddTask} />
+
             {/* En-tête simplifié */}
-            <div className="relative px-3 pb-3 border-b border-border bg-accent">
-              <h2 className="text-sm font-semibold text-foreground text-center">
+            <div className="relative px-3 pb-2 pt-2 border-b border-border bg-background">
+              <h2 className="text-xs font-semibold text-muted-foreground text-center uppercase tracking-wide">
                 Tâches Actives ({localFilteredTasks.length})
               </h2>
             </div>
