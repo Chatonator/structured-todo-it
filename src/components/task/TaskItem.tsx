@@ -21,6 +21,7 @@ interface TaskItemProps {
   onTogglePinTask: (taskId: string) => void;
   onRemoveTask: (taskId: string) => void;
   onCreateSubTask: (task: Task) => void;
+  onEditTask: (task: Task) => void;
   onDragStart?: (e: React.DragEvent, index: number) => void;
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent, index: number) => void;
@@ -43,6 +44,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onTogglePinTask,
   onRemoveTask,
   onCreateSubTask,
+  onEditTask,
   onDragStart,
   onDragOver,
   onDrop,
@@ -161,6 +163,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
             canHaveSubTasks={canHaveSubTasks}
             isVisible={isExtended}
             onCreateSubTask={onCreateSubTask}
+            onEditTask={onEditTask}
             onToggleCompletion={onToggleCompletion}
             onRemoveTask={onRemoveTask}
           />

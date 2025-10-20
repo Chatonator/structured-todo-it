@@ -2,13 +2,14 @@
 import React from 'react';
 import { Task } from '@/types/task';
 import { Button } from '@/components/ui/button';
-import { Divide, CheckSquare, X } from 'lucide-react';
+import { Divide, CheckSquare, X, Edit } from 'lucide-react';
 
 interface TaskItemActionsProps {
   task: Task;
   canHaveSubTasks: boolean;
   isVisible: boolean;
   onCreateSubTask: (task: Task) => void;
+  onEditTask: (task: Task) => void;
   onToggleCompletion: (taskId: string) => void;
   onRemoveTask: (taskId: string) => void;
 }
@@ -18,6 +19,7 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
   canHaveSubTasks,
   isVisible,
   onCreateSubTask,
+  onEditTask,
   onToggleCompletion,
   onRemoveTask
 }) => {
@@ -38,6 +40,15 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
           <Divide className="w-3 h-3" />
         </Button>
       )}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onEditTask(task)}
+        className="h-6 w-6 p-0"
+        title="Modifier"
+      >
+        <Edit className="w-3 h-3" />
+      </Button>
       <Button
         variant="ghost"
         size="sm"

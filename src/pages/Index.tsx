@@ -288,6 +288,7 @@ const Index = () => {
                 onToggleCompletion={safeToggleTaskCompletion}
                 onTogglePinTask={safeTogglePinTask}
                 onAddTask={safeAddTask}
+                onUpdateTask={safeUpdateTask}
                 getSubTasks={safeGetSubTasks}
                 calculateTotalTime={safeCalculateTotalTime}
                 canHaveSubTasks={safeCanHaveSubTasks}
@@ -317,6 +318,7 @@ const Index = () => {
                   onToggleCompletion={safeToggleTaskCompletion}
                   onTogglePinTask={safeTogglePinTask}
                   onAddTask={safeAddTask}
+                  onUpdateTask={safeUpdateTask}
                   getSubTasks={safeGetSubTasks}
                   calculateTotalTime={safeCalculateTotalTime}
                   canHaveSubTasks={safeCanHaveSubTasks}

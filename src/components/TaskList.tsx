@@ -20,6 +20,7 @@ interface TaskListProps {
   onToggleCompletion: (taskId: string) => void;
   onTogglePinTask: (taskId: string) => void;
   onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
   getSubTasks: (parentId: string) => Task[];
   calculateTotalTime: (task: Task) => number;
   canHaveSubTasks: (task: Task) => boolean;
@@ -43,6 +44,7 @@ const TaskList: React.FC<TaskListProps> = ({
   onToggleCompletion,
   onTogglePinTask,
   onAddTask,
+  onUpdateTask,
   getSubTasks,
   calculateTotalTime,
   canHaveSubTasks,
@@ -61,6 +63,8 @@ const TaskList: React.FC<TaskListProps> = ({
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
   const [isExtendedView, setIsExtendedView] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Notifier le parent quand l'état collapsed change
   const handleToggleCollapsed = (collapsed: boolean) => {
@@ -119,6 +123,17 @@ const TaskList: React.FC<TaskListProps> = ({
   const handleCreateSubTasks = (parentTask: Task) => {
     setSelectedParentTask(parentTask);
     setIsSubTaskModalOpen(true);
+  };
+
+  // Gestion de l'édition de tâche
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingTask(null);
+    setIsEditModalOpen(false);
   };
 
   // Gestion du drag & drop pour les sous-tâches
@@ -188,6 +203,7 @@ const TaskList: React.FC<TaskListProps> = ({
           onTogglePinTask={onTogglePinTask}
           onRemoveTask={onRemoveTask}
           onCreateSubTask={handleCreateSubTasks}
+          onEditTask={handleEditTask}
           onDragStart={parentSubTasks ? handleSubTaskDragStart : handleDragStart}
           onDragOver={handleDragOver}
           onDrop={parentSubTasks ? handleSubTaskDrop : handleDrop}
@@ -315,6 +331,17 @@ const TaskList: React.FC<TaskListProps> = ({
                   setSelectedParentTask(null);
                 }}
                 parentTask={selectedParentTask}
+              />
+            )}
+
+            {/* Modale d'édition */}
+            {isEditModalOpen && (
+              <TaskModal
+                key={editingTask?.id}
+                isOpen
+                onClose={handleCloseEditModal}
+                onUpdateTask={onUpdateTask}
+                editingTask={editingTask}
               />
             )}
           </div>
