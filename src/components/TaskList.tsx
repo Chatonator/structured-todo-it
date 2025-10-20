@@ -138,13 +138,13 @@ const TaskList: React.FC<TaskListProps> = ({
 
   // Gestion du drag & drop pour les sous-tâches
   const handleSubTaskReorder = (parentId: string, subTasks: Task[], startIndex: number, endIndex: number) => {
-    const result = Array.from(subTasks);
-    const [removed] = result.splice(startIndex, 1);
-    result.splice(endIndex, 0, removed);
+    // IMPORTANT: récupérer les IDs AVANT de modifier le tableau
+    const movedTaskId = subTasks[startIndex].id;
+    const targetTaskId = subTasks[endIndex].id;
     
-    // Mise à jour de l'ordre global
-    const globalStartIndex = tasks.findIndex(t => t.id === subTasks[startIndex].id);
-    const globalEndIndex = tasks.findIndex(t => t.id === subTasks[endIndex].id);
+    // Trouver les indices globaux dans le tableau complet des tâches
+    const globalStartIndex = tasks.findIndex(t => t.id === movedTaskId);
+    const globalEndIndex = tasks.findIndex(t => t.id === targetTaskId);
     
     if (globalStartIndex !== -1 && globalEndIndex !== -1) {
       onReorderTasks(globalStartIndex, globalEndIndex);
