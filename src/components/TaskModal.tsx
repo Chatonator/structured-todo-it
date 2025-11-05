@@ -361,24 +361,13 @@ useEffect(() => {
                         </PopoverContent>
                       </Popover>
 
-                      <Select 
-                        value={draft.scheduledTime || ''} 
-                        onValueChange={(value) => updateTaskDraft(index, 'scheduledTime', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Heure" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 24 }, (_, i) => {
-                            const hour = i.toString().padStart(2, '0');
-                            return (
-                              <SelectItem key={hour} value={`${hour}:00`}>
-                                {hour}:00
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        type="time"
+                        value={draft.scheduledTime || ''}
+                        onChange={(e) => updateTaskDraft(index, 'scheduledTime', e.target.value)}
+                        placeholder="HH:MM"
+                        className="h-9 text-sm"
+                      />
                      </div>
                    </div>
 
