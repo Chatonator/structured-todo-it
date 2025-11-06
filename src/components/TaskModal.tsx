@@ -8,7 +8,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Plus, Check, AlertTriangle, CalendarIcon, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Task, TaskCategory, SubTaskCategory, TaskContext, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG, RECURRENCE_OPTIONS, RecurrenceInterval } from '@/types/task';
+import { Task, TaskCategory, SubTaskCategory, TaskContext, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG, RECURRENCE_OPTIONS, RecurrenceInterval, getCategoryDisplayName } from '@/types/task';
 
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -307,7 +307,7 @@ useEffect(() => {
                             className={`flex items-center space-x-1 p-2 text-xs transition-all bg-category-${config.cssName}/10 border-category-${config.cssName}/20 hover:bg-category-${config.cssName}/20`}
                           >
                             <div className={`w-2 h-2 rounded-full bg-category-${config.cssName}`} />
-                            <span className="font-medium truncate">{cat}</span>
+                            <span className="font-medium truncate">{getCategoryDisplayName(cat as TaskCategory)}</span>
                           </Button>
                         ))
                       )}

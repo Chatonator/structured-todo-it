@@ -128,6 +128,21 @@ export const RECURRENCE_OPTIONS = [
   { value: 'monthly' as RecurrenceInterval, label: 'Mensuel' }
 ];
 
+// Mapping des noms de catégories internes vers noms d'affichage
+export const CATEGORY_DISPLAY_NAMES: Record<TaskCategory, string> = {
+  'Obligation': 'Cruciales',
+  'Quotidien': 'Régulières',
+  'Envie': 'Envies',
+  'Autres': 'Optionnelles'
+};
+
+/**
+ * Obtenir le nom d'affichage d'une catégorie
+ */
+export function getCategoryDisplayName(category: TaskCategory): string {
+  return CATEGORY_DISPLAY_NAMES[category];
+}
+
 export const CALENDAR_VIEWS = {
   DAY: 'day',
   WEEK: 'week',

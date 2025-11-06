@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TaskCategory, TaskContext } from '@/types/task';
+import { TaskCategory, TaskContext, getCategoryDisplayName } from '@/types/task';
 import { validateTask, sanitizeTask } from '@/utils/taskValidation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -107,10 +107,10 @@ const QuickAddTask: React.FC<QuickAddTaskProps> = ({ onAddTask }) => {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="Obligation">Obligation</SelectItem>
-          <SelectItem value="Quotidien">Quotidien</SelectItem>
-          <SelectItem value="Envie">Envie</SelectItem>
-          <SelectItem value="Autres">Autres</SelectItem>
+          <SelectItem value="Obligation">{getCategoryDisplayName('Obligation')}</SelectItem>
+          <SelectItem value="Quotidien">{getCategoryDisplayName('Quotidien')}</SelectItem>
+          <SelectItem value="Envie">{getCategoryDisplayName('Envie')}</SelectItem>
+          <SelectItem value="Autres">{getCategoryDisplayName('Autres')}</SelectItem>
         </SelectContent>
       </Select>
 

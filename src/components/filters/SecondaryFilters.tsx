@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, SortAsc, X } from 'lucide-react';
-import { TaskCategory, CATEGORY_CONFIG } from '@/types/task';
+import { TaskCategory, CATEGORY_CONFIG, getCategoryDisplayName } from '@/types/task';
 
 interface SecondaryFiltersProps {
   searchQuery: string;
@@ -58,7 +58,7 @@ const SecondaryFilters: React.FC<SecondaryFiltersProps> = ({
           <SelectItem value="all" className="text-xs">Toutes</SelectItem>
           {Object.keys(CATEGORY_CONFIG).map((category) => (
             <SelectItem key={category} value={category} className="text-xs">
-              {category}
+              {getCategoryDisplayName(category as TaskCategory)}
             </SelectItem>
           ))}
         </SelectContent>
