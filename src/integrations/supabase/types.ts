@@ -125,15 +125,179 @@ export type Database = {
         }
         Relationships: []
       }
+      team_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["team_role"]
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_tasks: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          context: string
+          created_at: string
+          created_by: string
+          duration: number | null
+          estimatedtime: number
+          id: string
+          iscompleted: boolean
+          isexpanded: boolean
+          isrecurring: boolean | null
+          lastcompletedat: string | null
+          level: number
+          name: string
+          parentid: string | null
+          recurrenceinterval: string | null
+          scheduleddate: string | null
+          scheduledtime: string | null
+          starttime: string | null
+          subcategory: string | null
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          context: string
+          created_at?: string
+          created_by: string
+          duration?: number | null
+          estimatedtime: number
+          id?: string
+          iscompleted?: boolean
+          isexpanded?: boolean
+          isrecurring?: boolean | null
+          lastcompletedat?: string | null
+          level?: number
+          name: string
+          parentid?: string | null
+          recurrenceinterval?: string | null
+          scheduleddate?: string | null
+          scheduledtime?: string | null
+          starttime?: string | null
+          subcategory?: string | null
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          context?: string
+          created_at?: string
+          created_by?: string
+          duration?: number | null
+          estimatedtime?: number
+          id?: string
+          iscompleted?: boolean
+          isexpanded?: boolean
+          isrecurring?: boolean | null
+          lastcompletedat?: string | null
+          level?: number
+          name?: string
+          parentid?: string | null
+          recurrenceinterval?: string | null
+          scheduleddate?: string | null
+          scheduledtime?: string | null
+          starttime?: string | null
+          subcategory?: string | null
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_tasks_parentid_fkey"
+            columns: ["parentid"]
+            isOneToOne: false
+            referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_tasks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          invite_code: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          invite_code: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          invite_code?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_team_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["team_role"]
+          _team_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_team_admin: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_team_member: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      team_role: "owner" | "admin" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -260,6 +424,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      team_role: ["owner", "admin", "member"],
+    },
   },
 } as const
