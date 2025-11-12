@@ -1,6 +1,4 @@
 import { Toaster } from "@/components/ui/toaster";
-
-
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -11,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { TeamProvider } from "@/contexts/TeamContext";
 import { logger } from "@/lib/logger";
 
 const queryClient = new QueryClient({
@@ -93,29 +92,32 @@ const App = () => (
   >
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-<BrowserRouter basename={import.meta.env.DEV ? '/' : '/structured-todo-it/'}>
-            <Routes>
-              <Route 
-                path="/" 
-                element={
-                  <ProtectedRoute>                    <Index />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/auth" 
-                element={
-                  <PublicRoute>
-                    <Auth />
-                  </PublicRoute>
-                } 
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <TeamProvider>
+          <TooltipProvider>
+            <Toaster />
+            <BrowserRouter basename={import.meta.env.DEV ? '/' : '/structured-todo-it/'}>
+              <Routes>
+                <Route 
+                  path="/" 
+                  element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/auth" 
+                  element={
+                    <PublicRoute>
+                      <Auth />
+                    </PublicRoute>
+                  } 
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </TeamProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </ErrorBoundary>
