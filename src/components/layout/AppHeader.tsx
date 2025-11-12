@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Plus, Menu } from 'lucide-react';
+import { CheckSquare, Plus, Menu, Users } from 'lucide-react';
 import UserOptionsMenu from '@/components/UserOptionsMenu';
 import ContextSwitch from '@/components/filters/ContextSwitch';
 import SecondaryFilters from '@/components/filters/SecondaryFilters';
@@ -11,6 +11,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useTeamContext } from '@/contexts/TeamContext';
 
 interface AppHeaderProps {
   tasksCount: number;
@@ -46,6 +54,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   sortBy,
   onSortChange
 }) => {
+  const { teams, currentTeam, setCurrentTeam } = useTeamContext();
+
+  const handleTeamChange = (value: string) => {
+    if (value === 'personal') {
+      setCurrentTeam(null);
+    } else {
+      const team = teams.find(t => t.id === value);
+      if (team) {
+        setCurrentTeam(team);
+      }
+    }
+  };
+
   return (
     <header className="bg-background shadow-sm border-b border-border">
       <div className="px-3 md:px-6 py-2 md:py-3 space-y-3">
@@ -154,17 +175,54 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
         </div>
 
-        {/* Deuxième ligne : Switch Pro/Perso + Filtres secondaires */}
+        {/* Deuxième ligne : Sélecteur d'équipe + Switch Pro/Perso + Filtres secondaires */}
         {!isMobile && (
           <div className="flex items-center justify-between gap-4">
-            {/* Switch principal Pro/Perso */}
-            <ContextSwitch 
-              value={contextFilter}
-              onValueChange={onContextFilterChange}
-            />
-            
-            {/* Séparateur visuel */}
-            <div className="h-6 w-px bg-border" />
+            <div className="flex items-center gap-4">
+              {/* Sélecteur d'équipe */}
+              <Select value={currentTeam?.id || 'personal'} onValueChange={handleTeamChange}>
+                <SelectTrigger className="w-[200px]">
+                  <div className="flex items-center gap-2">
+                    {currentTeam ? (
+                      <Users className="w-4 h-4" />
+                    ) : (
+                      <CheckSquare className="w-4 h-4" />
+                    )}
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="personal">
+                    <div className="flex items-center gap-2">
+                      <CheckSquare className="w-4 h-4" />
+                      <span>Mes tâches</span>
+                    </div>
+                  </SelectItem>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span>Équipe {team.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Séparateur visuel */}
+              <div className="h-6 w-px bg-border" />
+
+              {/* Switch principal Pro/Perso (uniquement en mode personnel) */}
+              {!currentTeam && (
+                <>
+                  <ContextSwitch 
+                    value={contextFilter}
+                    onValueChange={onContextFilterChange}
+                  />
+                  <div className="h-6 w-px bg-border" />
+                </>
+              )}
+            </div>
             
             {/* Filtres secondaires */}
             <SecondaryFilters
