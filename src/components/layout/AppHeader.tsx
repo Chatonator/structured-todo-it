@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Plus, Menu, Users } from 'lucide-react';
+import { CheckSquare, Plus, Menu, Users, Settings } from 'lucide-react';
 import UserOptionsMenu from '@/components/UserOptionsMenu';
+import { useNavigate } from 'react-router-dom';
 import ContextSwitch from '@/components/filters/ContextSwitch';
 import SecondaryFilters from '@/components/filters/SecondaryFilters';
 import { TaskCategory, TaskContext } from '@/types/task';
@@ -55,6 +56,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   onSortChange
 }) => {
   const { teams, currentTeam, setCurrentTeam } = useTeamContext();
+  const navigate = useNavigate();
 
   const handleTeamChange = (value: string) => {
     if (value === 'personal') {
@@ -180,34 +182,47 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               {/* Sélecteur d'équipe */}
-              <Select value={currentTeam?.id || 'personal'} onValueChange={handleTeamChange}>
-                <SelectTrigger className="w-[200px]">
-                  <div className="flex items-center gap-2">
-                    {currentTeam ? (
-                      <Users className="w-4 h-4" />
-                    ) : (
-                      <CheckSquare className="w-4 h-4" />
-                    )}
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="personal">
+              <div className="flex items-center gap-2">
+                <Select value={currentTeam?.id || 'personal'} onValueChange={handleTeamChange}>
+                  <SelectTrigger className="w-[200px]">
                     <div className="flex items-center gap-2">
-                      <CheckSquare className="w-4 h-4" />
-                      <span>Mes tâches</span>
-                    </div>
-                  </SelectItem>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      <div className="flex items-center gap-2">
+                      {currentTeam ? (
                         <Users className="w-4 h-4" />
-                        <span>Équipe {team.name}</span>
+                      ) : (
+                        <CheckSquare className="w-4 h-4" />
+                      )}
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="personal">
+                      <div className="flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4" />
+                        <span>Mes tâches</span>
                       </div>
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          <span>Équipe {team.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Bouton Gérer mes équipes */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/teams')}
+                  className="h-9 w-9"
+                  title="Gérer mes équipes"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </div>
 
               {/* Séparateur visuel */}
               <div className="h-6 w-px bg-border" />

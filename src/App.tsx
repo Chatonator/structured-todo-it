@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { TeamManagement } from "./components/team/TeamManagement";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { TeamProvider } from "@/contexts/TeamContext";
 import { logger } from "@/lib/logger";
@@ -102,6 +103,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Index />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/teams" 
+                  element={
+                    <ProtectedRoute>
+                      <TeamManagement />
                     </ProtectedRoute>
                   } 
                 />

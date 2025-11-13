@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Users } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +11,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const UserOptionsMenu = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
@@ -35,6 +37,16 @@ const UserOptionsMenu = () => {
           <User className="h-4 w-4" />
           {user?.email || 'Utilisateur'}
         </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-border" />
+        
+        <DropdownMenuItem 
+          onClick={() => navigate('/teams')}
+          className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
+        >
+          <Users className="h-4 w-4" />
+          Mes équipes
+        </DropdownMenuItem>
+        
         <DropdownMenuSeparator className="bg-border" />
         
         <DropdownMenuItem 
