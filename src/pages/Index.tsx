@@ -16,6 +16,8 @@ import AppHeader from '@/components/layout/AppHeader';
 import AppNavigation from '@/components/layout/AppNavigation';
 import BottomNavigation from '@/components/layout/BottomNavigation';
 import { useTasks } from '@/hooks/useTasks';
+import { useTeamTasks } from '@/hooks/useTeamTasks';
+import { useTeamContext } from '@/contexts/TeamContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsMobile } from '@/hooks/shared/use-mobile';
 
@@ -26,9 +28,82 @@ import { useIsMobile } from '@/hooks/shared/use-mobile';
 const Index = () => {
   const { theme } = useTheme();
   const isMobile = useIsMobile();
+  const { currentTeam } = useTeamContext();
   
-  // Hook principal pour la gestion des tâches avec gestion d'erreur
-  const hookResult = useTasks();
+  // Hooks pour tâches personnelles et d'équipe
+  const personalTasks = useTasks();
+  const teamTasks = useTeamTasks(currentTeam?.id || null);
+  
+  // Basculer entre les tâches personnelles et d'équipe
+  const isTeamMode = !!currentTeam;
+  const hookResult = isTeamMode ? {
+    // Mapper les tâches d'équipe vers l'interface Task
+    tasks: teamTasks.tasks as unknown as typeof personalTasks.tasks,
+    mainTasks: teamTasks.tasks.filter(t => t.level === 0) as unknown as typeof personalTasks.mainTasks,
+    pinnedTasks: [],
+    addTask: async (task: any) => {
+      await teamTasks.createTask(task);
+    },
+    removeTask: async (taskId: string) => {
+      await teamTasks.deleteTask(taskId);
+    },
+    reorderTasks: async () => {}, // À implémenter si nécessaire
+    sortTasks: async () => {}, // À implémenter si nécessaire
+    toggleTaskExpansion: async (taskId: string) => {
+      const task = teamTasks.tasks.find(t => t.id === taskId);
+      if (task) {
+        await teamTasks.updateTask(taskId, { isexpanded: !task.isExpanded } as any);
+      }
+    },
+    toggleTaskCompletion: async (taskId: string) => {
+      const task = teamTasks.tasks.find(t => t.id === taskId);
+      if (task) {
+        await teamTasks.toggleComplete(taskId, !task.isCompleted);
+      }
+    },
+    togglePinTask: () => {}, // Non supporté en mode équipe
+    getSubTasks: (parentId: string) => teamTasks.tasks.filter(t => t.parentId === parentId) as unknown as typeof personalTasks.tasks,
+    calculateTotalTime: (task: any) => {
+      const subTasks = teamTasks.tasks.filter(t => t.parentId === task.id);
+      return task.estimatedTime + subTasks.reduce((sum, sub) => sum + sub.estimatedTime, 0);
+    },
+    canHaveSubTasks: (task: any) => task.level < 2,
+    tasksCount: teamTasks.tasks.length,
+    totalProjectTime: teamTasks.tasks.reduce((sum, t) => sum + t.estimatedTime, 0),
+    completedTasks: teamTasks.tasks.filter(t => t.isCompleted).length,
+    completionRate: teamTasks.tasks.length > 0 
+      ? (teamTasks.tasks.filter(t => t.isCompleted).length / teamTasks.tasks.length) * 100 
+      : 0,
+    undo: () => {},
+    redo: () => {},
+    canUndo: false,
+    canRedo: false,
+    restoreTask: async (taskId: string) => {
+      await teamTasks.toggleComplete(taskId, false);
+    },
+    updateTask: async (taskId: string, updates: any) => {
+      // Mapper les propriétés camelCase vers snake_case
+      const mappedUpdates: any = {};
+      if (updates.estimatedTime !== undefined) mappedUpdates.estimatedtime = updates.estimatedTime;
+      if (updates.scheduledDate !== undefined) mappedUpdates.scheduleddate = updates.scheduledDate ? updates.scheduledDate.toISOString().split('T')[0] : null;
+      if (updates.scheduledTime !== undefined) mappedUpdates.scheduledtime = updates.scheduledTime;
+      if (updates.startTime !== undefined) mappedUpdates.starttime = updates.startTime ? updates.startTime.toISOString() : null;
+      if (updates.isCompleted !== undefined) mappedUpdates.iscompleted = updates.isCompleted;
+      if (updates.isExpanded !== undefined) mappedUpdates.isexpanded = updates.isExpanded;
+      if (updates.isRecurring !== undefined) mappedUpdates.isrecurring = updates.isRecurring;
+      if (updates.recurrenceInterval !== undefined) mappedUpdates.recurrenceinterval = updates.recurrenceInterval;
+      if (updates.lastCompletedAt !== undefined) mappedUpdates.lastcompletedat = updates.lastCompletedAt ? updates.lastCompletedAt.toISOString() : null;
+      if (updates.parentId !== undefined) mappedUpdates.parentid = updates.parentId;
+      if (updates.subCategory !== undefined) mappedUpdates.subcategory = updates.subCategory;
+      
+      // Copier les propriétés qui ont le même nom
+      ['name', 'category', 'context', 'duration', 'level'].forEach(key => {
+        if (updates[key] !== undefined) mappedUpdates[key] = updates[key];
+      });
+      
+      await teamTasks.updateTask(taskId, mappedUpdates);
+    },
+  } : personalTasks;
   
   // Sécurisation de tous les retours du hook avec vraies fonctions
   const { 
