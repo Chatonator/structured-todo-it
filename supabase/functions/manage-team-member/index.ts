@@ -14,7 +14,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // Create client for auth verification (uses anon key + user token)
+    const supabaseAuthClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
     const {
       data: { user },
       error: authError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseAuthClient.auth.getUser();
 
     if (authError || !user) {
       console.error('Authentication error:', authError);
@@ -37,6 +38,12 @@ Deno.serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Create admin client for database operations (bypasses RLS)
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     // Parse request body
     const { action, teamId, targetUserId, newRole } = await req.json();
