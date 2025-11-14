@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useTeamContext } from '@/contexts/TeamContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Users, UserPlus, LogOut, Copy, Trash2, Crown, Shield } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Users, UserPlus, LogOut, Copy, Trash2, Crown, Shield, User, ArrowLeft, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { TeamRole } from '@/hooks/useTeams';
 
@@ -27,6 +30,7 @@ export function TeamManagement() {
   } = useTeamContext();
 
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [newTeamName, setNewTeamName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -35,8 +39,8 @@ export function TeamManagement() {
   const handleCreateTeam = async () => {
     if (!newTeamName.trim()) {
       toast({
-        title: 'Error',
-        description: 'Please enter a team name',
+        title: 'Erreur',
+        description: 'Veuillez entrer un nom d\'équipe',
         variant: 'destructive',
       });
       return;
@@ -50,8 +54,8 @@ export function TeamManagement() {
   const handleJoinTeam = async () => {
     if (!inviteCode.trim()) {
       toast({
-        title: 'Error',
-        description: 'Please enter an invite code',
+        title: 'Erreur',
+        description: 'Veuillez entrer un code d\'invitation',
         variant: 'destructive',
       });
       return;
@@ -65,7 +69,7 @@ export function TeamManagement() {
   const handleLeaveTeam = async () => {
     if (!currentTeam) return;
 
-    if (confirm('Are you sure you want to leave this team?')) {
+    if (confirm('Êtes-vous sûr de vouloir quitter cette équipe ?')) {
       await leaveTeam(currentTeam.id);
     }
   };
@@ -74,8 +78,8 @@ export function TeamManagement() {
     if (currentTeam?.invite_code) {
       navigator.clipboard.writeText(currentTeam.invite_code);
       toast({
-        title: 'Copied!',
-        description: 'Invite code copied to clipboard',
+        title: 'Copié !',
+        description: 'Code d\'invitation copié dans le presse-papier',
       });
     }
   };
@@ -85,119 +89,177 @@ export function TeamManagement() {
     await updateMemberRole(currentTeam.id, memberId, newRole);
   };
 
-  const handleRemoveMember = async (memberId: string) => {
+  const handleRemoveMember = async (memberId: string, memberName: string) => {
     if (!currentTeam) return;
     
-    if (confirm('Are you sure you want to remove this member?')) {
+    if (confirm(`Êtes-vous sûr de vouloir retirer ${memberName} de l'équipe ?`)) {
       await removeMember(currentTeam.id, memberId);
     }
   };
 
-  const getRoleIcon = (role: TeamRole) => {
-    switch (role) {
-      case 'owner':
-        return <Crown className="w-4 h-4 text-yellow-500" />;
-      case 'admin':
-        return <Shield className="w-4 h-4 text-blue-500" />;
-      default:
-        return <Users className="w-4 h-4 text-muted-foreground" />;
-    }
+  const getRoleBadge = (role: TeamRole) => {
+    const roleConfig = {
+      owner: {
+        icon: Crown,
+        label: 'Propriétaire',
+        className: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400'
+      },
+      admin: {
+        icon: Shield,
+        label: 'Admin',
+        className: 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-400'
+      },
+      member: {
+        icon: User,
+        label: 'Membre',
+        className: 'bg-muted text-muted-foreground border-border'
+      }
+    };
+
+    const config = roleConfig[role];
+    const Icon = config.icon;
+
+    return (
+      <Badge variant="outline" className={`${config.className} gap-1`}>
+        <Icon className="w-3 h-3" />
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold">Team Management</h2>
-        <div className="flex gap-2">
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Users className="w-4 h-4 mr-2" />
-                Create Team
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-background">
-              <DialogHeader>
-                <DialogTitle>Create New Team</DialogTitle>
-                <DialogDescription>
-                  Create a new team and invite others to collaborate
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="team-name">Team Name</Label>
-                  <Input
-                    id="team-name"
-                    value={newTeamName}
-                    onChange={(e) => setNewTeamName(e.target.value)}
-                    placeholder="Enter team name"
-                  />
-                </div>
-                <Button onClick={handleCreateTeam} className="w-full">
-                  Create Team
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <div className="container max-w-5xl mx-auto p-6 space-y-6">
+        {/* En-tête avec bouton retour */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/')}
+            className="shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold tracking-tight">Gestion des équipes</h1>
+            <p className="text-muted-foreground mt-1">Créez et gérez vos équipes de collaboration</p>
+          </div>
+          <div className="flex gap-2">
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Users className="w-4 h-4 mr-2" />
+                  Créer une équipe
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="bg-background">
+                <DialogHeader>
+                  <DialogTitle>Créer une nouvelle équipe</DialogTitle>
+                  <DialogDescription>
+                    Créez une équipe et invitez d'autres personnes à collaborer
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="team-name">Nom de l'équipe</Label>
+                    <Input
+                      id="team-name"
+                      value={newTeamName}
+                      onChange={(e) => setNewTeamName(e.target.value)}
+                      placeholder="Mon équipe"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <Button onClick={handleCreateTeam} className="w-full">
+                    Créer l'équipe
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
 
-          <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Join Team
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-background">
-              <DialogHeader>
-                <DialogTitle>Join Team</DialogTitle>
-                <DialogDescription>
-                  Enter an invite code to join an existing team
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="invite-code">Invite Code</Label>
-                  <Input
-                    id="invite-code"
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value)}
-                    placeholder="Enter invite code"
-                  />
-                </div>
-                <Button onClick={handleJoinTeam} className="w-full">
-                  Join Team
+            <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Rejoindre
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="bg-background">
+                <DialogHeader>
+                  <DialogTitle>Rejoindre une équipe</DialogTitle>
+                  <DialogDescription>
+                    Entrez un code d'invitation pour rejoindre une équipe existante
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="invite-code">Code d'invitation</Label>
+                    <Input
+                      id="invite-code"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                      placeholder="ABC123XYZ"
+                      className="mt-1.5 font-mono"
+                    />
+                  </div>
+                  <Button onClick={handleJoinTeam} className="w-full">
+                    Rejoindre l'équipe
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-      </div>
 
-      {teams.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center text-muted-foreground">
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>You are not a member of any team yet.</p>
-              <p className="text-sm">Create a new team or join an existing one to get started.</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <div className="grid gap-4">
+        {teams.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="pt-12 pb-12">
+              <div className="text-center">
+                <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <Users className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Aucune équipe</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Vous n'êtes membre d'aucune équipe pour le moment. Créez une nouvelle équipe ou rejoignez-en une existante.
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={() => setIsCreateDialogOpen(true)}>
+                    <Users className="w-4 h-4 mr-2" />
+                    Créer une équipe
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsJoinDialogOpen(true)}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Rejoindre une équipe
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Sélecteur d'équipe */}
             <Card>
               <CardHeader>
-                <CardTitle>Your Teams</CardTitle>
-                <CardDescription>Select a team to manage</CardDescription>
+                <CardTitle>Vos équipes</CardTitle>
+                <CardDescription>Sélectionnez une équipe à gérer</CardDescription>
               </CardHeader>
               <CardContent>
                 <Select
@@ -207,13 +269,16 @@ export function TeamManagement() {
                     setCurrentTeam(team || null);
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a team" />
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionnez une équipe" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
+                  <SelectContent className="bg-background">
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
-                        {team.name}
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          {team.name}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -223,93 +288,158 @@ export function TeamManagement() {
 
             {currentTeam && (
               <>
+                {/* Informations de l'équipe */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>{currentTeam.name}</CardTitle>
-                    <CardDescription>Team invite code</CardDescription>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-2xl">{currentTeam.name}</CardTitle>
+                        <CardDescription>
+                          Partagez le code d'invitation pour ajouter des membres
+                        </CardDescription>
+                      </div>
+                      <Badge variant="secondary" className="shrink-0">
+                        {teamMembers.length} {teamMembers.length === 1 ? 'membre' : 'membres'}
+                      </Badge>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex gap-2">
-                      <Input
-                        value={currentTeam.invite_code}
-                        readOnly
-                        className="font-mono"
-                      />
-                      <Button onClick={handleCopyInviteCode} variant="outline" size="icon">
-                        <Copy className="w-4 h-4" />
-                      </Button>
+                      <div className="flex-1">
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">
+                          Code d'invitation
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={currentTeam.invite_code}
+                            readOnly
+                            className="font-mono text-lg font-semibold bg-muted/50"
+                          />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button onClick={handleCopyInviteCode} variant="outline" size="icon">
+                                  <Copy className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Copier le code</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
                     </div>
                     <Button
                       onClick={handleLeaveTeam}
-                      variant="destructive"
-                      className="w-full"
+                      variant="outline"
+                      className="w-full text-destructive hover:text-destructive"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
-                      Leave Team
+                      Quitter l'équipe
                     </Button>
                   </CardContent>
                 </Card>
 
+                {/* Liste des membres */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Team Members</CardTitle>
+                    <CardTitle>Membres de l'équipe</CardTitle>
                     <CardDescription>
-                      Manage roles and remove members
+                      Gérez les rôles et retirez des membres
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {membersLoading ? (
-                      <div className="flex items-center justify-center p-4">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      <div className="flex items-center justify-center p-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>
                     ) : (
-                      <div className="space-y-2">
-                        {teamMembers.map((member) => (
-                          <div
-                            key={member.user_id}
-                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                          >
-                            <div className="flex items-center gap-3">
-                              {getRoleIcon(member.role)}
-                              <div>
-                                <p className="font-medium">
-                                  {member.profiles?.display_name || 'Unknown User'}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {member.role}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {member.role !== 'owner' && (
-                                <>
-                                  <Select
-                                    value={member.role}
-                                    onValueChange={(value) =>
-                                      handleRoleChange(member.user_id, value as TeamRole)
-                                    }
-                                  >
-                                    <SelectTrigger className="w-32">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-background z-50">
-                                      <SelectItem value="member">Member</SelectItem>
-                                      <SelectItem value="admin">Admin</SelectItem>
-                                      <SelectItem value="owner">Owner</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <Button
-                                    onClick={() => handleRemoveMember(member.user_id)}
-                                    variant="ghost"
-                                    size="icon"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                      <div className="grid gap-3">
+                        <TooltipProvider>
+                          {teamMembers.map((member) => (
+                            <Card key={member.user_id} className="overflow-hidden border-border/50">
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-4">
+                                  {/* Avatar */}
+                                  <Avatar className="h-12 w-12 border-2 border-border">
+                                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary font-semibold">
+                                      {getInitials(member.profiles?.display_name)}
+                                    </AvatarFallback>
+                                  </Avatar>
+
+                                  {/* Informations du membre */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="font-semibold text-foreground truncate">
+                                        {member.profiles?.display_name || 'Utilisateur inconnu'}
+                                      </p>
+                                      {getRoleBadge(member.role)}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                      <Mail className="w-3 h-3" />
+                                      Membre depuis {new Date(member.joined_at).toLocaleDateString('fr-FR')}
+                                    </p>
+                                  </div>
+
+                                  {/* Actions */}
+                                  {member.role !== 'owner' && (
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <Select
+                                        value={member.role}
+                                        onValueChange={(value) =>
+                                          handleRoleChange(member.user_id, value as TeamRole)
+                                        }
+                                      >
+                                        <SelectTrigger className="w-32 h-9">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-background">
+                                          <SelectItem value="member">
+                                            <div className="flex items-center gap-2">
+                                              <User className="w-3 h-3" />
+                                              Membre
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="admin">
+                                            <div className="flex items-center gap-2">
+                                              <Shield className="w-3 h-3" />
+                                              Admin
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="owner">
+                                            <div className="flex items-center gap-2">
+                                              <Crown className="w-3 h-3" />
+                                              Propriétaire
+                                            </div>
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            onClick={() => handleRemoveMember(
+                                              member.user_id,
+                                              member.profiles?.display_name || 'ce membre'
+                                            )}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Retirer de l'équipe</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </TooltipProvider>
                       </div>
                     )}
                   </CardContent>
@@ -317,8 +447,8 @@ export function TeamManagement() {
               </>
             )}
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
