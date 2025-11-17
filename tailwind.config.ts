@@ -110,7 +110,15 @@ export default {
         },
 
         // ===== COULEUR ÉPINGLÉ =====
-        pinned: '#f59e0b'               // #10 - Orange vif
+        pinned: '#f59e0b',              // #10 - Orange vif
+
+        // ===== COULEUR HABITUDES (16ème couleur) =====
+        habit: {
+          DEFAULT: '#ec4899',           // #16 - Rose vif (habitudes)
+          light: '#fdf2f8',             // Rose très pâle
+          dark: '#be185d',              // Rose foncé
+          foreground: '#ffffff'         // Texte sur fond rose
+        }
       },
       borderRadius: {
         lg: '0.5rem',

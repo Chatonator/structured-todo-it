@@ -32,6 +32,9 @@ export const colors = {
   success: tailwindConfig.theme.extend.colors.system.success,
   warning: tailwindConfig.theme.extend.colors.system.warning,
   error: tailwindConfig.theme.extend.colors.system.error,
+  
+  // Couleur habitudes
+  habit: tailwindConfig.theme.extend.colors.habit.DEFAULT,
 };
 
 /**
