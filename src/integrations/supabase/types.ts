@@ -14,6 +14,228 @@ export type Database = {
   }
   public: {
     Tables: {
+      community_decks: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string
+          description: string | null
+          icon: string | null
+          id: string
+          install_count: number | null
+          is_public: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          install_count?: number | null
+          is_public?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          install_count?: number | null
+          is_public?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_habits: {
+        Row: {
+          color: string | null
+          community_deck_id: string
+          created_at: string
+          description: string | null
+          frequency: string
+          icon: string | null
+          id: string
+          name: string
+          order: number
+          target_days: number[] | null
+          times_per_week: number | null
+        }
+        Insert: {
+          color?: string | null
+          community_deck_id: string
+          created_at?: string
+          description?: string | null
+          frequency?: string
+          icon?: string | null
+          id?: string
+          name: string
+          order?: number
+          target_days?: number[] | null
+          times_per_week?: number | null
+        }
+        Update: {
+          color?: string | null
+          community_deck_id?: string
+          created_at?: string
+          description?: string | null
+          frequency?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          order?: number
+          target_days?: number[] | null
+          times_per_week?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_habits_community_deck_id_fkey"
+            columns: ["community_deck_id"]
+            isOneToOne: false
+            referencedRelation: "community_decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decks: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      habit_completions: {
+        Row: {
+          completed_at: string
+          date: string
+          habit_id: string
+          id: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          date: string
+          habit_id: string
+          id?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          date?: string
+          habit_id?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_completions_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          color: string | null
+          created_at: string
+          deck_id: string
+          description: string | null
+          frequency: string
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          order: number
+          target_days: number[] | null
+          times_per_week: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          deck_id: string
+          description?: string | null
+          frequency?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          order?: number
+          target_days?: number[] | null
+          times_per_week?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          deck_id?: string
+          description?: string | null
+          frequency?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          order?: number
+          target_days?: number[] | null
+          times_per_week?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habits_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pinned_tasks: {
         Row: {
           created_at: string
