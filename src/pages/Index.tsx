@@ -12,6 +12,7 @@ import DashboardView from '@/components/DashboardView';
 import EisenhowerView from '@/components/EisenhowerView';
 import CalendarView from '@/components/calendar/CalendarView';
 import CompletedTasksView from '@/components/CompletedTasksView';
+import HabitsView from '@/components/habits/HabitsView';
 import AppHeader from '@/components/layout/AppHeader';
 import AppNavigation from '@/components/layout/AppNavigation';
 import BottomNavigation from '@/components/layout/BottomNavigation';
@@ -168,6 +169,7 @@ const Index = () => {
     { key: 'dashboard', title: 'Dashboard', icon: '📊' },
     { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
     { key: 'calendar', title: 'Calendrier', icon: '📅' },
+    { key: 'habits', title: 'Habitudes', icon: '💪' },
     { key: 'completed', title: 'Terminées', icon: '✅' }
   ];
 
@@ -273,6 +275,8 @@ const Index = () => {
           return <EisenhowerView tasks={allFilteredTasks.filter(t => !t.isCompleted)} />;
         case 'calendar':
           return <CalendarView tasks={allFilteredTasks} />;
+        case 'habits':
+          return <HabitsView />;
         case 'completed':
           const completedTasksList = applyFilters(
             Array.isArray(tasks) ? tasks.filter(t => t && t.isCompleted) : []
