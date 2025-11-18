@@ -13,6 +13,7 @@ import EisenhowerView from '@/components/EisenhowerView';
 import CalendarView from '@/components/calendar/CalendarView';
 import CompletedTasksView from '@/components/CompletedTasksView';
 import HabitsView from '@/components/habits/HabitsView';
+import RewardsView from '@/components/rewards/RewardsView';
 import AppHeader from '@/components/layout/AppHeader';
 import AppNavigation from '@/components/layout/AppNavigation';
 import BottomNavigation from '@/components/layout/BottomNavigation';
@@ -170,6 +171,7 @@ const Index = () => {
     { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
     { key: 'calendar', title: 'Calendrier', icon: '📅' },
     { key: 'habits', title: 'Habitudes', icon: '💪' },
+    { key: 'rewards', title: 'Récompenses', icon: '🏆' },
     { key: 'completed', title: 'Terminées', icon: '✅' }
   ];
 

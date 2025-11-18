@@ -3,12 +3,15 @@ import { Task } from '@/types/task';
 import { useTasksData } from './useTasksData';
 import { useTasksOperations } from './useTasksOperations';
 import { useTasksUtils } from './useTasksUtils';
-
+import { useGamification } from './useGamification';
+import { useAchievements } from './useAchievements';
 import { useActionHistory } from './useActionHistory';
 
 export const useTasks = () => {
   const { tasks, setTasks, pinnedTasks, setPinnedTasks, saveTask, completeTask, deleteTask } = useTasksData();
   const { undo, redo, canUndo, canRedo } = useActionHistory();
+  const { rewardTaskCompletion } = useGamification();
+  const { checkAndUnlockAchievement } = useAchievements();
   
   const { addTask, removeTask, scheduleTask } = useTasksOperations(
     tasks,
@@ -24,18 +27,23 @@ export const useTasks = () => {
     if (!task) return;
 
     if (task.isRecurring && !task.isCompleted) {
-      // For recurring tasks, use the database completion method
       await completeTask(taskId);
+      await rewardTaskCompletion(task);
+      const newCount = tasks.filter(t => t.isCompleted).length + 1;
+      await checkAndUnlockAchievement('tasks_10', newCount);
     } else {
-      // For non-recurring tasks, update locally and save to database
       const updatedTask = { ...task, isCompleted: !task.isCompleted };
       setTasks(prevTasks =>
         prevTasks.map(t =>
           t.id === taskId ? updatedTask : t
         )
       );
-      // Save to database
       await saveTask(updatedTask);
+      if (updatedTask.isCompleted) {
+        await rewardTaskCompletion(task);
+        const newCount = tasks.filter(t => t.isCompleted).length + 1;
+        await checkAndUnlockAchievement('tasks_10', newCount);
+      }
     }
   };
 

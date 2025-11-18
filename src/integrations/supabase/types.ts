@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_secret: boolean | null
+          key: string
+          name: string
+          points_reward: number | null
+          target_value: number | null
+          tier: string | null
+          xp_reward: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_secret?: boolean | null
+          key: string
+          name: string
+          points_reward?: number | null
+          target_value?: number | null
+          tier?: string | null
+          xp_reward?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_secret?: boolean | null
+          key?: string
+          name?: string
+          points_reward?: number | null
+          target_value?: number | null
+          tier?: string | null
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      challenges: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string
+          icon: string | null
+          id: string
+          name: string
+          points_reward: number | null
+          required_level: number | null
+          target_type: string
+          target_value: number
+          type: string
+          weight: number | null
+          xp_reward: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description: string
+          icon?: string | null
+          id?: string
+          name: string
+          points_reward?: number | null
+          required_level?: number | null
+          target_type: string
+          target_value: number
+          type: string
+          weight?: number | null
+          xp_reward?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          points_reward?: number | null
+          required_level?: number | null
+          target_type?: string
+          target_value?: number
+          type?: string
+          weight?: number | null
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
       community_decks: {
         Row: {
           color: string
@@ -493,6 +589,187 @@ export type Database = {
           invite_code?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          created_at: string | null
+          current_progress: number | null
+          id: string
+          is_unlocked: boolean | null
+          unlocked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          created_at?: string | null
+          current_progress?: number | null
+          id?: string
+          is_unlocked?: boolean | null
+          unlocked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          created_at?: string | null
+          current_progress?: number | null
+          id?: string
+          is_unlocked?: boolean | null
+          unlocked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_challenges: {
+        Row: {
+          assigned_date: string
+          challenge_id: string
+          completed_at: string | null
+          created_at: string | null
+          current_progress: number | null
+          expires_at: string
+          id: string
+          is_completed: boolean | null
+          user_id: string
+        }
+        Insert: {
+          assigned_date: string
+          challenge_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_progress?: number | null
+          expires_at: string
+          id?: string
+          is_completed?: boolean | null
+          user_id: string
+        }
+        Update: {
+          assigned_date?: string
+          challenge_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_progress?: number | null
+          expires_at?: string
+          id?: string
+          is_completed?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenges_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_progress: {
+        Row: {
+          created_at: string | null
+          current_habit_streak: number | null
+          current_level: number | null
+          current_points: number | null
+          current_task_streak: number | null
+          daily_challenge_streak: number | null
+          habits_completed: number | null
+          id: string
+          last_activity_date: string | null
+          lifetime_points: number | null
+          longest_habit_streak: number | null
+          longest_task_streak: number | null
+          tasks_completed: number | null
+          total_xp: number | null
+          updated_at: string | null
+          user_id: string
+          weekly_challenges_completed: number | null
+          xp_for_next_level: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_habit_streak?: number | null
+          current_level?: number | null
+          current_points?: number | null
+          current_task_streak?: number | null
+          daily_challenge_streak?: number | null
+          habits_completed?: number | null
+          id?: string
+          last_activity_date?: string | null
+          lifetime_points?: number | null
+          longest_habit_streak?: number | null
+          longest_task_streak?: number | null
+          tasks_completed?: number | null
+          total_xp?: number | null
+          updated_at?: string | null
+          user_id: string
+          weekly_challenges_completed?: number | null
+          xp_for_next_level?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          current_habit_streak?: number | null
+          current_level?: number | null
+          current_points?: number | null
+          current_task_streak?: number | null
+          daily_challenge_streak?: number | null
+          habits_completed?: number | null
+          id?: string
+          last_activity_date?: string | null
+          lifetime_points?: number | null
+          longest_habit_streak?: number | null
+          longest_task_streak?: number | null
+          tasks_completed?: number | null
+          total_xp?: number | null
+          updated_at?: string | null
+          user_id?: string
+          weekly_challenges_completed?: number | null
+          xp_for_next_level?: number | null
+        }
+        Relationships: []
+      }
+      xp_transactions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          points_gained: number | null
+          source_id: string | null
+          source_type: string
+          user_id: string
+          xp_gained: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          points_gained?: number | null
+          source_id?: string | null
+          source_type: string
+          user_id: string
+          xp_gained?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          points_gained?: number | null
+          source_id?: string | null
+          source_type?: string
+          user_id?: string
+          xp_gained?: number | null
         }
         Relationships: []
       }
