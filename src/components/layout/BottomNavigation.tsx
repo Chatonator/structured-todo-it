@@ -7,7 +7,8 @@ import {
   Grid3x3, 
   Calendar, 
   CheckCircle2,
-  Heart
+  Heart,
+  Award
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -29,6 +30,7 @@ const iconMap: Record<string, React.ReactNode> = {
   eisenhower: <Grid3x3 className="w-5 h-5" />,
   calendar: <Calendar className="w-5 h-5" />,
   habits: <Heart className="w-5 h-5 text-habit" />,
+  rewards: <Award className="w-5 h-5 text-reward" />,
   completed: <CheckCircle2 className="w-5 h-5" />
 };
 

@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Habit, HabitCompletion, HabitStreak } from '@/types/habit';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { useGamification } from '@/hooks/useGamification';
+import { useAchievements } from '@/hooks/useAchievements';
 
 const isConsecutiveDay = (date1: string, date2: string) => {
   const d1 = new Date(date1);
@@ -20,6 +22,8 @@ export const useHabits = (deckId: string | null) => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { rewardHabitCompletion, rewardStreak } = useGamification();
+  const { checkAndUnlockAchievement } = useAchievements();
 
   const loadHabits = useCallback(async () => {
     if (!user || !deckId) {
@@ -175,6 +179,17 @@ export const useHabits = (deckId: string | null) => {
           });
 
         if (error) throw error;
+
+        const habit = habits.find(h => h.id === habitId);
+        if (habit) {
+          await rewardHabitCompletion(habitId, habit.name);
+          await checkAndUnlockAchievement('habits_30', habits.length);
+          
+          const streak = streaks[habitId];
+          if (streak && [7, 14, 30, 60, 100, 365].includes(streak.currentStreak)) {
+            await rewardStreak(streak.currentStreak, 'habit');
+          }
+        }
       }
 
       await loadTodayCompletions();
