@@ -279,6 +279,8 @@ const Index = () => {
           return <CalendarView tasks={allFilteredTasks} />;
         case 'habits':
           return <HabitsView />;
+        case 'rewards':
+          return <RewardsView />;
         case 'completed':
           const completedTasksList = applyFilters(
             Array.isArray(tasks) ? tasks.filter(t => t && t.isCompleted) : []
