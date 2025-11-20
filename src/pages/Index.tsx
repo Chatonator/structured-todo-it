@@ -14,6 +14,7 @@ import CalendarView from '@/components/calendar/CalendarView';
 import CompletedTasksView from '@/components/CompletedTasksView';
 import HabitsView from '@/components/habits/HabitsView';
 import RewardsView from '@/components/rewards/RewardsView';
+import { ProjectsView } from '@/components/projects/ProjectsView';
 import AppHeader from '@/components/layout/AppHeader';
 import AppNavigation from '@/components/layout/AppNavigation';
 import BottomNavigation from '@/components/layout/BottomNavigation';
@@ -277,6 +278,8 @@ const Index = () => {
           return <EisenhowerView tasks={allFilteredTasks.filter(t => !t.isCompleted)} />;
         case 'calendar':
           return <CalendarView tasks={allFilteredTasks} />;
+        case 'projects':
+          return <ProjectsView />;
         case 'habits':
           return <HabitsView />;
         case 'rewards':

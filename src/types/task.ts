@@ -22,6 +22,7 @@ export interface Task {
   isRecurring?: boolean;
   recurrenceInterval?: RecurrenceInterval;
   lastCompletedAt?: Date;
+  projectStatus?: 'todo' | 'in-progress' | 'done';
 }
 
 // Mapping technique pour les classes CSS (sans accents, minuscules)
