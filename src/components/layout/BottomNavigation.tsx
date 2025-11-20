@@ -8,7 +8,8 @@ import {
   Calendar, 
   CheckCircle2,
   Heart,
-  Award
+  Award,
+  Briefcase
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -29,6 +30,7 @@ const iconMap: Record<string, React.ReactNode> = {
   dashboard: <BarChart3 className="w-5 h-5" />,
   eisenhower: <Grid3x3 className="w-5 h-5" />,
   calendar: <Calendar className="w-5 h-5" />,
+  projects: <Briefcase className="w-5 h-5 text-project" />,
   habits: <Heart className="w-5 h-5 text-habit" />,
   rewards: <Award className="w-5 h-5 text-reward" />,
   completed: <CheckCircle2 className="w-5 h-5" />

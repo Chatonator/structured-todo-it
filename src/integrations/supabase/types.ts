@@ -377,6 +377,54 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          color: string
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          order_index: number
+          progress: number | null
+          status: string
+          target_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          order_index?: number
+          progress?: number | null
+          status?: string
+          target_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+          progress?: number | null
+          status?: string
+          target_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           category: string
@@ -392,6 +440,8 @@ export type Database = {
           level: number
           name: string
           parentId: string | null
+          project_id: string | null
+          project_status: string | null
           recurrenceInterval: string | null
           scheduledDate: string | null
           scheduledTime: string | null
@@ -413,6 +463,8 @@ export type Database = {
           level?: number
           name: string
           parentId?: string | null
+          project_id?: string | null
+          project_status?: string | null
           recurrenceInterval?: string | null
           scheduledDate?: string | null
           scheduledTime?: string | null
@@ -434,6 +486,8 @@ export type Database = {
           level?: number
           name?: string
           parentId?: string | null
+          project_id?: string | null
+          project_status?: string | null
           recurrenceInterval?: string | null
           scheduledDate?: string | null
           scheduledTime?: string | null
@@ -441,7 +495,15 @@ export type Database = {
           subCategory?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {
@@ -778,6 +840,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_project_progress: {
+        Args: { project_uuid: string }
+        Returns: number
+      }
       has_team_role: {
         Args: {
           _role: Database["public"]["Enums"]["team_role"]

@@ -126,6 +126,14 @@ export default {
           light: '#fef3c7',             // Jaune très pâle
           dark: '#d97706',              // Orange foncé
           foreground: '#ffffff'         // Texte sur fond reward
+        },
+
+        // ===== COULEUR PROJETS (18ème couleur) =====
+        project: {
+          DEFAULT: '#a78bfa',           // #18 - Violet (projets)
+          light: '#ede9fe',             // Violet très pâle
+          dark: '#7c3aed',              // Violet foncé
+          foreground: '#ffffff'         // Texte sur fond project
         }
       },
       borderRadius: {
