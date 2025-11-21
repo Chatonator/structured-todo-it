@@ -171,6 +171,7 @@ const Index = () => {
     { key: 'dashboard', title: 'Dashboard', icon: '📊' },
     { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
     { key: 'calendar', title: 'Calendrier', icon: '📅' },
+    { key: 'projects', title: 'Projets', icon: '💼' },
     { key: 'habits', title: 'Habitudes', icon: '💪' },
     { key: 'rewards', title: 'Récompenses', icon: '🏆' },
     { key: 'completed', title: 'Terminées', icon: '✅' }
