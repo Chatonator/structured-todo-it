@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useGamification } from '@/hooks/useGamification';
 import { Project, ProjectStatus } from '@/types/project';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +11,7 @@ export const useProjects = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { rewardProjectCreation, rewardProjectCompletion } = useGamification();
 
   const formatProject = useCallback((data: any): Project => ({
     id: data.id,
@@ -83,6 +85,9 @@ export const useProjects = () => {
         title: "✅ Projet créé",
         description: `${name} a été créé avec succès`,
       });
+
+      // Gamification: reward project creation
+      await rewardProjectCreation(name);
 
       return formatProject(data);
     } catch (error: any) {
@@ -170,6 +175,19 @@ export const useProjects = () => {
     if (!user) return false;
 
     try {
+      // Get project details and task count
+      const { data: project } = await supabase
+        .from('projects')
+        .select('name')
+        .eq('id', projectId)
+        .single();
+
+      const { data: tasks, count } = await supabase
+        .from('tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', projectId)
+        .eq('level', 0);
+
       const { error } = await supabase
         .from('projects')
         .update({
@@ -187,12 +205,17 @@ export const useProjects = () => {
         description: "Félicitations pour avoir terminé ce projet",
       });
 
+      // Gamification: reward project completion
+      if (project) {
+        await rewardProjectCompletion(projectId, project.name, count || 0);
+      }
+
       return true;
     } catch (error: any) {
       logger.error('Failed to complete project', { error: error.message });
       return false;
     }
-  }, [user, loadProjects, toast]);
+  }, [user, loadProjects, toast, rewardProjectCompletion]);
 
   const assignTaskToProject = useCallback(async (
     taskId: string,

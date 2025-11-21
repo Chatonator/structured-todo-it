@@ -230,6 +230,127 @@ export const useGamification = () => {
     return (xpInCurrentLevel / xpNeededForLevel) * 100;
   }, [progress]);
 
+  const checkAndUnlockAchievement = useCallback(async (achievementKey: string, currentProgress: number) => {
+    if (!user) return;
+
+    try {
+      const { data: achievement } = await supabase
+        .from('achievements')
+        .select('*')
+        .eq('key', achievementKey)
+        .single();
+
+      if (!achievement) return;
+
+      const { data: userAchievement } = await supabase
+        .from('user_achievements')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('achievement_id', achievement.id)
+        .single();
+
+      if (userAchievement?.is_unlocked) return;
+
+      if (userAchievement) {
+        await supabase
+          .from('user_achievements')
+          .update({
+            current_progress: currentProgress,
+            is_unlocked: true,
+            unlocked_at: new Date().toISOString()
+          })
+          .eq('id', userAchievement.id);
+      } else {
+        await supabase
+          .from('user_achievements')
+          .insert({
+            user_id: user.id,
+            achievement_id: achievement.id,
+            current_progress: currentProgress,
+            is_unlocked: true,
+            unlocked_at: new Date().toISOString()
+          });
+      }
+
+      if (achievement.xp_reward || achievement.points_reward) {
+        await addXp(
+          achievement.xp_reward || 0,
+          achievement.points_reward || 0,
+          'achievement',
+          achievement.id,
+          `Achievement débloqué: ${achievement.name}`
+        );
+      }
+
+      toast({
+        title: `🏆 ${achievement.name}`,
+        description: achievement.description,
+        duration: 5000
+      });
+    } catch (error: any) {
+      logger.error('Failed to unlock achievement', { error: error.message });
+    }
+  }, [user, addXp, toast]);
+
+  const rewardProjectCreation = useCallback(async (projectName: string) => {
+    if (!progress) return;
+
+    const xp = 20;
+    const points = 4;
+
+    await addXp(xp, points, 'project_created', undefined, `Projet créé: ${projectName}`);
+
+    const { count } = await supabase
+      .from('projects')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user?.id);
+
+    if (count === 1) {
+      await checkAndUnlockAchievement('first_project', 1);
+    }
+  }, [progress, addXp, user, checkAndUnlockAchievement]);
+
+  const rewardProjectCompletion = useCallback(async (
+    projectId: string,
+    projectName: string,
+    taskCount: number
+  ) => {
+    if (!progress) return;
+
+    const baseXp = 150;
+    const bonusXp = Math.min(taskCount * 5, 100);
+    const totalXp = baseXp + bonusXp;
+    const points = 30 + Math.floor(bonusXp / 5);
+
+    await addXp(
+      totalXp,
+      points,
+      'project_completed',
+      projectId,
+      `Projet complété: ${projectName} (${taskCount} tâches)`
+    );
+
+    const { count } = await supabase
+      .from('projects')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user?.id)
+      .eq('status', 'completed');
+
+    const completedCount = count || 0;
+
+    if (completedCount === 1) {
+      await checkAndUnlockAchievement('project_completed', 1);
+    }
+
+    if (completedCount === 5) {
+      await checkAndUnlockAchievement('projects_5', 5);
+    }
+
+    if (taskCount > 10) {
+      await checkAndUnlockAchievement('big_project', taskCount);
+    }
+  }, [progress, addXp, user, checkAndUnlockAchievement]);
+
   useEffect(() => {
     loadProgress();
   }, [loadProgress]);
@@ -242,6 +363,8 @@ export const useGamification = () => {
     rewardHabitCompletion,
     rewardStreak,
     claimDailyBonus,
+    rewardProjectCreation,
+    rewardProjectCompletion,
     getProgressPercentage,
     reloadProgress: loadProgress
   };
