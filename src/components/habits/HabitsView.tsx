@@ -7,7 +7,7 @@ import DeckSelector from './DeckSelector';
 import TodayProgress from './TodayProgress';
 import HabitItem from './HabitItem';
 import HabitModal from './HabitModal';
-import DeckModal from './DeckModal';
+import DeckManagement from './DeckManagement';
 import { Habit } from '@/types/habit';
 
 const HabitsView = () => {
@@ -16,7 +16,7 @@ const HabitsView = () => {
   const { habits, loading: habitsLoading, toggleCompletion, createHabit, updateHabit, deleteHabit, isCompletedToday, getTodayCompletionRate, streaks } = useHabits(selectedDeckId);
   
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
-  const [isDeckModalOpen, setIsDeckModalOpen] = useState(false);
+  const [isDeckManagementOpen, setIsDeckManagementOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
 
   React.useEffect(() => {
@@ -61,14 +61,17 @@ const HabitsView = () => {
           <h2 className="text-2xl font-bold text-foreground mb-2">Aucun deck d'habitudes</h2>
           <p className="text-muted-foreground mb-6">Créez votre premier deck pour commencer à suivre vos habitudes</p>
         </div>
-        <Button onClick={() => setIsDeckModalOpen(true)} className="bg-habit hover:bg-habit-dark">
+        <Button onClick={() => setIsDeckManagementOpen(true)} className="bg-habit hover:bg-habit-dark">
           <Plus className="w-4 h-4 mr-2" />
           Créer mon premier deck
         </Button>
-        <DeckModal
-          isOpen={isDeckModalOpen}
-          onClose={() => setIsDeckModalOpen(false)}
-          onSave={createDeck}
+        <DeckManagement
+          isOpen={isDeckManagementOpen}
+          onClose={() => setIsDeckManagementOpen(false)}
+          decks={decks}
+          onCreateDeck={createDeck}
+          onUpdateDeck={updateDeck}
+          onDeleteDeck={deleteDeck}
         />
       </div>
     );
@@ -84,7 +87,7 @@ const HabitsView = () => {
             decks={decks}
             selectedDeckId={selectedDeckId}
             onSelectDeck={setSelectedDeckId}
-            onManageDecks={() => setIsDeckModalOpen(true)}
+            onManageDecks={() => setIsDeckManagementOpen(true)}
           />
         </div>
 
@@ -154,10 +157,13 @@ const HabitsView = () => {
           habit={editingHabit}
         />
 
-        <DeckModal
-          isOpen={isDeckModalOpen}
-          onClose={() => setIsDeckModalOpen(false)}
-          onSave={createDeck}
+        <DeckManagement
+          isOpen={isDeckManagementOpen}
+          onClose={() => setIsDeckManagementOpen(false)}
+          decks={decks}
+          onCreateDeck={createDeck}
+          onUpdateDeck={updateDeck}
+          onDeleteDeck={deleteDeck}
         />
       </div>
     </div>
