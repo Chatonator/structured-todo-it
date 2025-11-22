@@ -15,10 +15,24 @@ interface DeckModalProps {
 const DECK_ICONS = ['🎯', '💪', '🌱', '🧘', '📚', '🏃', '🎨', '🧠', '✨', '🌟'];
 
 const DeckModal: React.FC<DeckModalProps> = ({ isOpen, onClose, onSave, deck }) => {
-  const [name, setName] = useState(deck?.name || '');
-  const [description, setDescription] = useState(deck?.description || '');
-  const [icon, setIcon] = useState(deck?.icon || '🎯');
-  const [isDefault, setIsDefault] = useState(deck?.isDefault || false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [icon, setIcon] = useState('🎯');
+  const [isDefault, setIsDefault] = useState(false);
+
+  React.useEffect(() => {
+    if (deck) {
+      setName(deck.name);
+      setDescription(deck.description || '');
+      setIcon(deck.icon || '🎯');
+      setIsDefault(deck.isDefault || false);
+    } else {
+      setName('');
+      setDescription('');
+      setIcon('🎯');
+      setIsDefault(false);
+    }
+  }, [deck, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
