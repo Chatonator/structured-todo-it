@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Plus, Edit2, Trash2, Star } from 'lucide-react';
 import { Deck } from '@/types/habit';
 import DeckModal from './DeckModal';
@@ -42,11 +41,6 @@ const DeckManagement: React.FC<DeckManagementProps> = ({
   };
 
   const handleDeleteDeck = async (deck: Deck) => {
-    if (deck.isDefault) {
-      alert('Vous ne pouvez pas supprimer le deck par défaut');
-      return;
-    }
-    
     if (confirm(`Êtes-vous sûr de vouloir supprimer le deck "${deck.name}" et toutes ses habitudes ?`)) {
       await onDeleteDeck(deck.id);
     }
@@ -88,28 +82,14 @@ const DeckManagement: React.FC<DeckManagementProps> = ({
                   >
                     <Edit2 className="w-4 h-4" />
                   </Button>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteDeck(deck)}
-                            disabled={deck.isDefault}
-                            className="text-destructive hover:text-destructive disabled:opacity-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {deck.isDefault && (
-                        <TooltipContent>
-                          <p>Le deck par défaut ne peut pas être supprimé</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteDeck(deck)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             ))}
