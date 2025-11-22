@@ -121,21 +121,41 @@ export const useDecks = () => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
+      // First, delete all habits associated with this deck
+      const { error: habitsError } = await supabase
+        .from('habits')
+        .delete()
+        .eq('deck_id', deckId)
+        .eq('user_id', user.id);
+
+      if (habitsError) throw habitsError;
+
+      // Then delete the deck itself
+      const { error: deckError } = await supabase
         .from('decks')
         .delete()
         .eq('id', deckId)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (deckError) throw deckError;
+
+      toast({
+        title: "Deck supprimé",
+        description: "Le deck et ses habitudes ont été supprimés avec succès"
+      });
 
       await loadDecks();
       return true;
     } catch (error: any) {
       logger.error('Failed to delete deck', { error: error.message });
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le deck",
+        variant: "destructive"
+      });
       return false;
     }
-  }, [user, loadDecks]);
+  }, [user, loadDecks, toast]);
 
   const setDefaultDeck = useCallback(async (deckId: string) => {
     if (!user) return false;
