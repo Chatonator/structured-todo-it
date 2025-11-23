@@ -323,35 +323,19 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className={`min-h-screen flex flex-col w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
-        {/* Header avec statistiques, filtres et actions */}
+        {/* Header avec navigation intégrée */}
         <AppHeader
-          tasksCount={safeTasksCount}
-          completedTasks={safeCompletedTasks}
-          completionRate={safeCompletionRate}
           onOpenModal={() => setIsModalOpen(true)}
           onOpenTaskList={() => setIsTaskListOpen(true)}
           isMobile={isMobile}
           contextFilter={contextFilter}
           onContextFilterChange={setContextFilter}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          categoryFilter={categoryFilter}
-          onCategoryFilterChange={setCategoryFilter}
-          sortBy={sortBy}
-          onSortChange={(newSort) => {
-            setSortBy(newSort);
-            safeSortTasks(newSort);
-          }}
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          navigationItems={navigationItems}
         />
 
-        {/* Navigation horizontale - cachée sur mobile */}
-        {!isMobile && (
-          <AppNavigation
-            currentView={currentView}
-            onViewChange={setCurrentView}
-            navigationItems={navigationItems}
-          />
-        )}
+        {/* Navigation intégrée dans le header - plus besoin de ligne séparée */}
 
         {/* Contenu principal avec layout adaptatif */}
         <main className="flex-1 flex flex-col md:flex-row overflow-hidden">

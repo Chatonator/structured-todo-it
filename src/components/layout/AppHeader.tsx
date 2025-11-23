@@ -1,18 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Plus, Menu, Users, Settings } from 'lucide-react';
-import UserOptionsMenu from '@/components/UserOptionsMenu';
-import { useNavigate } from 'react-router-dom';
-import ContextSwitch from '@/components/filters/ContextSwitch';
-import SecondaryFilters from '@/components/filters/SecondaryFilters';
-import { TaskCategory, TaskContext } from '@/types/task';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Plus } from 'lucide-react';
+import { TaskContext } from '@/types/task';
+import { useTeamContext } from '@/contexts/TeamContext';
 import {
   Select,
   SelectContent,
@@ -20,287 +10,165 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useTeamContext } from '@/contexts/TeamContext';
+import LevelDisplay from './LevelDisplay';
+import UserProfile from './UserProfile';
+
+interface NavigationItem {
+  key: string;
+  title: string;
+  icon: string;
+}
 
 interface AppHeaderProps {
-  tasksCount: number;
-  completedTasks: number;
-  completionRate: number;
   onOpenModal: () => void;
-  onOpenTaskList?: () => void;
-  isMobile?: boolean;
-  // Filtres
+  onOpenTaskList: () => void;
+  isMobile: boolean;
   contextFilter: TaskContext | 'all';
   onContextFilterChange: (context: TaskContext | 'all') => void;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  categoryFilter: TaskCategory | 'all';
-  onCategoryFilterChange: (category: TaskCategory | 'all') => void;
-  sortBy: 'name' | 'duration' | 'category';
-  onSortChange: (sortBy: 'name' | 'duration' | 'category') => void;
+  currentView: string;
+  onViewChange: (view: string) => void;
+  navigationItems: NavigationItem[];
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
-  tasksCount,
-  completedTasks,
-  completionRate,
   onOpenModal,
   onOpenTaskList,
-  isMobile = false,
+  isMobile,
   contextFilter,
   onContextFilterChange,
-  searchQuery,
-  onSearchChange,
-  categoryFilter,
-  onCategoryFilterChange,
-  sortBy,
-  onSortChange
+  currentView,
+  onViewChange,
+  navigationItems,
 }) => {
-  const { teams, currentTeam, setCurrentTeam, teamMembers } = useTeamContext();
-  const navigate = useNavigate();
+  const { teams, currentTeam, setCurrentTeam } = useTeamContext();
 
   const handleTeamChange = (value: string) => {
-    if (value === 'personal') {
+    if (value === 'all') {
+      onContextFilterChange('all');
+      setCurrentTeam(null);
+    } else if (value === 'personal') {
+      onContextFilterChange('Perso');
+      setCurrentTeam(null);
+    } else if (value === 'pro') {
+      onContextFilterChange('Pro');
       setCurrentTeam(null);
     } else {
       const team = teams.find(t => t.id === value);
       if (team) {
         setCurrentTeam(team);
+        onContextFilterChange('all');
       }
     }
   };
 
+  const getCurrentValue = () => {
+    if (currentTeam) return currentTeam.id;
+    if (contextFilter === 'Perso') return 'personal';
+    if (contextFilter === 'Pro') return 'pro';
+    return 'all';
+  };
+
   return (
-    <header className="bg-background shadow-sm border-b border-border">
-      <div className="px-3 md:px-6 py-2 md:py-3 space-y-3">
-        {/* Première ligne : Logo, titre, stats, actions */}
-        <div className="flex items-center justify-between gap-2">
+    <header className="bg-card border-b border-border shadow-sm sticky top-0 z-10">
+      <div className="px-4 md:px-6 py-3">
+        <div className="flex items-center justify-between gap-3">
           {/* Logo et titre */}
-          <div className="flex items-center gap-2 md:gap-3">
-            {/* Bouton menu hamburger sur mobile */}
-            {isMobile && onOpenTaskList && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenTaskList}
-                className="h-9 w-9 p-0"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-            )}
-            
-            <div className="p-1.5 md:p-2 bg-primary rounded-lg">
-              <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-base md:text-xl font-bold text-foreground">TO-DO-IT</h1>
-              {!isMobile && (
-                <p className="text-xs text-muted-foreground hidden sm:block">Gestion sécurisée des tâches</p>
-              )}
-            </div>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              TO-DO-IT
+            </h1>
           </div>
-          
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Version mobile: Menu dropdown pour historique et stats */}
-            {isMobile ? (
-              <>
-                {/* Sélecteur d'équipe mobile */}
-                <Select value={currentTeam?.id || 'personal'} onValueChange={handleTeamChange}>
-                  <SelectTrigger className="h-9 w-auto min-w-[120px] bg-muted/50">
-                    <div className="flex items-center gap-1.5">
-                      {currentTeam ? (
-                        <>
-                          <Users className="w-3.5 h-3.5" />
-                          <span className="text-xs truncate max-w-[80px]">{currentTeam.name}</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckSquare className="w-3.5 h-3.5" />
-                          <span className="text-xs">Perso</span>
-                        </>
-                      )}
-                    </div>
+
+          {/* Centre : Sélecteur + Navigation (desktop) */}
+          {!isMobile && (
+            <div className="flex items-center gap-4 flex-1 justify-center">
+              {/* Sélecteur d'équipe/contexte compact */}
+              <div className="flex items-center gap-2">
+                <Select 
+                  value={getCurrentValue()} 
+                  onValueChange={handleTeamChange}
+                >
+                  <SelectTrigger className="w-[160px] h-9 bg-background border-border">
+                    <SelectValue placeholder="Contexte" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="personal">
-                      <div className="flex items-center gap-2">
-                        <CheckSquare className="w-4 h-4" />
-                        <span>Mes tâches</span>
-                      </div>
-                    </SelectItem>
+                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="personal">Personnel</SelectItem>
+                    <SelectItem value="pro">Professionnel</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          <span>{team.name}</span>
-                        </div>
+                        {team.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-
-                <Button
-                  onClick={onOpenModal}
-                  size="sm"
-                  className="h-9"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
-                      <span className="text-xs">{tasksCount}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="p-2 space-y-2">
-                      <div className="text-xs font-medium">Statistiques</div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Actives</span>
-                        <span className="font-medium">{tasksCount}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Terminées</span>
-                        <span className="font-medium">{completedTasks}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Progression</span>
-                        <span className="font-medium">{completionRate}%</span>
-                      </div>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <UserOptionsMenu />
-              </>
-            ) : (
-              /* Version desktop: affichage complet */
-              <>
-                {/* Statistiques */}
-                <div className="hidden md:flex items-center space-x-3 lg:space-x-4 text-xs text-muted-foreground">
-                  <span className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-primary rounded-full"></div>
-                    <span>{tasksCount} actives</span>
-                  </span>
-                  <span className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-system-success rounded-full"></div>
-                    <span>{completedTasks} terminées</span>
-                  </span>
-                  <span className="hidden lg:inline">{completionRate}% complet</span>
-                </div>
-                
-                <Button
-                  onClick={onOpenModal}
-                  size="sm"
-                  className="hidden sm:flex"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvelle tâche
-                </Button>
-
-                <Button
-                  onClick={onOpenModal}
-                  size="sm"
-                  className="sm:hidden h-9 w-9 p-0"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-                
-                <UserOptionsMenu />
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Deuxième ligne : Sélecteur d'équipe + Switch Pro/Perso + Filtres secondaires */}
-        {!isMobile && (
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {/* Sélecteur d'équipe avec label et badge */}
-              <div className="flex items-center gap-3 px-3 py-2 bg-muted/50 rounded-lg border border-border">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Espace:</span>
-                  <Select value={currentTeam?.id || 'personal'} onValueChange={handleTeamChange}>
-                    <SelectTrigger className="w-[180px] h-8 border-0 bg-background hover:bg-accent">
-                      <div className="flex items-center gap-2">
-                        {currentTeam ? (
-                          <>
-                            <Users className="w-4 h-4 text-primary" />
-                            <span className="font-medium">{currentTeam.name}</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckSquare className="w-4 h-4 text-primary" />
-                            <span className="font-medium">Mes tâches</span>
-                          </>
-                        )}
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="personal">
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="w-4 h-4" />
-                          <span>Mes tâches personnelles</span>
-                        </div>
-                      </SelectItem>
-                      {teams.map((team) => (
-                        <SelectItem key={team.id} value={team.id}>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            <span>{team.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {/* Badge nombre de membres si équipe sélectionnée */}
-                {currentTeam && teamMembers.length > 0 && (
-                  <Badge variant="secondary" className="h-6 px-2 text-xs">
-                    {teamMembers.length} {teamMembers.length === 1 ? 'membre' : 'membres'}
-                  </Badge>
-                )}
-                
-                {/* Bouton Gérer mes équipes */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/teams')}
-                  className="h-7 w-7"
-                  title="Gérer mes équipes"
-                >
-                  <Settings className="w-3.5 h-3.5" />
-                </Button>
               </div>
 
-              {/* Séparateur visuel */}
-              <div className="h-6 w-px bg-border" />
-
-              {/* Switch principal Pro/Perso (uniquement en mode personnel) */}
-              {!currentTeam && (
-                <>
-                  <ContextSwitch 
-                    value={contextFilter}
-                    onValueChange={onContextFilterChange}
-                  />
-                  <div className="h-6 w-px bg-border" />
-                </>
-              )}
+              {/* Navigation intégrée */}
+              <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1">
+                {navigationItems.map((item) => (
+                  <Button
+                    key={item.key}
+                    variant={currentView === item.key ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => onViewChange(item.key)}
+                    className={`
+                      px-3 h-8 text-xs font-medium transition-all
+                      ${currentView === item.key 
+                        ? 'shadow-sm' 
+                        : 'hover:bg-accent/50'
+                      }
+                    `}
+                  >
+                    <span className="mr-1.5">{item.icon}</span>
+                    <span className="hidden lg:inline">{item.title}</span>
+                  </Button>
+                ))}
+              </div>
             </div>
-            
-            {/* Filtres secondaires */}
-            <SecondaryFilters
-              searchQuery={searchQuery}
-              onSearchChange={onSearchChange}
-              categoryFilter={categoryFilter}
-              onCategoryFilterChange={onCategoryFilterChange}
-              sortBy={sortBy}
-              onSortChange={onSortChange}
-            />
+          )}
+
+          {/* Mobile : Sélecteur simplifié */}
+          {isMobile && (
+            <Select 
+              value={getCurrentValue()} 
+              onValueChange={handleTeamChange}
+            >
+              <SelectTrigger className="w-[120px] h-9 bg-background border-border text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="personal">Perso</SelectItem>
+                <SelectItem value="pro">Pro</SelectItem>
+                {teams.map((team) => (
+                  <SelectItem key={team.id} value={team.id}>
+                    {team.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Droite : Actions */}
+          <div className="flex items-center gap-2">
+            {/* Nouvelle tâche */}
+            <Button
+              onClick={onOpenModal}
+              size={isMobile ? "icon" : "default"}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm h-9"
+            >
+              <Plus className="h-4 w-4" />
+              {!isMobile && <span className="ml-2">Nouvelle tâche</span>}
+            </Button>
+
+            {/* Level Display (desktop uniquement) */}
+            {!isMobile && <LevelDisplay />}
+
+            {/* Profil utilisateur */}
+            <UserProfile />
           </div>
-        )}
+        </div>
       </div>
     </header>
   );
