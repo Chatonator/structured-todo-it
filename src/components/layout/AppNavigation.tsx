@@ -24,16 +24,20 @@ const AppNavigation: React.FC<AppNavigationProps> = ({
   navigationItems
 }) => {
   return (
-    <nav className="px-6 pb-3">
-      <div className="flex space-x-1">
+    <nav className="px-6 pb-4 pt-2">
+      <div className="flex space-x-1 bg-muted/30 p-1 rounded-lg border border-border/50">
         {navigationItems.map((item) => (
           <Button
             key={item.key}
             variant={currentView === item.key ? "default" : "ghost"}
             onClick={() => onViewChange(item.key)}
-            className="flex items-center space-x-2"
+            className={`flex items-center space-x-2 flex-1 transition-all ${
+              currentView === item.key 
+                ? 'shadow-sm' 
+                : 'hover:bg-accent/50'
+            }`}
           >
-            <span>{item.title}</span>
+            <span className="font-medium">{item.title}</span>
           </Button>
         ))}
       </div>
