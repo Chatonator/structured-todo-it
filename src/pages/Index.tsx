@@ -325,23 +325,11 @@ const Index = () => {
       <div className={`min-h-screen flex flex-col w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
         {/* Header avec statistiques, filtres et actions */}
         <AppHeader
-          tasksCount={safeTasksCount}
-          completedTasks={safeCompletedTasks}
-          completionRate={safeCompletionRate}
           onOpenModal={() => setIsModalOpen(true)}
           onOpenTaskList={() => setIsTaskListOpen(true)}
           isMobile={isMobile}
           contextFilter={contextFilter}
           onContextFilterChange={setContextFilter}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          categoryFilter={categoryFilter}
-          onCategoryFilterChange={setCategoryFilter}
-          sortBy={sortBy}
-          onSortChange={(newSort) => {
-            setSortBy(newSort);
-            safeSortTasks(newSort);
-          }}
         />
 
         {/* Navigation horizontale - cachée sur mobile */}
