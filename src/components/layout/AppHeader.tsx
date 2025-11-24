@@ -23,11 +23,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <header className="bg-background shadow-sm border-b border-border">
       <div className="px-3 md:px-6 py-3 md:py-4 space-y-3">
-        {/* Première ligne : Logo, titre, bouton nouvelle tâche, profil gamifié */}
+        {/* Ligne unique : Logo, titre, sélecteur contexte, bouton nouvelle tâche, profil */}
         <div className="flex items-center justify-between gap-4">
           {/* Logo et titre */}
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Bouton menu hamburger sur mobile */}
             {isMobile && onOpenTaskList && (
               <Button
                 variant="ghost"
@@ -42,13 +41,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <div className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-lg shadow-sm">
               <CheckSquare className="w-5 h-5 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">TO-DO-IT</h1>
-              {!isMobile && (
-                <p className="text-xs text-muted-foreground">Gestion sécurisée des tâches</p>
-              )}
-            </div>
+            <h1 className="text-xl font-bold text-foreground">TO-DO-IT</h1>
           </div>
+          
+          {/* Sélecteur de contexte (desktop uniquement) */}
+          {!isMobile && (
+            <UnifiedContextSelector
+              contextFilter={contextFilter}
+              onContextFilterChange={onContextFilterChange}
+            />
+          )}
           
           {/* Bouton nouvelle tâche + Profil */}
           <div className="flex items-center gap-3">
@@ -64,16 +66,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             {!isMobile && <UserProfileBlock />}
           </div>
         </div>
-
-        {/* Deuxième ligne : Sélecteur unifié (contexte + équipes) */}
-        {!isMobile && (
-          <div className="flex items-center">
-            <UnifiedContextSelector
-              contextFilter={contextFilter}
-              onContextFilterChange={onContextFilterChange}
-            />
-          </div>
-        )}
       </div>
     </header>
   );
