@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import { TeamManagement } from "./components/team/TeamManagement";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { TeamProvider } from "@/contexts/TeamContext";
+import { UserPreferencesProvider } from "@/hooks/useUserPreferences";
 import { logger } from "@/lib/logger";
 
 const queryClient = new QueryClient({
@@ -92,42 +93,44 @@ const App = () => (
     }}
   >
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TeamProvider>
-          <TooltipProvider>
-            <Toaster />
-            <BrowserRouter basename={import.meta.env.DEV ? '/' : '/structured-todo-it/'}>
-              <Routes>
-                <Route 
-                  path="/" 
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/teams" 
-                  element={
-                    <ProtectedRoute>
-                      <TeamManagement />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/auth" 
-                  element={
-                    <PublicRoute>
-                      <Auth />
-                    </PublicRoute>
-                  } 
-                />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </TeamProvider>
-      </ThemeProvider>
+      <UserPreferencesProvider>
+        <ThemeProvider>
+          <TeamProvider>
+            <TooltipProvider>
+              <Toaster />
+              <BrowserRouter basename={import.meta.env.DEV ? '/' : '/structured-todo-it/'}>
+                <Routes>
+                  <Route 
+                    path="/" 
+                    element={
+                      <ProtectedRoute>
+                        <Index />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/teams" 
+                    element={
+                      <ProtectedRoute>
+                        <TeamManagement />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/auth" 
+                    element={
+                      <PublicRoute>
+                        <Auth />
+                      </PublicRoute>
+                    } 
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </TeamProvider>
+        </ThemeProvider>
+      </UserPreferencesProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );
