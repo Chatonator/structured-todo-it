@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, LogOut, Users, Settings } from 'lucide-react';
 import {
   DropdownMenu,
@@ -13,11 +13,13 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useGamification } from '@/hooks/useGamification';
 import { useNavigate } from 'react-router-dom';
+import SettingsModal from '@/components/settings/SettingsModal';
 
 const UserProfileBlock: React.FC = () => {
   const { user, signOut } = useAuth();
   const { progress, getProgressPercentage } = useGamification();
   const navigate = useNavigate();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -31,6 +33,7 @@ const UserProfileBlock: React.FC = () => {
   const xpPercentage = getProgressPercentage();
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors group">
@@ -75,6 +78,14 @@ const UserProfileBlock: React.FC = () => {
         <DropdownMenuSeparator className="bg-border" />
         
         <DropdownMenuItem 
+          onClick={() => setIsSettingsOpen(true)}
+          className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
+        >
+          <Settings className="h-4 w-4" />
+          Paramètres
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem 
           onClick={() => navigate('/teams')}
           className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
         >
@@ -93,6 +104,9 @@ const UserProfileBlock: React.FC = () => {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    
+    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+    </>
   );
 };
 
