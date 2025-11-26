@@ -24,6 +24,9 @@ import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsMobile } from '@/hooks/shared/use-mobile';
+import { useProjects } from '@/hooks/useProjects';
+import { useHabits } from '@/hooks/useHabits';
+import { useDecks } from '@/hooks/useDecks';
 
 /**
  * Page principale de l'application
@@ -37,6 +40,11 @@ const Index = () => {
   // Hooks pour tâches personnelles et d'équipe
   const personalTasks = useTasks();
   const teamTasks = useTeamTasks(currentTeam?.id || null);
+  
+  // Hooks pour projets et habitudes
+  const { projects } = useProjects();
+  const { defaultDeckId } = useDecks();
+  const { habits } = useHabits(defaultDeckId);
   
   // Basculer entre les tâches personnelles et d'équipe
   const isTeamMode = !!currentTeam;
@@ -255,6 +263,8 @@ const Index = () => {
           return (
             <HomeView 
               tasks={allFilteredTasks}
+              projects={projects}
+              habits={habits}
               onViewChange={setCurrentView}
               calculateTotalTime={safeCalculateTotalTime}
             />
