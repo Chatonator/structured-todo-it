@@ -6,6 +6,7 @@ import { Menu } from 'lucide-react';
 import { Task } from '@/types/task';
 import TaskList from '@/components/TaskList';
 import TaskModal from '@/components/TaskModal';
+import HomeView from '@/components/HomeView';
 import TasksView from '@/components/TasksView';
 import PriorityView from '@/components/PriorityView';
 import DashboardView from '@/components/DashboardView';
@@ -153,7 +154,7 @@ const Index = () => {
 
   // États locaux pour l'interface
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('tasks');
+  const [currentView, setCurrentView] = useState('home');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [isTaskListOpen, setIsTaskListOpen] = useState(false);
   const [isTaskListCollapsed, setIsTaskListCollapsed] = useState(false);
@@ -166,6 +167,7 @@ const Index = () => {
 
   // Configuration de la navigation
   const navigationItems = [
+    { key: 'home', title: 'Home', icon: '🏠' },
     { key: 'tasks', title: 'Tâches', icon: '📝' },
     { key: 'priority', title: 'Vue 1-3-5', icon: '🎲' },
     { key: 'dashboard', title: 'Dashboard', icon: '📊' },
@@ -249,6 +251,14 @@ const Index = () => {
   const renderCurrentView = () => {
     try {
       switch (currentView) {
+        case 'home':
+          return (
+            <HomeView 
+              tasks={allFilteredTasks}
+              onViewChange={setCurrentView}
+              calculateTotalTime={safeCalculateTotalTime}
+            />
+          );
         case 'tasks':
           return (
             <TasksView 
