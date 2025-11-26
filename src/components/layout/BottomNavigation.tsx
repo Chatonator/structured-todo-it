@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   Heart,
   Award,
-  Briefcase
+  Briefcase,
+  Home
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -25,6 +26,7 @@ interface BottomNavigationProps {
 }
 
 const iconMap: Record<string, React.ReactNode> = {
+  home: <Home className="w-5 h-5" />,
   tasks: <CheckSquare className="w-5 h-5" />,
   priority: <Target className="w-5 h-5" />,
   dashboard: <BarChart3 className="w-5 h-5" />,
