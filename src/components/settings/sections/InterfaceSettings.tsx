@@ -4,7 +4,7 @@ import { SettingsToggle } from '../common/SettingsToggle';
 import { SettingsColorPicker } from '../common/SettingsColorPicker';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react';
 
 export const InterfaceSettings: React.FC = () => {
   const { preferences, updatePreferences } = useUserPreferences();
@@ -22,6 +22,12 @@ export const InterfaceSettings: React.FC = () => {
     const newOrder = [...preferences.categoryOrder];
     [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
     newOrder.forEach((cat, idx) => cat.order = idx);
+    updatePreferences({ categoryOrder: newOrder });
+  };
+
+  const toggleCategoryVisibility = (index: number) => {
+    const newOrder = [...preferences.categoryOrder];
+    newOrder[index] = { ...newOrder[index], visible: !newOrder[index].visible };
     updatePreferences({ categoryOrder: newOrder });
   };
 
@@ -55,8 +61,8 @@ export const InterfaceSettings: React.FC = () => {
       </SettingsSection>
 
       <SettingsSection
-        title="Ordre des catégories"
-        description="Réorganisez l'ordre des vues dans la navigation"
+        title="Ordre et visibilité des catégories"
+        description="Réorganisez l'ordre des vues et masquez celles que vous n'utilisez pas"
       >
         <div className="space-y-1">
           {preferences.categoryOrder.map((category, index) => (
@@ -64,8 +70,19 @@ export const InterfaceSettings: React.FC = () => {
               key={category.id}
               className="flex items-center justify-between py-2 px-3 bg-muted/30 rounded-md"
             >
-              <span className="text-sm font-medium">{category.label}</span>
+              <span className={`text-sm font-medium ${!category.visible ? 'opacity-50 line-through' : ''}`}>
+                {category.label}
+              </span>
               <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleCategoryVisibility(index)}
+                  className="h-7 w-7 p-0"
+                  title={category.visible ? 'Masquer' : 'Afficher'}
+                >
+                  {category.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"

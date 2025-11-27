@@ -47,7 +47,7 @@ export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ chi
       showHabits: DEFAULT_PREFERENCES.showHabits,
       showGamification: DEFAULT_PREFERENCES.showGamification,
       showTeams: DEFAULT_PREFERENCES.showTeams,
-      categoryOrder: DEFAULT_PREFERENCES.categoryOrder,
+      categoryOrder: DEFAULT_PREFERENCES.categoryOrder.map(cat => ({ ...cat })),
       categoryColors: DEFAULT_PREFERENCES.categoryColors,
     }));
   };
