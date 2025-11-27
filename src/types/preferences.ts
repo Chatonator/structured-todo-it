@@ -7,6 +7,7 @@ export interface CategoryOrder {
   id: string;
   label: string;
   order: number;
+  visible: boolean;
 }
 
 export interface CategoryColors {
@@ -74,15 +75,15 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   showGamification: true,
   showTeams: true,
   categoryOrder: [
-    { id: 'tasks', label: 'Tâches', order: 0 },
-    { id: 'priority', label: 'Priorités', order: 1 },
-    { id: 'dashboard', label: 'Dashboard', order: 2 },
-    { id: 'eisenhower', label: 'Eisenhower', order: 3 },
-    { id: 'calendar', label: 'Calendrier', order: 4 },
-    { id: 'projects', label: 'Projets', order: 5 },
-    { id: 'habits', label: 'Habitudes', order: 6 },
-    { id: 'rewards', label: 'Récompenses', order: 7 },
-    { id: 'completed', label: 'Terminées', order: 8 },
+    { id: 'tasks', label: 'Tâches', order: 0, visible: true },
+    { id: 'priority', label: 'Priorités', order: 1, visible: true },
+    { id: 'dashboard', label: 'Dashboard', order: 2, visible: true },
+    { id: 'eisenhower', label: 'Eisenhower', order: 3, visible: true },
+    { id: 'calendar', label: 'Calendrier', order: 4, visible: true },
+    { id: 'projects', label: 'Projets', order: 5, visible: true },
+    { id: 'habits', label: 'Habitudes', order: 6, visible: true },
+    { id: 'rewards', label: 'Récompenses', order: 7, visible: true },
+    { id: 'completed', label: 'Terminées', order: 8, visible: true },
   ],
   categoryColors: {
     Obligation: 'hsl(var(--destructive))',

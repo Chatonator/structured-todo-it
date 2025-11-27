@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
@@ -27,6 +27,7 @@ import { useIsMobile } from '@/hooks/shared/use-mobile';
 import { useProjects } from '@/hooks/useProjects';
 import { useHabits } from '@/hooks/useHabits';
 import { useDecks } from '@/hooks/useDecks';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 /**
  * Page principale de l'application
@@ -36,6 +37,7 @@ const Index = () => {
   const { theme } = useTheme();
   const isMobile = useIsMobile();
   const { currentTeam } = useTeamContext();
+  const { preferences } = useUserPreferences();
   
   // Hooks pour tâches personnelles et d'équipe
   const personalTasks = useTasks();
@@ -174,7 +176,7 @@ const Index = () => {
   const [sortBy, setSortBy] = useState<'name' | 'duration' | 'category'>('name');
 
   // Configuration de la navigation
-  const navigationItems = [
+  const allNavigationItems = [
     { key: 'home', title: 'Home', icon: '🏠' },
     { key: 'tasks', title: 'Tâches', icon: '📝' },
     { key: 'priority', title: 'Vue 1-3-5', icon: '🎲' },
@@ -186,6 +188,25 @@ const Index = () => {
     { key: 'rewards', title: 'Récompenses', icon: '🏆' },
     { key: 'completed', title: 'Terminées', icon: '✅' }
   ];
+
+  // Filtrer et ordonner selon les préférences utilisateur
+  const navigationItems = useMemo(() => {
+    // Créer une map pour l'ordre et la visibilité
+    const orderMap = new Map(
+      preferences.categoryOrder.map(cat => [cat.id, { order: cat.order, visible: cat.visible }])
+    );
+
+    return allNavigationItems
+      .filter(item => {
+        const pref = orderMap.get(item.key);
+        return pref ? pref.visible : true; // Visible par défaut si pas dans les préférences
+      })
+      .sort((a, b) => {
+        const orderA = orderMap.get(a.key)?.order ?? 999;
+        const orderB = orderMap.get(b.key)?.order ?? 999;
+        return orderA - orderB;
+      });
+  }, [preferences.categoryOrder]);
 
   // Gestion de la sélection sécurisée
   const handleToggleSelection = (taskId: string) => {
