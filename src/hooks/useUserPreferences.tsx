@@ -17,7 +17,24 @@ export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ chi
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
+        const storedPrefs = JSON.parse(stored);
+        
+        // Fusionner categoryOrder : ajouter les nouvelles catégories manquantes
+        const storedCategoryIds = new Set(storedPrefs.categoryOrder?.map((cat: any) => cat.id) || []);
+        const newCategories = DEFAULT_PREFERENCES.categoryOrder.filter(
+          cat => !storedCategoryIds.has(cat.id)
+        );
+        
+        const mergedCategoryOrder = [
+          ...(storedPrefs.categoryOrder || []),
+          ...newCategories
+        ];
+        
+        return { 
+          ...DEFAULT_PREFERENCES, 
+          ...storedPrefs,
+          categoryOrder: mergedCategoryOrder
+        };
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
