@@ -77,7 +77,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   categoryOrder: [
     { id: 'home', label: 'Home', order: 0, visible: true },
     { id: 'tasks', label: 'Tâches', order: 1, visible: true },
-    { id: 'priority', label: 'Priorités', order: 2, visible: true },
+    { id: 'priority', label: '1-3-5', order: 2, visible: true },
     { id: 'dashboard', label: 'Dashboard', order: 3, visible: true },
     { id: 'eisenhower', label: 'Eisenhower', order: 4, visible: true },
     { id: 'calendar', label: 'Calendrier', order: 5, visible: true },
