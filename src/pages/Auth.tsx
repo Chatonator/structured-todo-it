@@ -19,6 +19,8 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [awaitingEmailConfirmation, setAwaitingEmailConfirmation] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -32,7 +34,20 @@ const Auth = () => {
     };
     
     checkUser();
-  }, [navigate]);
+
+    // Listen for email confirmation
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session && awaitingEmailConfirmation) {
+        toast({
+          title: "Email confirmé !",
+          description: "Votre compte a été activé avec succès.",
+        });
+        window.location.href = '/';
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, awaitingEmailConfirmation, toast]);
 
   const cleanupAuthState = () => {
     // Clear all auth-related keys from localStorage
@@ -105,7 +120,7 @@ const Auth = () => {
     setError('');
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      setError('Le mot de passe doit contenir au moins 6 caractères.');
       setLoading(false);
       return;
     }
@@ -136,7 +151,7 @@ const Auth = () => {
 
       if (error) {
         if (error.message.includes('User already registered')) {
-          setError('An account with this email already exists. Please sign in instead.');
+          setError('Un compte avec cet email existe déjà. Veuillez vous connecter.');
         } else {
           setError(error.message);
         }
@@ -144,19 +159,49 @@ const Auth = () => {
       }
 
       if (data.user) {
-        toast({
-          title: "Account created!",
-          description: "Please check your email to confirm your account.",
-        });
-        
-        // If user is confirmed immediately, redirect
+        // Check if email confirmation is required
         if (data.user.email_confirmed_at) {
+          // Email is already confirmed (auto-confirm enabled)
+          toast({
+            title: "Compte créé !",
+            description: "Bienvenue sur To-Do-iT !",
+          });
           window.location.href = '/';
+        } else {
+          // Email confirmation required
+          setConfirmationEmail(email);
+          setAwaitingEmailConfirmation(true);
         }
       }
     } catch (error: any) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Une erreur inattendue s\'est produite. Veuillez réessayer.');
       console.error('Sign up error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: confirmationEmail,
+      });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      toast({
+        title: "Email renvoyé",
+        description: "Vérifiez votre boîte mail.",
+      });
+    } catch (error: any) {
+      setError('Impossible de renvoyer l\'email. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -189,6 +234,69 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  if (awaitingEmailConfirmation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 to-secondary/5">
+        <Card className="w-full max-w-md shadow-xl border-0 bg-white/95 backdrop-blur-xl">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+              <Mail className="w-8 h-8 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl font-bold">Vérifiez votre email</CardTitle>
+              <CardDescription className="text-base mt-2">
+                Nous avons envoyé un lien de confirmation à
+              </CardDescription>
+              <p className="font-semibold text-foreground mt-1">{confirmationEmail}</p>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center space-y-4">
+              <div className="text-sm text-muted-foreground space-y-2">
+                <p><strong>Étape 1 :</strong> Ouvrez votre boîte mail</p>
+                <p><strong>Étape 2 :</strong> Cliquez sur le lien de confirmation</p>
+                <p><strong>Étape 3 :</strong> Vous serez redirigé automatiquement</p>
+              </div>
+              
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-3 pt-4">
+                <Button 
+                  onClick={handleResendConfirmation}
+                  variant="outline"
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? 'Envoi...' : 'Renvoyer l\'email de confirmation'}
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setAwaitingEmailConfirmation(false);
+                    setConfirmationEmail('');
+                    setError('');
+                  }}
+                  variant="ghost"
+                  className="w-full"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Retour à la connexion
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground mt-4">
+                Vous ne trouvez pas l'email ? Vérifiez vos spams ou courriers indésirables.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (showForgotPassword) {
     return (

@@ -17,11 +17,28 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         setLoading(false);
 
+        // Log important auth events
+        if (event === 'SIGNED_IN') {
+          logger.info('User signed in successfully', { 
+            userId: session?.user?.id,
+            email: session?.user?.email,
+            emailConfirmed: !!session?.user?.email_confirmed_at
+          });
+        } else if (event === 'SIGNED_OUT') {
+          logger.info('User signed out');
+        } else if (event === 'USER_UPDATED') {
+          logger.debug('User updated', { 
+            userId: session?.user?.id,
+            emailConfirmed: !!session?.user?.email_confirmed_at
+          });
+        } else if (event === 'TOKEN_REFRESHED') {
+          logger.debug('Token refreshed successfully');
+        }
+
         // Defer any additional data fetching to prevent deadlocks
         if (event === 'SIGNED_IN' && session?.user) {
           setTimeout(() => {
             // Any additional user data fetching can go here
-            logger.info('User signed in successfully', { userId: session.user.id });
           }, 0);
         }
       }
