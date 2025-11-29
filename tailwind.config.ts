@@ -122,10 +122,10 @@ export default {
 
         // ===== COULEUR RÉCOMPENSES (17ème couleur) =====
         reward: {
-          DEFAULT: '#f59e0b',           // #17 - Or/Jaune ambré (récompenses)
-          light: '#fef3c7',             // Jaune très pâle
-          dark: '#d97706',              // Orange foncé
-          foreground: '#ffffff'         // Texte sur fond reward
+          DEFAULT: 'hsl(var(--reward))',
+          light: 'hsl(var(--reward-light))',
+          dark: 'hsl(var(--reward-dark))',
+          foreground: 'hsl(var(--reward-foreground))'
         },
 
         // ===== COULEUR PROJETS (18ème couleur) =====
