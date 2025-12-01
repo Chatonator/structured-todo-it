@@ -654,6 +654,110 @@ export type Database = {
         }
         Relationships: []
       }
+      time_events: {
+        Row: {
+          color: string | null
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          duration: number
+          ends_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          is_all_day: boolean | null
+          priority: number | null
+          recurrence: Json | null
+          starts_at: string
+          status: string
+          timezone: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: number
+          ends_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          is_all_day?: boolean | null
+          priority?: number | null
+          recurrence?: Json | null
+          starts_at: string
+          status?: string
+          timezone?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: number
+          ends_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          is_all_day?: boolean | null
+          priority?: number | null
+          recurrence?: Json | null
+          starts_at?: string
+          status?: string
+          timezone?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      time_occurrences: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          ends_at: string
+          event_id: string
+          id: string
+          starts_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          ends_at: string
+          event_id: string
+          id?: string
+          starts_at: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          ends_at?: string
+          event_id?: string
+          id?: string
+          starts_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_occurrences_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "time_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_achievements: {
         Row: {
           achievement_id: string
