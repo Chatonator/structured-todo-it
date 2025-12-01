@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.process-recurring-tasks]
 verify_jwt = true
+
+[functions.time-sync]
+verify_jwt = true
