@@ -4,6 +4,7 @@ import { CheckSquare, Plus, Menu } from 'lucide-react';
 import { TaskContext } from '@/types/task';
 import UnifiedContextSelector from '@/components/layout/UnifiedContextSelector';
 import UserProfileBlock from '@/components/layout/UserProfileBlock';
+import { TimelineSyncButton } from '@/components/timeline/TimelineSyncButton';
 
 interface AppHeaderProps {
   onOpenModal: () => void;
@@ -52,7 +53,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             />
           )}
           
-          {/* Bouton nouvelle tâche + Profil */}
+          {/* Bouton nouvelle tâche + Sync + Profil */}
           <div className="flex items-center gap-3">
             <Button
               onClick={onOpenModal}
@@ -63,6 +64,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               {!isMobile && "Nouvelle tâche"}
             </Button>
             
+            {!isMobile && <TimelineSyncButton />}
             {!isMobile && <UserProfileBlock />}
           </div>
         </div>

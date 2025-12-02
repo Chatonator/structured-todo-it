@@ -16,6 +16,7 @@ import CompletedTasksView from '@/components/CompletedTasksView';
 import HabitsView from '@/components/habits/HabitsView';
 import RewardsView from '@/components/rewards/RewardsView';
 import { ProjectsView } from '@/components/projects/ProjectsView';
+import TimelineView from '@/components/timeline/TimelineView';
 import AppHeader from '@/components/layout/AppHeader';
 import AppNavigation from '@/components/layout/AppNavigation';
 import BottomNavigation from '@/components/layout/BottomNavigation';
@@ -183,6 +184,7 @@ const Index = () => {
     { key: 'dashboard', title: 'Dashboard', icon: '📊' },
     { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
     { key: 'calendar', title: 'Calendrier', icon: '📅' },
+    { key: 'timeline', title: 'Timeline', icon: '⏱️' },
     { key: 'projects', title: 'Projets', icon: '💼' },
     { key: 'habits', title: 'Habitudes', icon: '💪' },
     { key: 'rewards', title: 'Récompenses', icon: '🏆' },
@@ -320,6 +322,8 @@ const Index = () => {
           return <EisenhowerView tasks={allFilteredTasks.filter(t => !t.isCompleted)} />;
         case 'calendar':
           return <CalendarView tasks={allFilteredTasks} />;
+        case 'timeline':
+          return <TimelineView />;
         case 'projects':
           return <ProjectsView />;
         case 'habits':
