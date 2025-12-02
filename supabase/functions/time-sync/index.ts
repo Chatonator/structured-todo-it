@@ -166,8 +166,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         syncedEvents: timeEvents.length,
-        tasks: tasks?.length || 0,
-        habits: habits?.length || 0
+        syncedTasks: tasks?.length || 0,
+        syncedHabits: habits?.length || 0
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
