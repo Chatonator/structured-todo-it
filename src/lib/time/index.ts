@@ -7,6 +7,8 @@ export { TimeEngine } from './TimeEngine';
 export { DateCalculator } from './DateCalculator';
 export { RecurrenceResolver } from './RecurrenceResolver';
 export { ConflictChecker } from './ConflictChecker';
+export { EventRegistry } from './EventRegistry';
+export { EventNormalizer } from './EventNormalizer';
 
 export type {
   TimeEvent,
