@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { useGamification } from '@/hooks/useGamification';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useTimeEventSync } from './useTimeEventSync';
 
 const isConsecutiveDay = (date1: string, date2: string) => {
   const d1 = new Date(date1);
@@ -24,6 +25,7 @@ export const useHabits = (deckId: string | null) => {
   const { toast } = useToast();
   const { rewardHabitCompletion, rewardStreak } = useGamification();
   const { checkAndUnlockAchievement } = useAchievements();
+  const { syncHabitEvent, deleteEntityEvent } = useTimeEventSync();
 
   const loadHabits = useCallback(async () => {
     if (!user || !deckId) {
@@ -230,6 +232,23 @@ export const useHabits = (deckId: string | null) => {
 
       if (error) throw error;
 
+      // Sync avec time_events
+      const newHabit: Habit = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        deckId: data.deck_id,
+        frequency: data.frequency as Habit['frequency'],
+        timesPerWeek: data.times_per_week,
+        targetDays: data.target_days,
+        isActive: data.is_active ?? true,
+        order: data.order,
+        icon: data.icon,
+        color: data.color,
+        createdAt: new Date(data.created_at)
+      };
+      await syncHabitEvent(newHabit);
+
       await loadHabits();
       return data.id;
     } catch (error: any) {
@@ -241,7 +260,7 @@ export const useHabits = (deckId: string | null) => {
       });
       return null;
     }
-  }, [user, deckId, loadHabits, toast]);
+  }, [user, deckId, loadHabits, toast, syncHabitEvent]);
 
   const updateHabit = useCallback(async (habitId: string, updates: Partial<Habit>) => {
     if (!user) return false;
@@ -285,13 +304,16 @@ export const useHabits = (deckId: string | null) => {
 
       if (error) throw error;
 
+      // Supprimer le time_event associé
+      await deleteEntityEvent('habit', habitId);
+
       await loadHabits();
       return true;
     } catch (error: any) {
       logger.error('Failed to delete habit', { error: error.message });
       return false;
     }
-  }, [user, loadHabits]);
+  }, [user, loadHabits, deleteEntityEvent]);
 
   const isCompletedToday = useCallback((habitId: string) => {
     const today = new Date().toISOString().split('T')[0];

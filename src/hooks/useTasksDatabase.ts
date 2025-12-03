@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/task';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { useTimeEventSync } from './useTimeEventSync';
 
 export const useTasksDatabase = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -12,6 +13,7 @@ export const useTasksDatabase = () => {
   const [error, setError] = useState<string | null>(null);
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { syncTaskEvent, deleteEntityEvent, updateEventStatus } = useTimeEventSync();
 
   // Load tasks from database
   const loadTasks = useCallback(async () => {
@@ -124,6 +126,9 @@ export const useTasksDatabase = () => {
         throw error;
       }
 
+      // Sync avec le système unifié time_events
+      await syncTaskEvent(task);
+
       logger.debug('Task saved successfully', { taskId: task.id });
       return true;
     } catch (error: any) {
@@ -135,7 +140,7 @@ export const useTasksDatabase = () => {
       });
       return false;
     }
-  }, [isAuthenticated, user, toast]);
+  }, [isAuthenticated, user, toast, syncTaskEvent]);
 
   // Update tasks in database
   const updateTasks = useCallback(async (newTasks: Task[]): Promise<boolean> => {
@@ -184,6 +189,9 @@ export const useTasksDatabase = () => {
         throw new Error('Task not found or permission denied');
       }
 
+      // Supprimer le time_event associé
+      await deleteEntityEvent('task', taskId);
+
       // Update local state
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
       logger.debug('Task deleted successfully', { taskId });
@@ -197,7 +205,7 @@ export const useTasksDatabase = () => {
       });
       return false;
     }
-  }, [isAuthenticated, user, toast]);
+  }, [isAuthenticated, user, toast, deleteEntityEvent]);
 
   // Complete task with recurring logic
   const completeTask = useCallback(async (taskId: string): Promise<boolean> => {
@@ -226,6 +234,9 @@ export const useTasksDatabase = () => {
         throw error;
       }
 
+      // Mettre à jour le time_event associé
+      await updateEventStatus('task', taskId, 'completed');
+
       // Update local state
       setTasks(prev => prev.map(t => 
         t.id === taskId 
@@ -244,7 +255,7 @@ export const useTasksDatabase = () => {
       });
       return false;
     }
-  }, [isAuthenticated, user, tasks, toast]);
+  }, [isAuthenticated, user, tasks, toast, updateEventStatus]);
 
   // Save pinned tasks to database
   const savePinnedTasks = useCallback(async (newPinnedTasks: string[]) => {

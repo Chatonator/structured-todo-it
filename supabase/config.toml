@@ -9,8 +9,5 @@ verify_jwt = true
 [functions.manage-team-member]
 verify_jwt = true
 
-[functions.process-recurring-tasks]
-verify_jwt = true
-
-[functions.time-sync]
+[functions.migrate-to-unified-time]
 verify_jwt = true
