@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TimeOccurrence } from '@/lib/time/types';
+import { MigrationButton } from './MigrationButton';
 
 const TimelineView: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -255,25 +256,29 @@ const TimelineView: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="flex items-center gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{occurrences.length}</span>
-            <span className="text-muted-foreground">événements</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{occurrences.length}</span>
+              <span className="text-muted-foreground">événements</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{Math.round(totalBusyTime / 60)}h</span>
+              <span className="text-muted-foreground">occupé</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{Math.round(totalFreeTime / 60)}h</span>
+              <span className="text-muted-foreground">libre</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">
+                {occurrences.filter(o => o.status === 'completed').length}
+              </span>
+              <span className="text-muted-foreground">complétés</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{Math.round(totalBusyTime / 60)}h</span>
-            <span className="text-muted-foreground">occupé</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{Math.round(totalFreeTime / 60)}h</span>
-            <span className="text-muted-foreground">libre</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">
-              {occurrences.filter(o => o.status === 'completed').length}
-            </span>
-            <span className="text-muted-foreground">complétés</span>
-          </div>
+          
+          <MigrationButton />
         </div>
       </div>
 
