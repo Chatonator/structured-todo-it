@@ -10,10 +10,9 @@ import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TimeOccurrence } from '@/lib/time/types';
-import { MigrationButton } from './MigrationButton';
 
 const TimelineView: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -277,8 +276,6 @@ const TimelineView: React.FC = () => {
               <span className="text-muted-foreground">complétés</span>
             </div>
           </div>
-          
-          <MigrationButton />
         </div>
       </div>
 

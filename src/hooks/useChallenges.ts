@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { UserChallenge } from '@/types/gamification';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { useTimeEventSync } from './useTimeEventSync';
 
 export const useChallenges = () => {
   const [dailyChallenges, setDailyChallenges] = useState<UserChallenge[]>([]);
@@ -11,6 +12,7 @@ export const useChallenges = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { syncChallengeEvent, updateEventStatus, deleteEntityEvent } = useTimeEventSync();
 
   const formatUserChallenge = (data: any): UserChallenge => ({
     id: data.id,
@@ -90,7 +92,10 @@ export const useChallenges = () => {
         })
         .eq('id', challenge.id);
 
+      // Mettre à jour le time_event associé
       if (isCompleted) {
+        await updateEventStatus('challenge', challenge.id, 'completed');
+        
         toast({
           title: `✅ Défi complété !`,
           description: challenge.challenge?.name,
@@ -132,7 +137,7 @@ export const useChallenges = () => {
       logger.error('Failed to update challenge progress', { error: error.message });
       return false;
     }
-  }, [user, dailyChallenges, weeklyChallenges, loadChallenges, toast]);
+  }, [user, dailyChallenges, weeklyChallenges, loadChallenges, toast, updateEventStatus]);
 
   const assignDailyChallenges = useCallback(async () => {
     if (!user) return;
@@ -173,18 +178,35 @@ export const useChallenges = () => {
         expires_at: today
       }));
 
-      await supabase
+      const { data: insertedChallenges } = await supabase
         .from('user_challenges')
-        .insert(assignments);
+        .insert(assignments)
+        .select();
+
+      // Créer des time_events pour chaque défi assigné
+      if (insertedChallenges) {
+        for (const inserted of insertedChallenges) {
+          const challengeInfo = selected.find(c => c.id === inserted.challenge_id);
+          if (challengeInfo) {
+            await syncChallengeEvent({
+              id: inserted.id,
+              name: challengeInfo.name,
+              description: challengeInfo.description,
+              type: challengeInfo.type,
+              assignedDate: inserted.assigned_date,
+              expiresAt: inserted.expires_at
+            });
+          }
+        }
+      }
 
       await loadChallenges();
     } catch (error: any) {
       logger.error('Failed to assign daily challenges', { error: error.message });
     }
-  }, [user, loadChallenges]);
+  }, [user, loadChallenges, syncChallengeEvent]);
 
   const selectRandomChallenges = (challenges: any[], count: number) => {
-    const totalWeight = challenges.reduce((sum, c) => sum + c.weight, 0);
     const selected: any[] = [];
     const remaining = [...challenges];
 
