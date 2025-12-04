@@ -55,6 +55,15 @@ const mapHabitRecurrence = (habit: Habit): RecurrenceConfig => {
   }
 };
 
+interface ChallengeInfo {
+  id: string;
+  name: string;
+  description?: string;
+  type: 'daily' | 'weekly';
+  assignedDate: string;
+  expiresAt: string;
+}
+
 export const useTimeEventSync = () => {
   const { user } = useAuth();
 
@@ -212,6 +221,71 @@ export const useTimeEventSync = () => {
       return true;
     } catch (error: any) {
       logger.error('Erreur sync time_event pour habitude', { error: error.message, habitId: habit.id });
+      return false;
+    }
+  }, [user]);
+
+  /**
+   * Crée ou met à jour un time_event pour un défi
+   */
+  const syncChallengeEvent = useCallback(async (challenge: ChallengeInfo): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // Chercher un événement existant
+      const { data: existingEvents } = await supabase
+        .from('time_events')
+        .select('id')
+        .eq('entity_type', 'challenge')
+        .eq('entity_id', challenge.id)
+        .eq('user_id', user.id);
+
+      const existingEventId = existingEvents?.[0]?.id;
+
+      // Calculer les dates
+      const startsAt = new Date(challenge.assignedDate);
+      startsAt.setHours(0, 0, 0, 0);
+      
+      const endsAt = new Date(challenge.expiresAt);
+      endsAt.setHours(23, 59, 59, 999);
+
+      // Durée en minutes (pour les défis, c'est la durée totale de validité)
+      const duration = challenge.type === 'daily' ? 24 * 60 : 7 * 24 * 60;
+
+      const eventData = {
+        user_id: user.id,
+        entity_type: 'challenge',
+        entity_id: challenge.id,
+        title: challenge.name,
+        description: challenge.description || null,
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt.toISOString(),
+        duration,
+        is_all_day: true,
+        status: 'scheduled',
+        recurrence: null
+      };
+
+      if (existingEventId) {
+        const { error } = await supabase
+          .from('time_events')
+          .update(eventData)
+          .eq('id', existingEventId);
+
+        if (error) throw error;
+        logger.debug('TimeEvent mis à jour pour défi', { challengeId: challenge.id });
+      } else {
+        const { error } = await supabase
+          .from('time_events')
+          .insert(eventData);
+
+        if (error) throw error;
+        logger.debug('TimeEvent créé pour défi', { challengeId: challenge.id });
+      }
+
+      return true;
+    } catch (error: any) {
+      logger.error('Erreur sync time_event pour défi', { error: error.message, challengeId: challenge.id });
       return false;
     }
   }, [user]);
@@ -431,6 +505,7 @@ export const useTimeEventSync = () => {
   return {
     syncTaskEvent,
     syncHabitEvent,
+    syncChallengeEvent,
     deleteEntityEvent,
     completeOccurrence,
     updateEventStatus,

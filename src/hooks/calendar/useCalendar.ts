@@ -1,6 +1,11 @@
+/**
+ * useCalendar - Hook unifié pour la gestion du calendrier
+ * Utilise time_events comme source de vérité unique
+ */
 
-import { useState, useMemo } from 'react';
-import { Task, CalendarView, CalendarEvent, CALENDAR_VIEWS } from '@/types/task';
+import { useState, useMemo, useCallback } from 'react';
+import { CalendarView, CalendarEvent, CALENDAR_VIEWS } from '@/types/task';
+import { useTimeHub } from '@/hooks/useTimeHub';
 import { 
   startOfDay, 
   endOfDay, 
@@ -13,63 +18,18 @@ import {
   addMonths,
   format,
   isSameDay,
-  parseISO,
   setHours,
   setMinutes
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { TimeEvent } from '@/lib/time/types';
 
 /**
- * Hook pour la gestion du calendrier
+ * Hook pour la gestion du calendrier basé sur time_events
  */
-export const useCalendar = (tasks: Task[]) => {
+export const useCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<CalendarView>(CALENDAR_VIEWS.WEEK);
-
-  // Navigation dans le calendrier
-  const navigatePrevious = () => {
-    switch (currentView) {
-      case CALENDAR_VIEWS.DAY:
-        setCurrentDate(prev => addDays(prev, -1));
-        break;
-      case CALENDAR_VIEWS.WEEK:
-        setCurrentDate(prev => addWeeks(prev, -1));
-        break;
-      case CALENDAR_VIEWS.MONTH:
-        setCurrentDate(prev => addMonths(prev, -1));
-        break;
-      case CALENDAR_VIEWS.THREE_MONTHS:
-        setCurrentDate(prev => addMonths(prev, -3));
-        break;
-      case CALENDAR_VIEWS.SIX_MONTHS:
-        setCurrentDate(prev => addMonths(prev, -6));
-        break;
-    }
-  };
-
-  const navigateNext = () => {
-    switch (currentView) {
-      case CALENDAR_VIEWS.DAY:
-        setCurrentDate(prev => addDays(prev, 1));
-        break;
-      case CALENDAR_VIEWS.WEEK:
-        setCurrentDate(prev => addWeeks(prev, 1));
-        break;
-      case CALENDAR_VIEWS.MONTH:
-        setCurrentDate(prev => addMonths(prev, 1));
-        break;
-      case CALENDAR_VIEWS.THREE_MONTHS:
-        setCurrentDate(prev => addMonths(prev, 3));
-        break;
-      case CALENDAR_VIEWS.SIX_MONTHS:
-        setCurrentDate(prev => addMonths(prev, 6));
-        break;
-    }
-  };
-
-  const navigateToday = () => {
-    setCurrentDate(new Date());
-  };
 
   // Calcul des dates visibles selon la vue
   const visibleDateRange = useMemo(() => {
@@ -107,31 +67,97 @@ export const useCalendar = (tasks: Task[]) => {
     }
   }, [currentDate, currentView]);
 
-  // Conversion des tâches planifiées en événements calendrier
+  // Utiliser useTimeHub avec le range visible
+  const { 
+    events, 
+    occurrences, 
+    loading, 
+    checkConflicts,
+    updateEvent,
+    completeEvent 
+  } = useTimeHub(visibleDateRange);
+
+  // Navigation dans le calendrier
+  const navigatePrevious = useCallback(() => {
+    switch (currentView) {
+      case CALENDAR_VIEWS.DAY:
+        setCurrentDate(prev => addDays(prev, -1));
+        break;
+      case CALENDAR_VIEWS.WEEK:
+        setCurrentDate(prev => addWeeks(prev, -1));
+        break;
+      case CALENDAR_VIEWS.MONTH:
+        setCurrentDate(prev => addMonths(prev, -1));
+        break;
+      case CALENDAR_VIEWS.THREE_MONTHS:
+        setCurrentDate(prev => addMonths(prev, -3));
+        break;
+      case CALENDAR_VIEWS.SIX_MONTHS:
+        setCurrentDate(prev => addMonths(prev, -6));
+        break;
+    }
+  }, [currentView]);
+
+  const navigateNext = useCallback(() => {
+    switch (currentView) {
+      case CALENDAR_VIEWS.DAY:
+        setCurrentDate(prev => addDays(prev, 1));
+        break;
+      case CALENDAR_VIEWS.WEEK:
+        setCurrentDate(prev => addWeeks(prev, 1));
+        break;
+      case CALENDAR_VIEWS.MONTH:
+        setCurrentDate(prev => addMonths(prev, 1));
+        break;
+      case CALENDAR_VIEWS.THREE_MONTHS:
+        setCurrentDate(prev => addMonths(prev, 3));
+        break;
+      case CALENDAR_VIEWS.SIX_MONTHS:
+        setCurrentDate(prev => addMonths(prev, 6));
+        break;
+    }
+  }, [currentView]);
+
+  const navigateToday = useCallback(() => {
+    setCurrentDate(new Date());
+  }, []);
+
+  // Conversion des time_events en CalendarEvent pour compatibilité
   const calendarEvents = useMemo((): CalendarEvent[] => {
-    return tasks
-      .filter(task => task.scheduledDate && task.scheduledTime && !task.isCompleted)
-      .map(task => {
-        const scheduledDate = task.scheduledDate!;
-        const [hours, minutes] = task.scheduledTime!.split(':').map(Number);
-        
-        const startTime = setMinutes(setHours(scheduledDate, hours), minutes);
-        const duration = task.duration || task.estimatedTime;
-        const endTime = new Date(startTime.getTime() + duration * 60000);
+    return events
+      .filter(event => event.status !== 'completed' && event.status !== 'cancelled')
+      .map(event => {
+        const startTime = event.startsAt;
+        const duration = event.duration || 30;
+        const endTime = event.endsAt || new Date(startTime.getTime() + duration * 60000);
 
         return {
-          id: task.id,
-          task,
+          id: event.id,
+          task: {
+            id: event.entityId,
+            name: event.title,
+            category: 'Autres' as any,
+            context: 'Pro' as any,
+            estimatedTime: duration,
+            createdAt: event.createdAt,
+            level: 0 as const,
+            isExpanded: true,
+            isCompleted: event.status === 'completed',
+            scheduledDate: startTime,
+            scheduledTime: format(startTime, 'HH:mm'),
+            duration,
+            startTime: startTime
+          },
           startTime,
           endTime,
-          duration
+          duration,
+          // Infos supplémentaires du TimeEvent
+          entityType: event.entityType,
+          color: event.color,
+          isAllDay: event.isAllDay
         };
-      })
-      .filter(event => 
-        event.startTime >= visibleDateRange.start && 
-        event.startTime <= visibleDateRange.end
-      );
-  }, [tasks, visibleDateRange]);
+      });
+  }, [events]);
 
   // Formatage du titre selon la vue
   const viewTitle = useMemo(() => {
@@ -155,32 +181,65 @@ export const useCalendar = (tasks: Task[]) => {
     }
   }, [currentDate, currentView]);
 
-  // Vérifier si une tâche peut être planifiée à un moment donné
-  const canScheduleTask = (task: Task, date: Date, time: string): boolean => {
+  // Vérifier si un événement peut être planifié à un moment donné
+  const canScheduleEvent = useCallback((duration: number, date: Date, time: string): boolean => {
     const [hours, minutes] = time.split(':').map(Number);
     const proposedStart = setMinutes(setHours(date, hours), minutes);
-    const proposedEnd = new Date(proposedStart.getTime() + task.estimatedTime * 60000);
+    const proposedEnd = new Date(proposedStart.getTime() + duration * 60000);
 
-    // Vérifier les conflits avec les événements existants
-    return !calendarEvents.some(event => 
-      isSameDay(event.startTime, date) &&
-      ((proposedStart >= event.startTime && proposedStart < event.endTime) ||
-       (proposedEnd > event.startTime && proposedEnd <= event.endTime) ||
-       (proposedStart <= event.startTime && proposedEnd >= event.endTime))
-    );
-  };
+    // Créer un événement temporaire pour vérifier les conflits
+    const tempEvent: TimeEvent = {
+      id: 'temp',
+      entityType: 'task',
+      entityId: 'temp',
+      userId: '',
+      startsAt: proposedStart,
+      endsAt: proposedEnd,
+      duration,
+      isAllDay: false,
+      title: 'Temp',
+      status: 'scheduled',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const conflicts = checkConflicts(tempEvent);
+    return conflicts.length === 0;
+  }, [checkConflicts]);
+
+  // Replanifier un événement (pour drag & drop)
+  const rescheduleEvent = useCallback(async (eventId: string, newDate: Date, newTime?: string): Promise<boolean> => {
+    const newStartsAt = newTime 
+      ? setMinutes(setHours(newDate, parseInt(newTime.split(':')[0])), parseInt(newTime.split(':')[1]))
+      : newDate;
+    
+    return await updateEvent(eventId, { startsAt: newStartsAt });
+  }, [updateEvent]);
 
   return {
+    // State
     currentDate,
     currentView,
+    visibleDateRange,
+    loading,
+    
+    // Navigation
     setCurrentView,
     setCurrentDate,
     navigatePrevious,
     navigateNext,
     navigateToday,
-    visibleDateRange,
+    
+    // Data
+    events,
     calendarEvents,
+    occurrences,
     viewTitle,
-    canScheduleTask
+    
+    // Actions
+    canScheduleEvent,
+    rescheduleEvent,
+    completeEvent,
+    checkConflicts
   };
 };

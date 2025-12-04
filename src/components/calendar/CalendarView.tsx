@@ -1,8 +1,13 @@
+/**
+ * CalendarView - Vue calendrier unifiée
+ * Utilise time_events comme source de vérité unique
+ */
 
 import React, { useState } from 'react';
-import { Task } from '@/types/task';
+import { Task, CATEGORY_CONFIG, CALENDAR_VIEWS } from '@/types/task';
 import { useCalendar } from '@/hooks/calendar/useCalendar';
 import { useTasks } from '@/hooks/useTasks';
+import { useTimeEventSync } from '@/hooks/useTimeEventSync';
 import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';
 import { WeekView } from '@/components/calendar/WeekView';
 import { DayView } from '@/components/calendar/DayView';
@@ -12,9 +17,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
-import { CATEGORY_CONFIG, CALENDAR_VIEWS } from '@/types/task';
-
+import { Search, Loader2 } from 'lucide-react';
 
 interface CalendarViewProps {
   tasks: Task[];
@@ -22,6 +25,7 @@ interface CalendarViewProps {
 
 const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
   const { scheduleTaskWithTime } = useTasks();
+  const { syncTaskEvent } = useTimeEventSync();
   const [isTaskListOpen, setIsTaskListOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; time: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,8 +41,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
     navigateToday,
     calendarEvents,
     viewTitle,
-    canScheduleTask
-  } = useCalendar(tasks);
+    canScheduleEvent,
+    loading
+  } = useCalendar();
 
   // Filtrer les tâches actives non planifiées
   const availableTasks = tasks.filter(task => 
@@ -73,11 +78,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
     console.log('Clic sur l\'événement:', event);
   };
 
-  const handleTaskSelect = (task: Task) => {
+  const handleTaskSelect = async (task: Task) => {
     if (selectedSlot) {
       try {
         const startTime = new Date(`${selectedSlot.date.toISOString().split('T')[0]}T${selectedSlot.time}:00`);
-        scheduleTaskWithTime(task.id, startTime, task.estimatedTime);
+        
+        // Planifier via le système unifié
+        const updatedTask = {
+          ...task,
+          scheduledDate: selectedSlot.date,
+          scheduledTime: selectedSlot.time,
+          startTime,
+          duration: task.estimatedTime
+        };
+        
+        // D'abord mettre à jour la tâche localement
+        await scheduleTaskWithTime(task.id, startTime, task.estimatedTime);
+        
+        // Puis synchroniser avec time_events
+        await syncTaskEvent(updatedTask);
+        
         console.log('Tâche planifiée:', task.name, 'à', selectedSlot.time, 'le', selectedSlot.date.toLocaleDateString());
       } catch (error) {
         console.warn('Erreur planification tâche:', error);
@@ -97,7 +117,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
   const getCategoryConfig = (category: string) => {
     const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG];
     if (!config) {
-      console.warn('Catégorie inconnue:', category);
       return { cssName: 'default' };
     }
     return config;
@@ -109,6 +128,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
   };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -170,7 +197,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
         </div>
       </div>
 
-      {/* Modal de sélection de tâche - responsive */}
+      {/* Modal de sélection de tâche */}
       <Dialog open={isTaskListOpen} onOpenChange={handleCloseTaskList}>
         <DialogContent className="w-full max-w-md sm:max-w-lg max-h-[90vh] sm:max-h-[85vh]">
           <DialogHeader>
@@ -222,13 +249,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
                 <div className="space-y-2 md:space-y-3">
                   {filteredAndSortedTasks.map(task => {
                     const categoryConfig = getCategoryConfig(task.category);
+                    const canSchedule = selectedSlot 
+                      ? canScheduleEvent(task.estimatedTime, selectedSlot.date, selectedSlot.time)
+                      : true;
                     
                     return (
                       <Button
                         key={task.id}
                         variant="outline"
-                        className={`w-full justify-start h-auto min-h-[44px] p-3 md:p-3 border-l-4 bg-category-${categoryConfig.cssName}/10 border-l-category-${categoryConfig.cssName} hover:bg-category-${categoryConfig.cssName}/20`}
+                        className={`w-full justify-start h-auto min-h-[44px] p-3 md:p-3 border-l-4 bg-category-${categoryConfig.cssName}/10 border-l-category-${categoryConfig.cssName} hover:bg-category-${categoryConfig.cssName}/20 ${!canSchedule ? 'opacity-50' : ''}`}
                         onClick={() => handleTaskSelect(task)}
+                        disabled={!canSchedule}
                       >
                         <div className="flex flex-col items-start gap-1 w-full">
                           <div className="font-medium text-sm md:text-base">{task.name}</div>
@@ -238,6 +269,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
                             <span>{formatDuration(task.estimatedTime)}</span>
                             <span className="hidden sm:inline">•</span>
                             <span className="hidden sm:inline">{task.context}</span>
+                            {!canSchedule && (
+                              <span className="text-destructive ml-2">Conflit horaire</span>
+                            )}
                           </div>
                         </div>
                       </Button>
