@@ -15,14 +15,10 @@ export interface Task {
   level: 0 | 1 | 2;
   isExpanded: boolean;
   isCompleted: boolean;
-  scheduledDate?: Date;
-  scheduledTime?: string;
   duration?: number;
-  startTime?: Date;
-  isRecurring?: boolean;
-  recurrenceInterval?: RecurrenceInterval;
-  lastCompletedAt?: Date;
   projectStatus?: 'todo' | 'in-progress' | 'done';
+  // Note: Les champs temporels (scheduledDate, scheduledTime, startTime, isRecurring, recurrenceInterval, lastCompletedAt)
+  // sont désormais gérés exclusivement via time_events
 }
 
 // Mapping technique pour les classes CSS (sans accents, minuscules)

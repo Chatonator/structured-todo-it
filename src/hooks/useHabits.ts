@@ -1,31 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Habit, HabitCompletion, HabitStreak } from '@/types/habit';
+import { Habit, HabitStreak } from '@/types/habit';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { useGamification } from '@/hooks/useGamification';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useTimeEventSync } from './useTimeEventSync';
 
-const isConsecutiveDay = (date1: string, date2: string) => {
-  const d1 = new Date(date1);
-  const d2 = new Date(date2);
-  const diffTime = Math.abs(d2.getTime() - d1.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays === 1;
-};
-
 export const useHabits = (deckId: string | null) => {
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [completions, setCompletions] = useState<HabitCompletion[]>([]);
+  const [completions, setCompletions] = useState<Record<string, boolean>>({});
   const [streaks, setStreaks] = useState<Record<string, HabitStreak>>({});
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
   const { rewardHabitCompletion, rewardStreak } = useGamification();
   const { checkAndUnlockAchievement } = useAchievements();
-  const { syncHabitEvent, deleteEntityEvent } = useTimeEventSync();
+  const { syncHabitEvent, deleteEntityEvent, toggleHabitCompletion, isHabitCompletedToday } = useTimeEventSync();
 
   const loadHabits = useCallback(async () => {
     if (!user || !deckId) {
@@ -69,35 +61,25 @@ export const useHabits = (deckId: string | null) => {
     }
   }, [user, deckId]);
 
+  // Charger les complétions d'aujourd'hui depuis time_occurrences
   const loadTodayCompletions = useCallback(async () => {
-    if (!user) return;
-
-    const today = new Date().toISOString().split('T')[0];
+    if (!user || habits.length === 0) return;
 
     try {
-      const { data, error } = await supabase
-        .from('habit_completions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today);
-
-      if (error) throw error;
-
-      const formattedCompletions: HabitCompletion[] = (data || []).map(c => ({
-        id: c.id,
-        habitId: c.habit_id,
-        userId: c.user_id,
-        completedAt: new Date(c.completed_at),
-        date: c.date,
-        notes: c.notes
-      }));
-
-      setCompletions(formattedCompletions);
+      const completionsMap: Record<string, boolean> = {};
+      
+      for (const habit of habits) {
+        const isCompleted = await isHabitCompletedToday(habit.id);
+        completionsMap[habit.id] = isCompleted;
+      }
+      
+      setCompletions(completionsMap);
     } catch (error: any) {
       logger.error('Failed to load completions', { error: error.message });
     }
-  }, [user]);
+  }, [user, habits, isHabitCompletedToday]);
 
+  // Calculer les streaks depuis time_occurrences
   const calculateStreaks = useCallback(async () => {
     if (!user || habits.length === 0) return;
 
@@ -105,22 +87,37 @@ export const useHabits = (deckId: string | null) => {
 
     for (const habit of habits) {
       try {
-        const { data, error } = await supabase
-          .from('habit_completions')
-          .select('date')
-          .eq('habit_id', habit.id)
+        // Récupérer l'event_id de l'habitude
+        const { data: event } = await supabase
+          .from('time_events')
+          .select('id')
+          .eq('entity_type', 'habit')
+          .eq('entity_id', habit.id)
           .eq('user_id', user.id)
-          .order('date', { ascending: false });
+          .single();
+
+        if (!event) {
+          streaksData[habit.id] = { habitId: habit.id, currentStreak: 0, longestStreak: 0, lastCompletedDate: '' };
+          continue;
+        }
+
+        // Récupérer les occurrences complétées
+        const { data: occurrences, error } = await supabase
+          .from('time_occurrences')
+          .select('starts_at')
+          .eq('event_id', event.id)
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .order('starts_at', { ascending: false });
 
         if (error) throw error;
 
-        const dates = (data || []).map(d => d.date);
+        const dates = (occurrences || []).map(o => o.starts_at.split('T')[0]);
         
         let currentStreak = 0;
         const today = new Date();
         
         for (let i = 0; i < dates.length; i++) {
-          const date = new Date(dates[i]);
           const expectedDate = new Date(today);
           expectedDate.setDate(today.getDate() - i);
           
@@ -135,12 +132,21 @@ export const useHabits = (deckId: string | null) => {
         let tempStreak = 0;
         
         for (let i = 0; i < dates.length; i++) {
-          if (i === 0 || isConsecutiveDay(dates[i], dates[i-1])) {
-            tempStreak++;
-            longestStreak = Math.max(longestStreak, tempStreak);
-          } else {
+          if (i === 0) {
             tempStreak = 1;
+          } else {
+            const d1 = new Date(dates[i]);
+            const d2 = new Date(dates[i-1]);
+            const diffTime = Math.abs(d2.getTime() - d1.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) {
+              tempStreak++;
+            } else {
+              tempStreak = 1;
+            }
           }
+          longestStreak = Math.max(longestStreak, tempStreak);
         }
 
         streaksData[habit.id] = {
@@ -151,51 +157,49 @@ export const useHabits = (deckId: string | null) => {
         };
       } catch (error: any) {
         logger.error('Failed to calculate streak', { habitId: habit.id, error: error.message });
+        streaksData[habit.id] = { habitId: habit.id, currentStreak: 0, longestStreak: 0, lastCompletedDate: '' };
       }
     }
 
     setStreaks(streaksData);
   }, [user, habits]);
 
+  // Toggle via time_occurrences
   const toggleCompletion = useCallback(async (habitId: string) => {
     if (!user) return false;
 
-    const today = new Date().toISOString().split('T')[0];
-    const existing = completions.find(c => c.habitId === habitId && c.date === today);
+    const wasCompleted = completions[habitId];
 
     try {
-      if (existing) {
-        const { error } = await supabase
-          .from('habit_completions')
-          .delete()
-          .eq('id', existing.id);
+      const success = await toggleHabitCompletion(habitId);
+      
+      if (!success) {
+        throw new Error('Failed to toggle completion');
+      }
 
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('habit_completions')
-          .insert({
-            habit_id: habitId,
-            user_id: user.id,
-            date: today
-          });
+      // Mettre à jour l'état local
+      setCompletions(prev => ({
+        ...prev,
+        [habitId]: !wasCompleted
+      }));
 
-        if (error) throw error;
-
+      // Si on vient de compléter (pas de décocher)
+      if (!wasCompleted) {
         const habit = habits.find(h => h.id === habitId);
         if (habit) {
           await rewardHabitCompletion(habitId, habit.name);
           await checkAndUnlockAchievement('habits_30', habits.length);
           
           const streak = streaks[habitId];
-          if (streak && [7, 14, 30, 60, 100, 365].includes(streak.currentStreak)) {
-            await rewardStreak(streak.currentStreak, 'habit');
+          if (streak && [7, 14, 30, 60, 100, 365].includes(streak.currentStreak + 1)) {
+            await rewardStreak(streak.currentStreak + 1, 'habit');
           }
         }
       }
 
-      await loadTodayCompletions();
+      // Recalculer les streaks
       await calculateStreaks();
+      
       return true;
     } catch (error: any) {
       logger.error('Failed to toggle completion', { error: error.message });
@@ -206,7 +210,7 @@ export const useHabits = (deckId: string | null) => {
       });
       return false;
     }
-  }, [user, completions, loadTodayCompletions, calculateStreaks, toast]);
+  }, [user, completions, habits, streaks, toggleHabitCompletion, calculateStreaks, rewardHabitCompletion, checkAndUnlockAchievement, rewardStreak, toast]);
 
   const createHabit = useCallback(async (habit: Omit<Habit, 'id' | 'createdAt'>) => {
     if (!user || !deckId) return null;
@@ -232,7 +236,7 @@ export const useHabits = (deckId: string | null) => {
 
       if (error) throw error;
 
-      // Sync avec time_events
+      // Créer le time_event associé
       const newHabit: Habit = {
         id: data.id,
         name: data.name,
@@ -284,13 +288,20 @@ export const useHabits = (deckId: string | null) => {
 
       if (error) throw error;
 
+      // Synchroniser le time_event
+      const habit = habits.find(h => h.id === habitId);
+      if (habit) {
+        const updatedHabit = { ...habit, ...updates };
+        await syncHabitEvent(updatedHabit);
+      }
+
       await loadHabits();
       return true;
     } catch (error: any) {
       logger.error('Failed to update habit', { error: error.message });
       return false;
     }
-  }, [user, loadHabits]);
+  }, [user, habits, loadHabits, syncHabitEvent]);
 
   const deleteHabit = useCallback(async (habitId: string) => {
     if (!user) return false;
@@ -316,8 +327,7 @@ export const useHabits = (deckId: string | null) => {
   }, [user, loadHabits, deleteEntityEvent]);
 
   const isCompletedToday = useCallback((habitId: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    return completions.some(c => c.habitId === habitId && c.date === today);
+    return completions[habitId] || false;
   }, [completions]);
 
   const getTodayCompletionRate = useCallback(() => {
@@ -331,12 +341,11 @@ export const useHabits = (deckId: string | null) => {
   }, [loadHabits]);
 
   useEffect(() => {
-    loadTodayCompletions();
-  }, [loadTodayCompletions]);
-
-  useEffect(() => {
-    calculateStreaks();
-  }, [calculateStreaks]);
+    if (habits.length > 0) {
+      loadTodayCompletions();
+      calculateStreaks();
+    }
+  }, [habits, loadTodayCompletions, calculateStreaks]);
 
   return {
     habits,

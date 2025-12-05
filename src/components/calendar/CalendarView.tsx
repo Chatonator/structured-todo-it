@@ -25,7 +25,7 @@ interface CalendarViewProps {
 
 const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
   const { scheduleTaskWithTime } = useTasks();
-  const { syncTaskEvent } = useTimeEventSync();
+  const { syncTaskEventWithSchedule } = useTimeEventSync();
   const [isTaskListOpen, setIsTaskListOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; time: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,12 +45,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
     loading
   } = useCalendar();
 
-  // Filtrer les tâches actives non planifiées
+  // Filtrer les tâches actives non planifiées (niveau 0 uniquement)
   const availableTasks = tasks.filter(task => 
     !task.isCompleted && 
-    !task.startTime && 
-    !task.duration &&
-    task.level === 0 // Seulement les tâches principales
+    task.level === 0
   );
 
   // Appliquer recherche et tri

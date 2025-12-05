@@ -26,7 +26,7 @@ export const useTasks = () => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    if (task.isRecurring && !task.isCompleted) {
+    if (!task.isCompleted) {
       await completeTask(taskId);
       await rewardTaskCompletion(task);
       const newCount = tasks.filter(t => t.isCompleted).length + 1;

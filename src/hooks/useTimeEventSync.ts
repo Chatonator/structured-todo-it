@@ -12,9 +12,17 @@ import { TimeEvent, RecurrenceConfig, RecurrenceFrequency } from '@/lib/time/typ
 import { logger } from '@/lib/logger';
 import { Json } from '@/integrations/supabase/types';
 
+// Interface pour les infos de planification
+interface ScheduleInfo {
+  date?: Date;
+  time?: string;
+  isRecurring?: boolean;
+  recurrenceInterval?: string;
+}
+
 // Map task recurrence to TimeEvent recurrence
-const mapTaskRecurrence = (interval: RecurrenceInterval): RecurrenceConfig => {
-  const frequencyMap: Record<RecurrenceInterval, RecurrenceFrequency> = {
+const mapTaskRecurrence = (interval: string): RecurrenceConfig => {
+  const frequencyMap: Record<string, RecurrenceFrequency> = {
     'daily': 'daily',
     'weekly': 'weekly',
     'bi-monthly': 'bi-weekly',
@@ -55,6 +63,17 @@ const mapHabitRecurrence = (habit: Habit): RecurrenceConfig => {
   }
 };
 
+// Map subCategory to priority
+const getPriorityFromSubCategory = (subCategory: string): number => {
+  const priorityMap: Record<string, number> = {
+    'Le plus important': 4,
+    'Important': 3,
+    'Peut attendre': 2,
+    "Si j'ai le temps": 1
+  };
+  return priorityMap[subCategory] || 0;
+};
+
 interface ChallengeInfo {
   id: string;
   name: string;
@@ -68,15 +87,15 @@ export const useTimeEventSync = () => {
   const { user } = useAuth();
 
   /**
-   * Crée ou met à jour un time_event pour une tâche
+   * Crée ou met à jour un time_event pour une tâche avec des infos de planification séparées
    */
-  const syncTaskEvent = useCallback(async (task: Task): Promise<boolean> => {
+  const syncTaskEventWithSchedule = useCallback(async (
+    task: Task, 
+    scheduleInfo?: ScheduleInfo
+  ): Promise<boolean> => {
     if (!user) return false;
 
     try {
-      // Vérifier si la tâche a une planification
-      const hasSchedule = task.scheduledDate || task.startTime;
-      
       // Chercher un événement existant pour cette tâche
       const { data: existingEvents } = await supabase
         .from('time_events')
@@ -86,6 +105,9 @@ export const useTimeEventSync = () => {
         .eq('user_id', user.id);
 
       const existingEventId = existingEvents?.[0]?.id;
+
+      // Vérifier si on a une planification
+      const hasSchedule = scheduleInfo?.date && scheduleInfo?.time;
 
       // Si pas de planification, supprimer l'événement existant s'il y en a un
       if (!hasSchedule) {
@@ -99,16 +121,16 @@ export const useTimeEventSync = () => {
         return true;
       }
 
-      // Calculer les dates
-      const startsAt = task.startTime || task.scheduledDate;
-      if (!startsAt) return true;
-
+      // Calculer les dates à partir des infos de planification
+      const dateStr = scheduleInfo.date!.toISOString().split('T')[0];
+      const startsAt = new Date(`${dateStr}T${scheduleInfo.time}:00`);
+      
       const duration = task.duration || task.estimatedTime || 30;
       const endsAt = new Date(startsAt.getTime() + duration * 60000);
 
-      // Préparer les données de l'événement
-      const recurrence = task.isRecurring && task.recurrenceInterval 
-        ? mapTaskRecurrence(task.recurrenceInterval) 
+      // Préparer la récurrence
+      const recurrence = scheduleInfo.isRecurring && scheduleInfo.recurrenceInterval 
+        ? mapTaskRecurrence(scheduleInfo.recurrenceInterval) 
         : null;
         
       const eventData = {
@@ -119,7 +141,7 @@ export const useTimeEventSync = () => {
         starts_at: startsAt.toISOString(),
         ends_at: endsAt.toISOString(),
         duration,
-        is_all_day: !task.scheduledTime,
+        is_all_day: false,
         status: task.isCompleted ? 'completed' : 'scheduled',
         completed_at: task.isCompleted ? new Date().toISOString() : null,
         recurrence: recurrence as unknown as Json,
@@ -502,25 +524,44 @@ export const useTimeEventSync = () => {
     }
   }, [user]);
 
+  /**
+   * Toggle la complétion d'une habitude via time_occurrences
+   */
+  const toggleHabitCompletion = useCallback(async (habitId: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // Récupérer l'event_id de l'habitude
+      const { data: event } = await supabase
+        .from('time_events')
+        .select('id')
+        .eq('entity_type', 'habit')
+        .eq('entity_id', habitId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!event) {
+        logger.warn('Pas de time_event trouvé pour habitude', { habitId });
+        return false;
+      }
+
+      const today = new Date();
+      return await completeOccurrence(event.id, today);
+    } catch (error: any) {
+      logger.error('Erreur toggle habit completion', { error: error.message, habitId });
+      return false;
+    }
+  }, [user, completeOccurrence]);
+
   return {
-    syncTaskEvent,
+    syncTaskEventWithSchedule,
     syncHabitEvent,
     syncChallengeEvent,
     deleteEntityEvent,
     completeOccurrence,
     updateEventStatus,
     getEntityEvent,
-    isHabitCompletedToday
+    isHabitCompletedToday,
+    toggleHabitCompletion
   };
 };
-
-// Helper function
-function getPriorityFromSubCategory(subCategory: string): number {
-  const priorityMap: Record<string, number> = {
-    'Le plus important': 4,
-    'Important': 3,
-    'Peut attendre': 2,
-    'Si j\'ai le temps': 1
-  };
-  return priorityMap[subCategory] || 2;
-}
