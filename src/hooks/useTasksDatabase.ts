@@ -6,6 +6,14 @@ import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { useTimeEventSync } from './useTimeEventSync';
 
+// Interface pour les infos de planification passées depuis TaskModal
+interface ScheduleInfo {
+  date?: Date;
+  time?: string;
+  isRecurring?: boolean;
+  recurrenceInterval?: string;
+}
+
 export const useTasksDatabase = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [pinnedTasks, setPinnedTasks] = useState<string[]>([]);
@@ -13,7 +21,7 @@ export const useTasksDatabase = () => {
   const [error, setError] = useState<string | null>(null);
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const { syncTaskEvent, deleteEntityEvent, updateEventStatus } = useTimeEventSync();
+  const { syncTaskEventWithSchedule, deleteEntityEvent, updateEventStatus } = useTimeEventSync();
 
   // Load tasks from database
   const loadTasks = useCallback(async () => {
@@ -38,7 +46,7 @@ export const useTasksDatabase = () => {
         throw tasksError;
       }
 
-      // Convert database format to app format
+      // Convert database format to app format - sans les champs temporels obsolètes
       const formattedTasks: Task[] = (tasksData || []).map(task => ({
         id: task.id,
         name: task.name,
@@ -51,12 +59,6 @@ export const useTasksDatabase = () => {
         parentId: task.parentId || undefined,
         isCompleted: task.isCompleted,
         isExpanded: task.isExpanded,
-        scheduledDate: task.scheduledDate ? new Date(task.scheduledDate) : undefined,
-        startTime: task.startTime ? new Date(task.startTime) : undefined,
-        scheduledTime: task.scheduledTime || undefined,
-        isRecurring: task.isRecurring || false,
-        recurrenceInterval: task.recurrenceInterval as Task['recurrenceInterval'],
-        lastCompletedAt: task.lastCompletedAt ? new Date(task.lastCompletedAt) : undefined,
         createdAt: new Date(task.created_at),
       }));
 
@@ -90,13 +92,17 @@ export const useTasksDatabase = () => {
     }
   }, [isAuthenticated, user, toast]);
 
-  // Save task to database
-  const saveTask = useCallback(async (task: Task): Promise<boolean> => {
+  // Save task to database - SANS les champs temporels obsolètes
+  const saveTask = useCallback(async (task: Task & { _scheduleInfo?: ScheduleInfo }): Promise<boolean> => {
     if (!isAuthenticated || !user) {
       return false;
     }
 
     try {
+      // Extraire les infos de planification si présentes
+      const scheduleInfo = (task as any)._scheduleInfo as ScheduleInfo | undefined;
+      
+      // Données de la tâche SANS les champs temporels
       const taskData = {
         id: task.id,
         name: task.name,
@@ -109,12 +115,6 @@ export const useTasksDatabase = () => {
         parentId: task.parentId,
         isCompleted: task.isCompleted,
         isExpanded: task.isExpanded,
-        scheduledDate: task.scheduledDate?.toISOString().split('T')[0],
-        startTime: task.startTime?.toISOString(),
-        scheduledTime: task.scheduledTime,
-        isRecurring: task.isRecurring || false,
-        recurrenceInterval: task.recurrenceInterval,
-        lastCompletedAt: task.lastCompletedAt?.toISOString(),
         user_id: user.id,
       };
 
@@ -126,8 +126,8 @@ export const useTasksDatabase = () => {
         throw error;
       }
 
-      // Sync avec le système unifié time_events
-      await syncTaskEvent(task);
+      // Synchroniser avec le système unifié time_events
+      await syncTaskEventWithSchedule(task, scheduleInfo);
 
       logger.debug('Task saved successfully', { taskId: task.id });
       return true;
@@ -140,7 +140,7 @@ export const useTasksDatabase = () => {
       });
       return false;
     }
-  }, [isAuthenticated, user, toast, syncTaskEvent]);
+  }, [isAuthenticated, user, toast, syncTaskEventWithSchedule]);
 
   // Update tasks in database
   const updateTasks = useCallback(async (newTasks: Task[]): Promise<boolean> => {
@@ -207,7 +207,7 @@ export const useTasksDatabase = () => {
     }
   }, [isAuthenticated, user, toast, deleteEntityEvent]);
 
-  // Complete task with recurring logic
+  // Complete task - met à jour le time_event associé
   const completeTask = useCallback(async (taskId: string): Promise<boolean> => {
     if (!isAuthenticated || !user) {
       return false;
@@ -217,16 +217,9 @@ export const useTasksDatabase = () => {
       const task = tasks.find(t => t.id === taskId);
       if (!task) return false;
 
-      const updates: any = { isCompleted: true };
-      
-      // If it's a recurring task, record when it was completed
-      if (task.isRecurring) {
-        updates.lastCompletedAt = new Date().toISOString();
-      }
-
       const { error } = await supabase
         .from('tasks')
-        .update(updates)
+        .update({ isCompleted: true })
         .eq('id', taskId)
         .eq('user_id', user.id);
 
@@ -240,11 +233,11 @@ export const useTasksDatabase = () => {
       // Update local state
       setTasks(prev => prev.map(t => 
         t.id === taskId 
-          ? { ...t, isCompleted: true, lastCompletedAt: task.isRecurring ? new Date() : t.lastCompletedAt }
+          ? { ...t, isCompleted: true }
           : t
       ));
 
-      logger.debug('Task completed successfully', { taskId, isRecurring: task.isRecurring });
+      logger.debug('Task completed successfully', { taskId });
       return true;
     } catch (error: any) {
       logger.error('Failed to complete task', { error: error.message, taskId });

@@ -140,12 +140,7 @@ const TasksView: React.FC<TasksViewProps> = ({
                 <span>{task.createdAt ? new Date(task.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}</span>
               </div>
 
-              {task.scheduledDate && task.scheduledTime && (
-                <div className="flex items-center gap-1 text-primary">
-                  <Calendar className="w-4 h-4" />
-                  <span>Planifiée {new Date(task.scheduledDate).toLocaleDateString('fr-FR')} à {task.scheduledTime}</span>
-                </div>
-              )}
+              {/* Planification affichée via time_events dans TaskItemContent */}
             </div>
             
             <div className="flex items-center gap-2">

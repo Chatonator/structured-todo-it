@@ -170,18 +170,10 @@ export const useTasksOperations = (
         type: 'update',
         data: { taskId, field: 'scheduled', value: { date, time } },
         reverseAction: () => {
-          setTasks(prev => prev.map(t => 
-            t.id === taskId 
-              ? { ...t, scheduledDate: task.scheduledDate, scheduledTime: task.scheduledTime }
-              : t
-          ));
+          // La planification est gérée via time_events
         },
         forwardAction: () => {
-          setTasks(prev => prev.map(t => 
-            t.id === taskId 
-              ? { ...t, scheduledDate: date, scheduledTime: time }
-              : t
-          ));
+          // La planification est gérée via time_events
         }
       });
       

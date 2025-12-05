@@ -41,9 +41,9 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
     return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
   };
 
-  // Utiliser les données de time_event si disponibles, sinon fallback sur task
-  const scheduledDate = timeEvent?.startsAt || task.scheduledDate;
-  const isScheduled = !!scheduledDate;
+  // Utiliser les données de time_event uniquement
+  const isScheduled = !!timeEvent?.startsAt;
+  const isRecurring = !!timeEvent?.recurrence;
 
   return (
     <div className="flex-1 min-w-0 space-y-1">
@@ -52,8 +52,8 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
         <h3 className="font-semibold text-foreground text-sm leading-tight flex-1 min-w-0 line-clamp-3 break-words">
           {task.name}
         </h3>
-        {task.isRecurring && task.recurrenceInterval && (
-          <RecurringTaskBadge recurrenceInterval={task.recurrenceInterval} />
+        {isRecurring && timeEvent?.recurrence?.frequency && (
+          <RecurringTaskBadge recurrenceInterval={timeEvent.recurrence.frequency as any} />
         )}
       </div>
       
@@ -67,12 +67,12 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
               <Clock className="w-3 h-3" />
               <span>{formatDuration(totalTime)}</span>
             </div>
-            {isScheduled && (
+            {isScheduled && timeEvent && (
               <div className="flex items-center gap-1 text-primary">
                 <Calendar className="w-3 h-3" />
                 <span>
-                  {format(scheduledDate!, 'd MMM', { locale: fr })}
-                  {timeEvent && !timeEvent.isAllDay && (
+                  {format(timeEvent.startsAt, 'd MMM', { locale: fr })}
+                  {!timeEvent.isAllDay && (
                     <> à {format(timeEvent.startsAt, 'HH:mm')}</>
                   )}
                 </span>

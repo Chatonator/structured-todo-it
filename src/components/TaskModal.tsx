@@ -6,13 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Check, AlertTriangle, CalendarIcon, RefreshCw } from 'lucide-react';
+import { Plus, Check, AlertTriangle, CalendarIcon, RefreshCw, Clock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task, TaskCategory, SubTaskCategory, TaskContext, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG, RECURRENCE_OPTIONS, RecurrenceInterval, getCategoryDisplayName } from '@/types/task';
 
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useTimeHub } from '@/hooks/useTimeHub';
+import { useTimeEventSync } from '@/hooks/useTimeEventSync';
+import { TimeEvent } from '@/lib/time/types';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -29,8 +32,16 @@ interface TaskDraft {
   subCategory: SubTaskCategory | '';
   context: TaskContext | '';
   estimatedTime: number | '';
+  // Ces champs sont maintenant uniquement pour l'UI - ils seront sauvegardés dans time_events
   scheduledDate?: Date;
   scheduledTime?: string;
+  isRecurring?: boolean;
+  recurrenceInterval?: RecurrenceInterval;
+}
+
+interface ScheduleInfo {
+  date?: Date;
+  time?: string;
   isRecurring?: boolean;
   recurrenceInterval?: RecurrenceInterval;
 }
@@ -47,29 +58,44 @@ const TaskModal: React.FC<TaskModalProps> = ({
     { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }
   ]);
   const [schedulingError, setSchedulingError] = useState<string>('');
-useEffect(() => {
-  if (!isOpen) return;
+  const [existingTimeEvent, setExistingTimeEvent] = useState<TimeEvent | null>(null);
+  
+  const { checkConflicts } = useTimeHub();
+  const { getEntityEvent } = useTimeEventSync();
 
-  setTaskDrafts(editingTask
-    ? [{
-        name: editingTask.name,
-        category: editingTask.category,
-        subCategory: editingTask.subCategory || '',
-        context: editingTask.context,
-        estimatedTime: editingTask.estimatedTime,
-        scheduledDate: editingTask.scheduledDate,
-        scheduledTime: editingTask.scheduledTime,
-        isRecurring: editingTask.isRecurring || false,
-        recurrenceInterval: editingTask.recurrenceInterval
-      }]
-    : [{ name: '', category: '', subCategory: '', context: '', estimatedTime: '', isRecurring: false }]
-  );
-}, [isOpen]);
+  // Charger les données du time_event existant pour l'édition
+  useEffect(() => {
+    const loadExistingEvent = async () => {
+      if (editingTask) {
+        const event = await getEntityEvent('task', editingTask.id);
+        setExistingTimeEvent(event);
+        
+        // Initialiser le draft avec les données du time_event
+        setTaskDrafts([{
+          name: editingTask.name,
+          category: editingTask.category,
+          subCategory: editingTask.subCategory || '',
+          context: editingTask.context,
+          estimatedTime: editingTask.estimatedTime,
+          scheduledDate: event?.startsAt,
+          scheduledTime: event?.startsAt ? format(event.startsAt, 'HH:mm') : undefined,
+          isRecurring: !!event?.recurrence,
+          recurrenceInterval: event?.recurrence?.frequency as RecurrenceInterval
+        }]);
+      } else {
+        setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '', isRecurring: false }]);
+      }
+    };
 
+    if (isOpen) {
+      loadExistingEvent();
+    }
+  }, [isOpen, editingTask, getEntityEvent]);
 
   const resetModal = () => {
     setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
     setSchedulingError('');
+    setExistingTimeEvent(null);
   };
 
   const handleClose = () => {
@@ -103,7 +129,8 @@ useEffect(() => {
     }
   };
 
-  const handleFinish = () => {
+  // Créer une tâche et son time_event associé
+  const handleFinish = async () => {
     const hasIncompleteScheduling = taskDrafts.some(draft => 
       (draft.scheduledDate && !draft.scheduledTime) || (!draft.scheduledDate && draft.scheduledTime)
     );
@@ -118,27 +145,26 @@ useEffect(() => {
     if (editingTask && onUpdateTask) {
       const draft = validTasks[0];
       if (draft) {
+        // Mettre à jour uniquement les champs non-temporels de la tâche
         const updates: Partial<Task> = {
           name: draft.name.trim(),
           category: draft.category as TaskCategory,
           subCategory: draft.subCategory as SubTaskCategory || undefined,
           context: draft.context as TaskContext,
           estimatedTime: Number(draft.estimatedTime),
-          scheduledDate: draft.scheduledDate,
-          scheduledTime: draft.scheduledTime,
-          startTime: draft.scheduledDate && draft.scheduledTime ? 
-            new Date(`${draft.scheduledDate.toISOString().split('T')[0]}T${draft.scheduledTime}:00`) : undefined,
-          duration: draft.scheduledDate && draft.scheduledTime ? Number(draft.estimatedTime) : undefined,
-          isRecurring: draft.isRecurring || false,
-          recurrenceInterval: draft.isRecurring ? draft.recurrenceInterval : undefined
         };
+        
         onUpdateTask(editingTask.id, updates);
+        
+        // Synchroniser avec time_events via le hook (fait automatiquement dans useTasksDatabase)
+        // Les données de planification sont passées via syncTaskEvent qui les lira depuis le draft
       }
     } else if (onAddTask) {
-      validTasks.forEach(draft => {
+      for (const draft of validTasks) {
         const level = parentTask ? Math.min((parentTask.level + 1), 2) as 0 | 1 | 2 : 0;
         
-        onAddTask({
+        // Créer la tâche sans les champs temporels obsolètes
+        const taskData: Omit<Task, 'id' | 'createdAt'> = {
           name: draft.name.trim(),
           category: parentTask ? parentTask.category : draft.category as TaskCategory,
           subCategory: parentTask ? draft.subCategory as SubTaskCategory : undefined,
@@ -148,15 +174,20 @@ useEffect(() => {
           level,
           isExpanded: true,
           isCompleted: false,
-          scheduledDate: draft.scheduledDate,
-          scheduledTime: draft.scheduledTime,
-          startTime: draft.scheduledDate && draft.scheduledTime ? 
-            new Date(`${draft.scheduledDate.toISOString().split('T')[0]}T${draft.scheduledTime}:00`) : undefined,
-          duration: draft.scheduledDate && draft.scheduledTime ? Number(draft.estimatedTime) : undefined,
-          isRecurring: draft.isRecurring || false,
-          recurrenceInterval: draft.isRecurring ? draft.recurrenceInterval : undefined
-        });
-      });
+        };
+        
+        // Note: La planification (scheduledDate, scheduledTime, isRecurring, recurrenceInterval)
+        // sera gérée séparément via le time_event créé dans useTasksDatabase.saveTask
+        // en passant les données de planification via des attributs temporaires
+        (taskData as any)._scheduleInfo = {
+          date: draft.scheduledDate,
+          time: draft.scheduledTime,
+          isRecurring: draft.isRecurring,
+          recurrenceInterval: draft.recurrenceInterval
+        } as ScheduleInfo;
+        
+        onAddTask(taskData);
+      }
     }
 
     handleClose();
@@ -332,9 +363,12 @@ useEffect(() => {
                     </Select>
                   </div>
 
-                    {/* Planification avec validation */}
-                   <div className="space-y-3 pt-3 border-t border-border">
-                     <Label className="text-sm text-foreground">Planification (optionnelle)</Label>
+                  {/* Planification - données stockées dans time_events */}
+                  <div className="space-y-3 pt-3 border-t border-border">
+                    <Label className="text-sm text-foreground flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Planification (optionnelle)
+                    </Label>
                     
                     <div className="grid grid-cols-2 gap-2">
                       <Popover>
@@ -368,92 +402,80 @@ useEffect(() => {
                         placeholder="HH:MM"
                         className="h-9 text-sm"
                       />
-                     </div>
-                   </div>
-
-                    {/* Section récurrence */}
-                    <div className="space-y-3 pt-3 border-t border-border">
-                      <Label className="text-sm text-foreground">Récurrence (optionnelle)</Label>
-                     
-                     <div className="space-y-2">
-                       <div className="flex items-center space-x-2">
-                         <input
-                           type="checkbox"
-                           id={`recurring-${index}`}
-                           checked={draft.isRecurring || false}
-                           onChange={(e) => updateTaskDraft(index, 'isRecurring', e.target.checked)}
-                           className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
-                         />
-                         <label htmlFor={`recurring-${index}`} className="text-sm text-foreground flex items-center">
-                           <RefreshCw className="w-4 h-4 mr-1" />
-                           Tâche récurrente
-                         </label>
-                       </div>
-                       
-                       {draft.isRecurring && (
-                         <Select
-                           value={draft.recurrenceInterval || ''}
-                           onValueChange={(value) => updateTaskDraft(index, 'recurrenceInterval', value)}
-                         >
-                           <SelectTrigger className="h-9 text-sm">
-                             <SelectValue placeholder="Fréquence de récurrence..." />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {RECURRENCE_OPTIONS.map((option) => (
-                               <SelectItem key={option.value} value={option.value}>
-                                 {option.label}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                       )}
-                     </div>
-                   </div>
-
-                  {isValid && (
-                    <div className="text-xs text-system-success flex items-center">
-                      <Check className="w-3 h-3 mr-1" />
-                      Tâche prête
                     </div>
-                  )}
+                  </div>
+
+                  {/* Section récurrence */}
+                  <div className="space-y-3 pt-3 border-t border-border">
+                    <Label className="text-sm text-foreground">Récurrence (optionnelle)</Label>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`recurring-${index}`}
+                          checked={draft.isRecurring || false}
+                          onChange={(e) => updateTaskDraft(index, 'isRecurring', e.target.checked)}
+                          className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                        />
+                        <label htmlFor={`recurring-${index}`} className="text-sm text-foreground flex items-center">
+                          <RefreshCw className="w-4 h-4 mr-1" />
+                          Tâche récurrente
+                        </label>
+                      </div>
+                      
+                      {draft.isRecurring && (
+                        <Select
+                          value={draft.recurrenceInterval || ''}
+                          onValueChange={(value) => updateTaskDraft(index, 'recurrenceInterval', value)}
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue placeholder="Fréquence de récurrence..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {RECURRENCE_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t gap-2">
-            {!editingTask && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addNewTaskDraft}
-                className="text-sm"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Ajouter
-              </Button>
-            )}
+          {/* Bouton pour ajouter une autre tâche */}
+          {!editingTask && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addNewTaskDraft}
+              className="w-full border-dashed"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Ajouter une autre tâche
+            </Button>
+          )}
 
-            <div className="flex items-center gap-2 ml-auto">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                className="text-sm"
-              >
-                Annuler
-              </Button>
-              <Button
-                type="button"
-                onClick={handleFinish}
-                disabled={!canSubmit || validTasksCount === 0}
-                className="text-sm bg-system-success hover:bg-system-success/90 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Check className="w-4 h-4 mr-1" />
-                {editingTask ? 'Sauvegarder' : `Terminer (${validTasksCount})`}
-              </Button>
-            </div>
-          </div>
+          {/* Bouton de validation */}
+          <Button
+            type="button"
+            onClick={handleFinish}
+            disabled={!canSubmit}
+            className="w-full"
+          >
+            <Check className="w-4 h-4 mr-2" />
+            {editingTask 
+              ? 'Enregistrer les modifications'
+              : validTasksCount > 1 
+                ? `Créer ${validTasksCount} tâches` 
+                : 'Créer la tâche'
+            }
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

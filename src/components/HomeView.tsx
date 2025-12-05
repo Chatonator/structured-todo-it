@@ -184,7 +184,7 @@ const HomeView: React.FC<HomeViewProps> = ({
             <div className="grid grid-cols-7 gap-1">
               {weekDays.map(day => {
                 const isToday = isSameDay(day, new Date());
-                const dayTasks = tasks.filter(t => t.scheduledDate && isSameDay(new Date(t.scheduledDate), day));
+                const dayTasks: Task[] = []; // TODO: Charger depuis time_events
                 
                 return (
                   <div
@@ -211,7 +211,7 @@ const HomeView: React.FC<HomeViewProps> = ({
               })}
             </div>
             <div className="mt-4 text-xs text-muted-foreground text-center">
-              {tasks.filter(t => t.scheduledDate).length} tâches planifiées cette semaine
+              Voir la Timeline pour les tâches planifiées
             </div>
           </CardContent>
         </Card>

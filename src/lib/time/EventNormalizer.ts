@@ -1,5 +1,7 @@
 /**
  * EventNormalizer - Convert different entity types to TimeEvents
+ * Note: Cette classe est maintenant principalement utilisée pour convertir les rows DB en TimeEvent
+ * Les tâches sont synchronisées via useTimeEventSync qui gère la planification séparément
  */
 
 import { TimeEvent, TimeEventRow, RecurrenceConfig, RecurrenceFrequency } from './types';
@@ -8,45 +10,6 @@ import { Habit } from '@/types/habit';
 import { CATEGORY_CONFIG } from '@/types/task';
 
 export class EventNormalizer {
-  /**
-   * Convert Task to TimeEvent
-   */
-  static taskToTimeEvent(task: Task, userId: string): TimeEvent | null {
-    // Skip tasks without schedule
-    if (!task.scheduledDate && !task.startTime) return null;
-
-    const startsAt = task.startTime || task.scheduledDate;
-    if (!startsAt) return null;
-
-    const duration = task.duration || task.estimatedTime || 30;
-    const endsAt = new Date(startsAt.getTime() + duration * 60000);
-
-    // Map recurrence
-    let recurrence: RecurrenceConfig | undefined;
-    if (task.isRecurring && task.recurrenceInterval) {
-      recurrence = this.mapTaskRecurrence(task.recurrenceInterval);
-    }
-
-    return {
-      id: `task-${task.id}`,
-      entityType: 'task',
-      entityId: task.id,
-      userId,
-      startsAt: new Date(startsAt),
-      endsAt,
-      duration,
-      isAllDay: !task.scheduledTime,
-      recurrence,
-      title: task.name,
-      color: CATEGORY_CONFIG[task.category]?.borderPattern || undefined,
-      priority: task.subCategory ? this.mapPriority(task.subCategory) : undefined,
-      status: task.isCompleted ? 'completed' : 'scheduled',
-      completedAt: task.lastCompletedAt ? new Date(task.lastCompletedAt) : undefined,
-      createdAt: task.createdAt,
-      updatedAt: task.createdAt
-    };
-  }
-
   /**
    * Convert Habit to TimeEvent
    */
@@ -125,7 +88,7 @@ export class EventNormalizer {
 
   // Helper methods
 
-  private static mapTaskRecurrence(interval: RecurrenceInterval): RecurrenceConfig {
+  static mapTaskRecurrence(interval: RecurrenceInterval): RecurrenceConfig {
     const frequencyMap: Record<RecurrenceInterval, RecurrenceFrequency> = {
       'daily': 'daily',
       'weekly': 'weekly',
@@ -170,7 +133,7 @@ export class EventNormalizer {
     }
   }
 
-  private static mapPriority(subCategory: string): number {
+  static mapPriority(subCategory: string): number {
     const priorityMap: Record<string, number> = {
       'Le plus important': 4,
       'Important': 3,
