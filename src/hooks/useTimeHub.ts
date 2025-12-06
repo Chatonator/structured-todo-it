@@ -64,12 +64,38 @@ export const useTimeHub = (initialRange?: DateRange) => {
 
   /**
    * Create event from Task
+   * Note: Les tâches sont maintenant synchronisées via useTimeEventSync.syncTaskEventWithSchedule
+   * Cette fonction est conservée pour compatibilité mais délègue à EventRegistry
    */
-  const createEventFromTask = useCallback(async (task: Task): Promise<TimeEvent | null> => {
+  const createEventFromTask = useCallback(async (task: Task, schedule?: { date: Date; time: string; duration: number }): Promise<TimeEvent | null> => {
     if (!user) return null;
 
-    const timeEvent = EventNormalizer.taskToTimeEvent(task, user.id);
-    if (!timeEvent) return null;
+    // Si pas de planification, ne pas créer d'événement
+    if (!schedule) {
+      logger.warn('createEventFromTask called without schedule - use syncTaskEventWithSchedule instead');
+      return null;
+    }
+
+    const startTime = new Date(`${schedule.date.toISOString().split('T')[0]}T${schedule.time}:00`);
+    const endTime = new Date(startTime.getTime() + schedule.duration * 60 * 1000);
+
+    const timeEvent: TimeEvent = {
+      id: `task-${task.id}`,
+      entityType: 'task',
+      entityId: task.id,
+      userId: user.id,
+      startsAt: startTime,
+      endsAt: endTime,
+      duration: schedule.duration,
+      isAllDay: false,
+      title: task.name,
+      description: task.subCategory || undefined,
+      color: undefined,
+      priority: task.subCategory ? EventNormalizer.mapPriority(task.subCategory) : undefined,
+      status: task.isCompleted ? 'completed' : 'scheduled',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
     const created = await EventRegistry.createEvent(timeEvent);
     if (created) {
