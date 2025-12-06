@@ -435,17 +435,11 @@ export type Database = {
           id: string
           isCompleted: boolean
           isExpanded: boolean
-          isRecurring: boolean | null
-          lastCompletedAt: string | null
           level: number
           name: string
           parentId: string | null
           project_id: string | null
           project_status: string | null
-          recurrenceInterval: string | null
-          scheduledDate: string | null
-          scheduledTime: string | null
-          startTime: string | null
           subCategory: string | null
           user_id: string | null
         }
@@ -458,17 +452,11 @@ export type Database = {
           id?: string
           isCompleted?: boolean
           isExpanded?: boolean
-          isRecurring?: boolean | null
-          lastCompletedAt?: string | null
           level?: number
           name: string
           parentId?: string | null
           project_id?: string | null
           project_status?: string | null
-          recurrenceInterval?: string | null
-          scheduledDate?: string | null
-          scheduledTime?: string | null
-          startTime?: string | null
           subCategory?: string | null
           user_id?: string | null
         }
@@ -481,17 +469,11 @@ export type Database = {
           id?: string
           isCompleted?: boolean
           isExpanded?: boolean
-          isRecurring?: boolean | null
-          lastCompletedAt?: string | null
           level?: number
           name?: string
           parentId?: string | null
           project_id?: string | null
           project_status?: string | null
-          recurrenceInterval?: string | null
-          scheduledDate?: string | null
-          scheduledTime?: string | null
-          startTime?: string | null
           subCategory?: string | null
           user_id?: string | null
         }
