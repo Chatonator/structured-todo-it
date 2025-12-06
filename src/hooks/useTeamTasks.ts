@@ -82,7 +82,7 @@ export const useTeamTasks = (teamId: string | null) => {
         throw new Error('Not authenticated');
       }
 
-      // Map Task interface to database columns
+      // Map Task interface to database columns (obsolete temporal fields removed)
       const newTask = {
         team_id: teamId,
         created_by: user.id,
@@ -92,14 +92,8 @@ export const useTeamTasks = (teamId: string | null) => {
         context: taskData.context || '',
         estimatedtime: taskData.estimatedTime ?? 0,
         duration: taskData.duration ?? null,
-        scheduleddate: taskData.scheduledDate ? taskData.scheduledDate.toISOString().split('T')[0] : null,
-        scheduledtime: taskData.scheduledTime ?? null,
-        starttime: taskData.startTime ? taskData.startTime.toISOString() : null,
         iscompleted: taskData.isCompleted ?? false,
         isexpanded: taskData.isExpanded ?? true,
-        isrecurring: taskData.isRecurring ?? false,
-        recurrenceinterval: taskData.recurrenceInterval ?? null,
-        lastcompletedat: taskData.lastCompletedAt ? taskData.lastCompletedAt.toISOString() : null,
         parentid: taskData.parentId ?? null,
         level: taskData.level ?? 0,
         assigned_to: taskData.assigned_to ?? null,

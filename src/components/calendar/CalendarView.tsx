@@ -94,7 +94,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
         await scheduleTaskWithTime(task.id, startTime, task.estimatedTime);
         
         // Puis synchroniser avec time_events
-        await syncTaskEvent(updatedTask);
+        await syncTaskEventWithSchedule(task, { 
+          date: selectedSlot.date, 
+          time: selectedSlot.time 
+        });
         
         console.log('Tâche planifiée:', task.name, 'à', selectedSlot.time, 'le', selectedSlot.date.toLocaleDateString());
       } catch (error) {
