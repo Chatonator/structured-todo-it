@@ -47,7 +47,13 @@ const Index = () => {
   // Hooks pour projets et habitudes
   const { projects } = useProjects();
   const { defaultDeckId } = useDecks();
-  const { habits } = useHabits(defaultDeckId);
+  const { 
+    habits, 
+    completions: habitCompletions, 
+    streaks: habitStreaks, 
+    loading: habitsLoading,
+    toggleCompletion: toggleHabitCompletion 
+  } = useHabits(defaultDeckId);
   
   // Basculer entre les tâches personnelles et d'équipe
   const isTeamMode = !!currentTeam;
@@ -288,6 +294,10 @@ const Index = () => {
               tasks={allFilteredTasks}
               projects={projects}
               habits={habits}
+              habitCompletions={habitCompletions}
+              habitStreaks={habitStreaks}
+              habitsLoading={habitsLoading}
+              onToggleHabit={toggleHabitCompletion}
               onViewChange={setCurrentView}
               calculateTotalTime={safeCalculateTotalTime}
             />

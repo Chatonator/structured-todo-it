@@ -1,7 +1,7 @@
 import React from 'react';
 import { Task } from '@/types/task';
 import { Project } from '@/types/project';
-import { Habit } from '@/types/habit';
+import { Habit, HabitStreak } from '@/types/habit';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,18 +10,21 @@ import {
   Clock, 
   Calendar, 
   Briefcase, 
-  Heart,
   ArrowRight,
-  TrendingUp,
   Target
 } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import HomeHabitsSection from './home/HomeHabitsSection';
 
 interface HomeViewProps {
   tasks: Task[];
   projects?: Project[];
   habits?: Habit[];
+  habitCompletions?: Record<string, boolean>;
+  habitStreaks?: Record<string, HabitStreak>;
+  habitsLoading?: boolean;
+  onToggleHabit?: (habitId: string) => void;
   onViewChange: (view: string) => void;
   calculateTotalTime?: (task: Task) => number;
 }
@@ -30,6 +33,10 @@ const HomeView: React.FC<HomeViewProps> = ({
   tasks,
   projects = [],
   habits = [],
+  habitCompletions = {},
+  habitStreaks = {},
+  habitsLoading = false,
+  onToggleHabit,
   onViewChange,
   calculateTotalTime
 }) => {
@@ -37,7 +44,6 @@ const HomeView: React.FC<HomeViewProps> = ({
   const topTasks = tasks
     .filter(t => !t.isCompleted && t.level === 1)
     .sort((a, b) => {
-      // Prioriser par sous-catégorie (si définie) puis par date de création
       const aPriority = a.subCategory ? 5 - (parseInt(a.subCategory.slice(-1)) || 0) : 0;
       const bPriority = b.subCategory ? 5 - (parseInt(b.subCategory.slice(-1)) || 0) : 0;
       if (aPriority !== bPriority) return bPriority - aPriority;
@@ -50,9 +56,6 @@ const HomeView: React.FC<HomeViewProps> = ({
     .filter(p => p.status === 'in-progress')
     .sort((a, b) => (b.progress || 0) - (a.progress || 0))[0];
 
-  // Habitude avec le meilleur streak (simulation)
-  const topHabit = habits[0];
-
   // Calendrier de la semaine
   const weekStart = startOfWeek(new Date(), { locale: fr });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -63,6 +66,9 @@ const HomeView: React.FC<HomeViewProps> = ({
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
   };
+
+  // Nombre d'habitudes complétées
+  const completedHabitsCount = habits.filter(h => habitCompletions[h.id]).length;
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
@@ -88,8 +94,8 @@ const HomeView: React.FC<HomeViewProps> = ({
         </Card>
         <Card className="bg-card border-border">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-habit">{habits.length}</div>
-            <div className="text-xs text-muted-foreground">Habitudes</div>
+            <div className="text-2xl font-bold text-habit">{completedHabitsCount}/{habits.length}</div>
+            <div className="text-xs text-muted-foreground">Habitudes du jour</div>
           </CardContent>
         </Card>
         <Card className="bg-card border-border">
@@ -184,7 +190,7 @@ const HomeView: React.FC<HomeViewProps> = ({
             <div className="grid grid-cols-7 gap-1">
               {weekDays.map(day => {
                 const isToday = isSameDay(day, new Date());
-                const dayTasks: Task[] = []; // TODO: Charger depuis time_events
+                const dayTasks: Task[] = [];
                 
                 return (
                   <div
@@ -268,58 +274,15 @@ const HomeView: React.FC<HomeViewProps> = ({
           </CardContent>
         </Card>
 
-        {/* Habitude principale */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Heart className="w-5 h-5 text-habit" />
-                Habitude du jour
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onViewChange('habits')}
-                className="text-xs"
-              >
-                Toutes les habitudes
-                <ArrowRight className="w-3 h-3 ml-1" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {!topHabit ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                Aucune habitude définie
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-2xl bg-habit-light">
-                    {topHabit.icon || '💪'}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">{topHabit.name}</h3>
-                    <p className="text-sm text-muted-foreground">{topHabit.description || 'Continuez ainsi !'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 text-center p-3 bg-habit-light rounded-lg">
-                    <div className="text-2xl font-bold text-habit">7</div>
-                    <div className="text-xs text-muted-foreground">jours de suite</div>
-                  </div>
-                  <div className="flex-1 text-center p-3 bg-accent rounded-lg">
-                    <div className="text-2xl font-bold text-foreground flex items-center justify-center gap-1">
-                      <TrendingUp className="w-5 h-5 text-system-success" />
-                      92%
-                    </div>
-                    <div className="text-xs text-muted-foreground">taux de réussite</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Habitudes du jour - Liste interactive */}
+        <HomeHabitsSection
+          habits={habits}
+          completions={habitCompletions}
+          streaks={habitStreaks}
+          onToggle={(habitId) => onToggleHabit?.(habitId)}
+          onViewAll={() => onViewChange('habits')}
+          loading={habitsLoading}
+        />
       </div>
     </div>
   );

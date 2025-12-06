@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useDecks } from '@/hooks/useDecks';
 import { useHabits } from '@/hooks/useHabits';
+import { useHabitStats } from '@/hooks/useHabitStats';
 import DeckSelector from './DeckSelector';
 import TodayProgress from './TodayProgress';
+import HabitStatsCard from './HabitStatsCard';
 import HabitItem from './HabitItem';
 import HabitModal from './HabitModal';
 import DeckManagement from './DeckManagement';
@@ -14,6 +16,7 @@ const HabitsView = () => {
   const { decks, loading: decksLoading, defaultDeckId, createDeck, updateDeck, deleteDeck } = useDecks();
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(defaultDeckId);
   const { habits, loading: habitsLoading, toggleCompletion, createHabit, updateHabit, deleteHabit, isCompletedToday, getTodayCompletionRate, streaks } = useHabits(selectedDeckId);
+  const habitStats = useHabitStats();
   
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   const [isDeckManagementOpen, setIsDeckManagementOpen] = useState(false);
@@ -93,6 +96,16 @@ const HabitsView = () => {
 
         {selectedDeckId && (
           <>
+            {/* Statistiques globales */}
+            {!habitStats.loading && habitStats.totalHabits > 0 && (
+              <HabitStatsCard
+                bestCurrentStreak={habitStats.bestCurrentStreak}
+                longestStreak={habitStats.longestStreak}
+                weeklyCompletions={habitStats.weeklyCompletions}
+                overallCompletionRate={habitStats.overallCompletionRate}
+              />
+            )}
+
             <TodayProgress
               completionRate={getTodayCompletionRate()}
               completedCount={habits.filter(h => isCompletedToday(h.id)).length}
