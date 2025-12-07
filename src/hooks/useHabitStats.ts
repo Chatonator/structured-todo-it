@@ -2,6 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { startOfWeek, subDays, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+export interface DailyTrend {
+  date: string;
+  day: string;
+  completions: number;
+  total: number;
+  rate: number;
+}
 
 export interface HabitStats {
   bestCurrentStreak: number;
@@ -9,6 +18,7 @@ export interface HabitStats {
   weeklyCompletions: number;
   overallCompletionRate: number;
   totalHabits: number;
+  dailyTrends: DailyTrend[];
   loading: boolean;
 }
 
@@ -19,6 +29,7 @@ export const useHabitStats = () => {
     weeklyCompletions: 0,
     overallCompletionRate: 0,
     totalHabits: 0,
+    dailyTrends: [],
     loading: true
   });
   const { user } = useAuth();
@@ -46,6 +57,7 @@ export const useHabitStats = () => {
           weeklyCompletions: 0,
           overallCompletionRate: 0,
           totalHabits: 0,
+          dailyTrends: [],
           loading: false
         });
         return;
@@ -127,12 +139,37 @@ export const useHabitStats = () => {
         longestStreak = Math.max(longestStreak, maxStreak);
       }
 
+      // Calcul des tendances quotidiennes sur 7 jours
+      const dailyTrends: DailyTrend[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = subDays(today, i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const dayName = format(date, 'EEE', { locale: fr });
+        
+        const dayCompletions = (occurrences || []).filter(o => 
+          o.status === 'completed' && format(new Date(o.starts_at), 'yyyy-MM-dd') === dateStr
+        ).length;
+        
+        const rate = habitEvents.length > 0 
+          ? Math.round((dayCompletions / habitEvents.length) * 100) 
+          : 0;
+        
+        dailyTrends.push({
+          date: dateStr,
+          day: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+          completions: dayCompletions,
+          total: habitEvents.length,
+          rate
+        });
+      }
+
       setStats({
         bestCurrentStreak,
         longestStreak,
         weeklyCompletions,
         overallCompletionRate,
         totalHabits: habitEvents.length,
+        dailyTrends,
         loading: false
       });
     } catch (error) {
