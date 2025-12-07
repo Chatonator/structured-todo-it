@@ -52,8 +52,12 @@ const Index = () => {
     completions: habitCompletions, 
     streaks: habitStreaks, 
     loading: habitsLoading,
-    toggleCompletion: toggleHabitCompletion 
+    toggleCompletion: toggleHabitCompletion,
+    getHabitsForToday
   } = useHabits(defaultDeckId);
+  
+  // Habitudes applicables aujourd'hui
+  const todayHabits = getHabitsForToday();
   
   // Basculer entre les tâches personnelles et d'équipe
   const isTeamMode = !!currentTeam;
@@ -293,7 +297,7 @@ const Index = () => {
             <HomeView 
               tasks={allFilteredTasks}
               projects={projects}
-              habits={habits}
+              habits={todayHabits}
               habitCompletions={habitCompletions}
               habitStreaks={habitStreaks}
               habitsLoading={habitsLoading}

@@ -143,16 +143,51 @@ const HabitModal: React.FC<HabitModalProps> = ({ isOpen, onClose, onSave, habit 
           {(frequency === 'weekly' || frequency === 'custom') && (
             <div>
               <Label>Jours de la semaine</Label>
-              <div className="flex gap-2 mt-2">
+              <div className="flex gap-2 mt-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setTargetDays([0, 1, 2, 3, 4])}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                    targetDays.length === 5 && !targetDays.includes(5) && !targetDays.includes(6)
+                      ? 'bg-habit text-habit-foreground border-habit'
+                      : 'border-border text-muted-foreground hover:border-habit/50'
+                  }`}
+                >
+                  Semaine
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetDays([5, 6])}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                    targetDays.length === 2 && targetDays.includes(5) && targetDays.includes(6)
+                      ? 'bg-habit text-habit-foreground border-habit'
+                      : 'border-border text-muted-foreground hover:border-habit/50'
+                  }`}
+                >
+                  Weekend
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetDays([0, 1, 2, 3, 4, 5, 6])}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                    targetDays.length === 7
+                      ? 'bg-habit text-habit-foreground border-habit'
+                      : 'border-border text-muted-foreground hover:border-habit/50'
+                  }`}
+                >
+                  Tous
+                </button>
+              </div>
+              <div className="flex gap-2">
                 {DAYS_OF_WEEK.map(day => (
                   <button
                     key={day.value}
                     type="button"
                     onClick={() => toggleDay(day.value)}
-                    className={`px-3 py-2 rounded border text-sm font-medium ${
+                    className={`px-3 py-2 rounded border text-sm font-medium transition-colors ${
                       targetDays.includes(day.value)
                         ? 'bg-habit text-habit-foreground border-habit'
-                        : 'border-border text-foreground'
+                        : 'border-border text-foreground hover:border-habit/50'
                     }`}
                   >
                     {day.short}
