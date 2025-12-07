@@ -7,6 +7,7 @@ import { useHabitStats } from '@/hooks/useHabitStats';
 import DeckSelector from './DeckSelector';
 import TodayProgress from './TodayProgress';
 import HabitStatsCard from './HabitStatsCard';
+import HabitTrendsChart from './HabitTrendsChart';
 import HabitItem from './HabitItem';
 import HabitModal from './HabitModal';
 import DeckManagement from './DeckManagement';
@@ -98,12 +99,15 @@ const HabitsView = () => {
           <>
             {/* Statistiques globales */}
             {!habitStats.loading && habitStats.totalHabits > 0 && (
-              <HabitStatsCard
-                bestCurrentStreak={habitStats.bestCurrentStreak}
-                longestStreak={habitStats.longestStreak}
-                weeklyCompletions={habitStats.weeklyCompletions}
-                overallCompletionRate={habitStats.overallCompletionRate}
-              />
+              <>
+                <HabitStatsCard
+                  bestCurrentStreak={habitStats.bestCurrentStreak}
+                  longestStreak={habitStats.longestStreak}
+                  weeklyCompletions={habitStats.weeklyCompletions}
+                  overallCompletionRate={habitStats.overallCompletionRate}
+                />
+                <HabitTrendsChart dailyTrends={habitStats.dailyTrends} />
+              </>
             )}
 
             <TodayProgress
