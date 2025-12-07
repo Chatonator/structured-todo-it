@@ -330,11 +330,36 @@ export const useHabits = (deckId: string | null) => {
     return completions[habitId] || false;
   }, [completions]);
 
+  // Vérifier si une habitude est applicable aujourd'hui
+  const isHabitApplicableToday = useCallback((habit: Habit) => {
+    // Toujours applicable si quotidien ou x-fois par semaine
+    if (habit.frequency === 'daily' || habit.frequency === 'x-times-per-week') {
+      return true;
+    }
+    
+    // Si weekly ou custom, vérifier targetDays
+    if ((habit.frequency === 'weekly' || habit.frequency === 'custom') && habit.targetDays) {
+      const today = new Date().getDay();
+      // Convertir Sunday=0 vers Monday=0 (notre format)
+      const adjustedDay = today === 0 ? 6 : today - 1;
+      return habit.targetDays.includes(adjustedDay);
+    }
+    
+    // Par défaut applicable
+    return true;
+  }, []);
+
+  // Obtenir les habitudes applicables aujourd'hui
+  const getHabitsForToday = useCallback(() => {
+    return habits.filter(h => h.isActive && isHabitApplicableToday(h));
+  }, [habits, isHabitApplicableToday]);
+
   const getTodayCompletionRate = useCallback(() => {
-    if (habits.length === 0) return 0;
-    const completed = habits.filter(h => isCompletedToday(h.id)).length;
-    return Math.round((completed / habits.length) * 100);
-  }, [habits, isCompletedToday]);
+    const todayHabits = getHabitsForToday();
+    if (todayHabits.length === 0) return 0;
+    const completed = todayHabits.filter(h => isCompletedToday(h.id)).length;
+    return Math.round((completed / todayHabits.length) * 100);
+  }, [getHabitsForToday, isCompletedToday]);
 
   useEffect(() => {
     loadHabits();
@@ -357,6 +382,8 @@ export const useHabits = (deckId: string | null) => {
     updateHabit,
     deleteHabit,
     isCompletedToday,
+    isHabitApplicableToday,
+    getHabitsForToday,
     getTodayCompletionRate,
     reloadHabits: loadHabits
   };

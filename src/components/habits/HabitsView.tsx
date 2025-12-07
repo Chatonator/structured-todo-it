@@ -16,8 +16,11 @@ import { Habit } from '@/types/habit';
 const HabitsView = () => {
   const { decks, loading: decksLoading, defaultDeckId, createDeck, updateDeck, deleteDeck } = useDecks();
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(defaultDeckId);
-  const { habits, loading: habitsLoading, toggleCompletion, createHabit, updateHabit, deleteHabit, isCompletedToday, getTodayCompletionRate, streaks } = useHabits(selectedDeckId);
+  const { habits, loading: habitsLoading, toggleCompletion, createHabit, updateHabit, deleteHabit, isCompletedToday, isHabitApplicableToday, getHabitsForToday, getTodayCompletionRate, streaks } = useHabits(selectedDeckId);
   const habitStats = useHabitStats();
+  
+  // Habitudes du jour (pour le calcul de progression)
+  const todayHabits = getHabitsForToday();
   
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   const [isDeckManagementOpen, setIsDeckManagementOpen] = useState(false);
@@ -112,8 +115,8 @@ const HabitsView = () => {
 
             <TodayProgress
               completionRate={getTodayCompletionRate()}
-              completedCount={habits.filter(h => isCompletedToday(h.id)).length}
-              totalCount={habits.length}
+              completedCount={todayHabits.filter(h => isCompletedToday(h.id)).length}
+              totalCount={todayHabits.length}
             />
 
             <div className="mt-6">
@@ -153,6 +156,7 @@ const HabitsView = () => {
                       habit={habit}
                       isCompleted={isCompletedToday(habit.id)}
                       streak={streaks[habit.id]}
+                      isApplicableToday={isHabitApplicableToday(habit)}
                       onToggle={() => toggleCompletion(habit.id)}
                       onEdit={() => handleEditHabit(habit)}
                       onDelete={() => handleDeleteHabit(habit.id)}
