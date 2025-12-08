@@ -12,6 +12,13 @@ export interface DailyTrend {
   rate: number;
 }
 
+export interface MonthlyDay {
+  date: string;
+  count: number;
+  total: number;
+  rate: number;
+}
+
 export interface HabitStats {
   bestCurrentStreak: number;
   longestStreak: number;
@@ -19,6 +26,7 @@ export interface HabitStats {
   overallCompletionRate: number;
   totalHabits: number;
   dailyTrends: DailyTrend[];
+  monthlyData: MonthlyDay[];
   loading: boolean;
 }
 
@@ -30,6 +38,7 @@ export const useHabitStats = () => {
     overallCompletionRate: 0,
     totalHabits: 0,
     dailyTrends: [],
+    monthlyData: [],
     loading: true
   });
   const { user } = useAuth();
@@ -58,6 +67,7 @@ export const useHabitStats = () => {
           overallCompletionRate: 0,
           totalHabits: 0,
           dailyTrends: [],
+          monthlyData: [],
           loading: false
         });
         return;
@@ -65,7 +75,7 @@ export const useHabitStats = () => {
 
       const eventIds = habitEvents.map(e => e.id);
       const today = new Date();
-      const thirtyDaysAgo = subDays(today, 30);
+      const thirtyFiveDaysAgo = subDays(today, 35);
       const weekStart = startOfWeek(today, { weekStartsOn: 1 });
 
       // Récupérer toutes les occurrences complétées
@@ -74,7 +84,7 @@ export const useHabitStats = () => {
         .select('event_id, starts_at, status')
         .in('event_id', eventIds)
         .eq('user_id', user.id)
-        .gte('starts_at', thirtyDaysAgo.toISOString())
+        .gte('starts_at', thirtyFiveDaysAgo.toISOString())
         .order('starts_at', { ascending: false });
 
       if (occError) throw occError;
@@ -86,7 +96,7 @@ export const useHabitStats = () => {
 
       // Calcul du taux de réussite sur 30 jours
       const completedCount = (occurrences || []).filter(o => o.status === 'completed').length;
-      const expectedCompletions = habitEvents.length * 30; // Approximation (daily habits)
+      const expectedCompletions = habitEvents.length * 30;
       const overallCompletionRate = expectedCompletions > 0 
         ? Math.min(100, Math.round((completedCount / expectedCompletions) * 100))
         : 0;
@@ -99,7 +109,7 @@ export const useHabitStats = () => {
         const habitOccurrences = (occurrences || [])
           .filter(o => o.event_id === event.id && o.status === 'completed')
           .map(o => format(new Date(o.starts_at), 'yyyy-MM-dd'))
-          .sort((a, b) => b.localeCompare(a)); // Tri décroissant
+          .sort((a, b) => b.localeCompare(a));
 
         // Streak actuel
         let currentStreak = 0;
@@ -163,6 +173,28 @@ export const useHabitStats = () => {
         });
       }
 
+      // Calcul des données mensuelles pour le heatmap (35 jours)
+      const monthlyData: MonthlyDay[] = [];
+      for (let i = 34; i >= 0; i--) {
+        const date = subDays(today, i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+        
+        const dayCompletions = (occurrences || []).filter(o => 
+          o.status === 'completed' && format(new Date(o.starts_at), 'yyyy-MM-dd') === dateStr
+        ).length;
+        
+        const rate = habitEvents.length > 0 
+          ? Math.round((dayCompletions / habitEvents.length) * 100) 
+          : 0;
+        
+        monthlyData.push({
+          date: dateStr,
+          count: dayCompletions,
+          total: habitEvents.length,
+          rate
+        });
+      }
+
       setStats({
         bestCurrentStreak,
         longestStreak,
@@ -170,6 +202,7 @@ export const useHabitStats = () => {
         overallCompletionRate,
         totalHabits: habitEvents.length,
         dailyTrends,
+        monthlyData,
         loading: false
       });
     } catch (error) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useDecks } from '@/hooks/useDecks';
 import { useHabits } from '@/hooks/useHabits';
 import { useHabitStats } from '@/hooks/useHabitStats';
@@ -8,6 +8,7 @@ import DeckSelector from './DeckSelector';
 import TodayProgress from './TodayProgress';
 import HabitStatsCard from './HabitStatsCard';
 import HabitTrendsChart from './HabitTrendsChart';
+import HabitCalendarHeatmap from './HabitCalendarHeatmap';
 import HabitItem from './HabitItem';
 import HabitModal from './HabitModal';
 import DeckManagement from './DeckManagement';
@@ -19,12 +20,12 @@ const HabitsView = () => {
   const { habits, loading: habitsLoading, toggleCompletion, createHabit, updateHabit, deleteHabit, isCompletedToday, isHabitApplicableToday, getHabitsForToday, getTodayCompletionRate, streaks } = useHabits(selectedDeckId);
   const habitStats = useHabitStats();
   
-  // Habitudes du jour (pour le calcul de progression)
   const todayHabits = getHabitsForToday();
   
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   const [isDeckManagementOpen, setIsDeckManagementOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const [showStats, setShowStats] = useState(false);
 
   React.useEffect(() => {
     if (defaultDeckId && !selectedDeckId) {
@@ -89,7 +90,8 @@ const HabitsView = () => {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-6">
       <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-6">
+        {/* Sélecteur de deck */}
+        <div className="mb-4">
           <DeckSelector
             decks={decks}
             selectedDeckId={selectedDeckId}
@@ -100,28 +102,17 @@ const HabitsView = () => {
 
         {selectedDeckId && (
           <>
-            {/* Statistiques globales */}
-            {!habitStats.loading && habitStats.totalHabits > 0 && (
-              <>
-                <HabitStatsCard
-                  bestCurrentStreak={habitStats.bestCurrentStreak}
-                  longestStreak={habitStats.longestStreak}
-                  weeklyCompletions={habitStats.weeklyCompletions}
-                  overallCompletionRate={habitStats.overallCompletionRate}
-                />
-                <HabitTrendsChart dailyTrends={habitStats.dailyTrends} />
-              </>
-            )}
-
+            {/* Progression du jour */}
             <TodayProgress
               completionRate={getTodayCompletionRate()}
               completedCount={todayHabits.filter(h => isCompletedToday(h.id)).length}
               totalCount={todayHabits.length}
             />
 
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-foreground">
+            {/* Liste des habitudes - Priorité haute */}
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-foreground">
                   {selectedDeck?.name || 'Mes habitudes'}
                 </h2>
                 <Button
@@ -137,7 +128,7 @@ const HabitsView = () => {
               {habitsLoading ? (
                 <p className="text-center text-muted-foreground py-8">Chargement des habitudes...</p>
               ) : habits.length === 0 ? (
-                <div className="text-center py-12 bg-card rounded-lg border border-border">
+                <div className="text-center py-8 bg-card rounded-lg border border-border">
                   <p className="text-muted-foreground mb-4">Aucune habitude dans ce deck</p>
                   <Button
                     onClick={() => setIsHabitModalOpen(true)}
@@ -165,6 +156,36 @@ const HabitsView = () => {
                 </div>
               )}
             </div>
+
+            {/* Section Statistiques - Collapsible */}
+            {!habitStats.loading && habitStats.totalHabits > 0 && (
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowStats(!showStats)}
+                  className="flex items-center justify-between w-full py-3 px-4 bg-card rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                >
+                  <span className="font-medium text-foreground">Statistiques</span>
+                  {showStats ? (
+                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </button>
+                
+                {showStats && (
+                  <div className="mt-4 space-y-4">
+                    <HabitStatsCard
+                      bestCurrentStreak={habitStats.bestCurrentStreak}
+                      longestStreak={habitStats.longestStreak}
+                      weeklyCompletions={habitStats.weeklyCompletions}
+                      overallCompletionRate={habitStats.overallCompletionRate}
+                    />
+                    <HabitTrendsChart dailyTrends={habitStats.dailyTrends} />
+                    <HabitCalendarHeatmap monthlyData={habitStats.monthlyData} />
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
 
