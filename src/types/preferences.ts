@@ -37,6 +37,11 @@ export interface UserPreferences {
   categoryOrder: CategoryOrder[];
   categoryColors: CategoryColors;
 
+  // Barre latérale
+  sidebarShowHabits: boolean;
+  sidebarShowProjects: boolean;
+  sidebarShowTeamTasks: boolean;
+
   // Habitudes
   habitDailyReminders: boolean;
   habitReminderTime: string;
@@ -92,6 +97,11 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
     Envie: 'hsl(var(--accent))',
     Autres: 'hsl(var(--muted))',
   },
+
+  // Barre latérale
+  sidebarShowHabits: false,
+  sidebarShowProjects: false,
+  sidebarShowTeamTasks: false,
 
   // Habitudes
   habitDailyReminders: true,

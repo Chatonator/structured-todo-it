@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Task } from '@/types/task';
+import { Habit, HabitStreak } from '@/types/habit';
+import { Project } from '@/types/project';
 import { Clock, ChevronsDown, ChevronsUp, ChevronRight, ChevronLeft } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -7,7 +9,17 @@ import TaskModal from './TaskModal';
 import TaskItem from './task/TaskItem';
 import QuickAddTask from './QuickAddTask';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
+import { SidebarHabitsSection } from './sidebar/SidebarHabitsSection';
+import { SidebarProjectsSection } from './sidebar/SidebarProjectsSection';
+import { SidebarTeamTasksSection } from './sidebar/SidebarTeamTasksSection';
 
+interface TeamTaskForSidebar {
+  id: string;
+  name: string;
+  isCompleted: boolean;
+  category: string;
+  estimatedTime: number;
+}
 
 interface TaskListProps {
   tasks: Task[];
@@ -31,6 +43,17 @@ interface TaskListProps {
   onUndo: () => void;
   onRedo: () => void;
   onCollapsedChange?: (collapsed: boolean) => void;
+  // Nouvelles props pour les sections optionnelles
+  sidebarShowHabits?: boolean;
+  sidebarShowProjects?: boolean;
+  sidebarShowTeamTasks?: boolean;
+  todayHabits?: Habit[];
+  habitCompletions?: Record<string, boolean>;
+  habitStreaks?: Record<string, HabitStreak>;
+  onToggleHabit?: (habitId: string) => Promise<boolean | void>;
+  projects?: Project[];
+  teamTasks?: TeamTaskForSidebar[];
+  onToggleTeamTask?: (taskId: string) => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({ 
@@ -54,7 +77,18 @@ const TaskList: React.FC<TaskListProps> = ({
   canRedo,
   onUndo,
   onRedo,
-  onCollapsedChange
+  onCollapsedChange,
+  // Nouvelles props
+  sidebarShowHabits = false,
+  sidebarShowProjects = false,
+  sidebarShowTeamTasks = false,
+  todayHabits = [],
+  habitCompletions = {},
+  habitStreaks = {},
+  onToggleHabit,
+  projects = [],
+  teamTasks = [],
+  onToggleTeamTask
 }) => {
   // États locaux
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -258,6 +292,27 @@ const TaskList: React.FC<TaskListProps> = ({
 
             {/* Bloc d'ajout rapide */}
             <QuickAddTask onAddTask={onAddTask} />
+
+            {/* Sections optionnelles */}
+            {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
+              <SidebarHabitsSection
+                habits={todayHabits}
+                completions={habitCompletions}
+                streaks={habitStreaks}
+                onToggleHabit={onToggleHabit}
+              />
+            )}
+
+            {sidebarShowProjects && projects.length > 0 && (
+              <SidebarProjectsSection projects={projects} />
+            )}
+
+            {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (
+              <SidebarTeamTasksSection
+                tasks={teamTasks}
+                onToggleComplete={onToggleTeamTask}
+              />
+            )}
 
             {/* En-tête simplifié */}
             <div className="relative px-3 pb-2 pt-2 border-b border-border bg-background">
