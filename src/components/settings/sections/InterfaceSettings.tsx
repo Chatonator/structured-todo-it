@@ -61,6 +61,33 @@ export const InterfaceSettings: React.FC = () => {
       </SettingsSection>
 
       <SettingsSection
+        title="Contenu de la barre latérale"
+        description="Choisissez quels éléments afficher dans la barre latérale des tâches"
+      >
+        <SettingsToggle
+          id="sidebarShowHabits"
+          label="Afficher les habitudes du jour"
+          description="Voir et cocher vos habitudes directement depuis la sidebar"
+          checked={preferences.sidebarShowHabits}
+          onCheckedChange={(checked) => updatePreferences({ sidebarShowHabits: checked })}
+        />
+        <SettingsToggle
+          id="sidebarShowProjects"
+          label="Afficher les projets en cours"
+          description="Voir la progression de vos projets actifs"
+          checked={preferences.sidebarShowProjects}
+          onCheckedChange={(checked) => updatePreferences({ sidebarShowProjects: checked })}
+        />
+        <SettingsToggle
+          id="sidebarShowTeamTasks"
+          label="Afficher les tâches d'équipe"
+          description="Voir les tâches de votre équipe actuelle"
+          checked={preferences.sidebarShowTeamTasks}
+          onCheckedChange={(checked) => updatePreferences({ sidebarShowTeamTasks: checked })}
+        />
+      </SettingsSection>
+
+      <SettingsSection
         title="Ordre et visibilité des catégories"
         description="Réorganisez l'ordre des vues et masquez celles que vous n'utilisez pas"
       >

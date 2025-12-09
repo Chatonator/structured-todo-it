@@ -433,6 +433,28 @@ const Index = () => {
                 onUndo={safeUndo}
                 onRedo={safeRedo}
                 onCollapsedChange={setIsTaskListCollapsed}
+                // Nouvelles props pour les sections optionnelles
+                sidebarShowHabits={preferences.sidebarShowHabits}
+                sidebarShowProjects={preferences.sidebarShowProjects}
+                sidebarShowTeamTasks={preferences.sidebarShowTeamTasks}
+                todayHabits={todayHabits}
+                habitCompletions={habitCompletions}
+                habitStreaks={habitStreaks}
+                onToggleHabit={toggleHabitCompletion}
+                projects={projects}
+                teamTasks={teamTasks.tasks.map(t => ({
+                  id: t.id,
+                  name: t.name,
+                  isCompleted: t.isCompleted,
+                  category: t.category,
+                  estimatedTime: t.estimatedTime
+                }))}
+                onToggleTeamTask={(taskId) => {
+                  const task = teamTasks.tasks.find(t => t.id === taskId);
+                  if (task) {
+                    teamTasks.toggleComplete(taskId, !task.isCompleted);
+                  }
+                }}
               />
             </div>
           )}
@@ -462,6 +484,28 @@ const Index = () => {
                   canRedo={Boolean(canRedo)}
                   onUndo={safeUndo}
                   onRedo={safeRedo}
+                  // Nouvelles props pour les sections optionnelles
+                  sidebarShowHabits={preferences.sidebarShowHabits}
+                  sidebarShowProjects={preferences.sidebarShowProjects}
+                  sidebarShowTeamTasks={preferences.sidebarShowTeamTasks}
+                  todayHabits={todayHabits}
+                  habitCompletions={habitCompletions}
+                  habitStreaks={habitStreaks}
+                  onToggleHabit={toggleHabitCompletion}
+                  projects={projects}
+                  teamTasks={teamTasks.tasks.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    isCompleted: t.isCompleted,
+                    category: t.category,
+                    estimatedTime: t.estimatedTime
+                  }))}
+                  onToggleTeamTask={(taskId) => {
+                    const task = teamTasks.tasks.find(t => t.id === taskId);
+                    if (task) {
+                      teamTasks.toggleComplete(taskId, !task.isCompleted);
+                    }
+                  }}
                 />
               </SheetContent>
             </Sheet>
