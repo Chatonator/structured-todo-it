@@ -16,6 +16,7 @@ export interface Task {
   isExpanded: boolean;
   isCompleted: boolean;
   duration?: number;
+  projectId?: string;
   projectStatus?: 'todo' | 'in-progress' | 'done';
   // Note: Les champs temporels (scheduledDate, scheduledTime, startTime, isRecurring, recurrenceInterval, lastCompletedAt)
   // sont désormais gérés exclusivement via time_events

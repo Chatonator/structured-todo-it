@@ -24,6 +24,7 @@ interface TaskModalProps {
   onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
   parentTask?: Task;
   editingTask?: Task;
+  projectId?: string;
 }
 
 interface TaskDraft {
@@ -52,7 +53,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
   onAddTask, 
   onUpdateTask, 
   parentTask, 
-  editingTask 
+  editingTask,
+  projectId 
 }) => {
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([
     { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }
@@ -174,6 +176,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
           level,
           isExpanded: true,
           isCompleted: false,
+          projectId: projectId,
+          projectStatus: projectId ? 'todo' : undefined,
         };
         
         // Note: La planification (scheduledDate, scheduledTime, isRecurring, recurrenceInterval)
