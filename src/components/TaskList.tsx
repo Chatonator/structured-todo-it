@@ -21,6 +21,12 @@ interface TeamTaskForSidebar {
   estimatedTime: number;
 }
 
+interface ProjectTaskForSidebar {
+  task: Task;
+  projectName: string;
+  projectIcon?: string;
+}
+
 interface TaskListProps {
   tasks: Task[];
   mainTasks: Task[];
@@ -52,6 +58,8 @@ interface TaskListProps {
   habitStreaks?: Record<string, HabitStreak>;
   onToggleHabit?: (habitId: string) => Promise<boolean | void>;
   projects?: Project[];
+  projectTasks?: ProjectTaskForSidebar[];
+  onToggleProjectTask?: (taskId: string) => void;
   teamTasks?: TeamTaskForSidebar[];
   onToggleTeamTask?: (taskId: string) => void;
 }
@@ -87,6 +95,8 @@ const TaskList: React.FC<TaskListProps> = ({
   habitStreaks = {},
   onToggleHabit,
   projects = [],
+  projectTasks = [],
+  onToggleProjectTask,
   teamTasks = [],
   onToggleTeamTask
 }) => {
@@ -303,8 +313,11 @@ const TaskList: React.FC<TaskListProps> = ({
               />
             )}
 
-            {sidebarShowProjects && projects.length > 0 && (
-              <SidebarProjectsSection projects={projects} />
+            {sidebarShowProjects && projectTasks.length > 0 && onToggleProjectTask && (
+              <SidebarProjectsSection 
+                projectTasks={projectTasks} 
+                onToggleComplete={onToggleProjectTask}
+              />
             )}
 
             {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (

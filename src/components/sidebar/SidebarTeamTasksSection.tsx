@@ -58,7 +58,7 @@ export const SidebarTeamTasksSection: React.FC<SidebarTeamTasksSectionProps> = (
             activeTasks.map(task => (
               <div
                 key={task.id}
-                className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
+                className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors border-l-4 border-l-primary"
               >
                 <Checkbox
                   checked={task.isCompleted}

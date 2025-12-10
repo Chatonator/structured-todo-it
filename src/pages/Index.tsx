@@ -26,6 +26,7 @@ import { useTeamContext } from '@/contexts/TeamContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsMobile } from '@/hooks/shared/use-mobile';
 import { useProjects } from '@/hooks/useProjects';
+import { useAllProjectTasks } from '@/hooks/useAllProjectTasks';
 import { useHabits } from '@/hooks/useHabits';
 import { useDecks } from '@/hooks/useDecks';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
@@ -46,6 +47,7 @@ const Index = () => {
   
   // Hooks pour projets et habitudes
   const { projects } = useProjects();
+  const { projectTasks, toggleProjectTaskCompletion } = useAllProjectTasks(projects);
   const { defaultDeckId } = useDecks();
   const { 
     habits, 
@@ -442,6 +444,8 @@ const Index = () => {
                 habitStreaks={habitStreaks}
                 onToggleHabit={toggleHabitCompletion}
                 projects={projects}
+                projectTasks={projectTasks}
+                onToggleProjectTask={toggleProjectTaskCompletion}
                 teamTasks={teamTasks.tasks.map(t => ({
                   id: t.id,
                   name: t.name,
@@ -493,6 +497,8 @@ const Index = () => {
                   habitStreaks={habitStreaks}
                   onToggleHabit={toggleHabitCompletion}
                   projects={projects}
+                  projectTasks={projectTasks}
+                  onToggleProjectTask={toggleProjectTaskCompletion}
                   teamTasks={teamTasks.tasks.map(t => ({
                     id: t.id,
                     name: t.name,

@@ -56,8 +56,8 @@ export const SidebarHabitsSection: React.FC<SidebarHabitsSectionProps> = ({
               <div
                 key={habit.id}
                 className={`
-                  flex items-center gap-2 p-2 rounded-md transition-colors
-                  ${isCompleted ? 'bg-habit/10' : 'bg-muted/30 hover:bg-muted/50'}
+                  flex items-center gap-2 p-2 rounded-lg border border-border transition-colors border-l-4 border-l-habit
+                  ${isCompleted ? 'bg-habit/10' : 'bg-card hover:bg-muted/50'}
                 `}
               >
                 <Checkbox
