@@ -15,16 +15,25 @@ export const useTasksOperations = (
 ) => {
   const { addAction } = useActionHistory();
 
-  const addTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
-    // Nettoyer et valider les données d'entrée
-    const sanitizedData = sanitizeTask(taskData);
+  const addTask = async (taskData: Omit<Task, 'id' | 'createdAt'> & { _scheduleInfo?: any }) => {
+    // Extraire les infos de planification AVANT sanitization
+    const scheduleInfo = (taskData as any)._scheduleInfo;
     
-    const newTask: Task = {
+    // Nettoyer et valider les données d'entrée (sans _scheduleInfo)
+    const { _scheduleInfo: _, ...taskDataWithoutSchedule } = taskData as any;
+    const sanitizedData = sanitizeTask(taskDataWithoutSchedule);
+    
+    const newTask: Task & { _scheduleInfo?: any } = {
       ...sanitizedData,
       id: crypto.randomUUID(),
       createdAt: new Date(),
       isCompleted: false
     } as Task;
+    
+    // Ajouter les infos de planification pour la synchronisation avec time_events
+    if (scheduleInfo) {
+      (newTask as any)._scheduleInfo = scheduleInfo;
+    }
     
     setTasks(prevTasks => {
       const newTasks = [newTask, ...prevTasks];
@@ -41,10 +50,10 @@ export const useTasksOperations = (
       return newTasks;
     });
     
-    // Save to database
+    // Save to database (avec _scheduleInfo pour créer le time_event)
     await saveTask(newTask);
     
-    console.log('Nouvelle tâche ajoutée:', newTask);
+    console.log('Nouvelle tâche ajoutée:', newTask.name, scheduleInfo ? '(avec planification)' : '');
     return newTask;
   };
 
