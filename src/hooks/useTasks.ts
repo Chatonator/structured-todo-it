@@ -194,21 +194,25 @@ export const useTasks = () => {
     }
   };
 
-  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+  const updateTask = async (taskId: string, updates: Partial<Task> & { _scheduleInfo?: any }) => {
     try {
       const task = tasks.find(t => t.id === taskId);
       if (!task) return;
+
+      // Extraire les infos de planification avant merge
+      const scheduleInfo = (updates as any)._scheduleInfo;
+      const { _scheduleInfo, ...cleanUpdates } = updates as any;
 
       let updatedTask: Task | null = null;
       setTasks(prevTasks => {
         let changed = false;
         const next = prevTasks.map(t => {
           if (t.id !== taskId) return t;
-          const merged = { ...t, ...updates };
-          const taskHasChanged = Object.entries(updates).some(
+          const merged = { ...t, ...cleanUpdates };
+          const taskHasChanged = Object.entries(cleanUpdates).some(
             ([key, value]) => t[key as keyof Task] !== value
           );
-          if (taskHasChanged) {
+          if (taskHasChanged || scheduleInfo) {
             changed = true;
             updatedTask = merged;
           }
@@ -220,9 +224,13 @@ export const useTasks = () => {
       
       // Save to database if there was a change
       if (updatedTask) {
+        // Ajouter les infos de planification pour la synchronisation time_events
+        if (scheduleInfo) {
+          (updatedTask as any)._scheduleInfo = scheduleInfo;
+        }
         await saveTask(updatedTask);
       }
-      console.log('Tâche mise à jour:', taskId, updates);
+      console.log('Tâche mise à jour:', taskId, scheduleInfo ? '(avec planification)' : '');
     } catch (error) {
       console.warn('Erreur mise à jour tâche:', error);
       throw error;

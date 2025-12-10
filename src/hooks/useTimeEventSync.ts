@@ -455,9 +455,14 @@ export const useTimeEventSync = () => {
         .eq('entity_type', entityType)
         .eq('entity_id', entityId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) return null;
+      if (error) {
+        logger.error('Erreur récupération time_event', { error: error.message });
+        return null;
+      }
+      
+      if (!data) return null;
 
       return {
         id: data.id,

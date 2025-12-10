@@ -147,8 +147,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
     if (editingTask && onUpdateTask) {
       const draft = validTasks[0];
       if (draft) {
-        // Mettre à jour uniquement les champs non-temporels de la tâche
-        const updates: Partial<Task> = {
+        // Mettre à jour les champs non-temporels de la tâche
+        const updates: Partial<Task> & { _scheduleInfo?: ScheduleInfo } = {
           name: draft.name.trim(),
           category: draft.category as TaskCategory,
           subCategory: draft.subCategory as SubTaskCategory || undefined,
@@ -156,10 +156,15 @@ const TaskModal: React.FC<TaskModalProps> = ({
           estimatedTime: Number(draft.estimatedTime),
         };
         
-        onUpdateTask(editingTask.id, updates);
+        // Ajouter les infos de planification pour synchronisation avec time_events
+        (updates as any)._scheduleInfo = {
+          date: draft.scheduledDate,
+          time: draft.scheduledTime,
+          isRecurring: draft.isRecurring,
+          recurrenceInterval: draft.recurrenceInterval
+        } as ScheduleInfo;
         
-        // Synchroniser avec time_events via le hook (fait automatiquement dans useTasksDatabase)
-        // Les données de planification sont passées via syncTaskEvent qui les lira depuis le draft
+        onUpdateTask(editingTask.id, updates);
       }
     } else if (onAddTask) {
       for (const draft of validTasks) {
