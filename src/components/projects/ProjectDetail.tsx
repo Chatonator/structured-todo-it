@@ -145,8 +145,11 @@ export const ProjectDetail = ({ project, onBack, onEdit }: ProjectDetailProps) =
           }}
           editingTask={selectedTask || undefined}
           projectId={project.id}
-          onAddTask={async (taskData) => {
-            // La tâche sera créée avec le projectId
+          taskType="project"
+          onAddTask={async () => {
+            reloadTasks();
+          }}
+          onUpdateTask={async () => {
             reloadTasks();
           }}
         />

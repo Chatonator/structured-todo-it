@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Check, AlertTriangle, CalendarIcon, RefreshCw, Clock } from 'lucide-react';
+import { Plus, Check, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Task, TaskCategory, SubTaskCategory, TaskContext, TIME_OPTIONS, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG, RECURRENCE_OPTIONS, RecurrenceInterval, getCategoryDisplayName } from '@/types/task';
+import { Task, TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from '@/types/task';
+import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
+import { isTaskDraftValid, getDefaultsForTaskType } from '@/utils/taskValidationByType';
+import {
+  NameField,
+  ContextSelector,
+  CategorySelector,
+  PrioritySelector,
+  TimeEstimateSelector,
+  SchedulingSection,
+  RecurrenceSection
+} from '@/components/task-modal/fields';
 
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { useTimeHub } from '@/hooks/useTimeHub';
 import { useTimeEventSync } from '@/hooks/useTimeEventSync';
 import { TimeEvent } from '@/lib/time/types';
@@ -25,6 +29,7 @@ interface TaskModalProps {
   parentTask?: Task;
   editingTask?: Task;
   projectId?: string;
+  taskType?: TaskType;
 }
 
 interface TaskDraft {
@@ -33,7 +38,6 @@ interface TaskDraft {
   subCategory: SubTaskCategory | '';
   context: TaskContext | '';
   estimatedTime: number | '';
-  // Ces champs sont maintenant uniquement pour l'UI - ils seront sauvegardés dans time_events
   scheduledDate?: Date;
   scheduledTime?: string;
   isRecurring?: boolean;
@@ -54,11 +58,22 @@ const TaskModal: React.FC<TaskModalProps> = ({
   onUpdateTask, 
   parentTask, 
   editingTask,
-  projectId 
+  projectId,
+  taskType = 'personal'
 }) => {
-  const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([
-    { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }
-  ]);
+  const config = getTaskTypeConfig(taskType);
+  const defaults = getDefaultsForTaskType(taskType);
+  
+  const createEmptyDraft = (): TaskDraft => ({
+    name: '',
+    category: defaults.category || '',
+    subCategory: defaults.subCategory || '',
+    context: defaults.context || '',
+    estimatedTime: '',
+    isRecurring: false
+  });
+
+  const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([createEmptyDraft()]);
   const [schedulingError, setSchedulingError] = useState<string>('');
   const [existingTimeEvent, setExistingTimeEvent] = useState<TimeEvent | null>(null);
   
@@ -72,7 +87,6 @@ const TaskModal: React.FC<TaskModalProps> = ({
         const event = await getEntityEvent('task', editingTask.id);
         setExistingTimeEvent(event);
         
-        // Initialiser le draft avec les données du time_event
         setTaskDrafts([{
           name: editingTask.name,
           category: editingTask.category,
@@ -85,17 +99,17 @@ const TaskModal: React.FC<TaskModalProps> = ({
           recurrenceInterval: event?.recurrence?.frequency as RecurrenceInterval
         }]);
       } else {
-        setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '', isRecurring: false }]);
+        setTaskDrafts([createEmptyDraft()]);
       }
     };
 
     if (isOpen) {
       loadExistingEvent();
     }
-  }, [isOpen, editingTask, getEntityEvent]);
+  }, [isOpen, editingTask, getEntityEvent, taskType]);
 
   const resetModal = () => {
-    setTaskDrafts([{ name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
+    setTaskDrafts([createEmptyDraft()]);
     setSchedulingError('');
     setExistingTimeEvent(null);
   };
@@ -106,12 +120,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const addNewTaskDraft = () => {
-    if (!editingTask) {
-      setTaskDrafts([...taskDrafts, { name: '', category: '', subCategory: '', context: '', estimatedTime: '' }]);
+    if (!editingTask && config.showMultipleTasks) {
+      setTaskDrafts([...taskDrafts, createEmptyDraft()]);
     }
   };
 
-  const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number | Date | boolean) => {
+  const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number | Date | boolean | undefined) => {
     const updated = [...taskDrafts];
     updated[index] = { ...updated[index], [field]: value };
     setTaskDrafts(updated);
@@ -131,7 +145,6 @@ const TaskModal: React.FC<TaskModalProps> = ({
     }
   };
 
-  // Créer une tâche et son time_event associé
   const handleFinish = async () => {
     const hasIncompleteScheduling = taskDrafts.some(draft => 
       (draft.scheduledDate && !draft.scheduledTime) || (!draft.scheduledDate && draft.scheduledTime)
@@ -142,21 +155,20 @@ const TaskModal: React.FC<TaskModalProps> = ({
       return;
     }
 
-    const validTasks = taskDrafts.filter(draft => isTaskValid(draft));
+    const isSubTask = !!parentTask;
+    const validTasks = taskDrafts.filter(draft => isTaskDraftValid(draft, taskType, isSubTask));
     
     if (editingTask && onUpdateTask) {
       const draft = validTasks[0];
       if (draft) {
-        // Mettre à jour les champs non-temporels de la tâche
         const updates: Partial<Task> & { _scheduleInfo?: ScheduleInfo } = {
           name: draft.name.trim(),
-          category: draft.category as TaskCategory,
+          category: (draft.category || config.defaults.category || 'Quotidien') as TaskCategory,
           subCategory: draft.subCategory as SubTaskCategory || undefined,
-          context: draft.context as TaskContext,
+          context: (draft.context || config.defaults.context || 'Pro') as TaskContext,
           estimatedTime: Number(draft.estimatedTime),
         };
         
-        // Ajouter les infos de planification pour synchronisation avec time_events
         (updates as any)._scheduleInfo = {
           date: draft.scheduledDate,
           time: draft.scheduledTime,
@@ -170,12 +182,13 @@ const TaskModal: React.FC<TaskModalProps> = ({
       for (const draft of validTasks) {
         const level = parentTask ? Math.min((parentTask.level + 1), 2) as 0 | 1 | 2 : 0;
         
-        // Créer la tâche sans les champs temporels obsolètes
         const taskData: Omit<Task, 'id' | 'createdAt'> = {
           name: draft.name.trim(),
-          category: parentTask ? parentTask.category : draft.category as TaskCategory,
+          category: parentTask 
+            ? parentTask.category 
+            : (draft.category || config.defaults.category || 'Quotidien') as TaskCategory,
           subCategory: parentTask ? draft.subCategory as SubTaskCategory : undefined,
-          context: draft.context as TaskContext,
+          context: (draft.context || config.defaults.context || 'Pro') as TaskContext,
           estimatedTime: Number(draft.estimatedTime),
           parentId: parentTask?.id,
           level,
@@ -185,9 +198,6 @@ const TaskModal: React.FC<TaskModalProps> = ({
           projectStatus: projectId ? 'todo' : undefined,
         };
         
-        // Note: La planification (scheduledDate, scheduledTime, isRecurring, recurrenceInterval)
-        // sera gérée séparément via le time_event créé dans useTasksDatabase.saveTask
-        // en passant les données de planification via des attributs temporaires
         (taskData as any)._scheduleInfo = {
           date: draft.scheduledDate,
           time: draft.scheduledTime,
@@ -202,47 +212,46 @@ const TaskModal: React.FC<TaskModalProps> = ({
     handleClose();
   };
 
-  const isTaskValid = (task: TaskDraft): boolean => {
-    const hasName = task.name.trim().length > 0;
-    const hasEstimatedTime = task.estimatedTime !== '' && Number(task.estimatedTime) > 0;
-    const hasContext = task.context !== '';
-    
-    if (parentTask) {
-      const hasSubCategory = task.subCategory !== '';
-      return hasName && hasSubCategory && hasEstimatedTime && hasContext;
-    } else {
-      const hasCategory = task.category !== '';
-      return hasName && hasCategory && hasEstimatedTime && hasContext;
-    }
-  };
-
-  const allTasksValid = taskDrafts.length > 0 && taskDrafts.every(draft => isTaskValid(draft));
-  const validTasksCount = taskDrafts.filter(draft => isTaskValid(draft)).length;
+  const isSubTask = !!parentTask;
+  const allTasksValid = taskDrafts.length > 0 && taskDrafts.every(draft => isTaskDraftValid(draft, taskType, isSubTask));
+  const validTasksCount = taskDrafts.filter(draft => isTaskDraftValid(draft, taskType, isSubTask)).length;
   const showLimitWarning = parentTask && taskDrafts.length > 3;
   const canSubmit = allTasksValid && !schedulingError;
 
-  const shouldUseGrid = taskDrafts.length >= 2 && !editingTask;
+  const shouldUseGrid = taskDrafts.length >= 2 && !editingTask && config.showMultipleTasks;
   const gridCols = taskDrafts.length >= 4 ? 'grid-cols-2' : 'grid-cols-1 lg:grid-cols-2';
 
+  // Titre dynamique
+  const getTitle = () => {
+    if (editingTask) {
+      return `Modifier "${editingTask.name}"`;
+    }
+    if (parentTask) {
+      return `Créer des sous-tâches pour "${parentTask.name}"`;
+    }
+    return config.labels.title;
+  };
+
+  // Bouton de validation dynamique
+  const getSubmitLabel = () => {
+    if (editingTask) {
+      return 'Enregistrer les modifications';
+    }
+    if (validTasksCount > 1) {
+      return config.labels.submitMultipleButton(validTasksCount);
+    }
+    return config.labels.submitButton;
+  };
+
   return (
-    <Dialog 
-      open={isOpen} 
-      onOpenChange={handleClose}
-    >
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className={`
         w-full max-w-4xl max-h-[85vh] overflow-y-auto
         sm:max-w-md md:max-w-2xl lg:max-w-4xl
         ${shouldUseGrid ? 'lg:min-w-[800px]' : ''}
       `}>
         <DialogHeader>
-          <DialogTitle>
-            {editingTask 
-              ? `Modifier "${editingTask.name}"`
-              : parentTask 
-                ? `Créer des sous-tâches pour "${parentTask.name}"` 
-                : 'Nouvelle(s) tâche(s)'
-            }
-          </DialogTitle>
+          <DialogTitle>{getTitle()}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -258,21 +267,24 @@ const TaskModal: React.FC<TaskModalProps> = ({
           {schedulingError && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                {schedulingError}
-              </AlertDescription>
+              <AlertDescription>{schedulingError}</AlertDescription>
             </Alert>
           )}
 
           <div className={shouldUseGrid ? `grid ${gridCols} gap-3 md:gap-4` : 'space-y-3 md:space-y-4'}>
             {taskDrafts.map((draft, index) => {
-              const isValid = isTaskValid(draft);
+              const isValid = isTaskDraftValid(draft, taskType, isSubTask);
               
               return (
-                <div key={index} className={`p-3 md:p-4 border rounded-lg space-y-3 md:space-y-4 ${!isValid ? 'border-destructive bg-destructive/10' : 'bg-card border-border'}`}>
+                <div 
+                  key={index} 
+                  className={`p-3 md:p-4 border rounded-lg space-y-3 md:space-y-4 ${
+                    !isValid ? 'border-destructive bg-destructive/10' : 'bg-card border-border'
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-foreground">
-                      {editingTask ? 'Modifier la tâche' : `Tâche ${index + 1}`}
+                      {editingTask ? config.labels.editTitle : `Tâche ${index + 1}`}
                     </span>
                     {taskDrafts.length > 1 && !editingTask && (
                       <Button
@@ -287,178 +299,79 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     )}
                   </div>
 
-                  <div>
-                    <Input
-                      type="text"
-                      value={draft.name}
-                      onChange={(e) => updateTaskDraft(index, 'name', e.target.value)}
-                      placeholder="Nom de la tâche..."
-                      className={`text-sm ${!draft.name.trim() ? 'border-destructive' : ''}`}
+                  {/* Nom de la tâche */}
+                  <NameField
+                    value={draft.name}
+                    onChange={(value) => updateTaskDraft(index, 'name', value)}
+                    hasError={!draft.name.trim()}
+                  />
+
+                  {/* Contexte Pro/Perso - conditionnel */}
+                  {config.showContextSelector && (
+                    <ContextSelector
+                      value={draft.context}
+                      onChange={(value) => updateTaskDraft(index, 'context', value)}
+                      hasError={!draft.context}
+                      required={config.requiredFields.includes('context')}
                     />
-                  </div>
+                  )}
 
-                  {/* Boutons contexte Pro/Perso OBLIGATOIRES */}
-                  <div>
-                    <Label className="text-sm text-foreground mb-2 block">
-                      Contexte <span className="text-destructive">*</span>
-                    </Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(CONTEXT_CONFIG).map(([context, config]) => (
-                        <Button
-                          key={context}
-                          type="button"
-                          variant={draft.context === context ? "default" : "outline"}
-                          onClick={() => updateTaskDraft(index, 'context', context)}
-                          className={`
-                            flex items-center justify-center space-x-2 p-3 text-sm transition-all
-                            ${!draft.context ? 'border-destructive' : ''}
-                          `}
-                        >
-                          <span className="font-medium">{config.label}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Catégories ou Priorité selon le contexte */}
+                  {parentTask ? (
+                    // Sous-tâche : toujours montrer le sélecteur de priorité
+                    <PrioritySelector
+                      value={draft.subCategory}
+                      onChange={(value) => updateTaskDraft(index, 'subCategory', value)}
+                    />
+                  ) : config.showCategorySelector ? (
+                    // Tâche principale avec catégories (personnel)
+                    <CategorySelector
+                      value={draft.category}
+                      onChange={(value) => updateTaskDraft(index, 'category', value)}
+                    />
+                  ) : config.showPrioritySelector ? (
+                    // Projet/équipe : montrer priorité au lieu de catégories
+                    <PrioritySelector
+                      value={draft.subCategory}
+                      onChange={(value) => updateTaskDraft(index, 'subCategory', value)}
+                      label="Priorité"
+                    />
+                  ) : null}
 
-                  <div>
-                    <Label className="text-sm text-foreground mb-2 block">
-                      {parentTask ? 'Priorité' : 'Catégorie'}
-                    </Label>
-                    <div className="grid grid-cols-2 gap-1">
-                      {parentTask ? (
-                        Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => (
-                          <Button
-                            key={subCat}
-                            type="button"
-                            variant={draft.subCategory === subCat ? "default" : "outline"}
-                            onClick={() => updateTaskDraft(index, 'subCategory', subCat)}
-                            className="flex items-center space-x-1 p-2 text-xs transition-all"
-                          >
-                            <span className="font-medium truncate">{subCat}</span>
-                          </Button>
-                        ))
-                      ) : (
-                        Object.entries(CATEGORY_CONFIG).map(([cat, config]) => (
-                          <Button
-                            key={cat}
-                            type="button"
-                            variant={draft.category === cat ? "default" : "outline"}
-                            onClick={() => updateTaskDraft(index, 'category', cat)}
-                            className={`flex items-center space-x-1 p-2 text-xs transition-all bg-category-${config.cssName}/10 border-category-${config.cssName}/20 hover:bg-category-${config.cssName}/20`}
-                          >
-                            <div className={`w-2 h-2 rounded-full bg-category-${config.cssName}`} />
-                            <span className="font-medium truncate">{getCategoryDisplayName(cat as TaskCategory)}</span>
-                          </Button>
-                        ))
-                      )}
-                    </div>
-                  </div>
+                  {/* Temps estimé */}
+                  <TimeEstimateSelector
+                    value={draft.estimatedTime}
+                    onChange={(value) => updateTaskDraft(index, 'estimatedTime', value)}
+                    hasError={!draft.estimatedTime}
+                  />
 
-                  <div>
-                    <Select 
-                      value={draft.estimatedTime.toString()} 
-                      onValueChange={(value) => updateTaskDraft(index, 'estimatedTime', Number(value))}
-                    >
-                      <SelectTrigger className={`h-9 text-sm ${!draft.estimatedTime ? 'border-destructive' : ''}`}>
-                        <SelectValue placeholder="Temps estimé..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TIME_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value.toString()}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Planification - conditionnel */}
+                  {config.showScheduling && (
+                    <SchedulingSection
+                      scheduledDate={draft.scheduledDate}
+                      scheduledTime={draft.scheduledTime}
+                      onDateChange={(date) => updateTaskDraft(index, 'scheduledDate', date)}
+                      onTimeChange={(time) => updateTaskDraft(index, 'scheduledTime', time)}
+                    />
+                  )}
 
-                  {/* Planification - données stockées dans time_events */}
-                  <div className="space-y-3 pt-3 border-t border-border">
-                    <Label className="text-sm text-foreground flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Planification (optionnelle)
-                    </Label>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "justify-start text-left font-normal",
-                              !draft.scheduledDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {draft.scheduledDate ? format(draft.scheduledDate, "d MMM", { locale: fr }) : "Date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={draft.scheduledDate}
-                            onSelect={(date) => updateTaskDraft(index, 'scheduledDate', date)}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-
-                      <Input
-                        type="time"
-                        value={draft.scheduledTime || ''}
-                        onChange={(e) => updateTaskDraft(index, 'scheduledTime', e.target.value)}
-                        placeholder="HH:MM"
-                        className="h-9 text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Section récurrence */}
-                  <div className="space-y-3 pt-3 border-t border-border">
-                    <Label className="text-sm text-foreground">Récurrence (optionnelle)</Label>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`recurring-${index}`}
-                          checked={draft.isRecurring || false}
-                          onChange={(e) => updateTaskDraft(index, 'isRecurring', e.target.checked)}
-                          className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
-                        />
-                        <label htmlFor={`recurring-${index}`} className="text-sm text-foreground flex items-center">
-                          <RefreshCw className="w-4 h-4 mr-1" />
-                          Tâche récurrente
-                        </label>
-                      </div>
-                      
-                      {draft.isRecurring && (
-                        <Select
-                          value={draft.recurrenceInterval || ''}
-                          onValueChange={(value) => updateTaskDraft(index, 'recurrenceInterval', value)}
-                        >
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue placeholder="Fréquence de récurrence..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {RECURRENCE_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                  </div>
+                  {/* Récurrence - conditionnel */}
+                  {config.showRecurrence && (
+                    <RecurrenceSection
+                      isRecurring={draft.isRecurring || false}
+                      recurrenceInterval={draft.recurrenceInterval}
+                      onRecurringChange={(value) => updateTaskDraft(index, 'isRecurring', value)}
+                      onIntervalChange={(value) => updateTaskDraft(index, 'recurrenceInterval', value)}
+                      index={index}
+                    />
+                  )}
                 </div>
               );
             })}
           </div>
 
           {/* Bouton pour ajouter une autre tâche */}
-          {!editingTask && (
+          {!editingTask && config.showMultipleTasks && (
             <Button
               type="button"
               variant="outline"
@@ -478,12 +391,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
             className="w-full"
           >
             <Check className="w-4 h-4 mr-2" />
-            {editingTask 
-              ? 'Enregistrer les modifications'
-              : validTasksCount > 1 
-                ? `Créer ${validTasksCount} tâches` 
-                : 'Créer la tâche'
-            }
+            {getSubmitLabel()}
           </Button>
         </div>
       </DialogContent>
