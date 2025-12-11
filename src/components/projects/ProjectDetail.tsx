@@ -18,7 +18,7 @@ interface ProjectDetailProps {
 
 export const ProjectDetail = ({ project, onBack, onEdit }: ProjectDetailProps) => {
   const { tasksByStatus, updateTaskStatus, reloadTasks } = useProjectTasks(project.id);
-  const { toggleTaskCompletion } = useTasks();
+  const { toggleTaskCompletion, addTask, updateTask } = useTasks();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const statusConfig = PROJECT_STATUS_CONFIG[project.status];
@@ -146,10 +146,12 @@ export const ProjectDetail = ({ project, onBack, onEdit }: ProjectDetailProps) =
           editingTask={selectedTask || undefined}
           projectId={project.id}
           taskType="project"
-          onAddTask={async () => {
+          onAddTask={async (taskData) => {
+            await addTask(taskData);
             reloadTasks();
           }}
-          onUpdateTask={async () => {
+          onUpdateTask={async (taskId, updates) => {
+            await updateTask(taskId, updates);
             reloadTasks();
           }}
         />
