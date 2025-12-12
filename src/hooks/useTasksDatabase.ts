@@ -60,6 +60,9 @@ export const useTasksDatabase = () => {
         isCompleted: task.isCompleted,
         isExpanded: task.isExpanded,
         createdAt: new Date(task.created_at),
+        // Champs projet
+        projectId: task.project_id || undefined,
+        projectStatus: task.project_status as Task['projectStatus'] || undefined,
       }));
 
       setTasks(formattedTasks);
@@ -116,6 +119,9 @@ export const useTasksDatabase = () => {
         isCompleted: task.isCompleted,
         isExpanded: task.isExpanded,
         user_id: user.id,
+        // Champs projet
+        project_id: task.projectId || null,
+        project_status: task.projectStatus || null,
       };
 
       const { error } = await supabase
