@@ -22,6 +22,8 @@ interface TaskItemProps {
   onRemoveTask: (taskId: string) => void;
   onCreateSubTask: (task: Task) => void;
   onEditTask: (task: Task) => void;
+  onAssignToProject?: (taskId: string, projectId: string) => Promise<boolean>;
+  onConvertToProject?: (task: Task) => void;
   onDragStart?: (e: React.DragEvent, index: number) => void;
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent, index: number) => void;
@@ -45,6 +47,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onRemoveTask,
   onCreateSubTask,
   onEditTask,
+  onAssignToProject,
+  onConvertToProject,
   onDragStart,
   onDragOver,
   onDrop,
@@ -166,6 +170,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
             onEditTask={onEditTask}
             onToggleCompletion={onToggleCompletion}
             onRemoveTask={onRemoveTask}
+            onAssignToProject={onAssignToProject}
+            onConvertToProject={onConvertToProject}
           />
         )}
 

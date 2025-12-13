@@ -3,6 +3,7 @@ import React from 'react';
 import { Task } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Divide, CheckSquare, X, Edit } from 'lucide-react';
+import TaskProjectMenu from './TaskProjectMenu';
 
 interface TaskItemActionsProps {
   task: Task;
@@ -12,6 +13,8 @@ interface TaskItemActionsProps {
   onEditTask: (task: Task) => void;
   onToggleCompletion: (taskId: string) => void;
   onRemoveTask: (taskId: string) => void;
+  onAssignToProject?: (taskId: string, projectId: string) => Promise<boolean>;
+  onConvertToProject?: (task: Task) => void;
 }
 
 const TaskItemActions: React.FC<TaskItemActionsProps> = ({
@@ -21,7 +24,9 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
   onCreateSubTask,
   onEditTask,
   onToggleCompletion,
-  onRemoveTask
+  onRemoveTask,
+  onAssignToProject,
+  onConvertToProject
 }) => {
   return (
     <div 
@@ -29,6 +34,15 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
         isVisible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
       }`}
     >
+      {/* Menu projet - seulement pour les tâches principales sans projet */}
+      {task.level === 0 && !task.projectId && onAssignToProject && onConvertToProject && (
+        <TaskProjectMenu
+          task={task}
+          onAssignToProject={onAssignToProject}
+          onConvertToProject={onConvertToProject}
+        />
+      )}
+      
       {canHaveSubTasks && (
         <Button
           variant="ghost"
