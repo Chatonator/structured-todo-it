@@ -2,26 +2,40 @@ import { useState } from 'react';
 import { Project, PROJECT_STATUS_CONFIG } from '@/types/project';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
 import { useTasks } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { KanbanBoard } from './KanbanBoard';
 import TaskModal from '@/components/TaskModal';
-import { ArrowLeft, Edit, Plus, Calendar, Target } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Calendar, Target, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { Task } from '@/types/task';
 
 interface ProjectDetailProps {
   project: Project;
   onBack: () => void;
   onEdit: () => void;
+  onDelete?: () => void;
 }
 
-export const ProjectDetail = ({ project, onBack, onEdit }: ProjectDetailProps) => {
+export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDetailProps) => {
   const { tasksByStatus, updateTaskStatus, reloadTasks } = useProjectTasks(project.id);
   const { toggleTaskCompletion, addTask, updateTask } = useTasks();
+  const { deleteProject } = useProjects();
+  const { toast } = useToast();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const statusConfig = PROJECT_STATUS_CONFIG[project.status];
+
+  const handleDelete = async () => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer le projet "${project.name}" ? Cette action est irréversible.`)) {
+      const success = await deleteProject(project.id);
+      if (success && onDelete) {
+        onDelete();
+      }
+    }
+  };
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -70,6 +84,10 @@ export const ProjectDetail = ({ project, onBack, onEdit }: ProjectDetailProps) =
           <Button variant="outline" onClick={onEdit}>
             <Edit className="w-4 h-4 mr-2" />
             Modifier
+          </Button>
+          <Button variant="destructive" onClick={handleDelete}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Supprimer
           </Button>
           <Button onClick={handleCreateTask}>
             <Plus className="w-4 h-4 mr-2" />
