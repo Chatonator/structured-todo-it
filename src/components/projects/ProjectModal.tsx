@@ -19,9 +19,10 @@ interface ProjectModalProps {
     targetDate?: Date;
   }) => void;
   project?: Project | null;
+  initialName?: string;
 }
 
-export const ProjectModal = ({ open, onClose, onSave, project }: ProjectModalProps) => {
+export const ProjectModal = ({ open, onClose, onSave, project, initialName }: ProjectModalProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('📚');
@@ -38,14 +39,14 @@ export const ProjectModal = ({ open, onClose, onSave, project }: ProjectModalPro
       setStatus(project.status);
       setTargetDate(project.targetDate ? project.targetDate.toISOString().split('T')[0] : '');
     } else {
-      setName('');
+      setName(initialName || '');
       setDescription('');
       setIcon('📚');
       setColor('#a78bfa');
       setStatus('planning');
       setTargetDate('');
     }
-  }, [project]);
+  }, [project, initialName, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

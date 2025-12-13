@@ -12,6 +12,8 @@ import { useTaskOperations } from '@/hooks/useTaskOperations';
 import { SidebarHabitsSection } from './sidebar/SidebarHabitsSection';
 import { SidebarProjectsSection } from './sidebar/SidebarProjectsSection';
 import { SidebarTeamTasksSection } from './sidebar/SidebarTeamTasksSection';
+import { useProjects } from '@/hooks/useProjects';
+import { ProjectModal } from './projects/ProjectModal';
 
 interface TeamTaskForSidebar {
   id: string;
@@ -109,6 +111,11 @@ const TaskList: React.FC<TaskListProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [taskToConvert, setTaskToConvert] = useState<Task | null>(null);
+
+  // Hook pour les projets
+  const { assignTaskToProject, createProject } = useProjects();
 
   // Notifier le parent quand l'état collapsed change
   const handleToggleCollapsed = (collapsed: boolean) => {
@@ -180,6 +187,37 @@ const TaskList: React.FC<TaskListProps> = ({
     setIsEditModalOpen(false);
   };
 
+  // Gestion de l'assignation à un projet
+  const handleAssignToProject = async (taskId: string, projectId: string): Promise<boolean> => {
+    return await assignTaskToProject(taskId, projectId);
+  };
+
+  // Gestion de la conversion en projet
+  const handleConvertToProject = (task: Task) => {
+    setTaskToConvert(task);
+    setShowProjectModal(true);
+  };
+
+  const handleCreateProjectFromTask = async (data: any) => {
+    if (!taskToConvert) return;
+    
+    // Créer le projet avec le nom de la tâche
+    const project = await createProject(
+      data.name || taskToConvert.name,
+      data.description,
+      data.icon,
+      data.color
+    );
+    
+    if (project) {
+      // Assigner la tâche au nouveau projet
+      await assignTaskToProject(taskToConvert.id, project.id);
+    }
+    
+    setShowProjectModal(false);
+    setTaskToConvert(null);
+  };
+
   // Gestion du drag & drop pour les sous-tâches
   const handleSubTaskReorder = (parentId: string, subTasks: Task[], startIndex: number, endIndex: number) => {
     // IMPORTANT: récupérer les IDs AVANT de modifier le tableau
@@ -248,6 +286,8 @@ const TaskList: React.FC<TaskListProps> = ({
           onRemoveTask={onRemoveTask}
           onCreateSubTask={handleCreateSubTasks}
           onEditTask={handleEditTask}
+          onAssignToProject={handleAssignToProject}
+          onConvertToProject={handleConvertToProject}
           onDragStart={parentSubTasks ? handleSubTaskDragStart : handleDragStart}
           onDragOver={handleDragOver}
           onDrop={parentSubTasks ? handleSubTaskDrop : handleDrop}
@@ -412,6 +452,17 @@ const TaskList: React.FC<TaskListProps> = ({
                 editingTask={editingTask}
               />
             )}
+
+            {/* Modale de création de projet depuis une tâche */}
+            <ProjectModal
+              open={showProjectModal}
+              onClose={() => {
+                setShowProjectModal(false);
+                setTaskToConvert(null);
+              }}
+              onSave={handleCreateProjectFromTask}
+              initialName={taskToConvert?.name}
+            />
           </div>
         )}
       </div>
