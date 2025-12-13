@@ -46,6 +46,7 @@ export const ProjectsView = () => {
           project={detailProject}
           onBack={() => setDetailProject(null)}
           onEdit={handleEditFromDetail}
+          onDelete={() => setDetailProject(null)}
         />
         <ProjectModal
           open={showModal}

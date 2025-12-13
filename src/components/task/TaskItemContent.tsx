@@ -47,13 +47,16 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
 
   return (
     <div className="flex-1 min-w-0 space-y-1">
-      {/* Titre de la tâche */}
+      {/* Titre de la tâche + badge récurrent */}
       <div className="flex items-start gap-2">
         <h3 className="font-semibold text-foreground text-sm leading-tight flex-1 min-w-0 line-clamp-3 break-words">
           {task.name}
         </h3>
         {isRecurring && timeEvent?.recurrence?.frequency && (
-          <RecurringTaskBadge recurrenceInterval={timeEvent.recurrence.frequency as any} />
+          <RecurringTaskBadge 
+            recurrenceInterval={timeEvent.recurrence.frequency as any} 
+            className="flex-shrink-0"
+          />
         )}
       </div>
       
