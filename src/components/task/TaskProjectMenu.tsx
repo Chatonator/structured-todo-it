@@ -31,7 +31,15 @@ const TaskProjectMenu: React.FC<TaskProjectMenuProps> = ({
 
   const projects = activeProjects();
 
-  const handleAssignToProject = async (projectId: string, projectName: string) => {
+  // Empêcher la propagation pour éviter les re-renders du parent
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
+  const handleAssignToProject = async (e: React.MouseEvent, projectId: string, projectName: string) => {
+    e.stopPropagation();
+    e.preventDefault();
     const success = await onAssignToProject(task.id, projectId);
     if (success) {
       toast({
@@ -42,7 +50,9 @@ const TaskProjectMenu: React.FC<TaskProjectMenuProps> = ({
     setIsOpen(false);
   };
 
-  const handleConvertToProject = () => {
+  const handleConvertToProject = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     onConvertToProject(task);
     setIsOpen(false);
   };
@@ -53,8 +63,8 @@ const TaskProjectMenu: React.FC<TaskProjectMenuProps> = ({
   }
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
+      <DropdownMenuTrigger asChild onClick={handleTriggerClick}>
         <Button
           variant="ghost"
           size="sm"
@@ -64,7 +74,7 @@ const TaskProjectMenu: React.FC<TaskProjectMenuProps> = ({
           <Briefcase className="w-3 h-3" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
         <DropdownMenuLabel>Ajouter à un projet</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
@@ -83,7 +93,7 @@ const TaskProjectMenu: React.FC<TaskProjectMenuProps> = ({
             {projects.map((project) => (
               <DropdownMenuItem 
                 key={project.id}
-                onClick={() => handleAssignToProject(project.id, project.name)}
+                onClick={(e) => handleAssignToProject(e, project.id, project.name)}
               >
                 <span className="mr-2">{project.icon || '📚'}</span>
                 <span className="truncate">{project.name}</span>
