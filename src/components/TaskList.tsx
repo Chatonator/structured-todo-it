@@ -123,8 +123,8 @@ const TaskList: React.FC<TaskListProps> = ({
     onCollapsedChange?.(collapsed);
   };
 
-  // Tâches actives triées avec épinglées en tête
-  const mainActive = mainTasks.filter(task => !task.isCompleted);
+  // Tâches actives triées avec épinglées en tête (exclure celles assignées à un projet)
+  const mainActive = mainTasks.filter(task => !task.isCompleted && !task.projectId);
   const localFilteredTasks = [...mainActive].sort((a, b) => {
     const aPinned = pinnedTasks.includes(a.id);
     const bPinned = pinnedTasks.includes(b.id);
@@ -187,9 +187,31 @@ const TaskList: React.FC<TaskListProps> = ({
     setIsEditModalOpen(false);
   };
 
+  // Assigner une tâche et ses sous-tâches à un projet
+  const assignTaskWithSubtasks = async (taskId: string, projectId: string): Promise<boolean> => {
+    // D'abord assigner la tâche principale
+    const success = await assignTaskToProject(taskId, projectId);
+    
+    if (success) {
+      // Ensuite assigner toutes les sous-tâches (récursivement)
+      const assignSubtasksRecursively = async (parentId: string) => {
+        const subTasks = getSubTasks(parentId);
+        for (const subTask of subTasks) {
+          await assignTaskToProject(subTask.id, projectId);
+          // Récursion pour les sous-sous-tâches
+          await assignSubtasksRecursively(subTask.id);
+        }
+      };
+      
+      await assignSubtasksRecursively(taskId);
+    }
+    
+    return success;
+  };
+
   // Gestion de l'assignation à un projet
   const handleAssignToProject = async (taskId: string, projectId: string): Promise<boolean> => {
-    return await assignTaskToProject(taskId, projectId);
+    return await assignTaskWithSubtasks(taskId, projectId);
   };
 
   // Gestion de la conversion en projet
@@ -210,8 +232,8 @@ const TaskList: React.FC<TaskListProps> = ({
     );
     
     if (project) {
-      // Assigner la tâche au nouveau projet
-      await assignTaskToProject(taskToConvert.id, project.id);
+      // Assigner la tâche et ses sous-tâches au nouveau projet
+      await assignTaskWithSubtasks(taskToConvert.id, project.id);
     }
     
     setShowProjectModal(false);
