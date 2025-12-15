@@ -187,34 +187,38 @@ const TaskList: React.FC<TaskListProps> = ({
     setIsEditModalOpen(false);
   };
 
-  // Assigner une tâche et ses sous-tâches à un projet
-  const assignTaskWithSubtasks = async (taskId: string, projectId: string): Promise<boolean> => {
-    // D'abord assigner la tâche principale
+  // Assigner une tâche à un projet
+  // Si c'est une tâche principale (level 0), on déplace aussi ses sous-tâches
+  // Si c'est une sous-tâche, on ne déplace que cette sous-tâche
+  const handleAssignToProject = async (taskId: string, projectId: string): Promise<boolean> => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return false;
+
+    // D'abord assigner la tâche principale (elle devient une tâche de niveau 0 dans le projet)
     const success = await assignTaskToProject(taskId, projectId);
     
     if (success) {
-      // Ensuite assigner toutes les sous-tâches (récursivement)
-      const assignSubtasksRecursively = async (parentId: string) => {
-        const subTasks = getSubTasks(parentId);
-        for (const subTask of subTasks) {
-          await assignTaskToProject(subTask.id, projectId);
-          // Récursion pour les sous-sous-tâches
-          await assignSubtasksRecursively(subTask.id);
-        }
-      };
-      
-      await assignSubtasksRecursively(taskId);
+      // Si c'est une tâche principale (pas une sous-tâche), déplacer aussi les sous-tâches
+      if (task.level === 0) {
+        const assignSubtasksRecursively = async (parentId: string) => {
+          const subTasks = getSubTasks(parentId);
+          for (const subTask of subTasks) {
+            await assignTaskToProject(subTask.id, projectId);
+            await assignSubtasksRecursively(subTask.id);
+          }
+        };
+        await assignSubtasksRecursively(taskId);
+      }
+      // Si c'est une sous-tâche, seule cette sous-tâche est déplacée (rien de plus à faire)
     }
     
     return success;
   };
 
-  // Gestion de l'assignation à un projet
-  const handleAssignToProject = async (taskId: string, projectId: string): Promise<boolean> => {
-    return await assignTaskWithSubtasks(taskId, projectId);
-  };
-
   // Gestion de la conversion en projet
+  // La tâche devient le projet (hérite du nom)
+  // Si tâche principale : ses sous-tâches deviennent les tâches du projet
+  // Si sous-tâche : seule cette sous-tâche devient le projet (sans tâches)
   const handleConvertToProject = (task: Task) => {
     setTaskToConvert(task);
     setShowProjectModal(true);
@@ -232,8 +236,31 @@ const TaskList: React.FC<TaskListProps> = ({
     );
     
     if (project) {
-      // Assigner la tâche et ses sous-tâches au nouveau projet
-      await assignTaskWithSubtasks(taskToConvert.id, project.id);
+      // Si c'est une tâche principale (level 0), les sous-tâches deviennent les tâches du projet
+      if (taskToConvert.level === 0) {
+        const subTasks = getSubTasks(taskToConvert.id);
+        
+        // Assigner les sous-tâches au projet (elles deviennent des tâches du projet)
+        for (const subTask of subTasks) {
+          await assignTaskToProject(subTask.id, project.id);
+          // Récursivement pour les sous-sous-tâches
+          const assignSubtasksRecursively = async (parentId: string) => {
+            const childTasks = getSubTasks(parentId);
+            for (const child of childTasks) {
+              await assignTaskToProject(child.id, project.id);
+              await assignSubtasksRecursively(child.id);
+            }
+          };
+          await assignSubtasksRecursively(subTask.id);
+        }
+        
+        // Supprimer la tâche principale (elle est devenue le projet)
+        onRemoveTask(taskToConvert.id);
+      } else {
+        // Si c'est une sous-tâche, elle devient juste le projet (sans tâches)
+        // On supprime la sous-tâche de la liste des tâches
+        onRemoveTask(taskToConvert.id);
+      }
     }
     
     setShowProjectModal(false);
