@@ -21,6 +21,8 @@ export const useTasksData = () => {
     deleteTask,
     completeTask,
     reloadTasks,
+    updateLocalTask,
+    updateLocalTasks,
   } = useTasksDatabase();
 
   const { processRecurringTasks } = useRecurringTasks();
@@ -74,5 +76,7 @@ export const useTasksData = () => {
     deleteTask,
     completeTask,
     reloadTasks,
+    updateLocalTask,
+    updateLocalTasks,
   };
 };

@@ -300,6 +300,82 @@ export const useTasksDatabase = () => {
     loadTasks();
   }, [loadTasks]);
 
+  // Supabase Realtime subscription for live updates
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const channel = supabase
+      .channel('tasks-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          logger.debug('Realtime task update', { eventType: payload.eventType, payload });
+          
+          if (payload.eventType === 'INSERT') {
+            const newTask = formatTaskFromDb(payload.new);
+            setTasks(prev => {
+              // Éviter les doublons
+              if (prev.some(t => t.id === newTask.id)) return prev;
+              return [newTask, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedTask = formatTaskFromDb(payload.new);
+            setTasks(prev => prev.map(t => 
+              t.id === updatedTask.id ? updatedTask : t
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              setTasks(prev => prev.filter(t => t.id !== deletedId));
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated, user]);
+
+  // Helper to format task from database
+  const formatTaskFromDb = (dbTask: any): Task => ({
+    id: dbTask.id,
+    name: dbTask.name,
+    category: dbTask.category as Task['category'],
+    subCategory: dbTask.subCategory as Task['subCategory'],
+    context: dbTask.context as Task['context'],
+    estimatedTime: dbTask.estimatedTime,
+    duration: dbTask.duration || undefined,
+    level: dbTask.level as Task['level'],
+    parentId: dbTask.parentId || undefined,
+    isCompleted: dbTask.isCompleted,
+    isExpanded: dbTask.isExpanded,
+    createdAt: new Date(dbTask.created_at),
+    projectId: dbTask.project_id || undefined,
+    projectStatus: dbTask.project_status as Task['projectStatus'] || undefined,
+  });
+
+  // Update local task state immediately (for optimistic UI)
+  const updateLocalTask = useCallback((taskId: string, updates: Partial<Task>) => {
+    setTasks(prev => prev.map(t => 
+      t.id === taskId ? { ...t, ...updates } : t
+    ));
+  }, []);
+
+  // Update multiple tasks locally
+  const updateLocalTasks = useCallback((taskIds: string[], updates: Partial<Task>) => {
+    setTasks(prev => prev.map(t => 
+      taskIds.includes(t.id) ? { ...t, ...updates } : t
+    ));
+  }, []);
+
   return {
     tasks,
     pinnedTasks,
@@ -311,5 +387,7 @@ export const useTasksDatabase = () => {
     deleteTask,
     completeTask,
     reloadTasks: loadTasks,
+    updateLocalTask,
+    updateLocalTasks,
   };
 };

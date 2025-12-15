@@ -8,7 +8,7 @@ import { useAchievements } from './useAchievements';
 import { useActionHistory } from './useActionHistory';
 
 export const useTasks = () => {
-  const { tasks, setTasks, pinnedTasks, setPinnedTasks, saveTask, completeTask, deleteTask } = useTasksData();
+  const { tasks, setTasks, pinnedTasks, setPinnedTasks, saveTask, completeTask, deleteTask, updateLocalTask, updateLocalTasks } = useTasksData();
   const { undo, redo, canUndo, canRedo } = useActionHistory();
   const { rewardTaskCompletion } = useGamification();
   const { checkAndUnlockAchievement } = useAchievements();
@@ -266,6 +266,7 @@ export const useTasks = () => {
     restoreTask,
     scheduleTaskWithTime,
     updateTask,
-    
+    updateLocalTask,
+    updateLocalTasks,
   };
 };
