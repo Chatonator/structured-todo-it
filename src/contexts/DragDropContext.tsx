@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Task } from '@/types/task';
+import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
 
 interface DraggedTask {
   id: string;
@@ -10,8 +9,8 @@ interface DraggedTask {
 interface DragDropContextType {
   draggedTask: DraggedTask | null;
   setDraggedTask: (task: DraggedTask | null) => void;
-  onAssignToProject: ((taskId: string, projectId: string) => Promise<boolean>) | null;
-  onConvertToProject: ((task: { id: string; name: string; level: number }) => void) | null;
+  onAssignToProject: (taskId: string, projectId: string) => Promise<boolean>;
+  onConvertToProject: (task: { id: string; name: string; level: number }) => void;
   registerHandlers: (
     assignHandler: (taskId: string, projectId: string) => Promise<boolean>,
     convertHandler: (task: { id: string; name: string; level: number }) => void
@@ -22,15 +21,34 @@ const DragDropContext = createContext<DragDropContextType | undefined>(undefined
 
 export const DragDropProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [draggedTask, setDraggedTask] = useState<DraggedTask | null>(null);
-  const [assignHandler, setAssignHandler] = useState<((taskId: string, projectId: string) => Promise<boolean>) | null>(null);
-  const [convertHandler, setConvertHandler] = useState<((task: { id: string; name: string; level: number }) => void) | null>(null);
+  
+  // Utiliser des refs pour toujours avoir les dernières versions des handlers
+  const assignHandlerRef = useRef<((taskId: string, projectId: string) => Promise<boolean>) | null>(null);
+  const convertHandlerRef = useRef<((task: { id: string; name: string; level: number }) => void) | null>(null);
 
   const registerHandlers = useCallback((
     assign: (taskId: string, projectId: string) => Promise<boolean>,
     convert: (task: { id: string; name: string; level: number }) => void
   ) => {
-    setAssignHandler(() => assign);
-    setConvertHandler(() => convert);
+    assignHandlerRef.current = assign;
+    convertHandlerRef.current = convert;
+  }, []);
+
+  // Wrappers stables qui utilisent les refs
+  const onAssignToProject = useCallback(async (taskId: string, projectId: string): Promise<boolean> => {
+    if (assignHandlerRef.current) {
+      return await assignHandlerRef.current(taskId, projectId);
+    }
+    console.warn('Assign handler not registered');
+    return false;
+  }, []);
+
+  const onConvertToProject = useCallback((task: { id: string; name: string; level: number }) => {
+    if (convertHandlerRef.current) {
+      convertHandlerRef.current(task);
+    } else {
+      console.warn('Convert handler not registered');
+    }
   }, []);
 
   return (
@@ -38,8 +56,8 @@ export const DragDropProvider: React.FC<{ children: ReactNode }> = ({ children }
       value={{ 
         draggedTask, 
         setDraggedTask,
-        onAssignToProject: assignHandler,
-        onConvertToProject: convertHandler,
+        onAssignToProject,
+        onConvertToProject,
         registerHandlers
       }}
     >
