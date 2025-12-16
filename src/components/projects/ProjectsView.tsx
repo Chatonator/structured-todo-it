@@ -6,17 +6,23 @@ import { ProjectModal } from './ProjectModal';
 import { ProjectDetail } from './ProjectDetail';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Briefcase } from 'lucide-react';
+import { Plus, Briefcase, FolderPlus } from 'lucide-react';
+import { useDragDrop } from '@/contexts/DragDropContext';
 
 export const ProjectsView = () => {
   const { projects, loading, createProject, updateProject } = useProjects();
   const [showModal, setShowModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [detailProject, setDetailProject] = useState<Project | null>(null);
+  const [isDragOverNewProject, setIsDragOverNewProject] = useState(false);
+  const [prefilledProjectName, setPrefilledProjectName] = useState<string>('');
+  
+  const { draggedTask, onConvertToProject } = useDragDrop();
 
   const handleCreateProject = async (data: any) => {
     await createProject(data.name, data.description, data.icon, data.color);
     setShowModal(false);
+    setPrefilledProjectName('');
   };
 
   const handleUpdateProject = async (data: any) => {
@@ -37,6 +43,35 @@ export const ProjectsView = () => {
   const handleEditFromDetail = () => {
     setSelectedProject(detailProject);
     setShowModal(true);
+  };
+
+  // Handlers pour la zone de drop "nouveau projet"
+  const handleNewProjectDragOver = (e: React.DragEvent) => {
+    if (draggedTask) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  };
+
+  const handleNewProjectDragEnter = (e: React.DragEvent) => {
+    if (draggedTask) {
+      e.preventDefault();
+      setIsDragOverNewProject(true);
+    }
+  };
+
+  const handleNewProjectDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOverNewProject(false);
+  };
+
+  const handleNewProjectDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOverNewProject(false);
+    
+    if (draggedTask && onConvertToProject) {
+      onConvertToProject(draggedTask);
+    }
   };
 
   if (detailProject) {
@@ -73,6 +108,47 @@ export const ProjectsView = () => {
     );
   }
 
+  // Zone de drop pour créer un nouveau projet
+  const NewProjectDropZone = () => (
+    <div
+      className={`
+        border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-3
+        transition-all duration-200 min-h-[200px]
+        ${isDragOverNewProject 
+          ? 'border-primary bg-primary/10 scale-105' 
+          : draggedTask 
+            ? 'border-primary/50 bg-accent/50' 
+            : 'border-border bg-card hover:border-muted-foreground/50'
+        }
+        ${draggedTask ? 'cursor-copy' : 'cursor-pointer'}
+      `}
+      onClick={() => !draggedTask && setShowModal(true)}
+      onDragOver={handleNewProjectDragOver}
+      onDragEnter={handleNewProjectDragEnter}
+      onDragLeave={handleNewProjectDragLeave}
+      onDrop={handleNewProjectDrop}
+    >
+      <FolderPlus className={`w-10 h-10 ${isDragOverNewProject ? 'text-primary' : 'text-muted-foreground'}`} />
+      {draggedTask ? (
+        <div className="text-center">
+          <p className="font-medium text-primary">
+            {isDragOverNewProject ? 'Relâcher pour créer le projet' : 'Déposer ici'}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            "{draggedTask.name}" deviendra un nouveau projet
+          </p>
+        </div>
+      ) : (
+        <div className="text-center">
+          <p className="font-medium">Nouveau projet</p>
+          <p className="text-sm text-muted-foreground">
+            Cliquez ou glissez une tâche ici
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -95,15 +171,7 @@ export const ProjectsView = () => {
       {/* Empty State */}
       {projects.length === 0 ? (
         <div className="text-center py-16">
-          <Briefcase className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-xl font-semibold mb-2">Aucun projet</h3>
-          <p className="text-muted-foreground mb-6">
-            Créez votre premier projet pour organiser vos tâches complexes
-          </p>
-          <Button onClick={() => setShowModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Créer un projet
-          </Button>
+          <NewProjectDropZone />
         </div>
       ) : (
         <Tabs defaultValue="active">
@@ -130,6 +198,7 @@ export const ProjectsView = () => {
                   onClick={() => handleCardClick(project)}
                 />
               ))}
+              <NewProjectDropZone />
             </div>
           </TabsContent>
 
@@ -167,6 +236,7 @@ export const ProjectsView = () => {
         onClose={() => {
           setShowModal(false);
           setSelectedProject(null);
+          setPrefilledProjectName('');
         }}
         onSave={selectedProject ? handleUpdateProject : handleCreateProject}
         project={selectedProject}

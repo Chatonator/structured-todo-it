@@ -5,7 +5,7 @@ import { RecurringTaskBadge } from '@/components/RecurringTaskBadge';
 import TaskItemControls from './TaskItemControls';
 import TaskItemContent from './TaskItemContent';
 import TaskItemActions from './TaskItemActions';
-
+import { useDragDrop } from '@/contexts/DragDropContext';
 
 interface TaskItemProps {
   task: Task;
@@ -58,6 +58,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const { setDraggedTask } = useDragDrop();
   
   const categoryConfig = CATEGORY_CONFIG[task.category];
   const cssName = CATEGORY_CSS_NAMES[task.category];
@@ -71,7 +72,18 @@ const TaskItem: React.FC<TaskItemProps> = ({
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
+    
+    // Enrichir les données du drag avec les métadonnées de la tâche
+    const taskData = JSON.stringify({
+      id: task.id,
+      name: task.name,
+      level: task.level
+    });
     e.dataTransfer.setData('text/plain', task.id);
+    e.dataTransfer.setData('application/json', taskData);
+    
+    // Mettre à jour le contexte global pour le drag & drop vers projets
+    setDraggedTask({ id: task.id, name: task.name, level: task.level });
     
     // Image de drag avec classes Tailwind inlines
     const dragImage = document.createElement('div');
@@ -94,6 +106,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
   const handleDragEnd = () => {
     setIsDragging(false);
+    setDraggedTask(null);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
