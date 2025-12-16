@@ -39,7 +39,7 @@ export const ProjectCard = ({ project, onClick }: ProjectCardProps) => {
     e.preventDefault();
     setIsDragOver(false);
     
-    if (draggedTask && onAssignToProject) {
+    if (draggedTask) {
       await onAssignToProject(draggedTask.id, project.id);
     }
   };

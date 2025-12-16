@@ -237,9 +237,10 @@ const TaskList: React.FC<TaskListProps> = ({
   };
 
   // Enregistrer les handlers pour le drag & drop global vers projets
+  // Utiliser useEffect sans dépendances pour toujours avoir les dernières versions
   useEffect(() => {
     registerHandlers(handleAssignToProject, handleConvertFromDrag);
-  }, [tasks, registerHandlers]);
+  });
 
   const handleCreateProjectFromTask = async (data: any) => {
     if (!taskToConvert) return;

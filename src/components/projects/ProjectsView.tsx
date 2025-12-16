@@ -69,7 +69,7 @@ export const ProjectsView = () => {
     e.preventDefault();
     setIsDragOverNewProject(false);
     
-    if (draggedTask && onConvertToProject) {
+    if (draggedTask) {
       onConvertToProject(draggedTask);
     }
   };
