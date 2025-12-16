@@ -14,6 +14,7 @@ import { SidebarProjectsSection } from './sidebar/SidebarProjectsSection';
 import { SidebarTeamTasksSection } from './sidebar/SidebarTeamTasksSection';
 import { useProjects } from '@/hooks/useProjects';
 import { ProjectModal } from './projects/ProjectModal';
+import { useDragDrop } from '@/contexts/DragDropContext';
 
 interface TeamTaskForSidebar {
   id: string;
@@ -116,6 +117,9 @@ const TaskList: React.FC<TaskListProps> = ({
 
   // Hook pour les projets
   const { assignTaskToProject, createProject } = useProjects();
+  
+  // Hook pour le drag & drop global vers projets
+  const { registerHandlers } = useDragDrop();
 
   // Notifier le parent quand l'état collapsed change
   const handleToggleCollapsed = (collapsed: boolean) => {
@@ -223,6 +227,19 @@ const TaskList: React.FC<TaskListProps> = ({
     setTaskToConvert(task);
     setShowProjectModal(true);
   };
+
+  // Handler pour conversion depuis le drag & drop (reçoit un objet simplifié)
+  const handleConvertFromDrag = (draggedTask: { id: string; name: string; level: number }) => {
+    const fullTask = tasks.find(t => t.id === draggedTask.id);
+    if (fullTask) {
+      handleConvertToProject(fullTask);
+    }
+  };
+
+  // Enregistrer les handlers pour le drag & drop global vers projets
+  useEffect(() => {
+    registerHandlers(handleAssignToProject, handleConvertFromDrag);
+  }, [tasks, registerHandlers]);
 
   const handleCreateProjectFromTask = async (data: any) => {
     if (!taskToConvert) return;

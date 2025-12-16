@@ -30,6 +30,7 @@ import { useAllProjectTasks } from '@/hooks/useAllProjectTasks';
 import { useHabits } from '@/hooks/useHabits';
 import { useDecks } from '@/hooks/useDecks';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { DragDropProvider } from '@/contexts/DragDropContext';
 
 /**
  * Page principale de l'application
@@ -382,6 +383,7 @@ const Index = () => {
   const safeCompletionRate = Number(completionRate) || 0;
 
   return (
+    <DragDropProvider>
     <SidebarProvider>
       <div className={`min-h-screen flex flex-col w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
         {/* Header avec statistiques, filtres et actions */}
@@ -542,6 +544,7 @@ const Index = () => {
         />
       </div>
     </SidebarProvider>
+    </DragDropProvider>
   );
 };
 
