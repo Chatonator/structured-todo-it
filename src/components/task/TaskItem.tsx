@@ -73,12 +73,13 @@ const TaskItem: React.FC<TaskItemProps> = ({
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
     
-    // Enrichir les données du drag avec les métadonnées de la tâche
-    // Utiliser des clés spécifiques pour récupérer les données au drop
-    e.dataTransfer.setData('taskid', task.id);
-    e.dataTransfer.setData('taskname', task.name);
-    e.dataTransfer.setData('tasklevel', task.level.toString());
-    e.dataTransfer.setData('text/plain', task.id); // Fallback
+    // Stocker les données de la tâche en JSON dans text/plain (type universel)
+    const taskData = JSON.stringify({
+      id: task.id,
+      name: task.name,
+      level: task.level
+    });
+    e.dataTransfer.setData('text/plain', taskData);
     
     // Mettre à jour le contexte global pour le drag & drop vers projets
     setDraggedTask({ id: task.id, name: task.name, level: task.level });
@@ -104,7 +105,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
   const handleDragEnd = () => {
     setIsDragging(false);
-    setDraggedTask(null);
+    // Retarder le nettoyage pour laisser le temps au drop de se traiter
+    setTimeout(() => setDraggedTask(null), 150);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
