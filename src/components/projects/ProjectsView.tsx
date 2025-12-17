@@ -47,14 +47,17 @@ export const ProjectsView = () => {
 
   // Handlers pour la zone de drop "nouveau projet"
   const handleNewProjectDragOver = (e: React.DragEvent) => {
-    if (draggedTask) {
+    // Vérifier si c'est un drag de tâche via dataTransfer
+    const hasTaskData = e.dataTransfer.types.includes('taskid');
+    if (hasTaskData || draggedTask) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
     }
   };
 
   const handleNewProjectDragEnter = (e: React.DragEvent) => {
-    if (draggedTask) {
+    const hasTaskData = e.dataTransfer.types.includes('taskid');
+    if (hasTaskData || draggedTask) {
       e.preventDefault();
       setIsDragOverNewProject(true);
     }
@@ -69,7 +72,15 @@ export const ProjectsView = () => {
     e.preventDefault();
     setIsDragOverNewProject(false);
     
-    if (draggedTask) {
+    // Récupérer les données depuis dataTransfer (plus fiable que le contexte)
+    const taskId = e.dataTransfer.getData('taskid');
+    const taskName = e.dataTransfer.getData('taskname');
+    const taskLevel = parseInt(e.dataTransfer.getData('tasklevel') || '0', 10);
+    
+    if (taskId && taskName) {
+      onConvertToProject({ id: taskId, name: taskName, level: taskLevel });
+    } else if (draggedTask) {
+      // Fallback sur le contexte si dataTransfer échoue
       onConvertToProject(draggedTask);
     }
   };
