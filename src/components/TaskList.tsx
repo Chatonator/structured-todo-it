@@ -229,11 +229,23 @@ const TaskList: React.FC<TaskListProps> = ({
   };
 
   // Handler pour conversion depuis le drag & drop (reçoit un objet simplifié)
+  // Ne pas dépendre de tasks.find() car la liste peut ne pas être à jour
   const handleConvertFromDrag = (draggedTask: { id: string; name: string; level: number }) => {
-    const fullTask = tasks.find(t => t.id === draggedTask.id);
-    if (fullTask) {
-      handleConvertToProject(fullTask);
-    }
+    // Créer un objet Task minimal pour le modal
+    const minimalTask: Task = {
+      id: draggedTask.id,
+      name: draggedTask.name,
+      level: draggedTask.level as 0 | 1 | 2,
+      category: 'Autres',
+      estimatedTime: 30,
+      context: 'Pro',
+      isCompleted: false,
+      isExpanded: false,
+      createdAt: new Date(),
+    };
+    
+    setTaskToConvert(minimalTask);
+    setShowProjectModal(true);
   };
 
   // Enregistrer les handlers pour le drag & drop global vers projets

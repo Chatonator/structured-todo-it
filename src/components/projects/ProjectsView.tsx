@@ -47,40 +47,52 @@ export const ProjectsView = () => {
 
   // Handlers pour la zone de drop "nouveau projet"
   const handleNewProjectDragOver = (e: React.DragEvent) => {
-    // Vérifier si c'est un drag de tâche via dataTransfer
-    const hasTaskData = e.dataTransfer.types.includes('taskid');
-    if (hasTaskData || draggedTask) {
+    // Toujours accepter le drag s'il y a des données text/plain ou draggedTask
+    const hasData = e.dataTransfer.types.includes('text/plain') || draggedTask;
+    if (hasData) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
     }
   };
 
   const handleNewProjectDragEnter = (e: React.DragEvent) => {
-    const hasTaskData = e.dataTransfer.types.includes('taskid');
-    if (hasTaskData || draggedTask) {
+    const hasData = e.dataTransfer.types.includes('text/plain') || draggedTask;
+    if (hasData) {
       e.preventDefault();
       setIsDragOverNewProject(true);
     }
   };
 
   const handleNewProjectDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOverNewProject(false);
+    // Vérifier qu'on quitte vraiment la zone (pas juste un enfant)
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragOverNewProject(false);
+    }
   };
 
   const handleNewProjectDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOverNewProject(false);
     
-    // Récupérer les données depuis dataTransfer (plus fiable que le contexte)
-    const taskId = e.dataTransfer.getData('taskid');
-    const taskName = e.dataTransfer.getData('taskname');
-    const taskLevel = parseInt(e.dataTransfer.getData('tasklevel') || '0', 10);
+    // Récupérer les données JSON depuis text/plain
+    try {
+      const jsonData = e.dataTransfer.getData('text/plain');
+      if (jsonData) {
+        const taskData = JSON.parse(jsonData);
+        if (taskData.id && taskData.name !== undefined) {
+          onConvertToProject({ id: taskData.id, name: taskData.name, level: taskData.level || 0 });
+          return;
+        }
+      }
+    } catch (err) {
+      // JSON parse failed, try fallback
+    }
     
-    if (taskId && taskName) {
-      onConvertToProject({ id: taskId, name: taskName, level: taskLevel });
-    } else if (draggedTask) {
-      // Fallback sur le contexte si dataTransfer échoue
+    // Fallback sur le contexte si dataTransfer échoue
+    if (draggedTask) {
       onConvertToProject(draggedTask);
     }
   };
