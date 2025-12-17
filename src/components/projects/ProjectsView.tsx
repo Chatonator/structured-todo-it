@@ -16,13 +16,19 @@ export const ProjectsView = () => {
   const [detailProject, setDetailProject] = useState<Project | null>(null);
   const [isDragOverNewProject, setIsDragOverNewProject] = useState(false);
   const [prefilledProjectName, setPrefilledProjectName] = useState<string>('');
+  const [droppedTaskId, setDroppedTaskId] = useState<string | null>(null);
   
-  const { draggedTask, onConvertToProject } = useDragDrop();
+  const { draggedTask } = useDragDrop();
 
   const handleCreateProject = async (data: any) => {
-    await createProject(data.name, data.description, data.icon, data.color);
+    const project = await createProject(data.name, data.description, data.icon, data.color);
+    
+    // Si on a créé le projet depuis une tâche droppée, on pourrait assigner la tâche
+    // (optionnel - pour l'instant on crée juste le projet avec le nom)
+    
     setShowModal(false);
     setPrefilledProjectName('');
+    setDroppedTaskId(null);
   };
 
   const handleUpdateProject = async (data: any) => {
@@ -47,20 +53,14 @@ export const ProjectsView = () => {
 
   // Handlers pour la zone de drop "nouveau projet"
   const handleNewProjectDragOver = (e: React.DragEvent) => {
-    // Toujours accepter le drag s'il y a des données text/plain ou draggedTask
-    const hasData = e.dataTransfer.types.includes('text/plain') || draggedTask;
-    if (hasData) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
-    }
+    // Toujours accepter le drag s'il y a des données ou draggedTask
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
   };
 
   const handleNewProjectDragEnter = (e: React.DragEvent) => {
-    const hasData = e.dataTransfer.types.includes('text/plain') || draggedTask;
-    if (hasData) {
-      e.preventDefault();
-      setIsDragOverNewProject(true);
-    }
+    e.preventDefault();
+    setIsDragOverNewProject(true);
   };
 
   const handleNewProjectDragLeave = (e: React.DragEvent) => {
@@ -75,25 +75,45 @@ export const ProjectsView = () => {
 
   const handleNewProjectDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOverNewProject(false);
     
-    // Récupérer les données JSON depuis text/plain
+    console.log('[ProjectsView] Drop detected');
+    
+    // Essayer de récupérer les données JSON depuis text/plain
+    let taskName = '';
+    let taskId = '';
+    
     try {
       const jsonData = e.dataTransfer.getData('text/plain');
+      console.log('[ProjectsView] Raw data:', jsonData);
       if (jsonData) {
         const taskData = JSON.parse(jsonData);
+        console.log('[ProjectsView] Parsed task data:', taskData);
         if (taskData.id && taskData.name !== undefined) {
-          onConvertToProject({ id: taskData.id, name: taskData.name, level: taskData.level || 0 });
-          return;
+          taskName = taskData.name;
+          taskId = taskData.id;
         }
       }
     } catch (err) {
-      // JSON parse failed, try fallback
+      console.log('[ProjectsView] JSON parse failed, trying context');
     }
     
-    // Fallback sur le contexte si dataTransfer échoue
-    if (draggedTask) {
-      onConvertToProject(draggedTask);
+    // Fallback sur le contexte
+    if (!taskName && draggedTask) {
+      console.log('[ProjectsView] Using draggedTask from context:', draggedTask);
+      taskName = draggedTask.name;
+      taskId = draggedTask.id;
+    }
+    
+    // Si on a un nom de tâche, ouvrir le modal avec le nom pré-rempli
+    if (taskName) {
+      console.log('[ProjectsView] Opening modal with name:', taskName);
+      setPrefilledProjectName(taskName);
+      setDroppedTaskId(taskId);
+      setShowModal(true);
+    } else {
+      console.log('[ProjectsView] No task data found');
     }
   };
 
@@ -260,9 +280,11 @@ export const ProjectsView = () => {
           setShowModal(false);
           setSelectedProject(null);
           setPrefilledProjectName('');
+          setDroppedTaskId(null);
         }}
         onSave={selectedProject ? handleUpdateProject : handleCreateProject}
         project={selectedProject}
+        initialName={prefilledProjectName}
       />
     </div>
   );
