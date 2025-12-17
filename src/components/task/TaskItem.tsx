@@ -74,13 +74,11 @@ const TaskItem: React.FC<TaskItemProps> = ({
     e.dataTransfer.effectAllowed = 'move';
     
     // Enrichir les données du drag avec les métadonnées de la tâche
-    const taskData = JSON.stringify({
-      id: task.id,
-      name: task.name,
-      level: task.level
-    });
-    e.dataTransfer.setData('text/plain', task.id);
-    e.dataTransfer.setData('application/json', taskData);
+    // Utiliser des clés spécifiques pour récupérer les données au drop
+    e.dataTransfer.setData('taskid', task.id);
+    e.dataTransfer.setData('taskname', task.name);
+    e.dataTransfer.setData('tasklevel', task.level.toString());
+    e.dataTransfer.setData('text/plain', task.id); // Fallback
     
     // Mettre à jour le contexte global pour le drag & drop vers projets
     setDraggedTask({ id: task.id, name: task.name, level: task.level });
