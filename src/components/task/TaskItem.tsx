@@ -71,7 +71,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragging(true);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = 'copyMove';
     
     // Stocker les données de la tâche en JSON dans text/plain (type universel)
     const taskData = JSON.stringify({
