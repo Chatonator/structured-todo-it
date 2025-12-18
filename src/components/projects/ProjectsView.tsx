@@ -53,9 +53,9 @@ export const ProjectsView = () => {
 
   // Handlers pour la zone de drop "nouveau projet"
   const handleNewProjectDragOver = (e: React.DragEvent) => {
-    // Toujours accepter le drag s'il y a des données ou draggedTask
+    // Toujours accepter le drag
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleNewProjectDragEnter = (e: React.DragEvent) => {
