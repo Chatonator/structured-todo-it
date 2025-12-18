@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Task } from '@/types/task';
 import { Habit, HabitStreak } from '@/types/habit';
 import { Project } from '@/types/project';
-import { Clock, ChevronsDown, ChevronsUp, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Clock, ChevronsDown, ChevronsUp, ChevronRight, ChevronLeft, FolderPlus } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
@@ -114,12 +114,13 @@ const TaskList: React.FC<TaskListProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [taskToConvert, setTaskToConvert] = useState<Task | null>(null);
+  const [isDragOverNewProject, setIsDragOverNewProject] = useState(false);
 
   // Hook pour les projets
   const { assignTaskToProject, createProject } = useProjects();
   
   // Hook pour le drag & drop global vers projets
-  const { registerHandlers } = useDragDrop();
+  const { draggedTask, registerHandlers } = useDragDrop();
 
   // Notifier le parent quand l'état collapsed change
   const handleToggleCollapsed = (collapsed: boolean) => {
@@ -253,6 +254,75 @@ const TaskList: React.FC<TaskListProps> = ({
   useEffect(() => {
     registerHandlers(handleAssignToProject, handleConvertFromDrag);
   });
+
+  // Handlers pour la zone de drop "nouveau projet" dans la sidebar
+  const handleNewProjectDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleNewProjectDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOverNewProject(true);
+  };
+
+  const handleNewProjectDragLeave = (e: React.DragEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragOverNewProject(false);
+    }
+  };
+
+  const handleNewProjectDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOverNewProject(false);
+    
+    let taskName = '';
+    let taskId = '';
+    let taskLevel = 0;
+    
+    // Essayer de récupérer les données JSON depuis text/plain
+    try {
+      const jsonData = e.dataTransfer.getData('text/plain');
+      if (jsonData) {
+        const taskData = JSON.parse(jsonData);
+        if (taskData.id && taskData.name !== undefined) {
+          taskName = taskData.name;
+          taskId = taskData.id;
+          taskLevel = taskData.level || 0;
+        }
+      }
+    } catch (err) {
+      // JSON parse failed, try fallback
+    }
+    
+    // Fallback sur le contexte
+    if (!taskName && draggedTask) {
+      taskName = draggedTask.name;
+      taskId = draggedTask.id;
+      taskLevel = draggedTask.level;
+    }
+    
+    // Si on a un nom de tâche, ouvrir le modal
+    if (taskName) {
+      const minimalTask: Task = {
+        id: taskId,
+        name: taskName,
+        level: taskLevel as 0 | 1 | 2,
+        category: 'Autres',
+        estimatedTime: 30,
+        context: 'Pro',
+        isCompleted: false,
+        isExpanded: false,
+        createdAt: new Date(),
+      };
+      setTaskToConvert(minimalTask);
+      setShowProjectModal(true);
+    }
+  };
 
   const handleCreateProjectFromTask = async (data: any) => {
     if (!taskToConvert) return;
@@ -421,6 +491,29 @@ const TaskList: React.FC<TaskListProps> = ({
 
             {/* Bloc d'ajout rapide */}
             <QuickAddTask onAddTask={onAddTask} />
+
+            {/* Zone de drop pour créer un nouveau projet */}
+            <div
+              className={`
+                mx-3 my-2 border-2 border-dashed rounded-lg p-3 flex items-center justify-center gap-2
+                transition-all duration-200 min-h-[60px]
+                ${isDragOverNewProject 
+                  ? 'border-primary bg-primary/10 scale-105' 
+                  : draggedTask 
+                    ? 'border-primary/50 bg-accent/50' 
+                    : 'border-border bg-card/50'
+                }
+              `}
+              onDragOver={handleNewProjectDragOver}
+              onDragEnter={handleNewProjectDragEnter}
+              onDragLeave={handleNewProjectDragLeave}
+              onDrop={handleNewProjectDrop}
+            >
+              <FolderPlus className={`w-5 h-5 ${isDragOverNewProject ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className={`text-xs ${isDragOverNewProject ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                {isDragOverNewProject ? 'Relâcher pour créer' : draggedTask ? 'Déposer ici' : 'Glisser une tâche ici'}
+              </span>
+            </div>
 
             {/* Sections optionnelles */}
             {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
