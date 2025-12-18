@@ -249,6 +249,41 @@ export const useProjects = () => {
     loadProjects();
   }, [loadProjects]);
 
+  // Realtime subscription for projects
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('projects-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          logger.info('Projects realtime update', { event: payload.eventType });
+          
+          if (payload.eventType === 'INSERT') {
+            const newProject = formatProject(payload.new);
+            setProjects(prev => [...prev, newProject]);
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedProject = formatProject(payload.new);
+            setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+          } else if (payload.eventType === 'DELETE') {
+            setProjects(prev => prev.filter(p => p.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, formatProject]);
+
   return {
     projects,
     loading,
