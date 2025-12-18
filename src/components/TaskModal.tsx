@@ -318,10 +318,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
                   {/* Catégories ou Priorité selon le contexte */}
                   {parentTask ? (
-                    // Sous-tâche : toujours montrer le sélecteur de priorité
+                    // Sous-tâche : toujours montrer le sélecteur de priorité (requis)
                     <PrioritySelector
                       value={draft.subCategory}
                       onChange={(value) => updateTaskDraft(index, 'subCategory', value)}
+                      hasError={!draft.subCategory}
                     />
                   ) : config.showCategorySelector ? (
                     // Tâche principale avec catégories (personnel)

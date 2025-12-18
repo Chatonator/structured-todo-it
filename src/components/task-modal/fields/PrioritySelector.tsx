@@ -18,8 +18,8 @@ export const PrioritySelector: React.FC<PrioritySelectorProps> = ({
 }) => {
   return (
     <div>
-      <Label className="text-sm text-foreground mb-2 block">
-        {label}
+      <Label className={`text-sm mb-2 block ${hasError ? 'text-destructive' : 'text-foreground'}`}>
+        {label} {hasError && <span className="text-destructive">*</span>}
       </Label>
       <div className="grid grid-cols-2 gap-1">
         {Object.entries(SUB_CATEGORY_CONFIG).map(([subCat, config]) => (
