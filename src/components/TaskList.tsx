@@ -340,14 +340,23 @@ const TaskList: React.FC<TaskListProps> = ({
       if (taskToConvert.level === 0) {
         const subTasks = getSubTasks(taskToConvert.id);
         
-        // Assigner les sous-tâches au projet (elles deviennent des tâches du projet)
+        // Assigner les sous-tâches au projet et les promouvoir en tâches principales (level 0)
         for (const subTask of subTasks) {
           await assignTaskToProject(subTask.id, project.id);
-          // Récursivement pour les sous-sous-tâches
+          // Promouvoir en tâche principale (level 0, pas de parentId) pour apparaître dans le Kanban
+          if (onUpdateTask) {
+            onUpdateTask(subTask.id, { level: 0, parentId: undefined });
+          }
+          
+          // Récursivement pour les sous-sous-tâches (elles deviennent aussi level 0)
           const assignSubtasksRecursively = async (parentId: string) => {
             const childTasks = getSubTasks(parentId);
             for (const child of childTasks) {
               await assignTaskToProject(child.id, project.id);
+              // Promouvoir aussi les sous-sous-tâches en tâches principales
+              if (onUpdateTask) {
+                onUpdateTask(child.id, { level: 0, parentId: undefined });
+              }
               await assignSubtasksRecursively(child.id);
             }
           };
