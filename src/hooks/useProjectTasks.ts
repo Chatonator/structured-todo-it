@@ -62,9 +62,16 @@ export const useProjectTasks = (projectId: string | null) => {
     if (!user) return false;
 
     try {
+      // Synchroniser isCompleted avec le statut du projet
+      const isCompleted = newStatus === 'done';
+      
       const { error } = await supabase
         .from('tasks')
-        .update({ project_status: newStatus })
+        .update({ 
+          project_status: newStatus,
+          isCompleted: isCompleted,
+          lastCompletedAt: isCompleted ? new Date().toISOString() : null
+        })
         .eq('id', taskId);
 
       if (error) throw error;

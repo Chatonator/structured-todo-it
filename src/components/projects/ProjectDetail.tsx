@@ -21,7 +21,7 @@ interface ProjectDetailProps {
 
 export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDetailProps) => {
   const { tasksByStatus, updateTaskStatus, reloadTasks } = useProjectTasks(project.id);
-  const { toggleTaskCompletion, addTask, updateTask } = useTasks();
+  const { toggleTaskCompletion, addTask, updateTask, removeTask } = useTasks();
   const { deleteProject } = useProjects();
   const { toast } = useToast();
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -43,8 +43,25 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
   };
 
   const handleToggleComplete = async (taskId: string) => {
-    await toggleTaskCompletion(taskId);
+    // Trouver la tâche pour connaître son état actuel
+    const allTasks = [...tasksByStatus().todo, ...tasksByStatus().inProgress, ...tasksByStatus().done];
+    const task = allTasks.find(t => t.id === taskId);
+    
+    if (task) {
+      // Si on coche la tâche (elle va devenir complétée), on la déplace vers "done"
+      // Si on décoche, on la déplace vers "todo"
+      const newStatus = !task.isCompleted ? 'done' : 'todo';
+      await updateTaskStatus(taskId, newStatus);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    await removeTask(taskId);
     reloadTasks();
+    toast({
+      title: "Tâche supprimée",
+      description: "La tâche a été supprimée avec succès.",
+    });
   };
 
   const handleCreateTask = () => {
@@ -149,6 +166,7 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
           onStatusChange={updateTaskStatus}
           onTaskClick={handleTaskClick}
           onToggleComplete={handleToggleComplete}
+          onDeleteTask={handleDeleteTask}
         />
       </div>
 
