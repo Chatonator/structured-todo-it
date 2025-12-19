@@ -1,9 +1,10 @@
 import { Task } from '@/types/task';
 import { TaskProjectStatus } from '@/types/project';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clock, Trash2 } from 'lucide-react';
 
 interface KanbanBoardProps {
   tasks: {
@@ -14,18 +15,20 @@ interface KanbanBoardProps {
   onStatusChange: (taskId: string, newStatus: TaskProjectStatus) => void;
   onTaskClick: (task: Task) => void;
   onToggleComplete: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
 }
 
 export const KanbanBoard = ({ 
   tasks, 
   onStatusChange, 
   onTaskClick,
-  onToggleComplete 
+  onToggleComplete,
+  onDeleteTask
 }: KanbanBoardProps) => {
   const columns = [
     { status: 'todo' as TaskProjectStatus, title: 'À faire', tasks: tasks.todo, color: 'bg-muted' },
     { status: 'in-progress' as TaskProjectStatus, title: 'En cours', tasks: tasks.inProgress, color: 'bg-project/10' },
-    { status: 'done' as TaskProjectStatus, title: 'Terminé', tasks: tasks.done, color: 'bg-green-50' }
+    { status: 'done' as TaskProjectStatus, title: 'Terminé', tasks: tasks.done, color: 'bg-green-50 dark:bg-green-900/20' }
   ];
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -41,6 +44,13 @@ export const KanbanBoard = ({
     const taskId = e.dataTransfer.getData('taskId');
     if (taskId) {
       onStatusChange(taskId, newStatus);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation();
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+      onDeleteTask(taskId);
     }
   };
 
@@ -71,7 +81,7 @@ export const KanbanBoard = ({
                   key={task.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, task.id)}
-                  className="cursor-move hover:shadow-md transition-shadow"
+                  className="cursor-move hover:shadow-md transition-shadow group"
                 >
                   <CardContent className="p-3">
                     <div className="flex items-start gap-2">
@@ -99,6 +109,14 @@ export const KanbanBoard = ({
                           )}
                         </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => handleDeleteClick(e, task.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
