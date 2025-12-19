@@ -66,9 +66,9 @@ const TaskModal: React.FC<TaskModalProps> = ({
   
   const createEmptyDraft = (): TaskDraft => ({
     name: '',
-    category: defaults.category || '',
+    category: parentTask ? parentTask.category : (defaults.category || ''),
     subCategory: defaults.subCategory || '',
-    context: defaults.context || '',
+    context: parentTask ? parentTask.context : (defaults.context || ''),
     estimatedTime: '',
     isRecurring: false
   });
