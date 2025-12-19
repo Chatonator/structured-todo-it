@@ -69,8 +69,7 @@ export const useProjectTasks = (projectId: string | null) => {
         .from('tasks')
         .update({ 
           project_status: newStatus,
-          isCompleted: isCompleted,
-          lastCompletedAt: isCompleted ? new Date().toISOString() : null
+          isCompleted: isCompleted
         })
         .eq('id', taskId);
 
