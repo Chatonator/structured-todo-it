@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Project, PROJECT_STATUS_CONFIG } from '@/types/project';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
 import { useTasks } from '@/hooks/useTasks';
@@ -21,53 +21,73 @@ interface ProjectDetailProps {
 
 export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDetailProps) => {
   const { tasksByStatus, updateTaskStatus, reloadTasks } = useProjectTasks(project.id);
-  const { toggleTaskCompletion, addTask, updateTask, removeTask } = useTasks();
+  const { addTask, updateTask, removeTask } = useTasks();
   const { deleteProject } = useProjects();
   const { toast } = useToast();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const statusConfig = PROJECT_STATUS_CONFIG[project.status];
 
-  const handleDelete = async () => {
+  // Statistiques mémorisées
+  const stats = useMemo(() => ({
+    total: tasksByStatus.todo.length + tasksByStatus.inProgress.length + tasksByStatus.done.length,
+    done: tasksByStatus.done.length
+  }), [tasksByStatus]);
+
+  const handleDelete = useCallback(async () => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le projet "${project.name}" ? Cette action est irréversible.`)) {
       const success = await deleteProject(project.id);
       if (success && onDelete) {
         onDelete();
       }
     }
-  };
+  }, [project.id, project.name, deleteProject, onDelete]);
 
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = useCallback((task: Task) => {
     setSelectedTask(task);
     setShowTaskModal(true);
-  };
+  }, []);
 
-  const handleToggleComplete = async (taskId: string) => {
-    // Trouver la tâche pour connaître son état actuel
-    const allTasks = [...tasksByStatus().todo, ...tasksByStatus().inProgress, ...tasksByStatus().done];
+  const handleToggleComplete = useCallback(async (taskId: string) => {
+    // Chercher la tâche dans le tasksByStatus mémorisé
+    const allTasks = [...tasksByStatus.todo, ...tasksByStatus.inProgress, ...tasksByStatus.done];
     const task = allTasks.find(t => t.id === taskId);
     
     if (task) {
-      // Si on coche la tâche (elle va devenir complétée), on la déplace vers "done"
-      // Si on décoche, on la déplace vers "todo"
       const newStatus = !task.isCompleted ? 'done' : 'todo';
       await updateTaskStatus(taskId, newStatus);
     }
-  };
+  }, [tasksByStatus, updateTaskStatus]);
 
-  const handleDeleteTask = async (taskId: string) => {
+  const handleDeleteTask = useCallback(async (taskId: string) => {
     await removeTask(taskId);
     reloadTasks();
     toast({
       title: "Tâche supprimée",
       description: "La tâche a été supprimée avec succès.",
     });
-  };
+  }, [removeTask, reloadTasks, toast]);
 
-  const handleCreateTask = () => {
+  const handleCreateTask = useCallback(() => {
     setSelectedTask(null);
     setShowTaskModal(true);
-  };
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setShowTaskModal(false);
+    setSelectedTask(null);
+    reloadTasks();
+  }, [reloadTasks]);
+
+  const handleAddTask = useCallback(async (taskData: any) => {
+    await addTask(taskData);
+    reloadTasks();
+  }, [addTask, reloadTasks]);
+
+  const handleUpdateTask = useCallback(async (taskId: string, updates: any) => {
+    await updateTask(taskId, updates);
+    reloadTasks();
+  }, [updateTask, reloadTasks]);
 
   return (
     <div className="space-y-6">
@@ -147,12 +167,10 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Tâches totales</p>
-              <p className="text-2xl font-bold">
-                {tasksByStatus().todo.length + tasksByStatus().inProgress.length + tasksByStatus().done.length}
-              </p>
+              <p className="text-2xl font-bold">{stats.total}</p>
             </div>
             <div className="text-sm text-muted-foreground">
-              {tasksByStatus().done.length} terminées
+              {stats.done} terminées
             </div>
           </div>
         </div>
@@ -162,7 +180,7 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
       <div>
         <h2 className="text-xl font-semibold mb-4">Tableau Kanban</h2>
         <KanbanBoard
-          tasks={tasksByStatus()}
+          tasks={tasksByStatus}
           onStatusChange={updateTaskStatus}
           onTaskClick={handleTaskClick}
           onToggleComplete={handleToggleComplete}
@@ -174,22 +192,12 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
       {showTaskModal && (
         <TaskModal
           isOpen={showTaskModal}
-          onClose={() => {
-            setShowTaskModal(false);
-            setSelectedTask(null);
-            reloadTasks();
-          }}
+          onClose={handleCloseModal}
           editingTask={selectedTask || undefined}
           projectId={project.id}
           taskType="project"
-          onAddTask={async (taskData) => {
-            await addTask(taskData);
-            reloadTasks();
-          }}
-          onUpdateTask={async (taskId, updates) => {
-            await updateTask(taskId, updates);
-            reloadTasks();
-          }}
+          onAddTask={handleAddTask}
+          onUpdateTask={handleUpdateTask}
         />
       )}
     </div>

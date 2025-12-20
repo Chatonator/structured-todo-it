@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/task';
@@ -19,7 +19,7 @@ export const useProjectTasks = (projectId: string | null) => {
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .select('*')
+        .select('id, name, category, subCategory, context, estimatedTime, created_at, parentId, level, isExpanded, isCompleted, scheduledDate, scheduledTime, duration, startTime, isRecurring, recurrenceInterval, lastCompletedAt, project_status')
         .eq('project_id', projectId)
         .order('created_at', { ascending: true });
 
@@ -61,10 +61,17 @@ export const useProjectTasks = (projectId: string | null) => {
   ) => {
     if (!user) return false;
 
+    // Optimistic update - mettre à jour l'UI immédiatement
+    const isCompleted = newStatus === 'done';
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId 
+          ? { ...task, projectStatus: newStatus, isCompleted } 
+          : task
+      )
+    );
+
     try {
-      // Synchroniser isCompleted avec le statut du projet
-      const isCompleted = newStatus === 'done';
-      
       const { error } = await supabase
         .from('tasks')
         .update({ 
@@ -73,9 +80,12 @@ export const useProjectTasks = (projectId: string | null) => {
         })
         .eq('id', taskId);
 
-      if (error) throw error;
+      if (error) {
+        // Rollback en cas d'erreur - recharger les données
+        await loadTasks();
+        throw error;
+      }
 
-      await loadTasks();
       return true;
     } catch (error: any) {
       logger.error('Failed to update task status', { error: error.message });
@@ -83,13 +93,12 @@ export const useProjectTasks = (projectId: string | null) => {
     }
   }, [user, loadTasks]);
 
-  const tasksByStatus = useCallback(() => {
-    return {
-      todo: tasks.filter(t => t.level === 0 && (!t.projectStatus || t.projectStatus === 'todo')),
-      inProgress: tasks.filter(t => t.level === 0 && t.projectStatus === 'in-progress'),
-      done: tasks.filter(t => t.level === 0 && t.projectStatus === 'done')
-    };
-  }, [tasks]);
+  // Memoized tasksByStatus - calculé une seule fois quand tasks change
+  const tasksByStatus = useMemo(() => ({
+    todo: tasks.filter(t => t.level === 0 && (!t.projectStatus || t.projectStatus === 'todo')),
+    inProgress: tasks.filter(t => t.level === 0 && t.projectStatus === 'in-progress'),
+    done: tasks.filter(t => t.level === 0 && t.projectStatus === 'done')
+  }), [tasks]);
 
   useEffect(() => {
     loadTasks();
