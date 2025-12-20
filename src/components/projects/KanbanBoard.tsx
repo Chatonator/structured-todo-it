@@ -1,3 +1,4 @@
+import React, { useCallback } from 'react';
 import { Task } from '@/types/task';
 import { TaskProjectStatus } from '@/types/project';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,7 +19,7 @@ interface KanbanBoardProps {
   onDeleteTask: (taskId: string) => void;
 }
 
-export const KanbanBoard = ({ 
+const KanbanBoardComponent = ({ 
   tasks, 
   onStatusChange, 
   onTaskClick,
@@ -31,28 +32,28 @@ export const KanbanBoard = ({
     { status: 'done' as TaskProjectStatus, title: 'Terminé', tasks: tasks.done, color: 'bg-green-50 dark:bg-green-900/20' }
   ];
 
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+  const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('taskId', taskId);
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent, newStatus: TaskProjectStatus) => {
+  const handleDrop = useCallback((e: React.DragEvent, newStatus: TaskProjectStatus) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData('taskId');
     if (taskId) {
       onStatusChange(taskId, newStatus);
     }
-  };
+  }, [onStatusChange]);
 
-  const handleDeleteClick = (e: React.MouseEvent, taskId: string) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent, taskId: string) => {
     e.stopPropagation();
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
       onDeleteTask(taskId);
     }
-  };
+  }, [onDeleteTask]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -128,3 +129,6 @@ export const KanbanBoard = ({
     </div>
   );
 };
+
+// React.memo pour éviter les re-renders inutiles
+export const KanbanBoard = React.memo(KanbanBoardComponent);
