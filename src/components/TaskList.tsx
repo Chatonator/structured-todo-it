@@ -362,10 +362,20 @@ const TaskList: React.FC<TaskListProps> = ({
       
       // Assigner les sous-tâches collectées au projet
       for (const subTask of allSubTasksToAssign) {
-        await assignTaskToProject(subTask.id, project.id);
-        // Promouvoir en tâche principale (level 0, pas de parentId) pour apparaître dans le Kanban
+        // IMPORTANT: si on appelle onUpdateTask sans projectId, saveTask ré-écrit project_id=null
+        // (ce qui annule assignTaskToProject). Donc on met tout à jour en une seule opération.
         if (onUpdateTask) {
-          onUpdateTask(subTask.id, { level: 0, parentId: undefined });
+          await Promise.resolve(
+            (onUpdateTask as any)(subTask.id, {
+              projectId: project.id,
+              projectStatus: 'todo',
+              level: 0,
+              parentId: undefined,
+            })
+          );
+        } else {
+          // Fallback: si on n'a pas onUpdateTask, on fait au moins l'assignation DB.
+          await assignTaskToProject(subTask.id, project.id);
         }
       }
       
