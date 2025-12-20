@@ -327,6 +327,28 @@ const TaskList: React.FC<TaskListProps> = ({
   const handleCreateProjectFromTask = async (data: any) => {
     if (!taskToConvert) return;
     
+    // Trouver la vraie tâche dans le tableau tasks pour avoir accès aux sous-tâches
+    const realTask = tasks.find(t => t.id === taskToConvert.id);
+    const taskId = taskToConvert.id;
+    const taskLevel = realTask?.level ?? taskToConvert.level;
+    
+    // Collecter TOUTES les sous-tâches AVANT de créer le projet
+    const allSubTasksToAssign: Task[] = [];
+    
+    if (taskLevel === 0) {
+      // Fonction récursive pour collecter toutes les sous-tâches
+      const collectSubTasks = (parentId: string) => {
+        const subTasks = getSubTasks(parentId);
+        for (const subTask of subTasks) {
+          allSubTasksToAssign.push(subTask);
+          collectSubTasks(subTask.id); // Récursif pour les sous-sous-tâches
+        }
+      };
+      collectSubTasks(taskId);
+    }
+    
+    console.log('[TaskList] Sous-tâches collectées avant création du projet:', allSubTasksToAssign.map(t => ({ id: t.id, name: t.name })));
+    
     // Créer le projet avec le nom de la tâche
     const project = await createProject(
       data.name || taskToConvert.name,
@@ -336,40 +358,19 @@ const TaskList: React.FC<TaskListProps> = ({
     );
     
     if (project) {
-      // Si c'est une tâche principale (level 0), les sous-tâches deviennent les tâches du projet
-      if (taskToConvert.level === 0) {
-        const subTasks = getSubTasks(taskToConvert.id);
-        
-        // Assigner les sous-tâches au projet et les promouvoir en tâches principales (level 0)
-        for (const subTask of subTasks) {
-          await assignTaskToProject(subTask.id, project.id);
-          // Promouvoir en tâche principale (level 0, pas de parentId) pour apparaître dans le Kanban
-          if (onUpdateTask) {
-            onUpdateTask(subTask.id, { level: 0, parentId: undefined });
-          }
-          
-          // Récursivement pour les sous-sous-tâches (elles deviennent aussi level 0)
-          const assignSubtasksRecursively = async (parentId: string) => {
-            const childTasks = getSubTasks(parentId);
-            for (const child of childTasks) {
-              await assignTaskToProject(child.id, project.id);
-              // Promouvoir aussi les sous-sous-tâches en tâches principales
-              if (onUpdateTask) {
-                onUpdateTask(child.id, { level: 0, parentId: undefined });
-              }
-              await assignSubtasksRecursively(child.id);
-            }
-          };
-          await assignSubtasksRecursively(subTask.id);
+      console.log('[TaskList] Projet créé:', project.id, '- Assignation de', allSubTasksToAssign.length, 'sous-tâches');
+      
+      // Assigner les sous-tâches collectées au projet
+      for (const subTask of allSubTasksToAssign) {
+        await assignTaskToProject(subTask.id, project.id);
+        // Promouvoir en tâche principale (level 0, pas de parentId) pour apparaître dans le Kanban
+        if (onUpdateTask) {
+          onUpdateTask(subTask.id, { level: 0, parentId: undefined });
         }
-        
-        // Supprimer la tâche principale (elle est devenue le projet)
-        onRemoveTask(taskToConvert.id);
-      } else {
-        // Si c'est une sous-tâche, elle devient juste le projet (sans tâches)
-        // On supprime la sous-tâche de la liste des tâches
-        onRemoveTask(taskToConvert.id);
       }
+      
+      // Supprimer la tâche principale (elle est devenue le projet)
+      onRemoveTask(taskId);
     }
     
     setShowProjectModal(false);
