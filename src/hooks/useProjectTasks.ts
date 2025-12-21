@@ -19,7 +19,7 @@ export const useProjectTasks = (projectId: string | null) => {
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, name, category, subCategory, context, estimatedTime, created_at, parentId, level, isExpanded, isCompleted, scheduledDate, scheduledTime, duration, startTime, isRecurring, recurrenceInterval, lastCompletedAt, project_status')
+        .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: true });
 
@@ -37,13 +37,14 @@ export const useProjectTasks = (projectId: string | null) => {
         level: t.level,
         isExpanded: t.isExpanded,
         isCompleted: t.isCompleted,
-        scheduledDate: t.scheduledDate ? new Date(t.scheduledDate) : undefined,
-        scheduledTime: t.scheduledTime,
+        scheduledDate: t.scheduled_date ? new Date(t.scheduled_date) : undefined,
+        scheduledTime: t.scheduled_time,
         duration: t.duration,
-        startTime: t.startTime ? new Date(t.startTime) : undefined,
-        isRecurring: t.isRecurring,
-        recurrenceInterval: t.recurrenceInterval,
-        lastCompletedAt: t.lastCompletedAt ? new Date(t.lastCompletedAt) : undefined,
+        startTime: t.start_time ? new Date(t.start_time) : undefined,
+        isRecurring: t.is_recurring,
+        recurrenceInterval: t.recurrence_interval,
+        lastCompletedAt: t.last_completed_at ? new Date(t.last_completed_at) : undefined,
+        projectId: t.project_id,
         projectStatus: t.project_status
       }));
 
