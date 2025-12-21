@@ -38,19 +38,27 @@ export const useHabits = (deckId: string | null) => {
 
       if (error) throw error;
 
-      const formattedHabits: Habit[] = (data || []).map(h => ({
+const formattedHabits: Habit[] = (data || []).map(h => ({
         id: h.id,
         name: h.name,
         description: h.description,
         deckId: h.deck_id,
         frequency: h.frequency as Habit['frequency'],
         timesPerWeek: h.times_per_week,
+        timesPerMonth: h.times_per_month,
         targetDays: h.target_days,
         isActive: h.is_active,
         order: h.order,
         icon: h.icon,
         color: h.color,
-        createdAt: new Date(h.created_at)
+        createdAt: new Date(h.created_at),
+        isChallenge: h.is_challenge,
+        challengeStartDate: h.challenge_start_date ? new Date(h.challenge_start_date) : undefined,
+        challengeEndDate: h.challenge_end_date ? new Date(h.challenge_end_date) : undefined,
+        challengeDurationDays: h.challenge_duration_days,
+        challengeEndAction: h.challenge_end_action,
+        isLocked: h.is_locked,
+        unlockCondition: h.unlock_condition
       }));
 
       setHabits(formattedHabits);
@@ -216,7 +224,7 @@ export const useHabits = (deckId: string | null) => {
     if (!user || !deckId) return null;
 
     try {
-      const { data, error } = await supabase
+const { data, error } = await supabase
         .from('habits')
         .insert({
           user_id: user.id,
@@ -225,11 +233,19 @@ export const useHabits = (deckId: string | null) => {
           description: habit.description,
           frequency: habit.frequency,
           times_per_week: habit.timesPerWeek,
+          times_per_month: habit.timesPerMonth,
           target_days: habit.targetDays,
           is_active: habit.isActive,
           order: habit.order,
           icon: habit.icon,
-          color: habit.color
+          color: habit.color,
+          is_challenge: habit.isChallenge,
+          challenge_start_date: habit.challengeStartDate?.toISOString(),
+          challenge_end_date: habit.challengeEndDate?.toISOString(),
+          challenge_duration_days: habit.challengeDurationDays,
+          challenge_end_action: habit.challengeEndAction,
+          is_locked: habit.isLocked,
+          unlock_condition: habit.unlockCondition
         })
         .select()
         .single();
@@ -270,18 +286,26 @@ export const useHabits = (deckId: string | null) => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
+const { error } = await supabase
         .from('habits')
         .update({
           name: updates.name,
           description: updates.description,
           frequency: updates.frequency,
           times_per_week: updates.timesPerWeek,
+          times_per_month: updates.timesPerMonth,
           target_days: updates.targetDays,
           is_active: updates.isActive,
           order: updates.order,
           icon: updates.icon,
-          color: updates.color
+          color: updates.color,
+          is_challenge: updates.isChallenge,
+          challenge_start_date: updates.challengeStartDate?.toISOString(),
+          challenge_end_date: updates.challengeEndDate?.toISOString(),
+          challenge_duration_days: updates.challengeDurationDays,
+          challenge_end_action: updates.challengeEndAction,
+          is_locked: updates.isLocked,
+          unlock_condition: updates.unlockCondition
         })
         .eq('id', habitId)
         .eq('user_id', user.id);
@@ -330,19 +354,38 @@ export const useHabits = (deckId: string | null) => {
     return completions[habitId] || false;
   }, [completions]);
 
-  // Vérifier si une habitude est applicable aujourd'hui
+// Vérifier si une habitude est applicable aujourd'hui
   const isHabitApplicableToday = useCallback((habit: Habit) => {
-    // Toujours applicable si quotidien ou x-fois par semaine
-    if (habit.frequency === 'daily' || habit.frequency === 'x-times-per-week') {
+    // Vérifier si l'habitude est verrouillée
+    if (habit.isLocked) {
+      return false;
+    }
+    
+    // Vérifier si le challenge est terminé
+    if (habit.isChallenge && habit.challengeEndDate) {
+      const now = new Date();
+      if (now > new Date(habit.challengeEndDate)) {
+        return false;
+      }
+    }
+    
+    // Toujours applicable si quotidien ou x-fois par semaine/mois
+    if (habit.frequency === 'daily' || habit.frequency === 'x-times-per-week' || habit.frequency === 'x-times-per-month') {
       return true;
     }
     
-    // Si weekly ou custom, vérifier targetDays
+    // Si weekly ou custom, vérifier targetDays (jours de la semaine)
     if ((habit.frequency === 'weekly' || habit.frequency === 'custom') && habit.targetDays) {
       const today = new Date().getDay();
       // Convertir Sunday=0 vers Monday=0 (notre format)
       const adjustedDay = today === 0 ? 6 : today - 1;
       return habit.targetDays.includes(adjustedDay);
+    }
+    
+    // Si monthly, vérifier targetDays (jours du mois)
+    if (habit.frequency === 'monthly' && habit.targetDays) {
+      const todayDate = new Date().getDate();
+      return habit.targetDays.includes(todayDate);
     }
     
     // Par défaut applicable
