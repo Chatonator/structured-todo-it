@@ -197,42 +197,38 @@ export const useTasks = () => {
   const updateTask = async (taskId: string, updates: Partial<Task> & { _scheduleInfo?: any }) => {
     try {
       const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
+      if (!task) {
+        console.warn('[updateTask] Tâche non trouvée:', taskId);
+        return;
+      }
 
       // Extraire les infos de planification avant merge
       const scheduleInfo = (updates as any)._scheduleInfo;
       const { _scheduleInfo, ...cleanUpdates } = updates as any;
 
-      let updatedTask: Task | null = null;
-      setTasks(prevTasks => {
-        let changed = false;
-        const next = prevTasks.map(t => {
-          if (t.id !== taskId) return t;
-          const merged = { ...t, ...cleanUpdates };
-          const taskHasChanged = Object.entries(cleanUpdates).some(
-            ([key, value]) => t[key as keyof Task] !== value
-          );
-          if (taskHasChanged || scheduleInfo) {
-            changed = true;
-            updatedTask = merged;
-          }
-          return taskHasChanged ? merged : t;
-        });
-        // Ne remplace l'état que s'il y a vraiment eu un changement
-        return changed ? next : prevTasks;
-      });
+      // Créer la tâche mise à jour immédiatement (pour éviter problèmes de closure)
+      const updatedTask = { ...task, ...cleanUpdates };
       
-      // Save to database if there was a change
-      if (updatedTask) {
-        // Ajouter les infos de planification pour la synchronisation time_events
-        if (scheduleInfo) {
-          (updatedTask as any)._scheduleInfo = scheduleInfo;
-        }
-        await saveTask(updatedTask);
+      console.log('[updateTask] Mise à jour tâche:', taskId, 'Updates:', cleanUpdates);
+      console.log('[updateTask] projectId dans updates:', cleanUpdates.projectId);
+      
+      // Mise à jour optimiste du state
+      setTasks(prevTasks => 
+        prevTasks.map(t => t.id === taskId ? updatedTask : t)
+      );
+      
+      // Ajouter les infos de planification pour la synchronisation time_events
+      if (scheduleInfo) {
+        (updatedTask as any)._scheduleInfo = scheduleInfo;
       }
-      console.log('Tâche mise à jour:', taskId, scheduleInfo ? '(avec planification)' : '');
+      
+      // Sauvegarder en DB
+      console.log('[updateTask] Sauvegarde en DB avec projectId:', updatedTask.projectId);
+      await saveTask(updatedTask);
+      
+      console.log('[updateTask] Tâche sauvegardée:', taskId, scheduleInfo ? '(avec planification)' : '');
     } catch (error) {
-      console.warn('Erreur mise à jour tâche:', error);
+      console.warn('[updateTask] Erreur:', error);
       throw error;
     }
   };

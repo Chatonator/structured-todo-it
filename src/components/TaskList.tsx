@@ -327,29 +327,29 @@ const TaskList: React.FC<TaskListProps> = ({
   const handleCreateProjectFromTask = async (data: any) => {
     if (!taskToConvert) return;
     
-    // Trouver la vraie tâche dans le tableau tasks pour avoir accès aux sous-tâches
-    const realTask = tasks.find(t => t.id === taskToConvert.id);
     const taskId = taskToConvert.id;
+    const realTask = tasks.find(t => t.id === taskId);
     const taskLevel = realTask?.level ?? taskToConvert.level;
     
-    // Collecter TOUTES les sous-tâches AVANT de créer le projet
-    const allSubTasksToAssign: Task[] = [];
+    // Fonction locale pour collecter TOUTES les sous-tâches depuis le tableau tasks COMPLET
+    // (ne pas utiliser getSubTasks qui peut être filtré)
+    const collectAllSubTasks = (parentId: string): Task[] => {
+      const directChildren = tasks.filter(t => t.parentId === parentId);
+      const allDescendants: Task[] = [];
+      for (const child of directChildren) {
+        allDescendants.push(child);
+        allDescendants.push(...collectAllSubTasks(child.id));
+      }
+      return allDescendants;
+    };
     
-    if (taskLevel === 0) {
-      // Fonction récursive pour collecter toutes les sous-tâches
-      const collectSubTasks = (parentId: string) => {
-        const subTasks = getSubTasks(parentId);
-        for (const subTask of subTasks) {
-          allSubTasksToAssign.push(subTask);
-          collectSubTasks(subTask.id); // Récursif pour les sous-sous-tâches
-        }
-      };
-      collectSubTasks(taskId);
-    }
+    // Collecter les sous-tâches seulement si c'est une tâche principale
+    const allSubTasksToAssign = taskLevel === 0 ? collectAllSubTasks(taskId) : [];
     
-    console.log('[TaskList] Sous-tâches collectées avant création du projet:', allSubTasksToAssign.map(t => ({ id: t.id, name: t.name })));
+    console.log('[TaskList] Tâche à convertir:', { id: taskId, name: taskToConvert.name, level: taskLevel });
+    console.log('[TaskList] Sous-tâches collectées:', allSubTasksToAssign.map(t => ({ id: t.id, name: t.name, level: t.level, parentId: t.parentId })));
     
-    // Créer le projet avec le nom de la tâche
+    // Créer le projet
     const project = await createProject(
       data.name || taskToConvert.name,
       data.description,
@@ -360,21 +360,19 @@ const TaskList: React.FC<TaskListProps> = ({
     if (project) {
       console.log('[TaskList] Projet créé:', project.id, '- Assignation de', allSubTasksToAssign.length, 'sous-tâches');
       
-      // Assigner les sous-tâches collectées au projet
+      // Assigner les sous-tâches au projet en une seule opération par tâche
       for (const subTask of allSubTasksToAssign) {
-        // IMPORTANT: si on appelle onUpdateTask sans projectId, saveTask ré-écrit project_id=null
-        // (ce qui annule assignTaskToProject). Donc on met tout à jour en une seule opération.
+        console.log('[TaskList] Assignation sous-tâche:', subTask.id, subTask.name, '-> projectId:', project.id);
+        
         if (onUpdateTask) {
-          await Promise.resolve(
-            (onUpdateTask as any)(subTask.id, {
-              projectId: project.id,
-              projectStatus: 'todo',
-              level: 0,
-              parentId: undefined,
-            })
-          );
+          await onUpdateTask(subTask.id, {
+            projectId: project.id,
+            projectStatus: 'todo',
+            level: 0,
+            parentId: undefined,
+          });
         } else {
-          // Fallback: si on n'a pas onUpdateTask, on fait au moins l'assignation DB.
+          // Fallback DB direct
           await assignTaskToProject(subTask.id, project.id);
         }
       }
