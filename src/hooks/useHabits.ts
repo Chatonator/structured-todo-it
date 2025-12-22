@@ -1,12 +1,47 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Habit, HabitStreak } from '@/types/habit';
+import { Habit, HabitStreak, ChallengeEndAction, UnlockCondition } from '@/types/habit';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { useGamification } from '@/hooks/useGamification';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useTimeEventSync } from './useTimeEventSync';
+
+// Storage key for extended habit data (features not yet in DB)
+const EXTENDED_HABIT_DATA_KEY = 'habit_extended_data';
+
+interface ExtendedHabitData {
+  timesPerMonth?: number;
+  isChallenge?: boolean;
+  challengeStartDate?: string;
+  challengeEndDate?: string;
+  challengeDurationDays?: number;
+  challengeEndAction?: ChallengeEndAction;
+  isLocked?: boolean;
+  unlockCondition?: UnlockCondition;
+}
+
+const getExtendedData = (): Record<string, ExtendedHabitData> => {
+  try {
+    const data = localStorage.getItem(EXTENDED_HABIT_DATA_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+};
+
+const setExtendedData = (habitId: string, data: ExtendedHabitData) => {
+  const allData = getExtendedData();
+  allData[habitId] = { ...allData[habitId], ...data };
+  localStorage.setItem(EXTENDED_HABIT_DATA_KEY, JSON.stringify(allData));
+};
+
+const removeExtendedData = (habitId: string) => {
+  const allData = getExtendedData();
+  delete allData[habitId];
+  localStorage.setItem(EXTENDED_HABIT_DATA_KEY, JSON.stringify(allData));
+};
 
 export const useHabits = (deckId: string | null) => {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -38,28 +73,35 @@ export const useHabits = (deckId: string | null) => {
 
       if (error) throw error;
 
-const formattedHabits: Habit[] = (data || []).map(h => ({
-        id: h.id,
-        name: h.name,
-        description: h.description,
-        deckId: h.deck_id,
-        frequency: h.frequency as Habit['frequency'],
-        timesPerWeek: h.times_per_week,
-        timesPerMonth: h.times_per_month,
-        targetDays: h.target_days,
-        isActive: h.is_active,
-        order: h.order,
-        icon: h.icon,
-        color: h.color,
-        createdAt: new Date(h.created_at),
-        isChallenge: h.is_challenge,
-        challengeStartDate: h.challenge_start_date ? new Date(h.challenge_start_date) : undefined,
-        challengeEndDate: h.challenge_end_date ? new Date(h.challenge_end_date) : undefined,
-        challengeDurationDays: h.challenge_duration_days,
-        challengeEndAction: h.challenge_end_action,
-        isLocked: h.is_locked,
-        unlockCondition: h.unlock_condition
-      }));
+      // Get extended data from localStorage
+      const extendedData = getExtendedData();
+
+      const formattedHabits: Habit[] = (data || []).map(h => {
+        const extended = extendedData[h.id] || {};
+        return {
+          id: h.id,
+          name: h.name,
+          description: h.description,
+          deckId: h.deck_id,
+          frequency: h.frequency as Habit['frequency'],
+          timesPerWeek: h.times_per_week,
+          timesPerMonth: extended.timesPerMonth,
+          targetDays: h.target_days,
+          isActive: h.is_active,
+          order: h.order,
+          icon: h.icon,
+          color: h.color,
+          createdAt: new Date(h.created_at),
+          // Extended data from localStorage
+          isChallenge: extended.isChallenge,
+          challengeStartDate: extended.challengeStartDate ? new Date(extended.challengeStartDate) : undefined,
+          challengeEndDate: extended.challengeEndDate ? new Date(extended.challengeEndDate) : undefined,
+          challengeDurationDays: extended.challengeDurationDays,
+          challengeEndAction: extended.challengeEndAction,
+          isLocked: extended.isLocked,
+          unlockCondition: extended.unlockCondition,
+        };
+      });
 
       setHabits(formattedHabits);
     } catch (error: any) {
@@ -224,7 +266,7 @@ const formattedHabits: Habit[] = (data || []).map(h => ({
     if (!user || !deckId) return null;
 
     try {
-const { data, error } = await supabase
+      const { data, error } = await supabase
         .from('habits')
         .insert({
           user_id: user.id,
@@ -233,24 +275,31 @@ const { data, error } = await supabase
           description: habit.description,
           frequency: habit.frequency,
           times_per_week: habit.timesPerWeek,
-          times_per_month: habit.timesPerMonth,
           target_days: habit.targetDays,
           is_active: habit.isActive,
           order: habit.order,
           icon: habit.icon,
           color: habit.color,
-          is_challenge: habit.isChallenge,
-          challenge_start_date: habit.challengeStartDate?.toISOString(),
-          challenge_end_date: habit.challengeEndDate?.toISOString(),
-          challenge_duration_days: habit.challengeDurationDays,
-          challenge_end_action: habit.challengeEndAction,
-          is_locked: habit.isLocked,
-          unlock_condition: habit.unlockCondition
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Store extended data in localStorage
+      if (data) {
+        const extendedData: ExtendedHabitData = {
+          timesPerMonth: habit.timesPerMonth,
+          isChallenge: habit.isChallenge,
+          challengeStartDate: habit.challengeStartDate?.toISOString(),
+          challengeEndDate: habit.challengeEndDate?.toISOString(),
+          challengeDurationDays: habit.challengeDurationDays,
+          challengeEndAction: habit.challengeEndAction,
+          isLocked: habit.isLocked,
+          unlockCondition: habit.unlockCondition,
+        };
+        setExtendedData(data.id, extendedData);
+      }
 
       // Créer le time_event associé
       const newHabit: Habit = {
@@ -286,31 +335,38 @@ const { data, error } = await supabase
     if (!user) return false;
 
     try {
-const { error } = await supabase
+      // Only update fields that exist in the database
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
+      if (updates.timesPerWeek !== undefined) dbUpdates.times_per_week = updates.timesPerWeek;
+      if (updates.targetDays !== undefined) dbUpdates.target_days = updates.targetDays;
+      if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+      if (updates.order !== undefined) dbUpdates.order = updates.order;
+      if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
+      if (updates.color !== undefined) dbUpdates.color = updates.color;
+
+      const { error } = await supabase
         .from('habits')
-        .update({
-          name: updates.name,
-          description: updates.description,
-          frequency: updates.frequency,
-          times_per_week: updates.timesPerWeek,
-          times_per_month: updates.timesPerMonth,
-          target_days: updates.targetDays,
-          is_active: updates.isActive,
-          order: updates.order,
-          icon: updates.icon,
-          color: updates.color,
-          is_challenge: updates.isChallenge,
-          challenge_start_date: updates.challengeStartDate?.toISOString(),
-          challenge_end_date: updates.challengeEndDate?.toISOString(),
-          challenge_duration_days: updates.challengeDurationDays,
-          challenge_end_action: updates.challengeEndAction,
-          is_locked: updates.isLocked,
-          unlock_condition: updates.unlockCondition
-        })
+        .update(dbUpdates)
         .eq('id', habitId)
         .eq('user_id', user.id);
 
       if (error) throw error;
+
+      // Update extended data in localStorage
+      const extendedData: ExtendedHabitData = {
+        timesPerMonth: updates.timesPerMonth,
+        isChallenge: updates.isChallenge,
+        challengeStartDate: updates.challengeStartDate?.toISOString(),
+        challengeEndDate: updates.challengeEndDate?.toISOString(),
+        challengeDurationDays: updates.challengeDurationDays,
+        challengeEndAction: updates.challengeEndAction,
+        isLocked: updates.isLocked,
+        unlockCondition: updates.unlockCondition,
+      };
+      setExtendedData(habitId, extendedData);
 
       // Synchroniser le time_event
       const habit = habits.find(h => h.id === habitId);
@@ -339,6 +395,9 @@ const { error } = await supabase
 
       if (error) throw error;
 
+      // Remove extended data from localStorage
+      removeExtendedData(habitId);
+
       // Supprimer le time_event associé
       await deleteEntityEvent('habit', habitId);
 
@@ -354,7 +413,7 @@ const { error } = await supabase
     return completions[habitId] || false;
   }, [completions]);
 
-// Vérifier si une habitude est applicable aujourd'hui
+  // Vérifier si une habitude est applicable aujourd'hui
   const isHabitApplicableToday = useCallback((habit: Habit) => {
     // Vérifier si l'habitude est verrouillée
     if (habit.isLocked) {
