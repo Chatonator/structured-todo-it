@@ -92,6 +92,7 @@ export const useHabits = (deckId: string | null) => {
           icon: h.icon,
           color: h.color,
           createdAt: new Date(h.created_at),
+          // Extended data from localStorage
           isChallenge: extended.isChallenge,
           challengeStartDate: extended.challengeStartDate ? new Date(extended.challengeStartDate) : undefined,
           challengeEndDate: extended.challengeEndDate ? new Date(extended.challengeEndDate) : undefined,
@@ -103,14 +104,14 @@ export const useHabits = (deckId: string | null) => {
       });
 
       setHabits(formattedHabits);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Failed to load habits', { error: errorMessage });
+    } catch (error: any) {
+      logger.error('Failed to load habits', { error: error.message });
     } finally {
       setLoading(false);
     }
   }, [user, deckId]);
 
+  // Charger les complétions d'aujourd'hui depuis time_occurrences
   const loadTodayCompletions = useCallback(async () => {
     if (!user || habits.length === 0) return;
 
@@ -123,12 +124,12 @@ export const useHabits = (deckId: string | null) => {
       }
       
       setCompletions(completionsMap);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Failed to load completions', { error: errorMessage });
+    } catch (error: any) {
+      logger.error('Failed to load completions', { error: error.message });
     }
   }, [user, habits, isHabitCompletedToday]);
 
+  // Calculer les streaks depuis time_occurrences
   const calculateStreaks = useCallback(async () => {
     if (!user || habits.length === 0) return;
 
@@ -136,6 +137,7 @@ export const useHabits = (deckId: string | null) => {
 
     for (const habit of habits) {
       try {
+        // Récupérer l'event_id de l'habitude
         const { data: event } = await supabase
           .from('time_events')
           .select('id')
@@ -149,6 +151,7 @@ export const useHabits = (deckId: string | null) => {
           continue;
         }
 
+        // Récupérer les occurrences complétées
         const { data: occurrences, error } = await supabase
           .from('time_occurrences')
           .select('starts_at')
@@ -202,9 +205,8 @@ export const useHabits = (deckId: string | null) => {
           longestStreak,
           lastCompletedDate: dates[0] || ''
         };
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error('Failed to calculate streak', { habitId: habit.id, error: errorMessage });
+      } catch (error: any) {
+        logger.error('Failed to calculate streak', { habitId: habit.id, error: error.message });
         streaksData[habit.id] = { habitId: habit.id, currentStreak: 0, longestStreak: 0, lastCompletedDate: '' };
       }
     }
@@ -212,6 +214,7 @@ export const useHabits = (deckId: string | null) => {
     setStreaks(streaksData);
   }, [user, habits]);
 
+  // Toggle via time_occurrences
   const toggleCompletion = useCallback(async (habitId: string) => {
     if (!user) return false;
 
@@ -224,11 +227,13 @@ export const useHabits = (deckId: string | null) => {
         throw new Error('Failed to toggle completion');
       }
 
+      // Mettre à jour l'état local
       setCompletions(prev => ({
         ...prev,
         [habitId]: !wasCompleted
       }));
 
+      // Si on vient de compléter (pas de décocher)
       if (!wasCompleted) {
         const habit = habits.find(h => h.id === habitId);
         if (habit) {
@@ -242,12 +247,12 @@ export const useHabits = (deckId: string | null) => {
         }
       }
 
+      // Recalculer les streaks
       await calculateStreaks();
       
       return true;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Failed to toggle completion', { error: errorMessage });
+    } catch (error: any) {
+      logger.error('Failed to toggle completion', { error: error.message });
       toast({
         title: "Erreur",
         description: "Impossible de mettre à jour l'habitude",
@@ -283,7 +288,7 @@ export const useHabits = (deckId: string | null) => {
 
       // Store extended data in localStorage
       if (data) {
-        const extData: ExtendedHabitData = {
+        const extendedData: ExtendedHabitData = {
           timesPerMonth: habit.timesPerMonth,
           isChallenge: habit.isChallenge,
           challengeStartDate: habit.challengeStartDate?.toISOString(),
@@ -293,9 +298,10 @@ export const useHabits = (deckId: string | null) => {
           isLocked: habit.isLocked,
           unlockCondition: habit.unlockCondition,
         };
-        setExtendedData(data.id, extData);
+        setExtendedData(data.id, extendedData);
       }
 
+      // Créer le time_event associé
       const newHabit: Habit = {
         id: data.id,
         name: data.name,
@@ -314,9 +320,8 @@ export const useHabits = (deckId: string | null) => {
 
       await loadHabits();
       return data.id;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Failed to create habit', { error: errorMessage });
+    } catch (error: any) {
+      logger.error('Failed to create habit', { error: error.message });
       toast({
         title: "Erreur",
         description: "Impossible de créer l'habitude",
@@ -330,6 +335,7 @@ export const useHabits = (deckId: string | null) => {
     if (!user) return false;
 
     try {
+      // Only update fields that exist in the database
       const dbUpdates: Record<string, unknown> = {};
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.description !== undefined) dbUpdates.description = updates.description;
@@ -350,7 +356,7 @@ export const useHabits = (deckId: string | null) => {
       if (error) throw error;
 
       // Update extended data in localStorage
-      const extData: ExtendedHabitData = {
+      const extendedData: ExtendedHabitData = {
         timesPerMonth: updates.timesPerMonth,
         isChallenge: updates.isChallenge,
         challengeStartDate: updates.challengeStartDate?.toISOString(),
@@ -360,8 +366,9 @@ export const useHabits = (deckId: string | null) => {
         isLocked: updates.isLocked,
         unlockCondition: updates.unlockCondition,
       };
-      setExtendedData(habitId, extData);
+      setExtendedData(habitId, extendedData);
 
+      // Synchroniser le time_event
       const habit = habits.find(h => h.id === habitId);
       if (habit) {
         const updatedHabit = { ...habit, ...updates };
@@ -370,9 +377,8 @@ export const useHabits = (deckId: string | null) => {
 
       await loadHabits();
       return true;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Failed to update habit', { error: errorMessage });
+    } catch (error: any) {
+      logger.error('Failed to update habit', { error: error.message });
       return false;
     }
   }, [user, habits, loadHabits, syncHabitEvent]);
@@ -389,13 +395,16 @@ export const useHabits = (deckId: string | null) => {
 
       if (error) throw error;
 
+      // Remove extended data from localStorage
       removeExtendedData(habitId);
+
+      // Supprimer le time_event associé
       await deleteEntityEvent('habit', habitId);
+
       await loadHabits();
       return true;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Failed to delete habit', { error: errorMessage });
+    } catch (error: any) {
+      logger.error('Failed to delete habit', { error: error.message });
       return false;
     }
   }, [user, loadHabits, deleteEntityEvent]);
@@ -404,11 +413,14 @@ export const useHabits = (deckId: string | null) => {
     return completions[habitId] || false;
   }, [completions]);
 
+  // Vérifier si une habitude est applicable aujourd'hui
   const isHabitApplicableToday = useCallback((habit: Habit) => {
+    // Vérifier si l'habitude est verrouillée
     if (habit.isLocked) {
       return false;
     }
     
+    // Vérifier si le challenge est terminé
     if (habit.isChallenge && habit.challengeEndDate) {
       const now = new Date();
       if (now > new Date(habit.challengeEndDate)) {
@@ -416,24 +428,30 @@ export const useHabits = (deckId: string | null) => {
       }
     }
     
+    // Toujours applicable si quotidien ou x-fois par semaine/mois
     if (habit.frequency === 'daily' || habit.frequency === 'x-times-per-week' || habit.frequency === 'x-times-per-month') {
       return true;
     }
     
+    // Si weekly ou custom, vérifier targetDays (jours de la semaine)
     if ((habit.frequency === 'weekly' || habit.frequency === 'custom') && habit.targetDays) {
       const today = new Date().getDay();
+      // Convertir Sunday=0 vers Monday=0 (notre format)
       const adjustedDay = today === 0 ? 6 : today - 1;
       return habit.targetDays.includes(adjustedDay);
     }
     
+    // Si monthly, vérifier targetDays (jours du mois)
     if (habit.frequency === 'monthly' && habit.targetDays) {
       const todayDate = new Date().getDate();
       return habit.targetDays.includes(todayDate);
     }
     
+    // Par défaut applicable
     return true;
   }, []);
 
+  // Obtenir les habitudes applicables aujourd'hui
   const getHabitsForToday = useCallback(() => {
     return habits.filter(h => h.isActive && isHabitApplicableToday(h));
   }, [habits, isHabitApplicableToday]);
