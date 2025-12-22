@@ -21,7 +21,8 @@ export interface RecurrenceConfig {
   frequency: RecurrenceFrequency;
   interval: number;                  // e.g., every 2 days
   daysOfWeek?: number[];            // 0-6 for weekly (0 = Sunday)
-  dayOfMonth?: number;              // 1-31 for monthly
+  dayOfMonth?: number;              // 1-31 for monthly (single day)
+  daysOfMonth?: number[];           // 1-31 for monthly (multiple days)
   endDate?: Date;
   maxOccurrences?: number;
   rrule?: string;                   // iCal format for custom

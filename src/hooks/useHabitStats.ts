@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { startOfWeek, subDays, format } from 'date-fns';
+import { startOfWeek, subDays, format, getDay, getDate } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Habit, HabitFrequency } from '@/types/habit';
 
 export interface DailyTrend {
   date: string;
@@ -43,6 +44,38 @@ export const useHabitStats = () => {
   });
   const { user } = useAuth();
 
+  // Helper pour vérifier si une habitude est applicable un jour donné
+  const isHabitApplicableOnDate = useCallback((habit: {
+    frequency: HabitFrequency;
+    targetDays?: number[];
+    isLocked?: boolean;
+    isChallenge?: boolean;
+    challengeEndDate?: Date;
+  }, date: Date): boolean => {
+    if (habit.isLocked) return false;
+    
+    if (habit.isChallenge && habit.challengeEndDate) {
+      if (date > new Date(habit.challengeEndDate)) return false;
+    }
+    
+    if (habit.frequency === 'daily' || habit.frequency === 'x-times-per-week' || habit.frequency === 'x-times-per-month') {
+      return true;
+    }
+    
+    if ((habit.frequency === 'weekly' || habit.frequency === 'custom') && habit.targetDays) {
+      const dayOfWeek = getDay(date);
+      const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      return habit.targetDays.includes(adjustedDay);
+    }
+    
+    if (habit.frequency === 'monthly' && habit.targetDays) {
+      const dayOfMonth = getDate(date);
+      return habit.targetDays.includes(dayOfMonth);
+    }
+    
+    return true;
+  }, []);
+
   const calculateStats = useCallback(async () => {
     if (!user) {
       setStats(prev => ({ ...prev, loading: false }));
@@ -50,10 +83,10 @@ export const useHabitStats = () => {
     }
 
     try {
-      // Récupérer tous les events de type habit
+      // Récupérer tous les events de type habit avec leurs détails
       const { data: habitEvents, error: eventsError } = await supabase
         .from('time_events')
-        .select('id, entity_id')
+        .select('id, entity_id, recurrence')
         .eq('entity_type', 'habit')
         .eq('user_id', user.id);
 
@@ -72,6 +105,23 @@ export const useHabitStats = () => {
         });
         return;
       }
+
+      // Récupérer les données complètes des habitudes depuis la table habits
+      const { data: habitsData } = await supabase
+        .from('habits')
+        .select('id, frequency, target_days, is_active')
+        .eq('user_id', user.id);
+
+      // Créer une map des habitudes pour accès rapide
+      const habitsMap = new Map<string, Habit>();
+      (habitsData || []).forEach(h => {
+        habitsMap.set(h.id, {
+          id: h.id,
+          frequency: h.frequency as HabitFrequency,
+          targetDays: h.target_days,
+          isActive: h.is_active ?? true
+        } as Habit);
+      });
 
       const eventIds = habitEvents.map(e => e.id);
       const today = new Date();
@@ -94,9 +144,19 @@ export const useHabitStats = () => {
         o.status === 'completed' && new Date(o.starts_at) >= weekStart
       ).length;
 
-      // Calcul du taux de réussite sur 30 jours
+      // Calcul du taux de réussite sur 30 jours en tenant compte de la récurrence réelle
+      let expectedCompletions = 0;
+      for (let i = 0; i < 30; i++) {
+        const date = subDays(today, i);
+        for (const event of habitEvents) {
+          const habit = habitsMap.get(event.entity_id);
+          if (habit && habit.isActive && isHabitApplicableOnDate(habit, date)) {
+            expectedCompletions++;
+          }
+        }
+      }
+
       const completedCount = (occurrences || []).filter(o => o.status === 'completed').length;
-      const expectedCompletions = habitEvents.length * 30;
       const overallCompletionRate = expectedCompletions > 0 
         ? Math.min(100, Math.round((completedCount / expectedCompletions) * 100))
         : 0;
@@ -149,7 +209,7 @@ export const useHabitStats = () => {
         longestStreak = Math.max(longestStreak, maxStreak);
       }
 
-      // Calcul des tendances quotidiennes sur 7 jours
+      // Calcul des tendances quotidiennes sur 7 jours avec récurrence correcte
       const dailyTrends: DailyTrend[] = [];
       for (let i = 6; i >= 0; i--) {
         const date = subDays(today, i);
@@ -160,20 +220,29 @@ export const useHabitStats = () => {
           o.status === 'completed' && format(new Date(o.starts_at), 'yyyy-MM-dd') === dateStr
         ).length;
         
-        const rate = habitEvents.length > 0 
-          ? Math.round((dayCompletions / habitEvents.length) * 100) 
+        // Compter combien d'habitudes étaient applicables ce jour
+        let applicableCount = 0;
+        for (const event of habitEvents) {
+          const habit = habitsMap.get(event.entity_id);
+          if (habit && habit.isActive && isHabitApplicableOnDate(habit, date)) {
+            applicableCount++;
+          }
+        }
+        
+        const rate = applicableCount > 0 
+          ? Math.round((dayCompletions / applicableCount) * 100) 
           : 0;
         
         dailyTrends.push({
           date: dateStr,
           day: dayName.charAt(0).toUpperCase() + dayName.slice(1),
           completions: dayCompletions,
-          total: habitEvents.length,
+          total: applicableCount,
           rate
         });
       }
 
-      // Calcul des données mensuelles pour le heatmap (35 jours)
+      // Calcul des données mensuelles pour le heatmap (35 jours) avec récurrence correcte
       const monthlyData: MonthlyDay[] = [];
       for (let i = 34; i >= 0; i--) {
         const date = subDays(today, i);
@@ -183,14 +252,23 @@ export const useHabitStats = () => {
           o.status === 'completed' && format(new Date(o.starts_at), 'yyyy-MM-dd') === dateStr
         ).length;
         
-        const rate = habitEvents.length > 0 
-          ? Math.round((dayCompletions / habitEvents.length) * 100) 
+        // Compter combien d'habitudes étaient applicables ce jour
+        let applicableCount = 0;
+        for (const event of habitEvents) {
+          const habit = habitsMap.get(event.entity_id);
+          if (habit && habit.isActive && isHabitApplicableOnDate(habit, date)) {
+            applicableCount++;
+          }
+        }
+        
+        const rate = applicableCount > 0 
+          ? Math.round((dayCompletions / applicableCount) * 100) 
           : 0;
         
         monthlyData.push({
           date: dateStr,
           count: dayCompletions,
-          total: habitEvents.length,
+          total: applicableCount,
           rate
         });
       }
@@ -209,7 +287,7 @@ export const useHabitStats = () => {
       console.error('Error calculating habit stats:', error);
       setStats(prev => ({ ...prev, loading: false }));
     }
-  }, [user]);
+  }, [user, isHabitApplicableOnDate]);
 
   useEffect(() => {
     calculateStats();
