@@ -52,6 +52,17 @@ const mapHabitRecurrence = (habit: Habit): RecurrenceConfig => {
         interval: 1,
         daysOfWeek: habit.targetDays || undefined
       };
+    case 'monthly':
+      return {
+        frequency: 'monthly',
+        interval: 1,
+        daysOfMonth: habit.targetDays || undefined
+      };
+    case 'x-times-per-month':
+      return {
+        frequency: 'monthly',
+        interval: 1
+      };
     case 'custom':
       return {
         frequency: 'custom',
