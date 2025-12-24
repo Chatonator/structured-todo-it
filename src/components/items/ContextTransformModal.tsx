@@ -109,8 +109,8 @@ export function ContextTransformModal({
           </p>
           
           {fieldConfigs.map(config => (
-            <div key={config.key} className="space-y-2">
-              <Label htmlFor={config.key}>
+            <div key={String(config.key)} className="space-y-2">
+              <Label htmlFor={String(config.key)}>
                 {config.label} {config.required && <span className="text-destructive">*</span>}
               </Label>
               {renderField(config)}
