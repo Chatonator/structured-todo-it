@@ -184,7 +184,6 @@ const TaskItem: React.FC<TaskItemProps> = ({
             onToggleCompletion={onToggleCompletion}
             onRemoveTask={onRemoveTask}
             onAssignToProject={onAssignToProject}
-            onConvertToProject={onConvertToProject}
           />
         )}
 
