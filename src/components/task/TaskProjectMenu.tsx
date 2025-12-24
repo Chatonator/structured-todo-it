@@ -20,13 +20,11 @@ import { ContextTransformModal } from '@/components/items/ContextTransformModal'
 interface TaskProjectMenuProps {
   task: Task;
   onAssignToProject: (taskId: string, projectId: string) => Promise<boolean>;
-  onConvertToProject: (task: Task) => void;
 }
 
 const TaskProjectMenu: React.FC<TaskProjectMenuProps> = ({
   task,
-  onAssignToProject,
-  onConvertToProject
+  onAssignToProject
 }) => {
   const { activeProjects } = useProjects();
   const { toast } = useToast();
@@ -35,7 +33,7 @@ const TaskProjectMenu: React.FC<TaskProjectMenuProps> = ({
 
   const projects = activeProjects();
 
-  // Hook de transformation de contexte
+  // Hook de transformation de contexte - gère tout le processus
   const {
     isModalOpen,
     currentItem,
@@ -44,16 +42,14 @@ const TaskProjectMenu: React.FC<TaskProjectMenuProps> = ({
     currentMetadata,
     initiateTransform,
     confirmTransform,
-    closeModal,
-    getTransformDescription
+    closeModal
   } = useContextTransform({
     onTransformComplete: (transformedItem) => {
       toast({
         title: "Transformation réussie",
         description: `"${task.name}" a été transformé en projet`,
       });
-      // Appeler le callback original pour gérer la logique métier
-      onConvertToProject(task);
+      // Le nouveau système gère la transformation via useItems
     },
     onError: (error) => {
       toast({
@@ -88,7 +84,7 @@ const TaskProjectMenu: React.FC<TaskProjectMenuProps> = ({
     
     if (!user) return;
     
-    // Convertir la tâche en Item et initier la transformation
+    // Convertir la tâche en Item et initier la transformation via le nouveau système
     const item = taskToItem(task, user.id);
     initiateTransform(item, 'project');
     setIsOpen(false);

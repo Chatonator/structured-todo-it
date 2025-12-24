@@ -14,7 +14,6 @@ interface TaskItemActionsProps {
   onToggleCompletion: (taskId: string) => void;
   onRemoveTask: (taskId: string) => void;
   onAssignToProject?: (taskId: string, projectId: string) => Promise<boolean>;
-  onConvertToProject?: (task: Task) => void;
 }
 
 const TaskItemActions: React.FC<TaskItemActionsProps> = ({
@@ -25,8 +24,7 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
   onEditTask,
   onToggleCompletion,
   onRemoveTask,
-  onAssignToProject,
-  onConvertToProject
+  onAssignToProject
 }) => {
   return (
     <div 
@@ -35,11 +33,10 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
       }`}
     >
       {/* Menu projet - seulement pour les tâches principales sans projet */}
-      {task.level === 0 && !task.projectId && onAssignToProject && onConvertToProject && (
+      {task.level === 0 && !task.projectId && onAssignToProject && (
         <TaskProjectMenu
           task={task}
           onAssignToProject={onAssignToProject}
-          onConvertToProject={onConvertToProject}
         />
       )}
       
