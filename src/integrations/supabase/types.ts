@@ -201,9 +201,12 @@ export type Database = {
       }
       decks: {
         Row: {
+          category: string
           color: string
+          context: string
           created_at: string
           description: string | null
+          estimatedTime: number
           icon: string | null
           id: string
           is_default: boolean | null
@@ -213,9 +216,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string
           color?: string
+          context?: string
           created_at?: string
           description?: string | null
+          estimatedTime?: number
           icon?: string | null
           id?: string
           is_default?: boolean | null
@@ -225,9 +231,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string
           color?: string
+          context?: string
           created_at?: string
           description?: string | null
+          estimatedTime?: number
           icon?: string | null
           id?: string
           is_default?: boolean | null
@@ -275,10 +284,13 @@ export type Database = {
       }
       habits: {
         Row: {
+          category: string
           color: string | null
+          context: string
           created_at: string
           deck_id: string
           description: string | null
+          estimatedTime: number
           frequency: string
           icon: string | null
           id: string
@@ -291,10 +303,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string
           color?: string | null
+          context?: string
           created_at?: string
           deck_id: string
           description?: string | null
+          estimatedTime?: number
           frequency?: string
           icon?: string | null
           id?: string
@@ -307,10 +322,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string
           color?: string | null
+          context?: string
           created_at?: string
           deck_id?: string
           description?: string | null
+          estimatedTime?: number
           frequency?: string
           icon?: string | null
           id?: string
@@ -379,10 +397,13 @@ export type Database = {
       }
       projects: {
         Row: {
+          category: string
           color: string
           completed_at: string | null
+          context: string
           created_at: string | null
           description: string | null
+          estimatedTime: number
           icon: string | null
           id: string
           name: string
@@ -394,10 +415,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string
           color?: string
           completed_at?: string | null
+          context?: string
           created_at?: string | null
           description?: string | null
+          estimatedTime?: number
           icon?: string | null
           id?: string
           name: string
@@ -409,10 +433,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string
           color?: string
           completed_at?: string | null
+          context?: string
           created_at?: string | null
           description?: string | null
+          estimatedTime?: number
           icon?: string | null
           id?: string
           name?: string

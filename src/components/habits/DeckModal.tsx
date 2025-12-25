@@ -39,6 +39,9 @@ const DeckModal: React.FC<DeckModalProps> = ({ isOpen, onClose, onSave, deck }) 
     
     onSave({
       name,
+      category: 'Quotidien',
+      context: 'Perso',
+      estimatedTime: 30,
       description: description || undefined,
       color: '#ec4899',
       icon,
