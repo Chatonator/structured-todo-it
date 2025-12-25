@@ -1,3 +1,5 @@
+import { TaskCategory, TaskContext } from './task';
+
 export type HabitFrequency = 'daily' | 'weekly' | 'x-times-per-week' | 'monthly' | 'x-times-per-month' | 'custom';
 
 export type UnlockConditionType = 'streak' | 'total_completions' | 'manual';
@@ -12,7 +14,13 @@ export interface UnlockCondition {
 
 export interface Habit {
   id: string;
+  userId: string;
   name: string;
+  // === Champs harmonisés (obligatoires) ===
+  category: TaskCategory;
+  context: TaskContext;
+  estimatedTime: number; // en minutes
+  // === Champs spécifiques aux habitudes ===
   description?: string;
   deckId: string;
   frequency: HabitFrequency;
@@ -21,6 +29,7 @@ export interface Habit {
   targetDays?: number[]; // Jours de la semaine (0-6) ou jours du mois (1-31)
   isActive: boolean;
   createdAt: Date;
+  updatedAt: Date;
   order: number;
   icon?: string;
   color?: string;
@@ -37,13 +46,33 @@ export interface Habit {
   unlockCondition?: UnlockCondition;
 }
 
+// Type pour la création d'une habitude (champs obligatoires)
+export interface HabitInput {
+  name: string;
+  category: TaskCategory;
+  context: TaskContext;
+  estimatedTime: number;
+  deckId: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  frequency?: HabitFrequency;
+  targetDays?: number[];
+  timesPerWeek?: number;
+}
+
 export interface Deck {
   id: string;
+  userId: string;
   name: string;
+  // === Champs harmonisés (obligatoires) ===
+  category: TaskCategory;
+  context: TaskContext;
+  estimatedTime: number; // en minutes
+  // === Champs spécifiques aux decks ===
   description?: string;
   color: string;
   icon?: string;
-  userId: string;
   isDefault: boolean;
   order: number;
   createdAt: Date;
@@ -51,6 +80,18 @@ export interface Deck {
   
   // Mode progression (habitudes déverrouillables)
   isProgressionDeck?: boolean;
+}
+
+// Type pour la création d'un deck (champs obligatoires)
+export interface DeckInput {
+  name: string;
+  category: TaskCategory;
+  context: TaskContext;
+  estimatedTime: number;
+  description?: string;
+  icon?: string;
+  color?: string;
+  isDefault?: boolean;
 }
 
 export interface HabitCompletion {

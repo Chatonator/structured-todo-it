@@ -2,9 +2,14 @@
 // All entities (tasks, projects, habits, etc.) are represented as Items
 // with context-specific metadata stored in a flexible metadata object.
 
-import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from './task';
+import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval, CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS } from './task';
 import { ProjectStatus, TaskProjectStatus } from './project';
 import { HabitFrequency, UnlockCondition, ChallengeEndAction } from './habit';
+
+// Re-export common types for unified access
+export type ItemCategory = TaskCategory;
+export type ItemContext = TaskContext;
+export { CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS };
 
 // ============= Context Types =============
 export type ItemContextType = 
@@ -219,3 +224,37 @@ export function createItem(
     updatedAt: partial.updatedAt ?? new Date()
   };
 }
+
+// ============= Base Item Interface for Harmonization =============
+// Common interface for mandatory fields across all entities
+export interface BaseItem {
+  id: string;
+  userId: string;
+  name: string;
+  category: ItemCategory;
+  context: ItemContext;
+  estimatedTime: number; // en minutes
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Type pour les données de création d'un item (champs obligatoires)
+export interface BaseItemInput {
+  name: string;
+  category: ItemCategory;
+  context: ItemContext;
+  estimatedTime: number;
+}
+
+// Helper pour formater le temps estimé
+export const formatEstimatedTime = (minutes: number): string => {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (remainingMinutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h${remainingMinutes}`;
+};

@@ -80,7 +80,11 @@ export const useHabits = (deckId: string | null) => {
         const extended = extendedData[h.id] || {};
         return {
           id: h.id,
+          userId: h.user_id,
           name: h.name,
+          category: (h.category as Habit['category']) || 'Quotidien',
+          context: (h.context as Habit['context']) || 'Perso',
+          estimatedTime: h.estimatedTime || 15,
           description: h.description,
           deckId: h.deck_id,
           frequency: h.frequency as Habit['frequency'],
@@ -92,6 +96,7 @@ export const useHabits = (deckId: string | null) => {
           icon: h.icon,
           color: h.color,
           createdAt: new Date(h.created_at),
+          updatedAt: new Date(h.updated_at),
           // Extended data from localStorage
           isChallenge: extended.isChallenge,
           challengeStartDate: extended.challengeStartDate ? new Date(extended.challengeStartDate) : undefined,
@@ -272,6 +277,9 @@ export const useHabits = (deckId: string | null) => {
           user_id: user.id,
           deck_id: deckId,
           name: habit.name,
+          category: habit.category || 'Quotidien',
+          context: habit.context || 'Perso',
+          estimatedTime: habit.estimatedTime || 15,
           description: habit.description,
           frequency: habit.frequency,
           times_per_week: habit.timesPerWeek,
@@ -304,7 +312,11 @@ export const useHabits = (deckId: string | null) => {
       // Créer le time_event associé
       const newHabit: Habit = {
         id: data.id,
+        userId: data.user_id,
         name: data.name,
+        category: (data.category as Habit['category']) || 'Quotidien',
+        context: (data.context as Habit['context']) || 'Perso',
+        estimatedTime: data.estimatedTime || 15,
         description: data.description,
         deckId: data.deck_id,
         frequency: data.frequency as Habit['frequency'],
@@ -314,7 +326,8 @@ export const useHabits = (deckId: string | null) => {
         order: data.order,
         icon: data.icon,
         color: data.color,
-        createdAt: new Date(data.created_at)
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at)
       };
       await syncHabitEvent(newHabit);
 

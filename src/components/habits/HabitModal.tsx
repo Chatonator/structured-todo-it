@@ -106,7 +106,11 @@ const HabitModal: React.FC<HabitModalProps> = ({
       : undefined;
     
     onSave({
+      userId: '',
       name,
+      category: 'Quotidien',
+      context: 'Perso',
+      estimatedTime: 15,
       description: description || undefined,
       deckId: habit?.deckId || '',
       frequency,
@@ -114,6 +118,7 @@ const HabitModal: React.FC<HabitModalProps> = ({
       timesPerMonth: frequency === 'x-times-per-month' ? timesPerMonth : undefined,
       targetDays: ['weekly', 'monthly', 'custom'].includes(frequency) ? targetDays : undefined,
       isActive: true,
+      updatedAt: new Date(),
       order: habit?.order || 0,
       icon,
       isChallenge,

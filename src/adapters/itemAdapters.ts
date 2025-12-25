@@ -151,7 +151,11 @@ export function itemToHabit(item: Item): Habit {
   
   return {
     id: item.id,
+    userId: item.userId,
     name: item.name,
+    category: (metadata.category as Habit['category']) || 'Quotidien',
+    context: (metadata.context as Habit['context']) || 'Perso',
+    estimatedTime: (metadata.estimatedTime as number) || 15,
     description: metadata.description as string | undefined,
     deckId: (metadata.deckId as string) || '',
     frequency: (metadata.frequency as HabitFrequency) || 'daily',
@@ -160,6 +164,7 @@ export function itemToHabit(item: Item): Habit {
     targetDays: metadata.targetDays as number[] | undefined,
     isActive: (metadata.isActive as boolean) ?? true,
     createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
     order: item.orderIndex,
     icon: metadata.icon as string | undefined,
     color: metadata.color as string | undefined,
@@ -205,11 +210,14 @@ export function itemToDeck(item: Item): Deck {
   
   return {
     id: item.id,
+    userId: item.userId,
     name: item.name,
+    category: (metadata.category as Deck['category']) || 'Quotidien',
+    context: (metadata.context as Deck['context']) || 'Perso',
+    estimatedTime: (metadata.estimatedTime as number) || 30,
     description: metadata.description as string | undefined,
     color: (metadata.color as string) || '#10b981',
     icon: metadata.icon as string | undefined,
-    userId: item.userId,
     isDefault: (metadata.isDefault as boolean) ?? false,
     order: item.orderIndex,
     createdAt: item.createdAt,

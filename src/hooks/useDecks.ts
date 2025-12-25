@@ -26,11 +26,14 @@ export const useDecks = () => {
 
       const formattedDecks: Deck[] = (data || []).map(d => ({
         id: d.id,
+        userId: d.user_id,
         name: d.name,
+        category: (d.category as Deck['category']) || 'Quotidien',
+        context: (d.context as Deck['context']) || 'Perso',
+        estimatedTime: d.estimatedTime || 30,
         description: d.description,
         color: d.color || '#ec4899',
         icon: d.icon,
-        userId: d.user_id,
         isDefault: d.is_default,
         order: d.order,
         createdAt: new Date(d.created_at),
@@ -66,6 +69,9 @@ export const useDecks = () => {
         .insert({
           user_id: user.id,
           name: deck.name,
+          category: deck.category || 'Quotidien',
+          context: deck.context || 'Perso',
+          estimatedTime: deck.estimatedTime || 30,
           description: deck.description,
           color: deck.color || '#ec4899',
           icon: deck.icon,
@@ -98,6 +104,9 @@ export const useDecks = () => {
         .from('decks')
         .update({
           name: updates.name,
+          category: updates.category,
+          context: updates.context,
+          estimatedTime: updates.estimatedTime,
           description: updates.description,
           color: updates.color,
           icon: updates.icon,
