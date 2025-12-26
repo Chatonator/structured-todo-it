@@ -1,6 +1,12 @@
 // ============= Unified Item Architecture =============
 // All entities (tasks, projects, habits, etc.) are represented as Items
-// with context-specific metadata stored in a flexible metadata object.
+// in a single unified 'items' table with context-specific metadata.
+//
+// Database schema:
+// - id, user_id, name, item_type, category, context, estimatedTime
+// - parent_id (for hierarchy), order_index, is_completed
+// - metadata (JSONB for type-specific fields)
+// - created_at, updated_at
 
 import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval, CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS } from './task';
 import { ProjectStatus, TaskProjectStatus } from './project';
@@ -11,7 +17,7 @@ export type ItemCategory = TaskCategory;
 export type ItemContext = TaskContext;
 export { CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS };
 
-// ============= Context Types =============
+// ============= Item Types (maps to item_type column) =============
 export type ItemContextType = 
   | 'task' 
   | 'subtask' 
@@ -22,13 +28,14 @@ export type ItemContextType =
   | 'team_task';
 
 // ============= Core Item Interface =============
+// This interface maps to the unified 'items' table
 export interface Item {
   id: string;
   userId: string;
   name: string;
-  contextType: ItemContextType;
-  parentId: string | null;
-  metadata: ItemMetadata;
+  contextType: ItemContextType; // Maps to item_type in DB
+  parentId: string | null;      // For hierarchy (subtasks, project tasks, habits)
+  metadata: ItemMetadata;       // JSONB field for type-specific data
   orderIndex: number;
   isCompleted: boolean;
   createdAt: Date;

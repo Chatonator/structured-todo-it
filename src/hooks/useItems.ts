@@ -1,54 +1,77 @@
 // ============= Unified Items Hook =============
-// Central hook for managing all Items with localStorage persistence
+// Central hook for managing all Items with Supabase persistence
 // Provides CRUD operations, filtering, and context transformation
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Item, ItemContextType, createItem, ItemMetadata } from '@/types/item';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Item, ItemContextType, createItem as createItemHelper, ItemMetadata } from '@/types/item';
+import type { Json } from '@/integrations/supabase/types';
+import { useAuth } from './useAuth';
+import { useToast } from './use-toast';
+import { useCallback, useMemo } from 'react';
 import { CONTEXT_SCHEMAS, getMissingRequiredFields, getDefaultMetadata } from '@/config/contextSchemas';
 import { 
   transformItemContext, 
   TransformationResult,
-  ChildTransformation,
   applyChildTransformations
 } from '@/services/contextTransformation';
 
-// ============= Storage Keys =============
-const ITEMS_STORAGE_KEY = 'lovable_items';
-
-// ============= Storage Helpers =============
-function loadItemsFromStorage(): Item[] {
-  try {
-    const stored = localStorage.getItem(ITEMS_STORAGE_KEY);
-    if (!stored) return [];
-    
-    const parsed = JSON.parse(stored);
-    return parsed.map((item: any) => ({
-      ...item,
-      createdAt: new Date(item.createdAt),
-      updatedAt: new Date(item.updatedAt),
-      metadata: {
-        ...item.metadata,
-        targetDate: item.metadata.targetDate ? new Date(item.metadata.targetDate) : undefined,
-        completedAt: item.metadata.completedAt ? new Date(item.metadata.completedAt) : undefined,
-        challengeStartDate: item.metadata.challengeStartDate ? new Date(item.metadata.challengeStartDate) : undefined,
-        challengeEndDate: item.metadata.challengeEndDate ? new Date(item.metadata.challengeEndDate) : undefined
-      }
-    }));
-  } catch (error) {
-    console.error('Error loading items from storage:', error);
-    return [];
-  }
+// Database row type matching Supabase schema
+interface ItemRow {
+  id: string;
+  user_id: string;
+  name: string;
+  item_type: string;
+  category: string;
+  context: string;
+  estimatedTime: number;
+  parent_id: string | null;
+  order_index: number;
+  is_completed: boolean;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
 }
 
-function saveItemsToStorage(items: Item[]): void {
-  try {
-    localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(items));
-  } catch (error) {
-    console.error('Error saving items to storage:', error);
-  }
+// Transform database row to Item type
+function rowToItem(row: ItemRow): Item {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    contextType: row.item_type as ItemContextType,
+    parentId: row.parent_id,
+    metadata: {
+      ...row.metadata,
+      category: row.category,
+      context: row.context,
+      estimatedTime: row.estimatedTime,
+    } as ItemMetadata,
+    orderIndex: row.order_index,
+    isCompleted: row.is_completed,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
 }
 
-// ============= Hook Definition =============
+// Transform Item to database row format
+function itemToRow(item: Partial<Item> & { name: string; contextType: ItemContextType; userId: string }): Partial<ItemRow> {
+  const metadata = item.metadata || {};
+  return {
+    user_id: item.userId,
+    name: item.name,
+    item_type: item.contextType,
+    category: (metadata.category as string) || 'Autres',
+    context: (metadata.context as string) || 'Perso',
+    estimatedTime: (metadata.estimatedTime as number) || 30,
+    parent_id: item.parentId || null,
+    order_index: item.orderIndex || 0,
+    is_completed: item.isCompleted || false,
+    metadata: metadata,
+  };
+}
+
+// ============= Hook Options =============
 export interface UseItemsOptions {
   userId?: string;
   contextTypes?: ItemContextType[];
@@ -56,286 +79,330 @@ export interface UseItemsOptions {
   includeCompleted?: boolean;
 }
 
-export interface UseItemsReturn {
-  // State
-  items: Item[];
-  loading: boolean;
-  error: string | null;
-  
-  // CRUD Operations
-  createItem: (data: CreateItemData) => Item | { missingFields: (keyof ItemMetadata)[] };
-  updateItem: (id: string, updates: Partial<Item>) => boolean;
-  deleteItem: (id: string, deleteChildren?: boolean) => boolean;
-  
-  // Bulk Operations
-  updateItems: (updates: { id: string; updates: Partial<Item> }[]) => boolean;
-  deleteItems: (ids: string[]) => boolean;
-  
-  // Context Transformation
-  transformContext: (
-    id: string,
-    newContextType: ItemContextType,
-    additionalMetadata?: Partial<ItemMetadata>
-  ) => TransformationResult;
-  
-  // Queries
-  getItem: (id: string) => Item | undefined;
-  getChildren: (parentId: string) => Item[];
-  getByContext: (contextType: ItemContextType) => Item[];
-  getRootItems: (contextType?: ItemContextType) => Item[];
-  
-  // Ordering
-  reorderItems: (ids: string[], startIndex: number, endIndex: number) => void;
-  
-  // Completion
-  toggleComplete: (id: string) => boolean;
-  
-  // Refresh
-  reload: () => void;
-}
-
 export interface CreateItemData {
   name: string;
   contextType: ItemContextType;
-  userId: string;
+  userId?: string;
   parentId?: string | null;
   metadata?: Partial<ItemMetadata>;
   orderIndex?: number;
 }
 
-export function useItems(options: UseItemsOptions = {}): UseItemsReturn {
-  const { userId, contextTypes, parentId, includeCompleted = true } = options;
-  
-  const [allItems, setAllItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function useItems(options: UseItemsOptions = {}) {
+  const { contextTypes, parentId, includeCompleted = true } = options;
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Load items on mount
-  useEffect(() => {
-    setLoading(true);
-    try {
-      const loaded = loadItemsFromStorage();
-      setAllItems(loaded);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load items');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const userId = options.userId || user?.id;
+  const queryKey = ['items', userId, contextTypes, parentId, includeCompleted];
 
-  // Save items whenever they change
-  useEffect(() => {
-    if (!loading) {
-      saveItemsToStorage(allItems);
-    }
-  }, [allItems, loading]);
+  // Fetch items from Supabase
+  const { data: allItems = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      if (!userId) return [];
+
+      let query = supabase
+        .from('items')
+        .select('*')
+        .eq('user_id', userId);
+
+      // Filter by item type(s)
+      if (contextTypes && contextTypes.length > 0) {
+        query = query.in('item_type', contextTypes);
+      }
+
+      // Filter by parent
+      if (parentId !== undefined) {
+        if (parentId === null) {
+          query = query.is('parent_id', null);
+        } else {
+          query = query.eq('parent_id', parentId);
+        }
+      }
+
+      // Filter completed items
+      if (!includeCompleted) {
+        query = query.eq('is_completed', false);
+      }
+
+      query = query.order('order_index', { ascending: true });
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return (data as ItemRow[]).map(rowToItem);
+    },
+    enabled: !!userId,
+  });
+
+  const error = queryError ? (queryError as Error).message : null;
 
   // Filtered items based on options
   const items = useMemo(() => {
-    let filtered = allItems;
-    
-    if (userId) {
-      filtered = filtered.filter(item => item.userId === userId);
-    }
-    
-    if (contextTypes && contextTypes.length > 0) {
-      filtered = filtered.filter(item => contextTypes.includes(item.contextType));
-    }
-    
-    if (parentId !== undefined) {
-      filtered = filtered.filter(item => item.parentId === parentId);
-    }
-    
-    if (!includeCompleted) {
-      filtered = filtered.filter(item => !item.isCompleted);
-    }
-    
-    return filtered.sort((a, b) => a.orderIndex - b.orderIndex);
-  }, [allItems, userId, contextTypes, parentId, includeCompleted]);
-
-  // ============= CRUD Operations =============
-  
-  const handleCreateItem = useCallback((data: CreateItemData): Item | { missingFields: (keyof ItemMetadata)[] } => {
-    const schema = CONTEXT_SCHEMAS[data.contextType];
-    const defaultMeta = getDefaultMetadata(data.contextType);
-    const mergedMetadata = { ...defaultMeta, ...data.metadata };
-    
-    // Check required fields
-    const missingFields = getMissingRequiredFields(data.contextType, mergedMetadata);
-    if (missingFields.length > 0) {
-      return { missingFields };
-    }
-    
-    const newItem = createItem({
-      name: data.name,
-      contextType: data.contextType,
-      userId: data.userId,
-      parentId: data.parentId ?? null,
-      metadata: mergedMetadata,
-      orderIndex: data.orderIndex ?? allItems.filter(i => 
-        i.contextType === data.contextType && 
-        i.parentId === (data.parentId ?? null)
-      ).length
-    });
-    
-    setAllItems(prev => [...prev, newItem]);
-    return newItem;
+    return allItems.sort((a, b) => a.orderIndex - b.orderIndex);
   }, [allItems]);
 
-  const handleUpdateItem = useCallback((id: string, updates: Partial<Item>): boolean => {
-    let found = false;
-    
-    setAllItems(prev => prev.map(item => {
-      if (item.id === id) {
-        found = true;
-        return {
-          ...item,
-          ...updates,
-          metadata: updates.metadata 
-            ? { ...item.metadata, ...updates.metadata }
-            : item.metadata,
-          updatedAt: new Date()
-        };
+  // ============= Create Item =============
+  const createItemMutation = useMutation({
+    mutationFn: async (data: CreateItemData) => {
+      const itemUserId = data.userId || userId;
+      if (!itemUserId) throw new Error('User not authenticated');
+
+      const defaultMeta = getDefaultMetadata(data.contextType);
+      const mergedMetadata = { ...defaultMeta, ...data.metadata };
+
+      // Check required fields
+      const missingFields = getMissingRequiredFields(data.contextType, mergedMetadata);
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
-      return item;
-    }));
-    
-    return found;
-  }, []);
 
-  const handleDeleteItem = useCallback((id: string, deleteChildren = true): boolean => {
-    let found = false;
-    
-    setAllItems(prev => {
-      const itemToDelete = prev.find(i => i.id === id);
-      if (!itemToDelete) return prev;
-      
-      found = true;
-      
-      if (deleteChildren) {
-        // Recursively find all children
-        const idsToDelete = new Set<string>([id]);
-        let changed = true;
-        
-        while (changed) {
-          changed = false;
-          for (const item of prev) {
-            if (item.parentId && idsToDelete.has(item.parentId) && !idsToDelete.has(item.id)) {
-              idsToDelete.add(item.id);
-              changed = true;
-            }
-          }
-        }
-        
-        return prev.filter(item => !idsToDelete.has(item.id));
-      }
-      
-      return prev.filter(item => item.id !== id);
-    });
-    
-    return found;
-  }, []);
+      const orderIndex = data.orderIndex ?? items.filter(i => 
+        i.contextType === data.contextType && 
+        i.parentId === (data.parentId ?? null)
+      ).length;
 
-  // ============= Bulk Operations =============
-  
-  const handleUpdateItems = useCallback((updates: { id: string; updates: Partial<Item> }[]): boolean => {
-    const updateMap = new Map(updates.map(u => [u.id, u.updates]));
-    
-    setAllItems(prev => prev.map(item => {
-      const itemUpdates = updateMap.get(item.id);
-      if (itemUpdates) {
-        return {
-          ...item,
-          ...itemUpdates,
-          metadata: itemUpdates.metadata 
-            ? { ...item.metadata, ...itemUpdates.metadata }
-            : item.metadata,
-          updatedAt: new Date()
-        };
-      }
-      return item;
-    }));
-    
-    return true;
-  }, []);
+      const insertData = {
+        user_id: itemUserId,
+        name: data.name,
+        item_type: data.contextType,
+        category: (mergedMetadata.category as string) || 'Autres',
+        context: (mergedMetadata.context as string) || 'Perso',
+        estimatedTime: (mergedMetadata.estimatedTime as number) || 30,
+        parent_id: data.parentId ?? null,
+        order_index: orderIndex,
+        is_completed: false,
+        metadata: mergedMetadata as Json,
+      };
 
-  const handleDeleteItems = useCallback((ids: string[]): boolean => {
-    const idsSet = new Set(ids);
-    setAllItems(prev => prev.filter(item => !idsSet.has(item.id)));
-    return true;
-  }, []);
+      const { data: result, error } = await supabase
+        .from('items')
+        .insert(insertData as never)
+        .select()
+        .single();
 
-  // ============= Context Transformation =============
-  
-  const handleTransformContext = useCallback((
-    id: string,
-    newContextType: ItemContextType,
-    additionalMetadata?: Partial<ItemMetadata>
-  ): TransformationResult => {
-    const item = allItems.find(i => i.id === id);
-    if (!item) {
-      return { success: false, error: 'Item not found' };
-    }
-    
-    const children = allItems.filter(i => i.parentId === id);
-    const result = transformItemContext(item, newContextType, additionalMetadata, children);
-    
-    if (result.success && result.item) {
-      // Apply main item transformation
-      handleUpdateItem(id, {
-        contextType: result.item.contextType,
-        metadata: result.item.metadata,
-        parentId: result.item.parentId
+      if (error) throw error;
+
+      return rowToItem(result as ItemRow);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: `Impossible de créer l'élément: ${error.message}`,
+        variant: 'destructive',
       });
-      
+    },
+  });
+
+  // ============= Update Item =============
+  const updateItemMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Item> }) => {
+      const dbUpdates: Record<string, unknown> = {};
+
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.contextType !== undefined) dbUpdates.item_type = updates.contextType;
+      if (updates.parentId !== undefined) dbUpdates.parent_id = updates.parentId;
+      if (updates.orderIndex !== undefined) dbUpdates.order_index = updates.orderIndex;
+      if (updates.isCompleted !== undefined) dbUpdates.is_completed = updates.isCompleted;
+      if (updates.metadata !== undefined) {
+        dbUpdates.metadata = updates.metadata;
+        // Also update top-level harmonized fields from metadata
+        if (updates.metadata.category) dbUpdates.category = updates.metadata.category;
+        if (updates.metadata.context) dbUpdates.context = updates.metadata.context;
+        if (updates.metadata.estimatedTime) dbUpdates.estimatedTime = updates.metadata.estimatedTime;
+      }
+
+      const { data, error } = await supabase
+        .from('items')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return rowToItem(data as ItemRow);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: `Impossible de mettre à jour l'élément: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // ============= Delete Item =============
+  const deleteItemMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // Children are deleted automatically via ON DELETE CASCADE
+      const { error } = await supabase
+        .from('items')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: `Impossible de supprimer l'élément: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // ============= Transform Item Context =============
+  const transformItemMutation = useMutation({
+    mutationFn: async ({ 
+      id, 
+      newContextType, 
+      additionalMetadata 
+    }: { 
+      id: string; 
+      newContextType: ItemContextType; 
+      additionalMetadata?: Partial<ItemMetadata>;
+    }) => {
+      const item = items.find(i => i.id === id);
+      if (!item) throw new Error('Item not found');
+
+      const children = items.filter(i => i.parentId === id);
+      const result = transformItemContext(item, newContextType, additionalMetadata, children);
+
+      if (!result.success || !result.item) {
+        throw new Error(result.error || 'Transformation failed');
+      }
+
+      // Update main item
+      await supabase
+        .from('items')
+        .update({
+          item_type: result.item.contextType,
+          metadata: result.item.metadata as Json,
+          parent_id: result.item.parentId,
+          category: (result.item.metadata.category as string) || 'Autres',
+          context: (result.item.metadata.context as string) || 'Perso',
+          estimatedTime: (result.item.metadata.estimatedTime as number) || 30,
+        } as never)
+        .eq('id', id);
+
       // Apply children transformations
       if (result.childrenUpdates && result.childrenUpdates.length > 0) {
         const childResults = applyChildTransformations(children, result.childrenUpdates);
         
         for (const childResult of childResults) {
           if (childResult.success && childResult.item) {
-            handleUpdateItem(childResult.item.id, {
-              contextType: childResult.item.contextType,
-              metadata: childResult.item.metadata,
-              parentId: childResult.item.parentId
-            });
+            await supabase
+              .from('items')
+              .update({
+                item_type: childResult.item.contextType,
+                metadata: childResult.item.metadata as Json,
+                parent_id: childResult.item.parentId,
+              } as never)
+              .eq('id', childResult.item.id);
           }
         }
       }
-    }
-    
-    return result;
-  }, [allItems, handleUpdateItem]);
+
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      toast({
+        title: 'Transformation réussie',
+        description: `L'élément a été transformé en ${variables.newContextType}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: `Impossible de transformer l'élément: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // ============= Helper Functions =============
+
+  const handleCreateItem = useCallback((data: CreateItemData): Promise<Item> => {
+    return createItemMutation.mutateAsync(data);
+  }, [createItemMutation]);
+
+  const handleUpdateItem = useCallback((id: string, updates: Partial<Item>): Promise<Item> => {
+    return updateItemMutation.mutateAsync({ id, updates });
+  }, [updateItemMutation]);
+
+  const handleDeleteItem = useCallback((id: string): Promise<void> => {
+    return deleteItemMutation.mutateAsync(id);
+  }, [deleteItemMutation]);
+
+  const handleTransformContext = useCallback((
+    id: string,
+    newContextType: ItemContextType,
+    additionalMetadata?: Partial<ItemMetadata>
+  ): Promise<TransformationResult> => {
+    return transformItemMutation.mutateAsync({ id, newContextType, additionalMetadata });
+  }, [transformItemMutation]);
 
   // ============= Queries =============
   
   const getItem = useCallback((id: string): Item | undefined => {
-    return allItems.find(item => item.id === id);
-  }, [allItems]);
+    return items.find(item => item.id === id);
+  }, [items]);
 
   const getChildren = useCallback((parentId: string): Item[] => {
-    return allItems
+    return items
       .filter(item => item.parentId === parentId)
       .sort((a, b) => a.orderIndex - b.orderIndex);
-  }, [allItems]);
+  }, [items]);
 
   const getByContext = useCallback((contextType: ItemContextType): Item[] => {
-    return allItems
+    return items
       .filter(item => item.contextType === contextType)
       .sort((a, b) => a.orderIndex - b.orderIndex);
-  }, [allItems]);
+  }, [items]);
 
   const getRootItems = useCallback((contextType?: ItemContextType): Item[] => {
-    return allItems
+    return items
       .filter(item => item.parentId === null && (!contextType || item.contextType === contextType))
       .sort((a, b) => a.orderIndex - b.orderIndex);
-  }, [allItems]);
+  }, [items]);
 
-  // ============= Ordering =============
+  // ============= Bulk Operations =============
+
+  const updateItems = useCallback(async (updates: { id: string; updates: Partial<Item> }[]): Promise<boolean> => {
+    try {
+      await Promise.all(updates.map(u => handleUpdateItem(u.id, u.updates)));
+      return true;
+    } catch {
+      return false;
+    }
+  }, [handleUpdateItem]);
+
+  const deleteItems = useCallback(async (ids: string[]): Promise<boolean> => {
+    try {
+      await Promise.all(ids.map(id => handleDeleteItem(id)));
+      return true;
+    } catch {
+      return false;
+    }
+  }, [handleDeleteItem]);
+
+  // ============= Reordering =============
   
-  const reorderItems = useCallback((ids: string[], startIndex: number, endIndex: number): void => {
+  const reorderItems = useCallback(async (ids: string[], startIndex: number, endIndex: number): Promise<void> => {
     const reorderedIds = [...ids];
     const [removed] = reorderedIds.splice(startIndex, 1);
     reorderedIds.splice(endIndex, 0, removed);
@@ -345,80 +412,121 @@ export function useItems(options: UseItemsOptions = {}): UseItemsReturn {
       updates: { orderIndex: index }
     }));
     
-    handleUpdateItems(updates);
-  }, [handleUpdateItems]);
+    await updateItems(updates);
+  }, [updateItems]);
 
-  // ============= Completion =============
+  // ============= Toggle Complete =============
   
-  const toggleComplete = useCallback((id: string): boolean => {
-    const item = allItems.find(i => i.id === id);
+  const toggleComplete = useCallback(async (id: string): Promise<boolean> => {
+    const item = items.find(i => i.id === id);
     if (!item) return false;
     
-    return handleUpdateItem(id, {
-      isCompleted: !item.isCompleted,
-      metadata: {
-        ...item.metadata,
-        completedAt: !item.isCompleted ? new Date() : undefined
-      }
-    });
-  }, [allItems, handleUpdateItem]);
+    try {
+      await handleUpdateItem(id, {
+        isCompleted: !item.isCompleted,
+        metadata: {
+          ...item.metadata,
+          completedAt: !item.isCompleted ? new Date() : undefined
+        }
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [items, handleUpdateItem]);
 
-  // ============= Refresh =============
+  // ============= Reload =============
   
   const reload = useCallback(() => {
-    setLoading(true);
-    const loaded = loadItemsFromStorage();
-    setAllItems(loaded);
-    setLoading(false);
-  }, []);
+    queryClient.invalidateQueries({ queryKey: ['items'] });
+  }, [queryClient]);
 
   return {
+    // State
     items,
     loading,
     error,
+    
+    // CRUD Operations
     createItem: handleCreateItem,
     updateItem: handleUpdateItem,
     deleteItem: handleDeleteItem,
-    updateItems: handleUpdateItems,
-    deleteItems: handleDeleteItems,
+    
+    // Mutations (for direct access)
+    createItemMutation,
+    updateItemMutation,
+    deleteItemMutation,
+    transformItemMutation,
+    
+    // Bulk Operations
+    updateItems,
+    deleteItems,
+    
+    // Context Transformation
     transformContext: handleTransformContext,
+    
+    // Queries
     getItem,
     getChildren,
     getByContext,
     getRootItems,
+    
+    // Ordering
     reorderItems,
+    
+    // Completion
     toggleComplete,
-    reload
+    
+    // Refresh
+    reload,
   };
 }
 
 // ============= Specialized Hooks =============
 // These wrap useItems with specific context filters for convenience
 
-export function useTaskItems(userId: string) {
+export function useTaskItems(userId?: string) {
   return useItems({
     userId,
-    contextTypes: ['task', 'subtask', 'project_task']
+    contextTypes: ['task'],
+    parentId: null,
   });
 }
 
-export function useProjectItems(userId: string) {
+export function useSubtaskItems(parentId: string, userId?: string) {
   return useItems({
     userId,
-    contextTypes: ['project']
+    contextTypes: ['subtask'],
+    parentId,
   });
 }
 
-export function useHabitItems(userId: string) {
+export function useProjectItems(userId?: string) {
   return useItems({
     userId,
-    contextTypes: ['habit']
+    contextTypes: ['project'],
   });
 }
 
-export function useDeckItems(userId: string) {
+export function useProjectTaskItems(projectId: string, userId?: string) {
   return useItems({
     userId,
-    contextTypes: ['deck']
+    contextTypes: ['project_task'],
+    parentId: projectId,
+  });
+}
+
+export function useHabitItems(userId?: string, deckId?: string) {
+  return useItems({
+    userId,
+    contextTypes: ['habit'],
+    parentId: deckId,
+  });
+}
+
+export function useDeckItems(userId?: string) {
+  return useItems({
+    userId,
+    contextTypes: ['deck'],
   });
 }
