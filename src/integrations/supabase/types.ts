@@ -350,6 +350,62 @@ export type Database = {
           },
         ]
       }
+      items: {
+        Row: {
+          category: string
+          context: string
+          created_at: string | null
+          estimatedTime: number
+          id: string
+          is_completed: boolean
+          item_type: string
+          metadata: Json | null
+          name: string
+          order_index: number
+          parent_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          context?: string
+          created_at?: string | null
+          estimatedTime?: number
+          id?: string
+          is_completed?: boolean
+          item_type: string
+          metadata?: Json | null
+          name: string
+          order_index?: number
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          context?: string
+          created_at?: string | null
+          estimatedTime?: number
+          id?: string
+          is_completed?: boolean
+          item_type?: string
+          metadata?: Json | null
+          name?: string
+          order_index?: number
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pinned_tasks: {
         Row: {
           created_at: string
