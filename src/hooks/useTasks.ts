@@ -1,238 +1,269 @@
+// ============= Tasks Hook (unified items wrapper) =============
+// This hook wraps useItems to provide backward-compatible Task operations
+// All data is now stored in the unified 'items' table
 
-import { Task } from '@/types/task';
-import { useTasksData } from './useTasksData';
-import { useTasksOperations } from './useTasksOperations';
-import { useTasksUtils } from './useTasksUtils';
+import { useCallback, useMemo } from 'react';
+import { useItems } from './useItems';
 import { useGamification } from './useGamification';
 import { useAchievements } from './useAchievements';
-import { useActionHistory } from './useActionHistory';
+import { Task, TaskCategory, TaskContext } from '@/types/task';
+import { Item, ItemMetadata } from '@/types/item';
+
+// Convert Item to Task for backward compatibility
+function itemToTask(item: Item): Task {
+  const meta = item.metadata || {};
+  return {
+    id: item.id,
+    name: item.name,
+    category: (meta.category as TaskCategory) || 'Autres',
+    subCategory: meta.subCategory as Task['subCategory'],
+    context: (meta.context as TaskContext) || 'Perso',
+    estimatedTime: (meta.estimatedTime as number) || 30,
+    duration: meta.duration as number | undefined,
+    level: (meta.level as Task['level']) || 0,
+    parentId: item.parentId || undefined,
+    isCompleted: item.isCompleted,
+    isExpanded: (meta.isExpanded as boolean) ?? true,
+    createdAt: item.createdAt,
+    projectId: meta.projectId as string | undefined,
+    projectStatus: meta.projectStatus as Task['projectStatus'],
+  };
+}
+
+// Convert Task to Item metadata
+function taskToItemMetadata(task: Partial<Task>): Partial<ItemMetadata> {
+  return {
+    category: task.category,
+    subCategory: task.subCategory,
+    context: task.context,
+    estimatedTime: task.estimatedTime,
+    duration: task.duration,
+    level: task.level,
+    isExpanded: task.isExpanded,
+    projectId: task.projectId,
+    projectStatus: task.projectStatus,
+  };
+}
 
 export const useTasks = () => {
-  const { tasks, setTasks, pinnedTasks, setPinnedTasks, saveTask, completeTask, deleteTask, updateLocalTask, updateLocalTasks } = useTasksData();
-  const { undo, redo, canUndo, canRedo } = useActionHistory();
+  const { 
+    items, 
+    loading, 
+    createItem, 
+    updateItem, 
+    deleteItem, 
+    toggleComplete,
+    togglePin,
+    getPinnedItems,
+    reload 
+  } = useItems({ 
+    contextTypes: ['task', 'subtask', 'project_task'] 
+  });
+  
   const { rewardTaskCompletion } = useGamification();
   const { checkAndUnlockAchievement } = useAchievements();
+
+  // Convert items to tasks
+  const tasks = useMemo(() => items.map(itemToTask), [items]);
   
-  const { addTask, removeTask, scheduleTask } = useTasksOperations(
-    tasks,
-    setTasks,  
-    setPinnedTasks,
-    saveTask,
-    { deleteTask }
+  // Get pinned task IDs
+  const pinnedTasks = useMemo(() => 
+    getPinnedItems('task').map(i => i.id), 
+    [getPinnedItems]
   );
 
-  // Use database-aware completion function for recurring tasks
-  const toggleTaskCompletion = async (taskId: string) => {
+  // Main tasks (level 0, not project tasks)
+  const mainTasks = useMemo(() => 
+    tasks.filter(t => t.level === 0 && !t.projectId),
+    [tasks]
+  );
+
+  // Completed tasks
+  const completedTasks = useMemo(() => 
+    tasks.filter(t => t.isCompleted),
+    [tasks]
+  );
+
+  // Completion rate
+  const completionRate = useMemo(() => {
+    if (tasks.length === 0) return 0;
+    return Math.round((completedTasks.length / tasks.length) * 100);
+  }, [tasks, completedTasks]);
+
+  // Total time
+  const totalProjectTime = useMemo(() => 
+    tasks.reduce((sum, t) => sum + (t.estimatedTime || 0), 0),
+    [tasks]
+  );
+
+  // Add task
+  const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    const contextType = taskData.level === 0 
+      ? (taskData.projectId ? 'project_task' : 'task') 
+      : 'subtask';
+    
+    await createItem({
+      name: taskData.name,
+      contextType,
+      parentId: taskData.parentId || null,
+      metadata: taskToItemMetadata(taskData),
+    });
+  }, [createItem]);
+
+  // Remove task
+  const removeTask = useCallback(async (taskId: string) => {
+    await deleteItem(taskId);
+  }, [deleteItem]);
+
+  // Toggle completion with gamification
+  const toggleTaskCompletion = useCallback(async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
+    await toggleComplete(taskId);
+    
+    // Reward if completing (not uncompleting)
     if (!task.isCompleted) {
-      await completeTask(taskId);
       await rewardTaskCompletion(task);
       const newCount = tasks.filter(t => t.isCompleted).length + 1;
       await checkAndUnlockAchievement('tasks_10', newCount);
-    } else {
-      const updatedTask = { ...task, isCompleted: !task.isCompleted };
-      setTasks(prevTasks =>
-        prevTasks.map(t =>
-          t.id === taskId ? updatedTask : t
-        )
-      );
-      await saveTask(updatedTask);
-      if (updatedTask.isCompleted) {
-        await rewardTaskCompletion(task);
-        const newCount = tasks.filter(t => t.isCompleted).length + 1;
-        await checkAndUnlockAchievement('tasks_10', newCount);
-      }
     }
-  };
+  }, [tasks, toggleComplete, rewardTaskCompletion, checkAndUnlockAchievement]);
 
-  const {
-    getSubTasks,
-    calculateTotalTime,
-    canHaveSubTasks,
-    mainTasks,
-    totalProjectTime,
-    completedTasks,
-    completionRate
-  } = useTasksUtils(tasks, pinnedTasks);
-
-  
-
-  const toggleTaskExpansion = async (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const updatedTask = { ...task, isExpanded: !task.isExpanded };
-    setTasks(prevTasks => 
-      prevTasks.map(t => 
-        t.id === taskId ? updatedTask : t
-      )
-    );
-    // Save to database
-    await saveTask(updatedTask);
-  };
-
-  const togglePinTask = (taskId: string) => {
-    const currentPinned = Array.isArray(pinnedTasks) ? pinnedTasks : [];
-    const isPinned = currentPinned.includes(taskId);
+  // Toggle expansion
+  const toggleTaskExpansion = useCallback(async (taskId: string) => {
+    const item = items.find(i => i.id === taskId);
+    if (!item) return;
     
-    const newPinnedTasks = isPinned 
-      ? currentPinned.filter(id => id !== taskId)
-      : [taskId, ...currentPinned];
-    
-    setPinnedTasks(newPinnedTasks);
-    console.log('Tâche épinglage togglee:', taskId, 'Nouvelles tâches épinglées:', newPinnedTasks);
-  };
+    await updateItem(taskId, {
+      metadata: { ...item.metadata, isExpanded: !(item.metadata.isExpanded ?? true) }
+    });
+  }, [items, updateItem]);
 
-  const reorderTasks = async (startIndex: number, endIndex: number) => {
-    const mainTasksOnly = tasks.filter(t => t.level === 0);
-    const otherTasks = tasks.filter(t => t.level > 0);
+  // Toggle pin
+  const togglePinTask = useCallback(async (taskId: string) => {
+    await togglePin(taskId);
+  }, [togglePin]);
+
+  // Update task
+  const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
+    const item = items.find(i => i.id === taskId);
+    if (!item) return;
+
+    const newMetadata = { ...item.metadata, ...taskToItemMetadata(updates) };
     
-    const result = Array.from(mainTasksOnly);
+    await updateItem(taskId, {
+      name: updates.name ?? item.name,
+      isCompleted: updates.isCompleted ?? item.isCompleted,
+      parentId: updates.parentId ?? item.parentId,
+      metadata: newMetadata,
+    });
+  }, [items, updateItem]);
+
+  // Get subtasks
+  const getSubTasks = useCallback((parentId: string) => {
+    return tasks.filter(t => t.parentId === parentId);
+  }, [tasks]);
+
+  // Calculate total time including subtasks
+  const calculateTotalTime = useCallback((task: Task) => {
+    const subTasks = getSubTasks(task.id);
+    const subTime = subTasks.reduce((sum, st) => sum + (st.estimatedTime || 0), 0);
+    return (task.estimatedTime || 0) + subTime;
+  }, [getSubTasks]);
+
+  // Can have subtasks
+  const canHaveSubTasks = useCallback((task: Task) => {
+    return task.level < 2;
+  }, []);
+
+  // Schedule task (placeholder - to be integrated with time_events)
+  const scheduleTask = useCallback(async (taskId: string, date: Date) => {
+    const item = items.find(i => i.id === taskId);
+    if (!item) return;
+    
+    await updateItem(taskId, {
+      metadata: { ...item.metadata, scheduledDate: date }
+    });
+  }, [items, updateItem]);
+
+  // Unschedule task
+  const unscheduleTask = useCallback(async (taskId: string) => {
+    const item = items.find(i => i.id === taskId);
+    if (!item) return;
+    
+    const { scheduledDate, scheduledTime, ...rest } = item.metadata;
+    await updateItem(taskId, { metadata: rest });
+  }, [items, updateItem]);
+
+  // Reorder tasks
+  const reorderTasks = useCallback(async (startIndex: number, endIndex: number) => {
+    const mainTasksList = mainTasks;
+    const result = [...mainTasksList];
     const [removed] = result.splice(startIndex, 1);
     result.splice(endIndex, 0, removed);
     
-    const newTasks = [...result, ...otherTasks];
-    setTasks(newTasks);
-    
-    // Save all reordered main tasks to database
-    const savePromises = result.map(task => saveTask(task));
-    await Promise.all(savePromises);
-    
-    console.log('Tâches réorganisées');
-  };
+    // Update order indices
+    for (let i = 0; i < result.length; i++) {
+      const item = items.find(it => it.id === result[i].id);
+      if (item) {
+        await updateItem(item.id, { orderIndex: i });
+      }
+    }
+  }, [mainTasks, items, updateItem]);
 
-  const sortTasks = async (sortBy: 'name' | 'duration' | 'category') => {
-    const mainTasksOnly = tasks.filter(t => t.level === 0);
-    const otherTasks = tasks.filter(t => t.level > 0);
-    
-    const sorted = [...mainTasksOnly].sort((a, b) => {
+  // Sort tasks
+  const sortTasks = useCallback(async (sortBy: 'name' | 'duration' | 'category') => {
+    const sorted = [...mainTasks].sort((a, b) => {
       switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'duration':
-          return calculateTotalTime(a) - calculateTotalTime(b);
-        case 'category':
-          return a.category.localeCompare(b.category);
-        default:
-          return 0;
+        case 'name': return a.name.localeCompare(b.name);
+        case 'duration': return calculateTotalTime(a) - calculateTotalTime(b);
+        case 'category': return a.category.localeCompare(b.category);
+        default: return 0;
       }
     });
     
-    const newTasks = [...sorted, ...otherTasks];
-    setTasks(newTasks);
-    
-    // Save all sorted main tasks to database
-    const savePromises = sorted.map(task => saveTask(task));
-    await Promise.all(savePromises);
-    
-    console.log('Tâches triées par:', sortBy);
-  };
-
-  const unscheduleTask = async (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const updatedTask = { ...task, scheduledDate: undefined, scheduledTime: undefined };
-    setTasks(prevTasks => 
-      prevTasks.map(t => 
-        t.id === taskId ? updatedTask : t
-      )
-    );
-    // Save to database
-    await saveTask(updatedTask);
-    console.log('Tâche déprogrammée:', taskId);
-  };
-
-  const updateTaskDuration = async (taskId: string, duration: number) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const updatedTask = { ...task, duration };
-    setTasks(prevTasks =>
-      prevTasks.map(t =>
-        t.id === taskId ? updatedTask : t
-      )
-    );
-    // Save to database
-    await saveTask(updatedTask);
-  };
-
-  const restoreTask = async (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const updatedTask = { ...task, isCompleted: false };
-    setTasks(prevTasks =>
-      prevTasks.map(t =>
-        t.id === taskId ? updatedTask : t
-      )
-    );
-    // Save to database
-    await saveTask(updatedTask);
-    console.log('Tâche restaurée:', taskId);
-  };
-
-  const scheduleTaskWithTime = async (taskId: string, startTime: Date, duration: number) => {
-    try {
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
-
-      const updatedTask = { ...task, startTime, duration };
-      setTasks(prevTasks =>
-        prevTasks.map(t =>
-          t.id === taskId ? updatedTask : t
-        )
-      );
-      // Save to database
-      await saveTask(updatedTask);
-      console.log('Tâche planifiée avec horaire:', taskId, startTime, duration);
-    } catch (error) {
-      console.warn('Erreur planification tâche:', error);
-      throw error;
-    }
-  };
-
-  const updateTask = async (taskId: string, updates: Partial<Task> & { _scheduleInfo?: any }) => {
-    try {
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) {
-        console.warn('[updateTask] Tâche non trouvée:', taskId);
-        return;
+    for (let i = 0; i < sorted.length; i++) {
+      const item = items.find(it => it.id === sorted[i].id);
+      if (item) {
+        await updateItem(item.id, { orderIndex: i });
       }
-
-      // Extraire les infos de planification avant merge
-      const scheduleInfo = (updates as any)._scheduleInfo;
-      const { _scheduleInfo, ...cleanUpdates } = updates as any;
-
-      // Créer la tâche mise à jour immédiatement (pour éviter problèmes de closure)
-      const updatedTask = { ...task, ...cleanUpdates };
-      
-      console.log('[updateTask] Mise à jour tâche:', taskId, 'Updates:', cleanUpdates);
-      console.log('[updateTask] projectId dans updates:', cleanUpdates.projectId);
-      
-      // Mise à jour optimiste du state
-      setTasks(prevTasks => 
-        prevTasks.map(t => t.id === taskId ? updatedTask : t)
-      );
-      
-      // Ajouter les infos de planification pour la synchronisation time_events
-      if (scheduleInfo) {
-        (updatedTask as any)._scheduleInfo = scheduleInfo;
-      }
-      
-      // Sauvegarder en DB
-      console.log('[updateTask] Sauvegarde en DB avec projectId:', updatedTask.projectId);
-      await saveTask(updatedTask);
-      
-      console.log('[updateTask] Tâche sauvegardée:', taskId, scheduleInfo ? '(avec planification)' : '');
-    } catch (error) {
-      console.warn('[updateTask] Erreur:', error);
-      throw error;
     }
-  };
+  }, [mainTasks, items, updateItem, calculateTotalTime]);
 
+  // Restore task (un-complete)
+  const restoreTask = useCallback(async (taskId: string) => {
+    await updateItem(taskId, { isCompleted: false });
+  }, [updateItem]);
+
+  // Update task duration
+  const updateTaskDuration = useCallback(async (taskId: string, duration: number) => {
+    const item = items.find(i => i.id === taskId);
+    if (!item) return;
+    
+    await updateItem(taskId, {
+      metadata: { ...item.metadata, duration }
+    });
+  }, [items, updateItem]);
+
+  // Schedule with time
+  const scheduleTaskWithTime = useCallback(async (taskId: string, startTime: Date, duration: number) => {
+    const item = items.find(i => i.id === taskId);
+    if (!item) return;
+    
+    await updateItem(taskId, {
+      metadata: { ...item.metadata, startTime, duration }
+    });
+  }, [items, updateItem]);
+
+  // Local update helpers (for optimistic UI)
+  const updateLocalTask = useCallback((taskId: string, updates: Partial<Task>) => {
+    // React Query handles this automatically
+  }, []);
+
+  const updateLocalTasks = useCallback((taskIds: string[], updates: Partial<Task>) => {
+    // React Query handles this automatically
+  }, []);
 
   return {
     tasks,
@@ -252,10 +283,10 @@ export const useTasks = () => {
     totalProjectTime,
     completedTasks,
     completionRate,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
+    undo: () => {}, // Placeholder
+    redo: () => {}, // Placeholder
+    canUndo: false,
+    canRedo: false,
     scheduleTask,
     unscheduleTask,
     updateTaskDuration,
@@ -264,5 +295,7 @@ export const useTasks = () => {
     updateTask,
     updateLocalTask,
     updateLocalTasks,
+    isLoading: loading,
+    reload,
   };
 };

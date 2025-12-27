@@ -38,6 +38,7 @@ export interface Item {
   metadata: ItemMetadata;       // JSONB field for type-specific data
   orderIndex: number;
   isCompleted: boolean;
+  isPinned: boolean;            // Replaces pinned_tasks table
   createdAt: Date;
   updatedAt: Date;
 }
@@ -227,6 +228,7 @@ export function createItem(
     metadata: partial.metadata ?? {},
     orderIndex: partial.orderIndex ?? 0,
     isCompleted: partial.isCompleted ?? false,
+    isPinned: partial.isPinned ?? false,
     createdAt: partial.createdAt ?? new Date(),
     updatedAt: partial.updatedAt ?? new Date()
   };
