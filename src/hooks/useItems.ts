@@ -28,6 +28,7 @@ interface ItemRow {
   parent_id: string | null;
   order_index: number;
   is_completed: boolean;
+  is_pinned: boolean;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -49,6 +50,7 @@ function rowToItem(row: ItemRow): Item {
     } as ItemMetadata,
     orderIndex: row.order_index,
     isCompleted: row.is_completed,
+    isPinned: row.is_pinned,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -67,6 +69,7 @@ function itemToRow(item: Partial<Item> & { name: string; contextType: ItemContex
     parent_id: item.parentId || null,
     order_index: item.orderIndex || 0,
     is_completed: item.isCompleted || false,
+    is_pinned: item.isPinned || false,
     metadata: metadata,
   };
 }
@@ -175,6 +178,7 @@ export function useItems(options: UseItemsOptions = {}) {
         parent_id: data.parentId ?? null,
         order_index: orderIndex,
         is_completed: false,
+        is_pinned: false,
         metadata: mergedMetadata as Json,
       };
 
@@ -210,6 +214,7 @@ export function useItems(options: UseItemsOptions = {}) {
       if (updates.parentId !== undefined) dbUpdates.parent_id = updates.parentId;
       if (updates.orderIndex !== undefined) dbUpdates.order_index = updates.orderIndex;
       if (updates.isCompleted !== undefined) dbUpdates.is_completed = updates.isCompleted;
+      if (updates.isPinned !== undefined) dbUpdates.is_pinned = updates.isPinned;
       if (updates.metadata !== undefined) {
         dbUpdates.metadata = updates.metadata;
         // Also update top-level harmonized fields from metadata
@@ -435,6 +440,28 @@ export function useItems(options: UseItemsOptions = {}) {
     }
   }, [items, handleUpdateItem]);
 
+  // ============= Toggle Pin =============
+  
+  const togglePin = useCallback(async (id: string): Promise<boolean> => {
+    const item = items.find(i => i.id === id);
+    if (!item) return false;
+    
+    try {
+      await handleUpdateItem(id, { isPinned: !item.isPinned });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [items, handleUpdateItem]);
+
+  // ============= Get Pinned Items =============
+  
+  const getPinnedItems = useCallback((contextType?: ItemContextType): Item[] => {
+    return items
+      .filter(item => item.isPinned && (!contextType || item.contextType === contextType))
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+  }, [items]);
+
   // ============= Reload =============
   
   const reload = useCallback(() => {
@@ -470,12 +497,14 @@ export function useItems(options: UseItemsOptions = {}) {
     getChildren,
     getByContext,
     getRootItems,
+    getPinnedItems,
     
     // Ordering
     reorderItems,
     
-    // Completion
+    // Completion & Pinning
     toggleComplete,
+    togglePin,
     
     // Refresh
     reload,

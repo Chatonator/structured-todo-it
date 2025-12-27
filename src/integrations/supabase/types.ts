@@ -358,6 +358,7 @@ export type Database = {
           estimatedTime: number
           id: string
           is_completed: boolean
+          is_pinned: boolean
           item_type: string
           metadata: Json | null
           name: string
@@ -373,6 +374,7 @@ export type Database = {
           estimatedTime?: number
           id?: string
           is_completed?: boolean
+          is_pinned?: boolean
           item_type: string
           metadata?: Json | null
           name: string
@@ -388,6 +390,7 @@ export type Database = {
           estimatedTime?: number
           id?: string
           is_completed?: boolean
+          is_pinned?: boolean
           item_type?: string
           metadata?: Json | null
           name?: string

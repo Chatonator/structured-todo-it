@@ -1,122 +1,101 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Habit, HabitStreak, ChallengeEndAction, UnlockCondition } from '@/types/habit';
-import { logger } from '@/lib/logger';
-import { useToast } from '@/hooks/use-toast';
-import { useGamification } from '@/hooks/useGamification';
-import { useAchievements } from '@/hooks/useAchievements';
+// ============= Habits Hook (unified items wrapper) =============
+// This hook wraps useItems to provide backward-compatible Habit operations
+// All data is now stored in the unified 'items' table
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useItems } from './useItems';
+import { useAuth } from './useAuth';
+import { useToast } from './use-toast';
+import { useGamification } from './useGamification';
+import { useAchievements } from './useAchievements';
 import { useTimeEventSync } from './useTimeEventSync';
+import { Habit, HabitStreak } from '@/types/habit';
+import { Item, ItemMetadata } from '@/types/item';
+import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
-// Storage key for extended habit data (features not yet in DB)
-const EXTENDED_HABIT_DATA_KEY = 'habit_extended_data';
-
-interface ExtendedHabitData {
-  timesPerMonth?: number;
-  isChallenge?: boolean;
-  challengeStartDate?: string;
-  challengeEndDate?: string;
-  challengeDurationDays?: number;
-  challengeEndAction?: ChallengeEndAction;
-  isLocked?: boolean;
-  unlockCondition?: UnlockCondition;
+// Convert Item to Habit for backward compatibility
+function itemToHabit(item: Item): Habit {
+  const meta = item.metadata || {};
+  return {
+    id: item.id,
+    userId: item.userId,
+    name: item.name,
+    category: (meta.category as Habit['category']) || 'Quotidien',
+    context: (meta.context as Habit['context']) || 'Perso',
+    estimatedTime: (meta.estimatedTime as number) || 15,
+    description: meta.description as string | undefined,
+    deckId: item.parentId || (meta.deckId as string) || '',
+    frequency: (meta.frequency as Habit['frequency']) || 'daily',
+    timesPerWeek: meta.timesPerWeek as number | undefined,
+    timesPerMonth: meta.timesPerMonth as number | undefined,
+    targetDays: meta.targetDays as number[] | undefined,
+    isActive: (meta.isActive as boolean) ?? true,
+    order: item.orderIndex,
+    icon: meta.icon as string | undefined,
+    color: meta.color as string | undefined,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  isChallenge: meta.isChallenge as boolean | undefined,
+    challengeStartDate: meta.challengeStartDate ? new Date(meta.challengeStartDate as unknown as string) : undefined,
+    challengeEndDate: meta.challengeEndDate ? new Date(meta.challengeEndDate as unknown as string) : undefined,
+    challengeDurationDays: meta.challengeDurationDays as number | undefined,
+    challengeEndAction: meta.challengeEndAction as Habit['challengeEndAction'],
+    isLocked: meta.isLocked as boolean | undefined,
+    unlockCondition: meta.unlockCondition as Habit['unlockCondition'],
+  };
 }
 
-const getExtendedData = (): Record<string, ExtendedHabitData> => {
-  try {
-    const data = localStorage.getItem(EXTENDED_HABIT_DATA_KEY);
-    return data ? JSON.parse(data) : {};
-  } catch {
-    return {};
-  }
-};
-
-const setExtendedData = (habitId: string, data: ExtendedHabitData) => {
-  const allData = getExtendedData();
-  allData[habitId] = { ...allData[habitId], ...data };
-  localStorage.setItem(EXTENDED_HABIT_DATA_KEY, JSON.stringify(allData));
-};
-
-const removeExtendedData = (habitId: string) => {
-  const allData = getExtendedData();
-  delete allData[habitId];
-  localStorage.setItem(EXTENDED_HABIT_DATA_KEY, JSON.stringify(allData));
-};
+// Convert Habit to Item metadata
+function habitToItemMetadata(habit: Partial<Habit>): Partial<ItemMetadata> {
+  return {
+    category: habit.category || 'Quotidien',
+    context: habit.context || 'Perso',
+    estimatedTime: habit.estimatedTime || 15,
+    description: habit.description,
+    frequency: habit.frequency,
+    timesPerWeek: habit.timesPerWeek,
+    timesPerMonth: habit.timesPerMonth,
+    targetDays: habit.targetDays,
+    isActive: habit.isActive,
+    icon: habit.icon,
+    color: habit.color,
+    isChallenge: habit.isChallenge,
+    challengeStartDate: habit.challengeStartDate,
+    challengeEndDate: habit.challengeEndDate,
+    challengeDurationDays: habit.challengeDurationDays,
+    challengeEndAction: habit.challengeEndAction,
+    isLocked: habit.isLocked,
+    unlockCondition: habit.unlockCondition,
+  };
+}
 
 export const useHabits = (deckId: string | null) => {
-  const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
   const [streaks, setStreaks] = useState<Record<string, HabitStreak>>({});
-  const [loading, setLoading] = useState(true);
+  
   const { user } = useAuth();
   const { toast } = useToast();
   const { rewardHabitCompletion, rewardStreak } = useGamification();
   const { checkAndUnlockAchievement } = useAchievements();
   const { syncHabitEvent, deleteEntityEvent, toggleHabitCompletion, isHabitCompletedToday } = useTimeEventSync();
 
-  const loadHabits = useCallback(async () => {
-    if (!user || !deckId) {
-      setHabits([]);
-      setLoading(false);
-      return;
-    }
+  const { 
+    items, 
+    loading, 
+    createItem, 
+    updateItem, 
+    deleteItem,
+    reload 
+  } = useItems({ 
+    contextTypes: ['habit'],
+    parentId: deckId || undefined,
+  });
 
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('deck_id', deckId)
-        .eq('user_id', user.id)
-        .order('order', { ascending: true });
+  // Convert items to habits
+  const habits = useMemo(() => items.map(itemToHabit), [items]);
 
-      if (error) throw error;
-
-      // Get extended data from localStorage
-      const extendedData = getExtendedData();
-
-      const formattedHabits: Habit[] = (data || []).map(h => {
-        const extended = extendedData[h.id] || {};
-        return {
-          id: h.id,
-          userId: h.user_id,
-          name: h.name,
-          category: (h.category as Habit['category']) || 'Quotidien',
-          context: (h.context as Habit['context']) || 'Perso',
-          estimatedTime: h.estimatedTime || 15,
-          description: h.description,
-          deckId: h.deck_id,
-          frequency: h.frequency as Habit['frequency'],
-          timesPerWeek: h.times_per_week,
-          timesPerMonth: extended.timesPerMonth,
-          targetDays: h.target_days,
-          isActive: h.is_active,
-          order: h.order,
-          icon: h.icon,
-          color: h.color,
-          createdAt: new Date(h.created_at),
-          updatedAt: new Date(h.updated_at),
-          // Extended data from localStorage
-          isChallenge: extended.isChallenge,
-          challengeStartDate: extended.challengeStartDate ? new Date(extended.challengeStartDate) : undefined,
-          challengeEndDate: extended.challengeEndDate ? new Date(extended.challengeEndDate) : undefined,
-          challengeDurationDays: extended.challengeDurationDays,
-          challengeEndAction: extended.challengeEndAction,
-          isLocked: extended.isLocked,
-          unlockCondition: extended.unlockCondition,
-        };
-      });
-
-      setHabits(formattedHabits);
-    } catch (error: any) {
-      logger.error('Failed to load habits', { error: error.message });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, deckId]);
-
-  // Charger les complétions d'aujourd'hui depuis time_occurrences
+  // Load today's completions from time_occurrences
   const loadTodayCompletions = useCallback(async () => {
     if (!user || habits.length === 0) return;
 
@@ -134,7 +113,7 @@ export const useHabits = (deckId: string | null) => {
     }
   }, [user, habits, isHabitCompletedToday]);
 
-  // Calculer les streaks depuis time_occurrences
+  // Calculate streaks from time_occurrences
   const calculateStreaks = useCallback(async () => {
     if (!user || habits.length === 0) return;
 
@@ -142,7 +121,6 @@ export const useHabits = (deckId: string | null) => {
 
     for (const habit of habits) {
       try {
-        // Récupérer l'event_id de l'habitude
         const { data: event } = await supabase
           .from('time_events')
           .select('id')
@@ -156,7 +134,6 @@ export const useHabits = (deckId: string | null) => {
           continue;
         }
 
-        // Récupérer les occurrences complétées
         const { data: occurrences, error } = await supabase
           .from('time_occurrences')
           .select('starts_at')
@@ -219,7 +196,7 @@ export const useHabits = (deckId: string | null) => {
     setStreaks(streaksData);
   }, [user, habits]);
 
-  // Toggle via time_occurrences
+  // Toggle completion via time_occurrences
   const toggleCompletion = useCallback(async (habitId: string) => {
     if (!user) return false;
 
@@ -232,13 +209,11 @@ export const useHabits = (deckId: string | null) => {
         throw new Error('Failed to toggle completion');
       }
 
-      // Mettre à jour l'état local
       setCompletions(prev => ({
         ...prev,
         [habitId]: !wasCompleted
       }));
 
-      // Si on vient de compléter (pas de décocher)
       if (!wasCompleted) {
         const habit = habits.find(h => h.id === habitId);
         if (habit) {
@@ -252,7 +227,6 @@ export const useHabits = (deckId: string | null) => {
         }
       }
 
-      // Recalculer les streaks
       await calculateStreaks();
       
       return true;
@@ -267,72 +241,24 @@ export const useHabits = (deckId: string | null) => {
     }
   }, [user, completions, habits, streaks, toggleHabitCompletion, calculateStreaks, rewardHabitCompletion, checkAndUnlockAchievement, rewardStreak, toast]);
 
+  // Create habit
   const createHabit = useCallback(async (habit: Omit<Habit, 'id' | 'createdAt'>) => {
     if (!user || !deckId) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('habits')
-        .insert({
-          user_id: user.id,
-          deck_id: deckId,
-          name: habit.name,
-          category: habit.category || 'Quotidien',
-          context: habit.context || 'Perso',
-          estimatedTime: habit.estimatedTime || 15,
-          description: habit.description,
-          frequency: habit.frequency,
-          times_per_week: habit.timesPerWeek,
-          target_days: habit.targetDays,
-          is_active: habit.isActive,
-          order: habit.order,
-          icon: habit.icon,
-          color: habit.color,
-        })
-        .select()
-        .single();
+      const newItem = await createItem({
+        name: habit.name,
+        contextType: 'habit',
+        parentId: deckId,
+        metadata: habitToItemMetadata(habit),
+        orderIndex: habit.order ?? habits.length,
+      });
 
-      if (error) throw error;
-
-      // Store extended data in localStorage
-      if (data) {
-        const extendedData: ExtendedHabitData = {
-          timesPerMonth: habit.timesPerMonth,
-          isChallenge: habit.isChallenge,
-          challengeStartDate: habit.challengeStartDate?.toISOString(),
-          challengeEndDate: habit.challengeEndDate?.toISOString(),
-          challengeDurationDays: habit.challengeDurationDays,
-          challengeEndAction: habit.challengeEndAction,
-          isLocked: habit.isLocked,
-          unlockCondition: habit.unlockCondition,
-        };
-        setExtendedData(data.id, extendedData);
-      }
-
-      // Créer le time_event associé
-      const newHabit: Habit = {
-        id: data.id,
-        userId: data.user_id,
-        name: data.name,
-        category: (data.category as Habit['category']) || 'Quotidien',
-        context: (data.context as Habit['context']) || 'Perso',
-        estimatedTime: data.estimatedTime || 15,
-        description: data.description,
-        deckId: data.deck_id,
-        frequency: data.frequency as Habit['frequency'],
-        timesPerWeek: data.times_per_week,
-        targetDays: data.target_days,
-        isActive: data.is_active ?? true,
-        order: data.order,
-        icon: data.icon,
-        color: data.color,
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at)
-      };
+      // Sync with time_events
+      const newHabit = itemToHabit(newItem);
       await syncHabitEvent(newHabit);
 
-      await loadHabits();
-      return data.id;
+      return newItem.id;
     } catch (error: any) {
       logger.error('Failed to create habit', { error: error.message });
       toast({
@@ -342,133 +268,86 @@ export const useHabits = (deckId: string | null) => {
       });
       return null;
     }
-  }, [user, deckId, loadHabits, toast, syncHabitEvent]);
+  }, [user, deckId, createItem, habits.length, toast, syncHabitEvent]);
 
+  // Update habit
   const updateHabit = useCallback(async (habitId: string, updates: Partial<Habit>) => {
     if (!user) return false;
 
     try {
-      // Only update fields that exist in the database
-      const dbUpdates: Record<string, unknown> = {};
-      if (updates.name !== undefined) dbUpdates.name = updates.name;
-      if (updates.description !== undefined) dbUpdates.description = updates.description;
-      if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
-      if (updates.timesPerWeek !== undefined) dbUpdates.times_per_week = updates.timesPerWeek;
-      if (updates.targetDays !== undefined) dbUpdates.target_days = updates.targetDays;
-      if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
-      if (updates.order !== undefined) dbUpdates.order = updates.order;
-      if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
-      if (updates.color !== undefined) dbUpdates.color = updates.color;
+      const item = items.find(i => i.id === habitId);
+      if (!item) return false;
 
-      const { error } = await supabase
-        .from('habits')
-        .update(dbUpdates)
-        .eq('id', habitId)
-        .eq('user_id', user.id);
+      await updateItem(habitId, {
+        name: updates.name ?? item.name,
+        orderIndex: updates.order ?? item.orderIndex,
+        metadata: { ...item.metadata, ...habitToItemMetadata(updates) },
+      });
 
-      if (error) throw error;
+      // Sync with time_events
+      const updatedHabit = { ...itemToHabit(item), ...updates };
+      await syncHabitEvent(updatedHabit);
 
-      // Update extended data in localStorage
-      const extendedData: ExtendedHabitData = {
-        timesPerMonth: updates.timesPerMonth,
-        isChallenge: updates.isChallenge,
-        challengeStartDate: updates.challengeStartDate?.toISOString(),
-        challengeEndDate: updates.challengeEndDate?.toISOString(),
-        challengeDurationDays: updates.challengeDurationDays,
-        challengeEndAction: updates.challengeEndAction,
-        isLocked: updates.isLocked,
-        unlockCondition: updates.unlockCondition,
-      };
-      setExtendedData(habitId, extendedData);
-
-      // Synchroniser le time_event
-      const habit = habits.find(h => h.id === habitId);
-      if (habit) {
-        const updatedHabit = { ...habit, ...updates };
-        await syncHabitEvent(updatedHabit);
-      }
-
-      await loadHabits();
       return true;
     } catch (error: any) {
       logger.error('Failed to update habit', { error: error.message });
       return false;
     }
-  }, [user, habits, loadHabits, syncHabitEvent]);
+  }, [user, items, updateItem, syncHabitEvent]);
 
+  // Delete habit
   const deleteHabit = useCallback(async (habitId: string) => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
-        .from('habits')
-        .delete()
-        .eq('id', habitId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      // Remove extended data from localStorage
-      removeExtendedData(habitId);
-
-      // Supprimer le time_event associé
+      await deleteItem(habitId);
       await deleteEntityEvent('habit', habitId);
-
-      await loadHabits();
       return true;
     } catch (error: any) {
       logger.error('Failed to delete habit', { error: error.message });
       return false;
     }
-  }, [user, loadHabits, deleteEntityEvent]);
+  }, [user, deleteItem, deleteEntityEvent]);
 
+  // Is completed today
   const isCompletedToday = useCallback((habitId: string) => {
     return completions[habitId] || false;
   }, [completions]);
 
-  // Vérifier si une habitude est applicable aujourd'hui
+  // Is habit applicable today
   const isHabitApplicableToday = useCallback((habit: Habit) => {
-    // Vérifier si l'habitude est verrouillée
-    if (habit.isLocked) {
-      return false;
-    }
+    if (habit.isLocked) return false;
     
-    // Vérifier si le challenge est terminé
     if (habit.isChallenge && habit.challengeEndDate) {
-      const now = new Date();
-      if (now > new Date(habit.challengeEndDate)) {
+      if (new Date() > new Date(habit.challengeEndDate)) {
         return false;
       }
     }
     
-    // Toujours applicable si quotidien ou x-fois par semaine/mois
     if (habit.frequency === 'daily' || habit.frequency === 'x-times-per-week' || habit.frequency === 'x-times-per-month') {
       return true;
     }
     
-    // Si weekly ou custom, vérifier targetDays (jours de la semaine)
     if ((habit.frequency === 'weekly' || habit.frequency === 'custom') && habit.targetDays) {
       const today = new Date().getDay();
-      // Convertir Sunday=0 vers Monday=0 (notre format)
       const adjustedDay = today === 0 ? 6 : today - 1;
       return habit.targetDays.includes(adjustedDay);
     }
     
-    // Si monthly, vérifier targetDays (jours du mois)
     if (habit.frequency === 'monthly' && habit.targetDays) {
       const todayDate = new Date().getDate();
       return habit.targetDays.includes(todayDate);
     }
     
-    // Par défaut applicable
     return true;
   }, []);
 
-  // Obtenir les habitudes applicables aujourd'hui
+  // Get habits for today
   const getHabitsForToday = useCallback(() => {
     return habits.filter(h => h.isActive && isHabitApplicableToday(h));
   }, [habits, isHabitApplicableToday]);
 
+  // Get today completion rate
   const getTodayCompletionRate = useCallback(() => {
     const todayHabits = getHabitsForToday();
     if (todayHabits.length === 0) return 0;
@@ -476,10 +355,7 @@ export const useHabits = (deckId: string | null) => {
     return Math.round((completed / todayHabits.length) * 100);
   }, [getHabitsForToday, isCompletedToday]);
 
-  useEffect(() => {
-    loadHabits();
-  }, [loadHabits]);
-
+  // Load completions and streaks when habits change
   useEffect(() => {
     if (habits.length > 0) {
       loadTodayCompletions();
@@ -500,6 +376,6 @@ export const useHabits = (deckId: string | null) => {
     isHabitApplicableToday,
     getHabitsForToday,
     getTodayCompletionRate,
-    reloadHabits: loadHabits
+    reloadHabits: reload
   };
 };
