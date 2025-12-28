@@ -243,13 +243,29 @@ export const useHabits = (deckId: string | null) => {
 
   // Create habit
   const createHabit = useCallback(async (habit: Omit<Habit, 'id' | 'createdAt'>) => {
-    if (!user || !deckId) return null;
+    // Use deckId from hook parameter, fallback to habit.deckId
+    const targetDeckId = deckId || habit.deckId;
+    
+    if (!user) {
+      logger.error('Failed to create habit', { error: 'User not authenticated' });
+      return null;
+    }
+    
+    if (!targetDeckId) {
+      logger.error('Failed to create habit', { error: 'No deck selected' });
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un deck",
+        variant: "destructive"
+      });
+      return null;
+    }
 
     try {
       const newItem = await createItem({
         name: habit.name,
         contextType: 'habit',
-        parentId: deckId,
+        parentId: targetDeckId,
         metadata: habitToItemMetadata(habit),
         orderIndex: habit.order ?? habits.length,
       });
@@ -257,6 +273,11 @@ export const useHabits = (deckId: string | null) => {
       // Sync with time_events
       const newHabit = itemToHabit(newItem);
       await syncHabitEvent(newHabit);
+
+      toast({
+        title: "Habitude créée",
+        description: `${habit.name} a été ajoutée`,
+      });
 
       return newItem.id;
     } catch (error: any) {
