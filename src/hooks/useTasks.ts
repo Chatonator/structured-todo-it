@@ -98,14 +98,22 @@ export const useTasks = () => {
 
   // Add task
   const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    // For project tasks, use projectId as parentId (project tasks are children of projects)
+    const isProjectTask = !!taskData.projectId;
     const contextType = taskData.level === 0 
-      ? (taskData.projectId ? 'project_task' : 'task') 
+      ? (isProjectTask ? 'project_task' : 'task') 
       : 'subtask';
+    
+    // For project tasks, parentId should be projectId
+    // For subtasks, parentId is the parent task
+    const parentId = isProjectTask && taskData.level === 0 
+      ? taskData.projectId 
+      : (taskData.parentId || null);
     
     await createItem({
       name: taskData.name,
       contextType,
-      parentId: taskData.parentId || null,
+      parentId,
       metadata: taskToItemMetadata(taskData),
     });
   }, [createItem]);
