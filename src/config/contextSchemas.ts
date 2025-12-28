@@ -98,7 +98,8 @@ export const CONTEXT_SCHEMAS: Record<ItemContextType, ContextSchema> = {
   },
   
   habit: {
-    requiredFields: ['deckId', 'frequency', 'isActive'],
+    // deckId is now handled by parent_id column, not in metadata
+    requiredFields: ['frequency', 'isActive'],
     optionalFields: [
       'description', 'timesPerWeek', 'timesPerMonth', 'targetDays',
       'icon', 'color', 'isChallenge', 'challengeStartDate', 'challengeEndDate',
