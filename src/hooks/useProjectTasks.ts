@@ -1,5 +1,6 @@
 // ============= Project Tasks Hook (unified items wrapper) =============
 // This hook provides project-specific task operations using the unified 'items' table
+// Project tasks use parent_id to reference their project (not metadata.projectId)
 
 import { useCallback, useMemo } from 'react';
 import { useItems } from './useItems';
@@ -23,8 +24,9 @@ function itemToTask(item: Item): Task {
     isCompleted: item.isCompleted,
     isExpanded: (meta.isExpanded as boolean) ?? true,
     createdAt: item.createdAt,
-    projectId: meta.projectId as string | undefined,
-    projectStatus: meta.projectStatus as Task['projectStatus'],
+    // For project tasks, the projectId is the parent_id (not metadata.projectId)
+    projectId: item.parentId || undefined,
+    projectStatus: (meta.projectStatus as Task['projectStatus']) || 'todo',
   };
 }
 
@@ -35,12 +37,12 @@ export const useProjectTasks = (projectId: string | null) => {
     updateItem, 
     reload 
   } = useItems({ 
-    contextTypes: ['project_task', 'subtask'] 
+    contextTypes: ['project_task'] 
   });
 
-  // Filter items for this project
+  // Filter items for this project using parent_id (not metadata.projectId)
   const projectItems = useMemo(() => 
-    items.filter(item => item.metadata?.projectId === projectId),
+    items.filter(item => item.parentId === projectId),
     [items, projectId]
   );
 
@@ -70,9 +72,9 @@ export const useProjectTasks = (projectId: string | null) => {
 
   // Tasks grouped by status for Kanban board
   const tasksByStatus = useMemo(() => ({
-    todo: tasks.filter(t => t.level === 0 && (!t.projectStatus || t.projectStatus === 'todo')),
-    inProgress: tasks.filter(t => t.level === 0 && t.projectStatus === 'in-progress'),
-    done: tasks.filter(t => t.level === 0 && t.projectStatus === 'done')
+    todo: tasks.filter(t => !t.projectStatus || t.projectStatus === 'todo'),
+    inProgress: tasks.filter(t => t.projectStatus === 'in-progress'),
+    done: tasks.filter(t => t.projectStatus === 'done')
   }), [tasks]);
 
   return {

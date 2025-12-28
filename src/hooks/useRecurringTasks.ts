@@ -114,10 +114,10 @@ export const useRecurringTasks = () => {
             continue;
           }
 
-          // Réactiver la tâche associée
+          // Réactiver la tâche associée dans la table items
           const { error: taskError } = await supabase
-            .from('tasks')
-            .update({ isCompleted: false })
+            .from('items')
+            .update({ is_completed: false })
             .eq('id', event.entity_id)
             .eq('user_id', user.id);
 

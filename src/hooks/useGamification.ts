@@ -301,9 +301,10 @@ export const useGamification = () => {
     await addXp(xp, points, 'project_created', undefined, `Projet créé: ${projectName}`);
 
     const { count } = await supabase
-      .from('projects')
+      .from('items')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user?.id);
+      .eq('user_id', user?.id)
+      .eq('item_type', 'project');
 
     if (count === 1) {
       await checkAndUnlockAchievement('first_project', 1);
@@ -331,10 +332,11 @@ export const useGamification = () => {
     );
 
     const { count } = await supabase
-      .from('projects')
+      .from('items')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user?.id)
-      .eq('status', 'completed');
+      .eq('item_type', 'project')
+      .contains('metadata', { status: 'completed' });
 
     const completedCount = count || 0;
 

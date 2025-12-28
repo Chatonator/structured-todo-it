@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+// ============= All Project Tasks Hook (unified items wrapper) =============
+// This hook loads all project tasks across all projects using the unified 'items' table
+
+import { useCallback, useMemo } from 'react';
+import { useItems } from '@/hooks/useItems';
 import { Task } from '@/types/task';
 import { Project } from '@/types/project';
-import { logger } from '@/lib/logger';
+import { Item } from '@/types/item';
 
 interface ProjectTaskWithInfo {
   task: Task;
@@ -11,57 +13,54 @@ interface ProjectTaskWithInfo {
   projectIcon?: string;
 }
 
+// Convert Item to Task for backward compatibility
+function itemToTask(item: Item): Task {
+  const meta = item.metadata || {};
+  return {
+    id: item.id,
+    name: item.name,
+    category: (meta.category as Task['category']) || 'Autres',
+    subCategory: meta.subCategory as Task['subCategory'],
+    context: (meta.context as Task['context']) || 'Perso',
+    estimatedTime: (meta.estimatedTime as number) || 30,
+    duration: meta.duration as number | undefined,
+    level: (meta.level as Task['level']) || 0,
+    parentId: item.parentId || undefined,
+    isCompleted: item.isCompleted,
+    isExpanded: (meta.isExpanded as boolean) ?? true,
+    createdAt: item.createdAt,
+    // For project tasks, projectId is the parent_id
+    projectId: item.parentId || undefined,
+    projectStatus: (meta.projectStatus as Task['projectStatus']) || 'todo',
+  };
+}
+
 export const useAllProjectTasks = (projects: Project[]) => {
-  const [projectTasks, setProjectTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { 
+    items, 
+    loading,
+    updateItem,
+    reload 
+  } = useItems({ 
+    contextTypes: ['project_task'],
+    includeCompleted: false
+  });
 
-  const loadAllProjectTasks = useCallback(async () => {
-    if (!user || projects.length === 0) {
-      setLoading(false);
-      return;
-    }
+  // Filter to only include tasks for the given projects that are in todo or in-progress
+  const projectTasks = useMemo(() => {
+    const projectIds = new Set(projects.map(p => p.id));
+    return items
+      .filter(item => {
+        // Filter by parent_id (project reference)
+        if (!item.parentId || !projectIds.has(item.parentId)) return false;
+        // Filter by status
+        const status = (item.metadata?.projectStatus as string) || 'todo';
+        return status === 'todo' || status === 'in-progress';
+      })
+      .map(itemToTask);
+  }, [items, projects]);
 
-    try {
-      const projectIds = projects.map(p => p.id);
-      
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .in('project_id', projectIds)
-        .in('project_status', ['todo', 'in-progress'])
-        .eq('isCompleted', false)
-        .eq('level', 0)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      const formatted = (data || []).map((t: any): Task => ({
-        id: t.id,
-        name: t.name,
-        category: t.category,
-        subCategory: t.subCategory,
-        context: t.context,
-        estimatedTime: t.estimatedTime,
-        createdAt: new Date(t.created_at),
-        parentId: t.parentId,
-        level: t.level,
-        isExpanded: t.isExpanded,
-        isCompleted: t.isCompleted,
-        duration: t.duration,
-        projectId: t.project_id,
-        projectStatus: t.project_status
-      }));
-
-      setProjectTasks(formatted);
-    } catch (error: any) {
-      logger.error('Failed to load project tasks', { error: error.message });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, projects]);
-
-  // Mapper les tâches avec les infos du projet
+  // Map tasks with project info
   const projectTasksWithInfo = useMemo((): ProjectTaskWithInfo[] => {
     return projectTasks.map(task => {
       const project = projects.find(p => p.id === task.projectId);
@@ -74,31 +73,19 @@ export const useAllProjectTasks = (projects: Project[]) => {
   }, [projectTasks, projects]);
 
   const toggleProjectTaskCompletion = useCallback(async (taskId: string) => {
-    if (!user) return;
+    const item = items.find(i => i.id === taskId);
+    if (!item) return;
 
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ isCompleted: true })
-        .eq('id', taskId);
-
-      if (error) throw error;
-
-      // Recharger les tâches
-      await loadAllProjectTasks();
-    } catch (error: any) {
-      logger.error('Failed to toggle project task', { error: error.message });
-    }
-  }, [user, loadAllProjectTasks]);
-
-  useEffect(() => {
-    loadAllProjectTasks();
-  }, [loadAllProjectTasks]);
+    await updateItem(taskId, {
+      isCompleted: true,
+      metadata: { ...item.metadata, projectStatus: 'done' }
+    });
+  }, [items, updateItem]);
 
   return {
     projectTasks: projectTasksWithInfo,
     loading,
     toggleProjectTaskCompletion,
-    reloadProjectTasks: loadAllProjectTasks
+    reloadProjectTasks: reload
   };
 };

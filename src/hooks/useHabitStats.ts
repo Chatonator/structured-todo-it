@@ -106,20 +106,22 @@ export const useHabitStats = () => {
         return;
       }
 
-      // Récupérer les données complètes des habitudes depuis la table habits
+      // Récupérer les données complètes des habitudes depuis la table items
       const { data: habitsData } = await supabase
-        .from('habits')
-        .select('id, frequency, target_days, is_active')
-        .eq('user_id', user.id);
+        .from('items')
+        .select('id, metadata')
+        .eq('user_id', user.id)
+        .eq('item_type', 'habit');
 
       // Créer une map des habitudes pour accès rapide
       const habitsMap = new Map<string, Habit>();
       (habitsData || []).forEach(h => {
+        const meta = h.metadata as Record<string, unknown> || {};
         habitsMap.set(h.id, {
           id: h.id,
-          frequency: h.frequency as HabitFrequency,
-          targetDays: h.target_days,
-          isActive: h.is_active ?? true
+          frequency: (meta.frequency as HabitFrequency) || 'daily',
+          targetDays: meta.targetDays as number[] | undefined,
+          isActive: (meta.isActive as boolean) ?? true
         } as Habit);
       });
 
