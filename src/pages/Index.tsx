@@ -405,12 +405,12 @@ const Index = () => {
         )}
 
         {/* Contenu principal avec layout adaptatif */}
-        <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <main className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
           {/* Desktop: Colonne gauche avec largeur dynamique */}
           {!isMobile && (
             <div 
               className={`
-                bg-background border-r border-border flex flex-col shadow-sm
+                bg-background border-r border-border flex flex-col shadow-sm min-h-0
                 transition-all duration-300 ease-in-out
                 ${isTaskListCollapsed ? 'w-16' : 'w-full md:w-[30%] lg:w-[25%]'}
               `}
