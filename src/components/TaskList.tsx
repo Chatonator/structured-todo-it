@@ -496,99 +496,102 @@ const TaskList: React.FC<TaskListProps> = ({
             </Button>
           </div>
         ) : (
-          /* Vue dépliée - Contenu complet */
+          /* Vue dépliée - Contenu complet avec scroll indépendant */
           <div className="flex flex-col h-full relative">
-            {/* Bouton de repli sticky - même style que le bouton de dépli */}
-            <Button
-              onClick={() => handleToggleCollapsed(true)}
-              className="sticky top-4 right-4 ml-auto mr-4 mt-4 w-12 h-12 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 z-50"
-              title="Replier la liste des tâches"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </Button>
-
-            {/* Bloc d'ajout rapide */}
-            <QuickAddTask onAddTask={onAddTask} />
-
-            {/* Zone de drop pour créer un nouveau projet */}
-            <div
-              className={`
-                mx-3 my-2 border-2 border-dashed rounded-lg p-3 flex items-center justify-center gap-2
-                transition-all duration-200 min-h-[60px]
-                ${isDragOverNewProject 
-                  ? 'border-primary bg-primary/10 scale-105' 
-                  : draggedTask 
-                    ? 'border-primary/50 bg-accent/50' 
-                    : 'border-border bg-card/50'
-                }
-              `}
-              onDragOver={handleNewProjectDragOver}
-              onDragEnter={handleNewProjectDragEnter}
-              onDragLeave={handleNewProjectDragLeave}
-              onDrop={handleNewProjectDrop}
-            >
-              <FolderPlus className={`w-5 h-5 ${isDragOverNewProject ? 'text-primary' : 'text-muted-foreground'}`} />
-              <span className={`text-xs ${isDragOverNewProject ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                {isDragOverNewProject ? 'Relâcher pour créer' : draggedTask ? 'Déposer ici' : 'Glisser une tâche ici'}
-              </span>
-            </div>
-
-            {/* Sections optionnelles */}
-            {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
-              <SidebarHabitsSection
-                habits={todayHabits}
-                completions={habitCompletions}
-                streaks={habitStreaks}
-                onToggleHabit={onToggleHabit}
-              />
-            )}
-
-            {sidebarShowProjects && projectTasks.length > 0 && onToggleProjectTask && (
-              <SidebarProjectsSection 
-                projectTasks={projectTasks} 
-                onToggleComplete={onToggleProjectTask}
-              />
-            )}
-
-            {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (
-              <SidebarTeamTasksSection
-                tasks={teamTasks}
-                onToggleComplete={onToggleTeamTask}
-              />
-            )}
-
-            {/* En-tête simplifié */}
-            <div className="relative px-3 pb-2 pt-2 border-b border-border bg-background">
-              <h2 className="text-xs font-semibold text-muted-foreground text-center uppercase tracking-wide">
-                Tâches Actives ({localFilteredTasks.length})
-              </h2>
-            </div>
-
-            {/* Bouton de vue étendue */}
-            <div className="px-3 py-2 border-b border-border bg-background">
+            {/* Bouton de repli sticky */}
+            <div className="shrink-0 flex justify-end px-4 pt-4">
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsExtendedView(!isExtendedView)}
-                className="w-full justify-center text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                onClick={() => handleToggleCollapsed(true)}
+                className="w-12 h-12 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 z-50"
+                title="Replier la liste des tâches"
               >
-                {isExtendedView ? (
-                  <>
-                    <ChevronsUp className="w-4 h-4 mr-2" />
-                    Vue condensée
-                  </>
-                ) : (
-                  <>
-                    <ChevronsDown className="w-4 h-4 mr-2" />
-                    Vue étendue
-                  </>
-                )}
+                <ChevronLeft className="w-6 h-6" />
               </Button>
             </div>
 
-            {/* Liste des tâches avec scrollbar améliorée */}
-            <div className="flex-1 overflow-hidden">
-              <ScrollArea className="h-full w-full custom-scrollbar">
+            {/* Contenu scrollable de la sidebar */}
+            <ScrollArea className="flex-1 w-full">
+              <div className="flex flex-col">
+                {/* Bloc d'ajout rapide */}
+                <QuickAddTask onAddTask={onAddTask} />
+
+                {/* Zone de drop pour créer un nouveau projet */}
+                <div
+                  className={`
+                    mx-3 my-2 border-2 border-dashed rounded-lg p-3 flex items-center justify-center gap-2
+                    transition-all duration-200 min-h-[60px]
+                    ${isDragOverNewProject 
+                      ? 'border-primary bg-primary/10 scale-105' 
+                      : draggedTask 
+                        ? 'border-primary/50 bg-accent/50' 
+                        : 'border-border bg-card/50'
+                    }
+                  `}
+                  onDragOver={handleNewProjectDragOver}
+                  onDragEnter={handleNewProjectDragEnter}
+                  onDragLeave={handleNewProjectDragLeave}
+                  onDrop={handleNewProjectDrop}
+                >
+                  <FolderPlus className={`w-5 h-5 ${isDragOverNewProject ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className={`text-xs ${isDragOverNewProject ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    {isDragOverNewProject ? 'Relâcher pour créer' : draggedTask ? 'Déposer ici' : 'Glisser une tâche ici'}
+                  </span>
+                </div>
+
+                {/* Sections optionnelles */}
+                {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
+                  <SidebarHabitsSection
+                    habits={todayHabits}
+                    completions={habitCompletions}
+                    streaks={habitStreaks}
+                    onToggleHabit={onToggleHabit}
+                  />
+                )}
+
+                {sidebarShowProjects && projectTasks.length > 0 && onToggleProjectTask && (
+                  <SidebarProjectsSection 
+                    projectTasks={projectTasks} 
+                    onToggleComplete={onToggleProjectTask}
+                  />
+                )}
+
+                {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (
+                  <SidebarTeamTasksSection
+                    tasks={teamTasks}
+                    onToggleComplete={onToggleTeamTask}
+                  />
+                )}
+
+                {/* En-tête simplifié */}
+                <div className="relative px-3 pb-2 pt-2 border-b border-border bg-background">
+                  <h2 className="text-xs font-semibold text-muted-foreground text-center uppercase tracking-wide">
+                    Tâches Actives ({localFilteredTasks.length})
+                  </h2>
+                </div>
+
+                {/* Bouton de vue étendue */}
+                <div className="px-3 py-2 border-b border-border bg-background">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsExtendedView(!isExtendedView)}
+                    className="w-full justify-center text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  >
+                    {isExtendedView ? (
+                      <>
+                        <ChevronsUp className="w-4 h-4 mr-2" />
+                        Vue condensée
+                      </>
+                    ) : (
+                      <>
+                        <ChevronsDown className="w-4 h-4 mr-2" />
+                        Vue étendue
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Liste des tâches */}
                 <div className="p-2 space-y-1">
                   {localFilteredTasks.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center">
@@ -608,8 +611,8 @@ const TaskList: React.FC<TaskListProps> = ({
                     localFilteredTasks.map(task => renderTask(task))
                   )}
                 </div>
-              </ScrollArea>
-            </div>
+              </div>
+            </ScrollArea>
 
             {/* Modale pour sous-tâches */}
             {selectedParentTask && (
