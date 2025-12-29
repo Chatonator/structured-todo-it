@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Task } from '@/types/task';
 import { Habit, HabitStreak } from '@/types/habit';
 import { Project } from '@/types/project';
 import { Clock, ChevronsDown, ChevronsUp, ChevronRight, ChevronLeft, FolderPlus } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
 import TaskItem from './task/TaskItem';
@@ -474,11 +473,11 @@ const TaskList: React.FC<TaskListProps> = ({
   };
 
   return (
-    <div className="relative h-full flex">
+    <div className="relative h-full flex min-h-0">
       {/* Barre latérale repliable */}
       <div 
         className={`
-          h-full border-r border-border bg-background
+          h-full min-h-0 border-r border-border bg-background
           transition-all duration-300 ease-in-out
           ${isCollapsed ? 'w-16' : 'w-full'}
           overflow-hidden relative
@@ -510,7 +509,7 @@ const TaskList: React.FC<TaskListProps> = ({
             </div>
 
             {/* Contenu scrollable de la sidebar */}
-            <ScrollArea className="flex-1 w-full">
+            <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar">
               <div className="flex flex-col">
                 {/* Bloc d'ajout rapide */}
                 <QuickAddTask onAddTask={onAddTask} />
@@ -612,7 +611,7 @@ const TaskList: React.FC<TaskListProps> = ({
                   )}
                 </div>
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Modale pour sous-tâches */}
             {selectedParentTask && (
