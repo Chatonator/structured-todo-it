@@ -286,22 +286,31 @@ body {
   animation: gentle-bounce 2s ease-in-out infinite;
 }
 
-/* Amélioration des scrollbars */
+/* Amélioration des scrollbars (discrètes) */
+.custom-scrollbar {
+  overscroll-behavior: contain; /* évite que la page scrolle quand on atteint le haut/bas */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: hsl(var(--muted) / 0.28) transparent; /* Firefox */
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  @apply bg-muted/5 rounded;
+  background: transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-muted/20 rounded transition-colors;
+  background-color: hsl(var(--muted) / 0.22);
+  border-radius: 999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted/30;
+  background-color: hsl(var(--muted) / 0.32);
 }
+
 
 /* États de focus améliorés */
 .focus-ring:focus-visible {
