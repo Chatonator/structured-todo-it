@@ -308,7 +308,8 @@ const TaskList: React.FC<TaskListProps> = ({
   };
 
   return (
-    <div className="relative h-full flex min-h-0">
+    <div className="relative h-full w-full min-h-0 flex">
+
       {/* Sidebar repliable */}
       <div 
         className={`
