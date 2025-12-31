@@ -19,8 +19,6 @@ interface SidebarTasksSectionProps {
   onCreateSubTask: (task: Task) => void;
   onEditTask: (task: Task) => void;
   onAssignToProject: (taskId: string, projectId: string) => Promise<boolean>;
-  onConvertToProject: (task: Task) => void;
-  onReorderTasks: (startIndex: number, endIndex: number) => void;
   allTasks: Task[]; // Pour le reorder global
 }
 
@@ -42,13 +40,9 @@ const SidebarTasksSection: React.FC<SidebarTasksSectionProps> = ({
   onCreateSubTask,
   onEditTask,
   onAssignToProject,
-  onConvertToProject,
-  onReorderTasks,
   allTasks
 }) => {
   const [isExtendedView, setIsExtendedView] = useState(false);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Tri avec épinglées en tête
   const sortedTasks = [...tasks].sort((a, b) => {
@@ -57,94 +51,16 @@ const SidebarTasksSection: React.FC<SidebarTasksSectionProps> = ({
     return aPinned === bPinned ? 0 : aPinned ? -1 : 1;
   });
 
-  // Drag & drop handlers
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    setDraggedIndex(index);
-    setDragOverIndex(null);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDragEnter = (index: number) => {
-    if (draggedIndex !== null && draggedIndex !== index) {
-      setDragOverIndex(index);
-    }
-  };
-
-  const handleDragLeave = () => {
-    setDragOverIndex(null);
-  };
-
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    if (draggedIndex !== null && draggedIndex !== dropIndex) {
-      // Convertir les indices locaux en indices globaux
-      const movedTaskId = sortedTasks[draggedIndex]?.id;
-      const targetTaskId = sortedTasks[dropIndex]?.id;
-      
-      const globalStartIndex = allTasks.findIndex(t => t.id === movedTaskId);
-      const globalEndIndex = allTasks.findIndex(t => t.id === targetTaskId);
-      
-      if (globalStartIndex !== -1 && globalEndIndex !== -1) {
-        onReorderTasks(globalStartIndex, globalEndIndex);
-      }
-    }
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-  };
-
-  // Gestion du reorder pour les sous-tâches
-  const handleSubTaskReorder = (parentId: string, subTasks: Task[], startIndex: number, endIndex: number) => {
-    const movedTaskId = subTasks[startIndex].id;
-    const targetTaskId = subTasks[endIndex].id;
-    
-    const globalStartIndex = allTasks.findIndex(t => t.id === movedTaskId);
-    const globalEndIndex = allTasks.findIndex(t => t.id === targetTaskId);
-    
-    if (globalStartIndex !== -1 && globalEndIndex !== -1) {
-      onReorderTasks(globalStartIndex, globalEndIndex);
-    }
-  };
-
   // Rendu récursif d'une tâche avec ses sous-tâches
-  const renderTask = (task: Task, parentSubTasks?: Task[]): React.ReactNode => {
+  const renderTask = (task: Task): React.ReactNode => {
     const subTasks = getSubTasks(task.id).filter(t => !t.isCompleted);
     const totalTime = calculateTotalTime(task);
     const isSelected = selectedTasks.includes(task.id);
     const isPinned = pinnedTasks.includes(task.id);
-    const taskIndex = parentSubTasks 
-      ? parentSubTasks.findIndex(t => t.id === task.id)
-      : sortedTasks.findIndex(t => t.id === task.id);
-
-    const handleSubTaskDragStart = (e: React.DragEvent, index: number) => {
-      if (parentSubTasks) {
-        setDraggedIndex(index);
-        e.dataTransfer.effectAllowed = 'move';
-      } else {
-        handleDragStart(e, index);
-      }
-    };
-
-    const handleSubTaskDrop = (e: React.DragEvent, dropIndex: number) => {
-      if (parentSubTasks && draggedIndex !== null) {
-        e.preventDefault();
-        handleSubTaskReorder(task.parentId!, parentSubTasks, draggedIndex, dropIndex);
-        setDraggedIndex(null);
-        setDragOverIndex(null);
-      } else {
-        handleDrop(e, dropIndex);
-      }
-    };
 
     return (
       <div 
         key={task.id}
-        onDragEnter={() => handleDragEnter(taskIndex)}
-        onDragLeave={handleDragLeave}
         data-category={task.category}
         className={`task-item ${isPinned ? 'task-pinned' : ''}`}
       >
@@ -164,19 +80,12 @@ const SidebarTasksSection: React.FC<SidebarTasksSectionProps> = ({
           onCreateSubTask={onCreateSubTask}
           onEditTask={onEditTask}
           onAssignToProject={onAssignToProject}
-          onConvertToProject={onConvertToProject}
-          onDragStart={parentSubTasks ? handleSubTaskDragStart : handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={parentSubTasks ? handleSubTaskDrop : handleDrop}
-          dragIndex={draggedIndex}
-          taskIndex={taskIndex}
-          isDragOver={dragOverIndex === taskIndex}
         />
 
         {/* Sous-tâches */}
         {subTasks.length > 0 && task.isExpanded && (
           <div className="mt-1 space-y-1">
-            {subTasks.map(subTask => renderTask(subTask, subTasks))}
+            {subTasks.map(subTask => renderTask(subTask))}
           </div>
         )}
       </div>

@@ -1,9 +1,17 @@
-
 import React from 'react';
 import { Task } from '@/types/task';
 import { Button } from '@/components/ui/button';
-import { Divide, CheckSquare, X, Edit } from 'lucide-react';
-import TaskProjectMenu from './TaskProjectMenu';
+import { Divide, CheckSquare, X, Edit, Briefcase } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useProjects } from '@/hooks/useProjects';
+import { useToast } from '@/hooks/use-toast';
 
 interface TaskItemActionsProps {
   task: Task;
@@ -26,6 +34,24 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
   onRemoveTask,
   onAssignToProject
 }) => {
+  const { activeProjects } = useProjects();
+  const { toast } = useToast();
+  const projects = activeProjects();
+
+  const handleAssignToProject = async (e: React.MouseEvent, projectId: string, projectName: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!onAssignToProject) return;
+    
+    const success = await onAssignToProject(task.id, projectId);
+    if (success) {
+      toast({
+        title: "Tâche ajoutée au projet",
+        description: `"${task.name}" a été ajoutée à "${projectName}"`,
+      });
+    }
+  };
+
   return (
     <div 
       className={`flex items-center gap-1 flex-shrink-0 transition-opacity duration-200 ${
@@ -33,11 +59,32 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
       }`}
     >
       {/* Menu projet - seulement pour les tâches principales sans projet */}
-      {task.level === 0 && !task.projectId && onAssignToProject && (
-        <TaskProjectMenu
-          task={task}
-          onAssignToProject={onAssignToProject}
-        />
+      {task.level === 0 && !task.projectId && onAssignToProject && projects.length > 0 && (
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              title="Ajouter à un projet"
+            >
+              <Briefcase className="w-3 h-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuLabel>Ajouter à un projet</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {projects.map((project) => (
+              <DropdownMenuItem 
+                key={project.id}
+                onClick={(e) => handleAssignToProject(e, project.id, project.name)}
+              >
+                <span className="mr-2">{project.icon || '📚'}</span>
+                <span className="truncate">{project.name}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
       
       {canHaveSubTasks && (

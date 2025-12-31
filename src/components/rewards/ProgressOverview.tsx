@@ -1,19 +1,16 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { UserProgress } from '@/types/gamification';
-import { Trophy, Star, Flame, Gift } from 'lucide-react';
+import { Trophy, Star, Flame } from 'lucide-react';
 
 interface ProgressOverviewProps {
   progress: UserProgress | null;
   progressPercentage: number;
-  onClaimDailyBonus: () => void;
 }
 
 const ProgressOverview: React.FC<ProgressOverviewProps> = ({
   progress,
-  progressPercentage,
-  onClaimDailyBonus
+  progressPercentage
 }) => {
   if (!progress) return null;
 
@@ -46,20 +43,9 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
 
       <Card className="p-6 bg-gradient-to-br from-purple-100 to-white">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Star className="w-6 h-6 text-purple-600" />
-              <h3 className="text-xl font-bold text-purple-600">{progress.currentPoints} Points</h3>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={onClaimDailyBonus}
-              className="border-purple-600 text-purple-600 hover:bg-purple-50"
-            >
-              <Gift className="w-4 h-4 mr-2" />
-              Bonus quotidien
-            </Button>
+          <div className="flex items-center gap-2">
+            <Star className="w-6 h-6 text-purple-600" />
+            <h3 className="text-xl font-bold text-purple-600">{progress.currentPoints} Points</h3>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm">

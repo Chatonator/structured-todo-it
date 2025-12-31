@@ -1,11 +1,9 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, TASK_LEVELS, CATEGORY_CSS_NAMES } from '@/types/task';
 import { RecurringTaskBadge } from '@/components/RecurringTaskBadge';
 import TaskItemControls from './TaskItemControls';
 import TaskItemContent from './TaskItemContent';
 import TaskItemActions from './TaskItemActions';
-import { useDragDrop } from '@/contexts/DragDropContext';
 
 interface TaskItemProps {
   task: Task;
@@ -23,13 +21,6 @@ interface TaskItemProps {
   onCreateSubTask: (task: Task) => void;
   onEditTask: (task: Task) => void;
   onAssignToProject?: (taskId: string, projectId: string) => Promise<boolean>;
-  onConvertToProject?: (task: Task) => void;
-  onDragStart?: (e: React.DragEvent, index: number) => void;
-  onDragOver?: (e: React.DragEvent) => void;
-  onDrop?: (e: React.DragEvent, index: number) => void;
-  dragIndex?: number;
-  taskIndex?: number;
-  isDragOver?: boolean;
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({
@@ -47,18 +38,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onRemoveTask,
   onCreateSubTask,
   onEditTask,
-  onAssignToProject,
-  onConvertToProject,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  dragIndex,
-  taskIndex,
-  isDragOver = false
+  onAssignToProject
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const { setDraggedTask } = useDragDrop();
   
   const categoryConfig = CATEGORY_CONFIG[task.category];
   const cssName = CATEGORY_CSS_NAMES[task.category];
@@ -68,69 +50,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
   const indentClass = task.level === 0 ? 'ml-0' : task.level === 1 ? 'ml-3' : 'ml-6';
   const isExtended = isSelected || forceExtended || isHovered;
 
-
-  const handleDragStart = (e: React.DragEvent) => {
-    setIsDragging(true);
-    e.dataTransfer.effectAllowed = 'copyMove';
-    
-    // Stocker les données de la tâche en JSON dans text/plain (type universel)
-    const taskData = JSON.stringify({
-      id: task.id,
-      name: task.name,
-      level: task.level
-    });
-    e.dataTransfer.setData('text/plain', taskData);
-    
-    // Mettre à jour le contexte global pour le drag & drop vers projets
-    setDraggedTask({ id: task.id, name: task.name, level: task.level });
-    
-    // Image de drag avec classes Tailwind inlines
-    const dragImage = document.createElement('div');
-    dragImage.className = 'fixed opacity-0 pointer-events-none';
-    dragImage.innerHTML = `
-      <div class="bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold shadow-2xl transform rotate-2 scale-105 flex items-center gap-2 min-w-[200px]">
-        <span class="text-base">${task.level > 0 ? '📋' : '📅'}</span>
-        <span>${task.name}</span>
-      </div>
-    `;
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-1000px';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 100, 25);
-    setTimeout(() => document.body.removeChild(dragImage), 100);
-    
-    // Permettre le drag pour toutes les tâches (y compris sous-tâches)
-    onDragStart?.(e, taskIndex || 0);
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
-    // Retarder le nettoyage pour laisser le temps au drop de se traiter
-    setTimeout(() => setDraggedTask(null), 150);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    // Permettre le drop pour toutes les tâches
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    onDragOver?.(e);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    // Permettre le drop pour toutes les tâches
-    e.preventDefault();
-    onDrop?.(e, taskIndex || 0);
-  };
-
-
   return (
     <div className={indentClass}>
       <div
-        draggable={!task.isCompleted}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={`
@@ -140,19 +62,11 @@ const TaskItem: React.FC<TaskItemProps> = ({
           min-h-[44px]
           ${isSelected ? 'bg-accent border-l-primary shadow-md ring-2 ring-primary/20' : `bg-card border-l-category-${cssName}`}
           ${isPinned && !isSelected ? 'border-l-pinned shadow-sm ring-1 ring-pinned/30' : ''}
-          ${!task.isCompleted ? 'cursor-grab active:cursor-grabbing touch-none' : 'cursor-default'}
-          ${isDragging ? 'opacity-30 scale-95 rotate-2 z-50' : ''}
-          ${isDragOver && !isDragging ? 'scale-102' : ''}
-          ${dragIndex === taskIndex && !isDragging ? 'bg-accent border-primary' : ''}
+          cursor-default
           border-border text-foreground
         `}
         data-category={task.category}
       >
-        {/* Indicateur de drop zone */}
-        {isDragOver && !isDragging && (
-          <div className="absolute inset-0 border-2 border-dashed border-primary rounded-lg pointer-events-none animate-pulse bg-accent/20" />
-        )}
-
         {/* Contrôles à gauche */}
         <TaskItemControls
           task={task}
@@ -174,7 +88,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
         />
 
         {/* Actions à droite */}
-        {isExtended && !isDragging && (
+        {isExtended && (
           <TaskItemActions
             task={task}
             canHaveSubTasks={canHaveSubTasks}
@@ -186,8 +100,6 @@ const TaskItem: React.FC<TaskItemProps> = ({
             onAssignToProject={onAssignToProject}
           />
         )}
-
-        {/* SUPPRIMÉ : Indicateur de drag "Glisser vers calendrier" */}
       </div>
     </div>
   );

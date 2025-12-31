@@ -8,10 +8,7 @@ import TaskList from '@/components/TaskList';
 import TaskModal from '@/components/TaskModal';
 import HomeView from '@/components/HomeView';
 import TasksView from '@/components/TasksView';
-import PriorityView from '@/components/PriorityView';
-import DashboardView from '@/components/DashboardView';
 import EisenhowerView from '@/components/EisenhowerView';
-import CalendarView from '@/components/calendar/CalendarView';
 import CompletedTasksView from '@/components/CompletedTasksView';
 import HabitsView from '@/components/habits/HabitsView';
 import RewardsView from '@/components/rewards/RewardsView';
@@ -30,7 +27,6 @@ import { useAllProjectTasks } from '@/hooks/useAllProjectTasks';
 import { useHabits } from '@/hooks/useHabits';
 import { useDecks } from '@/hooks/useDecks';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
-import { DragDropProvider } from '@/contexts/DragDropContext';
 
 /**
  * Page principale de l'application
@@ -193,10 +189,7 @@ const Index = () => {
   const allNavigationItems = [
     { key: 'home', title: 'Home', icon: '🏠' },
     { key: 'tasks', title: 'Tâches', icon: '📝' },
-    { key: 'priority', title: 'Vue 1-3-5', icon: '🎲' },
-    { key: 'dashboard', title: 'Dashboard', icon: '📊' },
     { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
-    { key: 'calendar', title: 'Calendrier', icon: '📅' },
     { key: 'timeline', title: 'Timeline', icon: '⏱️' },
     { key: 'projects', title: 'Projets', icon: '💼' },
     { key: 'habits', title: 'Habitudes', icon: '💪' },
@@ -319,26 +312,8 @@ const Index = () => {
               onUpdateTask={safeUpdateTask}
             />
           );
-        case 'priority':
-          return (
-            <PriorityView 
-              tasks={allFilteredTasks.filter(t => !t.isCompleted)}
-              getSubTasks={safeGetSubTasks}
-              calculateTotalTime={safeCalculateTotalTime}
-            />
-          );
-        case 'dashboard':
-          return (
-            <DashboardView 
-              tasks={allFilteredTasks}
-              mainTasks={filteredMainTasks}
-              calculateTotalTime={safeCalculateTotalTime}
-            />
-          );
         case 'eisenhower':
           return <EisenhowerView tasks={allFilteredTasks.filter(t => !t.isCompleted)} />;
-        case 'calendar':
-          return <CalendarView tasks={allFilteredTasks} />;
         case 'timeline':
           return <TimelineView />;
         case 'projects':
@@ -383,7 +358,6 @@ const Index = () => {
   const safeCompletionRate = Number(completionRate) || 0;
 
   return (
-    <DragDropProvider>
     <SidebarProvider>
       <div className={`min-h-screen flex flex-col w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
         {/* Header avec statistiques, filtres et actions */}
@@ -552,7 +526,6 @@ const Index = () => {
         />
       </div>
     </SidebarProvider>
-    </DragDropProvider>
   );
 };
 
