@@ -8,13 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { 
   CheckSquare, 
   Clock, 
-  Calendar, 
   Briefcase, 
   ArrowRight,
   Target
 } from 'lucide-react';
-import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import HomeHabitsSection from './home/HomeHabitsSection';
 
 interface HomeViewProps {
@@ -56,10 +53,6 @@ const HomeView: React.FC<HomeViewProps> = ({
     .filter(p => p.status === 'in-progress')
     .sort((a, b) => (b.progress || 0) - (a.progress || 0))[0];
 
-  // Calendrier de la semaine
-  const weekStart = startOfWeek(new Date(), { locale: fr });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
@@ -78,14 +71,8 @@ const HomeView: React.FC<HomeViewProps> = ({
         <p className="text-muted-foreground">Vue d'ensemble de l'essentiel</p>
       </div>
 
-      {/* Stats rapides */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-foreground">{tasks.filter(t => !t.isCompleted).length}</div>
-            <div className="text-xs text-muted-foreground">Tâches actives</div>
-          </CardContent>
-        </Card>
+      {/* Stats rapides - seulement positives */}
+      <div className="grid grid-cols-3 gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-project">{projects.filter(p => p.status === 'in-progress').length}</div>
@@ -164,61 +151,6 @@ const HomeView: React.FC<HomeViewProps> = ({
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Calendrier de la semaine */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                Semaine en cours
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onViewChange('calendar')}
-                className="text-xs"
-              >
-                Calendrier complet
-                <ArrowRight className="w-3 h-3 ml-1" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-7 gap-1">
-              {weekDays.map(day => {
-                const isToday = isSameDay(day, new Date());
-                const dayTasks: Task[] = [];
-                
-                return (
-                  <div
-                    key={day.toISOString()}
-                    className={`p-2 rounded-lg text-center ${
-                      isToday ? 'bg-primary text-primary-foreground' : 'bg-accent'
-                    }`}
-                  >
-                    <div className="text-xs font-medium mb-1">
-                      {format(day, 'EEE', { locale: fr }).slice(0, 3)}
-                    </div>
-                    <div className={`text-lg font-bold ${isToday ? '' : 'text-foreground'}`}>
-                      {format(day, 'd')}
-                    </div>
-                    {dayTasks.length > 0 && (
-                      <div className="mt-1">
-                        <Badge variant="secondary" className="text-xs px-1 py-0">
-                          {dayTasks.length}
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-4 text-xs text-muted-foreground text-center">
-              Voir la Timeline pour les tâches planifiées
-            </div>
           </CardContent>
         </Card>
 

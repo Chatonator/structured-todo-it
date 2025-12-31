@@ -1,17 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { Habit, HabitStreak } from '@/types/habit';
 import { Project } from '@/types/project';
-import { Button } from '@/components/ui/button';
 import TaskModal from './TaskModal';
 import QuickAddTask from './QuickAddTask';
 import { useProjects } from '@/hooks/useProjects';
-import { ProjectModal } from './projects/ProjectModal';
-import { useDragDrop } from '@/contexts/DragDropContext';
 
 // Sous-composants de la sidebar
 import SidebarCollapseButton from './sidebar/SidebarCollapseButton';
-import NewProjectDropZone from './sidebar/NewProjectDropZone';
 import SidebarTasksSection from './sidebar/SidebarTasksSection';
 import { SidebarHabitsSection } from './sidebar/SidebarHabitsSection';
 import { SidebarProjectsSection } from './sidebar/SidebarProjectsSection';
@@ -110,13 +106,9 @@ const TaskList: React.FC<TaskListProps> = ({
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [taskToConvert, setTaskToConvert] = useState<Task | null>(null);
-  const [isDragOverNewProject, setIsDragOverNewProject] = useState(false);
 
   // Hooks
-  const { assignTaskToProject, createProject } = useProjects();
-  const { draggedTask, registerHandlers } = useDragDrop();
+  const { assignTaskToProject } = useProjects();
 
   // Tâches actives (exclure celles assignées à un projet)
   const activeTasks = mainTasks.filter(task => !task.isCompleted && !task.projectId);
@@ -166,147 +158,6 @@ const TaskList: React.FC<TaskListProps> = ({
     return success;
   };
 
-  // Gestion de la conversion en projet
-  const handleConvertToProject = (task: Task) => {
-    setTaskToConvert(task);
-    setShowProjectModal(true);
-  };
-
-  // Handler pour conversion depuis le drag & drop
-  const handleConvertFromDrag = (draggedTask: { id: string; name: string; level: number }) => {
-    const minimalTask: Task = {
-      id: draggedTask.id,
-      name: draggedTask.name,
-      level: draggedTask.level as 0 | 1 | 2,
-      category: 'Autres',
-      estimatedTime: 30,
-      context: 'Pro',
-      isCompleted: false,
-      isExpanded: false,
-      createdAt: new Date(),
-    };
-    
-    setTaskToConvert(minimalTask);
-    setShowProjectModal(true);
-  };
-
-  // Enregistrer les handlers pour le drag & drop global vers projets
-  useEffect(() => {
-    registerHandlers(handleAssignToProject, handleConvertFromDrag);
-  });
-
-  // Handlers pour la zone de drop "nouveau projet"
-  const handleNewProjectDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  };
-
-  const handleNewProjectDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOverNewProject(true);
-  };
-
-  const handleNewProjectDragLeave = (e: React.DragEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const { clientX: x, clientY: y } = e;
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      setIsDragOverNewProject(false);
-    }
-  };
-
-  const handleNewProjectDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOverNewProject(false);
-    
-    let taskData = { id: '', name: '', level: 0 };
-    
-    // Récupérer les données JSON
-    try {
-      const jsonData = e.dataTransfer.getData('text/plain');
-      if (jsonData) {
-        const parsed = JSON.parse(jsonData);
-        if (parsed.id && parsed.name !== undefined) {
-          taskData = { id: parsed.id, name: parsed.name, level: parsed.level || 0 };
-        }
-      }
-    } catch {
-      // Fallback sur le contexte
-      if (draggedTask) {
-        taskData = { id: draggedTask.id, name: draggedTask.name, level: draggedTask.level };
-      }
-    }
-    
-    // Ouvrir le modal si on a les données
-    if (taskData.name) {
-      const minimalTask: Task = {
-        id: taskData.id,
-        name: taskData.name,
-        level: taskData.level as 0 | 1 | 2,
-        category: 'Autres',
-        estimatedTime: 30,
-        context: 'Pro',
-        isCompleted: false,
-        isExpanded: false,
-        createdAt: new Date(),
-      };
-      setTaskToConvert(minimalTask);
-      setShowProjectModal(true);
-    }
-  };
-
-  // Création de projet depuis une tâche
-  const handleCreateProjectFromTask = async (data: any) => {
-    if (!taskToConvert) return;
-    
-    const taskId = taskToConvert.id;
-    const realTask = tasks.find(t => t.id === taskId);
-    const taskLevel = realTask?.level ?? taskToConvert.level;
-    
-    // Collecter toutes les sous-tâches récursivement
-    const collectAllSubTasks = (parentId: string): Task[] => {
-      const directChildren = tasks.filter(t => t.parentId === parentId);
-      const allDescendants: Task[] = [];
-      for (const child of directChildren) {
-        allDescendants.push(child);
-        allDescendants.push(...collectAllSubTasks(child.id));
-      }
-      return allDescendants;
-    };
-    
-    const allSubTasksToAssign = taskLevel === 0 ? collectAllSubTasks(taskId) : [];
-    
-    // Créer le projet
-    const project = await createProject(
-      data.name || taskToConvert.name,
-      data.description,
-      data.icon,
-      data.color
-    );
-    
-    if (project) {
-      // Assigner les sous-tâches au projet
-      for (const subTask of allSubTasksToAssign) {
-        if (onUpdateTask) {
-          await onUpdateTask(subTask.id, {
-            projectId: project.id,
-            projectStatus: 'todo',
-            level: 0,
-            parentId: undefined,
-          });
-        } else {
-          await assignTaskToProject(subTask.id, project.id);
-        }
-      }
-      
-      // Supprimer la tâche principale (elle est devenue le projet)
-      onRemoveTask(taskId);
-    }
-    
-    setShowProjectModal(false);
-    setTaskToConvert(null);
-  };
-
   return (
     <div className="relative h-full w-full min-h-0 flex">
 
@@ -341,20 +192,10 @@ const TaskList: React.FC<TaskListProps> = ({
             </div>
 
             {/* Contenu scrollable */}
-            <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar">
+            <div className="flex-1 min-h-0 w-full overflow-hidden custom-scrollbar">
               <div className="flex flex-col">
                 {/* Ajout rapide */}
                 <QuickAddTask onAddTask={onAddTask} />
-
-                {/* Zone de drop nouveau projet */}
-                <NewProjectDropZone
-                  isDragOver={isDragOverNewProject}
-                  hasActiveDrag={!!draggedTask}
-                  onDragOver={handleNewProjectDragOver}
-                  onDragEnter={handleNewProjectDragEnter}
-                  onDragLeave={handleNewProjectDragLeave}
-                  onDrop={handleNewProjectDrop}
-                />
 
                 {/* Sections optionnelles */}
                 {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
@@ -396,8 +237,6 @@ const TaskList: React.FC<TaskListProps> = ({
                   onCreateSubTask={handleCreateSubTasks}
                   onEditTask={handleEditTask}
                   onAssignToProject={handleAssignToProject}
-                  onConvertToProject={handleConvertToProject}
-                  onReorderTasks={onReorderTasks}
                   allTasks={tasks}
                 />
               </div>
@@ -434,17 +273,6 @@ const TaskList: React.FC<TaskListProps> = ({
                 editingTask={editingTask}
               />
             )}
-
-            {/* Modale de création de projet depuis une tâche */}
-            <ProjectModal
-              open={showProjectModal}
-              onClose={() => {
-                setShowProjectModal(false);
-                setTaskToConvert(null);
-              }}
-              onSave={handleCreateProjectFromTask}
-              initialName={taskToConvert?.name}
-            />
           </div>
         )}
       </div>

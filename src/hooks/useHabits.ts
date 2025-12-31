@@ -7,7 +7,6 @@ import { useItems } from './useItems';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useGamification } from './useGamification';
-import { useAchievements } from './useAchievements';
 import { useTimeEventSync } from './useTimeEventSync';
 import { Habit, HabitStreak } from '@/types/habit';
 import { Item, ItemMetadata } from '@/types/item';
@@ -77,7 +76,6 @@ export const useHabits = (deckId: string | null) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { rewardHabitCompletion, rewardStreak } = useGamification();
-  const { checkAndUnlockAchievement } = useAchievements();
   const { syncHabitEvent, deleteEntityEvent, toggleHabitCompletion, isHabitCompletedToday } = useTimeEventSync();
 
   const { 
@@ -218,7 +216,6 @@ export const useHabits = (deckId: string | null) => {
         const habit = habits.find(h => h.id === habitId);
         if (habit) {
           await rewardHabitCompletion(habitId, habit.name);
-          await checkAndUnlockAchievement('habits_30', habits.length);
           
           const streak = streaks[habitId];
           if (streak && [7, 14, 30, 60, 100, 365].includes(streak.currentStreak + 1)) {
@@ -239,7 +236,7 @@ export const useHabits = (deckId: string | null) => {
       });
       return false;
     }
-  }, [user, completions, habits, streaks, toggleHabitCompletion, calculateStreaks, rewardHabitCompletion, checkAndUnlockAchievement, rewardStreak, toast]);
+  }, [user, completions, habits, streaks, toggleHabitCompletion, calculateStreaks, rewardHabitCompletion, rewardStreak, toast]);
 
   // Create habit
   const createHabit = useCallback(async (habit: Omit<Habit, 'id' | 'createdAt'>) => {

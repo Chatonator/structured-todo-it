@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { Project, PROJECT_STATUS_CONFIG } from '@/types/project';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Calendar } from 'lucide-react';
-import { useDragDrop } from '@/contexts/DragDropContext';
 
 interface ProjectCardProps {
   project: Project;
@@ -13,47 +11,11 @@ interface ProjectCardProps {
 
 export const ProjectCard = ({ project, onClick }: ProjectCardProps) => {
   const statusConfig = PROJECT_STATUS_CONFIG[project.status];
-  const { draggedTask, onAssignToProject } = useDragDrop();
-  const [isDragOver, setIsDragOver] = useState(false);
-
-  const handleDragOver = (e: React.DragEvent) => {
-    if (draggedTask) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    }
-  };
-
-  const handleDragEnter = (e: React.DragEvent) => {
-    if (draggedTask) {
-      e.preventDefault();
-      setIsDragOver(true);
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    if (draggedTask) {
-      await onAssignToProject(draggedTask.id, project.id);
-    }
-  };
   
   return (
     <Card 
-      className={`cursor-pointer hover:shadow-lg transition-all ${
-        isDragOver ? 'ring-2 ring-primary scale-105 shadow-xl bg-accent' : ''
-      }`}
+      className="cursor-pointer hover:shadow-lg transition-all"
       onClick={onClick}
-      onDragOver={handleDragOver}
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
       style={{ borderLeftColor: project.color, borderLeftWidth: '4px' }}
     >
       <CardHeader className="pb-3">
@@ -66,11 +28,6 @@ export const ProjectCard = ({ project, onClick }: ProjectCardProps) => {
             {statusConfig.label}
           </Badge>
         </div>
-        {isDragOver && draggedTask && (
-          <div className="text-xs text-primary font-medium mt-2 animate-pulse">
-            Déposer "{draggedTask.name}" dans ce projet
-          </div>
-        )}
       </CardHeader>
       
       <CardContent className="space-y-3">

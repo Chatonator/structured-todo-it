@@ -5,7 +5,6 @@
 import { useCallback, useMemo } from 'react';
 import { useItems } from './useItems';
 import { useGamification } from './useGamification';
-import { useAchievements } from './useAchievements';
 import { Task, TaskCategory, TaskContext } from '@/types/task';
 import { Item, ItemMetadata } from '@/types/item';
 
@@ -61,7 +60,6 @@ export const useTasks = () => {
   });
   
   const { rewardTaskCompletion } = useGamification();
-  const { checkAndUnlockAchievement } = useAchievements();
 
   // Convert items to tasks
   const tasks = useMemo(() => items.map(itemToTask), [items]);
@@ -133,10 +131,8 @@ export const useTasks = () => {
     // Reward if completing (not uncompleting)
     if (!task.isCompleted) {
       await rewardTaskCompletion(task);
-      const newCount = tasks.filter(t => t.isCompleted).length + 1;
-      await checkAndUnlockAchievement('tasks_10', newCount);
     }
-  }, [tasks, toggleComplete, rewardTaskCompletion, checkAndUnlockAchievement]);
+  }, [tasks, toggleComplete, rewardTaskCompletion]);
 
   // Toggle expansion
   const toggleTaskExpansion = useCallback(async (taskId: string) => {

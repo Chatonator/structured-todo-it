@@ -7,28 +7,16 @@ import { ProjectDetail } from './ProjectDetail';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Briefcase, FolderPlus } from 'lucide-react';
-import { useDragDrop } from '@/contexts/DragDropContext';
 
 export const ProjectsView = () => {
   const { projects, loading, createProject, updateProject } = useProjects();
   const [showModal, setShowModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [detailProject, setDetailProject] = useState<Project | null>(null);
-  const [isDragOverNewProject, setIsDragOverNewProject] = useState(false);
-  const [prefilledProjectName, setPrefilledProjectName] = useState<string>('');
-  const [droppedTaskId, setDroppedTaskId] = useState<string | null>(null);
-  
-  const { draggedTask } = useDragDrop();
 
   const handleCreateProject = async (data: any) => {
-    const project = await createProject(data.name, data.description, data.icon, data.color);
-    
-    // Si on a créé le projet depuis une tâche droppée, on pourrait assigner la tâche
-    // (optionnel - pour l'instant on crée juste le projet avec le nom)
-    
+    await createProject(data.name, data.description, data.icon, data.color);
     setShowModal(false);
-    setPrefilledProjectName('');
-    setDroppedTaskId(null);
   };
 
   const handleUpdateProject = async (data: any) => {
@@ -49,72 +37,6 @@ export const ProjectsView = () => {
   const handleEditFromDetail = () => {
     setSelectedProject(detailProject);
     setShowModal(true);
-  };
-
-  // Handlers pour la zone de drop "nouveau projet"
-  const handleNewProjectDragOver = (e: React.DragEvent) => {
-    // Toujours accepter le drag
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleNewProjectDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOverNewProject(true);
-  };
-
-  const handleNewProjectDragLeave = (e: React.DragEvent) => {
-    // Vérifier qu'on quitte vraiment la zone (pas juste un enfant)
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX;
-    const y = e.clientY;
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      setIsDragOverNewProject(false);
-    }
-  };
-
-  const handleNewProjectDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOverNewProject(false);
-    
-    console.log('[ProjectsView] Drop detected');
-    
-    // Essayer de récupérer les données JSON depuis text/plain
-    let taskName = '';
-    let taskId = '';
-    
-    try {
-      const jsonData = e.dataTransfer.getData('text/plain');
-      console.log('[ProjectsView] Raw data:', jsonData);
-      if (jsonData) {
-        const taskData = JSON.parse(jsonData);
-        console.log('[ProjectsView] Parsed task data:', taskData);
-        if (taskData.id && taskData.name !== undefined) {
-          taskName = taskData.name;
-          taskId = taskData.id;
-        }
-      }
-    } catch (err) {
-      console.log('[ProjectsView] JSON parse failed, trying context');
-    }
-    
-    // Fallback sur le contexte
-    if (!taskName && draggedTask) {
-      console.log('[ProjectsView] Using draggedTask from context:', draggedTask);
-      taskName = draggedTask.name;
-      taskId = draggedTask.id;
-    }
-    
-    // Si on a un nom de tâche, ouvrir le modal avec le nom pré-rempli
-    if (taskName) {
-      console.log('[ProjectsView] Opening modal with name:', taskName);
-      setPrefilledProjectName(taskName);
-      setDroppedTaskId(taskId);
-      setShowModal(true);
-    } else {
-      console.log('[ProjectsView] No task data found');
-    }
   };
 
   if (detailProject) {
@@ -151,44 +73,21 @@ export const ProjectsView = () => {
     );
   }
 
-  // Zone de drop pour créer un nouveau projet
-  const NewProjectDropZone = () => (
+  // Zone pour créer un nouveau projet
+  const NewProjectZone = () => (
     <div
-      className={`
-        border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-3
+      className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-3
         transition-all duration-200 min-h-[200px]
-        ${isDragOverNewProject 
-          ? 'border-primary bg-primary/10 scale-105' 
-          : draggedTask 
-            ? 'border-primary/50 bg-accent/50' 
-            : 'border-border bg-card hover:border-muted-foreground/50'
-        }
-        ${draggedTask ? 'cursor-copy' : 'cursor-pointer'}
-      `}
-      onClick={() => !draggedTask && setShowModal(true)}
-      onDragOver={handleNewProjectDragOver}
-      onDragEnter={handleNewProjectDragEnter}
-      onDragLeave={handleNewProjectDragLeave}
-      onDrop={handleNewProjectDrop}
+        border-border bg-card hover:border-muted-foreground/50 cursor-pointer"
+      onClick={() => setShowModal(true)}
     >
-      <FolderPlus className={`w-10 h-10 ${isDragOverNewProject ? 'text-primary' : 'text-muted-foreground'}`} />
-      {draggedTask ? (
-        <div className="text-center">
-          <p className="font-medium text-primary">
-            {isDragOverNewProject ? 'Relâcher pour créer le projet' : 'Déposer ici'}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            "{draggedTask.name}" deviendra un nouveau projet
-          </p>
-        </div>
-      ) : (
-        <div className="text-center">
-          <p className="font-medium">Nouveau projet</p>
-          <p className="text-sm text-muted-foreground">
-            Cliquez ou glissez une tâche ici
-          </p>
-        </div>
-      )}
+      <FolderPlus className="w-10 h-10 text-muted-foreground" />
+      <div className="text-center">
+        <p className="font-medium">Nouveau projet</p>
+        <p className="text-sm text-muted-foreground">
+          Cliquez pour créer un projet
+        </p>
+      </div>
     </div>
   );
 
@@ -214,7 +113,7 @@ export const ProjectsView = () => {
       {/* Empty State */}
       {projects.length === 0 ? (
         <div className="text-center py-16">
-          <NewProjectDropZone />
+          <NewProjectZone />
         </div>
       ) : (
         <Tabs defaultValue="active">
@@ -241,7 +140,7 @@ export const ProjectsView = () => {
                   onClick={() => handleCardClick(project)}
                 />
               ))}
-              <NewProjectDropZone />
+              <NewProjectZone />
             </div>
           </TabsContent>
 
@@ -279,12 +178,9 @@ export const ProjectsView = () => {
         onClose={() => {
           setShowModal(false);
           setSelectedProject(null);
-          setPrefilledProjectName('');
-          setDroppedTaskId(null);
         }}
         onSave={selectedProject ? handleUpdateProject : handleCreateProject}
         project={selectedProject}
-        initialName={prefilledProjectName}
       />
     </div>
   );
