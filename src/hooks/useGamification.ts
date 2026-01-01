@@ -26,8 +26,6 @@ export const useGamification = () => {
     longestTaskStreak: data.longest_task_streak,
     currentHabitStreak: data.current_habit_streak,
     longestHabitStreak: data.longest_habit_streak,
-    dailyChallengeStreak: data.daily_challenge_streak,
-    weeklyChallengesCompleted: data.weekly_challenges_completed,
     lastActivityDate: data.last_activity_date,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at)
@@ -190,36 +188,6 @@ export const useGamification = () => {
     });
   }, [progress, addXp, toast]);
 
-  const claimDailyBonus = useCallback(async () => {
-    if (!progress || !user) return false;
-
-    const today = new Date().toISOString().split('T')[0];
-    
-    if (progress.lastActivityDate === today) {
-      toast({
-        title: "Déjà réclamé",
-        description: "Revenez demain pour votre bonus quotidien !",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    await addXp(
-      XP_CONFIG.DAILY_BONUS.xp,
-      XP_CONFIG.DAILY_BONUS.points,
-      'daily_bonus',
-      undefined,
-      'Bonus quotidien'
-    );
-
-    toast({
-      title: "✨ Bonus quotidien réclamé !",
-      description: `+${XP_CONFIG.DAILY_BONUS.xp} XP et +${XP_CONFIG.DAILY_BONUS.points} points`,
-      duration: 3000
-    });
-
-    return true;
-  }, [progress, user, addXp, toast]);
 
   const getProgressPercentage = useCallback(() => {
     if (!progress) return 0;
@@ -364,7 +332,6 @@ export const useGamification = () => {
     rewardTaskCompletion,
     rewardHabitCompletion,
     rewardStreak,
-    claimDailyBonus,
     rewardProjectCreation,
     rewardProjectCompletion,
     getProgressPercentage,

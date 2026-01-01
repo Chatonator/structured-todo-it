@@ -141,22 +141,3 @@ export function getCategoryDisplayName(category: TaskCategory): string {
   return CATEGORY_DISPLAY_NAMES[category];
 }
 
-export const CALENDAR_VIEWS = {
-  DAY: 'day',
-  WEEK: 'week',
-  MONTH: 'month',
-  THREE_MONTHS: 'three-months',
-  SIX_MONTHS: 'six-months'
-} as const;
-
-export type CalendarView = typeof CALENDAR_VIEWS[keyof typeof CALENDAR_VIEWS];
-
-export const CALENDAR_HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8h à 19h
-
-export interface CalendarEvent {
-  id: string;
-  task: Task;
-  startTime: Date;
-  endTime: Date;
-  duration: number; // en minutes
-}

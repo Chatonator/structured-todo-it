@@ -63,9 +63,9 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
       case 'task': return '✅';
       case 'habit': return '💪';
       case 'challenge': return '🎯';
-      case 'achievement': return '🏆';
       case 'streak_bonus': return '🔥';
-      case 'daily_bonus': return '✨';
+      case 'project_created': return '📁';
+      case 'project_completed': return '🎯';
       default: return '📊';
     }
   };
