@@ -1,8 +1,4 @@
-export type AchievementCategory = 'tasks' | 'habits' | 'streaks' | 'milestones' | 'challenges';
-export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum';
-export type ChallengeType = 'daily' | 'weekly';
-export type ChallengeCategory = 'tasks' | 'habits' | 'mixed';
-export type TransactionSource = 'task' | 'habit' | 'challenge' | 'achievement' | 'streak_bonus' | 'daily_bonus';
+export type TransactionSource = 'task' | 'habit' | 'streak_bonus' | 'project_created' | 'project_completed';
 
 export interface UserProgress {
   id: string;
@@ -18,67 +14,9 @@ export interface UserProgress {
   longestTaskStreak: number;
   currentHabitStreak: number;
   longestHabitStreak: number;
-  dailyChallengeStreak: number;
-  weeklyChallengesCompleted: number;
   lastActivityDate: string;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface Achievement {
-  id: string;
-  key: string;
-  name: string;
-  description: string;
-  icon?: string;
-  category: AchievementCategory;
-  targetValue?: number;
-  xpReward: number;
-  pointsReward: number;
-  isSecret: boolean;
-  tier: AchievementTier;
-  displayOrder: number;
-  createdAt: Date;
-}
-
-export interface UserAchievement {
-  id: string;
-  userId: string;
-  achievementId: string;
-  achievement?: Achievement;
-  currentProgress: number;
-  isUnlocked: boolean;
-  unlockedAt?: Date;
-  createdAt: Date;
-}
-
-export interface Challenge {
-  id: string;
-  type: ChallengeType;
-  category: ChallengeCategory;
-  name: string;
-  description: string;
-  icon?: string;
-  targetType: string;
-  targetValue: number;
-  xpReward: number;
-  pointsReward: number;
-  requiredLevel: number;
-  weight: number;
-  createdAt: Date;
-}
-
-export interface UserChallenge {
-  id: string;
-  userId: string;
-  challengeId: string;
-  challenge?: Challenge;
-  currentProgress: number;
-  isCompleted: boolean;
-  completedAt?: Date;
-  assignedDate: string;
-  expiresAt: string;
-  createdAt: Date;
 }
 
 export interface XpTransaction {
@@ -116,18 +54,7 @@ export const XP_CONFIG = {
     365: { xp: 5000, points: 1000 }
   } as Record<number, { xp: number; points: number }>,
   
-  // Bonus quotidien
-  DAILY_BONUS: { xp: 5, points: 1 },
-  
   // Formule niveau
   LEVEL_XP_MULTIPLIER: 1.5,
   LEVEL_BASE_XP: 100
-};
-
-// Tiers d'achievements
-export const ACHIEVEMENT_TIERS: Record<AchievementTier, { color: string; label: string }> = {
-  'bronze': { color: '#cd7f32', label: 'Bronze' },
-  'silver': { color: '#c0c0c0', label: 'Argent' },
-  'gold': { color: '#ffd700', label: 'Or' },
-  'platinum': { color: '#e5e4e2', label: 'Platine' }
 };
