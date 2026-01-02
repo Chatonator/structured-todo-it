@@ -1,7 +1,9 @@
 export { NameField } from './NameField';
-export { ContextSelector } from './ContextSelector';
-export { CategorySelector } from './CategorySelector';
 export { PrioritySelector } from './PrioritySelector';
-export { TimeEstimateSelector } from './TimeEstimateSelector';
 export { SchedulingSection } from './SchedulingSection';
 export { RecurrenceSection } from './RecurrenceSection';
+
+// Ré-export depuis common pour éviter la duplication
+export { CategorySelector } from '@/components/common/CategorySelector';
+export { ContextSelector } from '@/components/common/ContextSelector';
+export { TimeEstimateSelector } from '@/components/common/TimeEstimateSelector';
