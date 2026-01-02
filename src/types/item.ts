@@ -8,14 +8,14 @@
 // - metadata (JSONB for type-specific fields)
 // - created_at, updated_at
 
-import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval, CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS } from './task';
+import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval, CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS, CATEGORY_DISPLAY_NAMES, getCategoryDisplayName } from './task';
 import { ProjectStatus, TaskProjectStatus } from './project';
 import { HabitFrequency, UnlockCondition, ChallengeEndAction } from './habit';
 
 // Re-export common types for unified access
 export type ItemCategory = TaskCategory;
 export type ItemContext = TaskContext;
-export { CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS };
+export { CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS, CATEGORY_DISPLAY_NAMES, getCategoryDisplayName };
 
 // ============= Item Types (maps to item_type column) =============
 export type ItemContextType = 

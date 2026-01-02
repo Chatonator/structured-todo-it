@@ -1,8 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { ItemCategory, CATEGORY_CONFIG } from '@/types/item';
-import { CATEGORY_DISPLAY_NAMES } from '@/types/task';
+import { ItemCategory, CATEGORY_CONFIG, CATEGORY_DISPLAY_NAMES } from '@/types/item';
 
 interface CategorySelectorProps {
   value: ItemCategory | '';
