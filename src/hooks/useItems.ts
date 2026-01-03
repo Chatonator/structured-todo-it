@@ -13,7 +13,7 @@ import { CONTEXT_SCHEMAS, getMissingRequiredFields, getDefaultMetadata } from '@
 import { 
   transformItemContext, 
   TransformationResult,
-  applyChildTransformations
+  ChildTransformation
 } from '@/services/contextTransformation';
 
 // Database row type matching Supabase schema
@@ -303,11 +303,17 @@ export function useItems(options: UseItemsOptions = {}) {
         } as never)
         .eq('id', id);
 
-      // Apply children transformations
+      // Apply children transformations inline
       if (result.childrenUpdates && result.childrenUpdates.length > 0) {
-        const childResults = applyChildTransformations(children, result.childrenUpdates);
-        
-        for (const childResult of childResults) {
+        for (const transformation of result.childrenUpdates) {
+          const child = children.find(c => c.id === transformation.childId);
+          if (!child) continue;
+          
+          const childResult = transformItemContext(
+            { ...child, parentId: transformation.newParentId },
+            transformation.newContextType
+          );
+          
           if (childResult.success && childResult.item) {
             await supabase
               .from('items')
