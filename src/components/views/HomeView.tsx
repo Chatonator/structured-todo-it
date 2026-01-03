@@ -12,7 +12,7 @@ import {
   ArrowRight,
   Target
 } from 'lucide-react';
-import HomeHabitsSection from './home/HomeHabitsSection';
+import HomeHabitsSection from '../home/HomeHabitsSection';
 
 interface HomeViewProps {
   tasks: Task[];
