@@ -5,7 +5,7 @@ import { Plus, Check, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task, TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from '@/types/task';
 import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
-import { isTaskDraftValid, getDefaultsForTaskType } from '@/utils/taskValidationByType';
+import { TaskDraft, isTaskDraftValid, getDefaultsForTaskType } from '@/utils/taskValidationByType';
 import {
   NameField,
   ContextSelector,
@@ -32,17 +32,7 @@ interface TaskModalProps {
   taskType?: TaskType;
 }
 
-interface TaskDraft {
-  name: string;
-  category: TaskCategory | '';
-  subCategory: SubTaskCategory | '';
-  context: TaskContext | '';
-  estimatedTime: number | '';
-  scheduledDate?: Date;
-  scheduledTime?: string;
-  isRecurring?: boolean;
-  recurrenceInterval?: RecurrenceInterval;
-}
+// TaskDraft is imported from @/utils/taskValidationByType
 
 interface ScheduleInfo {
   date?: Date;
@@ -360,7 +350,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                   {config.showRecurrence && (
                     <RecurrenceSection
                       isRecurring={draft.isRecurring || false}
-                      recurrenceInterval={draft.recurrenceInterval}
+                      recurrenceInterval={draft.recurrenceInterval as RecurrenceInterval | undefined}
                       onRecurringChange={(value) => updateTaskDraft(index, 'isRecurring', value)}
                       onIntervalChange={(value) => updateTaskDraft(index, 'recurrenceInterval', value)}
                       index={index}

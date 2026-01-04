@@ -1,10 +1,7 @@
-
 /**
  * Système de logging centralisé
  * Gestion uniforme des logs avec niveaux et contexte
  */
-
-import React from 'react';
 
 export enum LogLevel {
   DEBUG = 0,
@@ -154,13 +151,3 @@ export const logger = new Logger({
   enableConsole: true,
   enableStorage: true,
 });
-
-// Hooks React pour le logging
-export const useLogger = () => {
-  return React.useMemo(() => ({
-    debug: logger.debug.bind(logger),
-    info: logger.info.bind(logger),
-    warn: logger.warn.bind(logger),
-    error: logger.error.bind(logger),
-  }), []);
-};
