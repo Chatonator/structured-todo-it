@@ -14,7 +14,7 @@ import {
   TimeEstimateSelector,
   SchedulingSection,
   RecurrenceSection
-} from '@/components/task-modal/fields';
+} from '@/components/task/fields';
 
 import { format } from 'date-fns';
 import { useTimeHub } from '@/hooks/useTimeHub';

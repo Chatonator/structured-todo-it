@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, TASK_LEVELS, CATEGORY_CSS_NAMES } from '@/types/task';
-import { RecurringTaskBadge } from '@/components/RecurringTaskBadge';
+import { RecurringTaskBadge } from './RecurringTaskBadge';
 import TaskItemControls from './TaskItemControls';
 import TaskItemContent from './TaskItemContent';
 import TaskItemActions from './TaskItemActions';
