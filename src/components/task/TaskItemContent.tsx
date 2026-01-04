@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
-import { RecurringTaskBadge } from '@/components/RecurringTaskBadge';
+import { RecurringTaskBadge } from './RecurringTaskBadge';
 import { Clock, Calendar } from 'lucide-react';
 import { useTimeEventSync } from '@/hooks/useTimeEventSync';
 import { TimeEvent } from '@/lib/time/types';

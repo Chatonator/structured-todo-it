@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { KanbanBoard } from './KanbanBoard';
-import TaskModal from '@/components/TaskModal';
+import TaskModal from '@/components/task/TaskModal';
 import { ArrowLeft, Edit, Plus, Calendar, Target, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Task } from '@/types/task';

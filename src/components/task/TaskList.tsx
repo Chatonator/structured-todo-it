@@ -7,11 +7,11 @@ import QuickAddTask from './QuickAddTask';
 import { useProjects } from '@/hooks/useProjects';
 
 // Sous-composants de la sidebar
-import SidebarCollapseButton from './sidebar/SidebarCollapseButton';
-import SidebarTasksSection from './sidebar/SidebarTasksSection';
-import { SidebarHabitsSection } from './sidebar/SidebarHabitsSection';
-import { SidebarProjectsSection } from './sidebar/SidebarProjectsSection';
-import { SidebarTeamTasksSection } from './sidebar/SidebarTeamTasksSection';
+import SidebarCollapseButton from '@/components/sidebar/SidebarCollapseButton';
+import SidebarTasksSection from '@/components/sidebar/SidebarTasksSection';
+import { SidebarHabitsSection } from '@/components/sidebar/SidebarHabitsSection';
+import { SidebarProjectsSection } from '@/components/sidebar/SidebarProjectsSection';
+import { SidebarTeamTasksSection } from '@/components/sidebar/SidebarTeamTasksSection';
 
 interface TeamTaskForSidebar {
   id: string;
