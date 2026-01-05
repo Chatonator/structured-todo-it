@@ -1,8 +1,5 @@
 import { Button } from '@/components/ui/button';
 import React, { useEffect, useMemo } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import TaskList from '@/components/task/TaskList';
 import TaskModal from '@/components/task/TaskModal';
 import HomeView from '@/components/views/HomeView';
 import TasksView from '@/components/views/TasksView';
@@ -12,13 +9,10 @@ import HabitsView from '@/components/habits/HabitsView';
 import RewardsView from '@/components/rewards/RewardsView';
 import { ProjectsView } from '@/components/projects/ProjectsView';
 import TimelineView from '@/components/timeline/TimelineView';
-import AppHeader from '@/components/layout/AppHeader';
-import AppNavigation from '@/components/layout/AppNavigation';
-import BottomNavigation from '@/components/layout/BottomNavigation';
+import MainLayout from '@/components/layout/MainLayout';
 import { useAppState } from '@/hooks/useAppState';
 import { useUnifiedTasks } from '@/hooks/useUnifiedTasks';
 import { useTheme } from '@/hooks/useTheme';
-import { useIsMobile } from '@/hooks/shared/use-mobile';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllProjectTasks } from '@/hooks/useAllProjectTasks';
 import { useHabits } from '@/hooks/useHabits';
@@ -26,11 +20,10 @@ import { useDecks } from '@/hooks/useDecks';
 
 /**
  * Page principale de l'application
- * Refactorisé pour utiliser les hooks useAppState et useUnifiedTasks
+ * Refactorisé pour utiliser le nouveau MainLayout
  */
 const Index = () => {
   const { theme } = useTheme();
-  const isMobile = useIsMobile();
   
   // Hook centralisé pour l'état de l'application
   const {
@@ -41,8 +34,6 @@ const Index = () => {
     setIsModalOpen,
     isTaskListOpen,
     setIsTaskListOpen,
-    isTaskListCollapsed,
-    setIsTaskListCollapsed,
     selectedTasks,
     handleToggleSelection,
     contextFilter,
@@ -59,18 +50,12 @@ const Index = () => {
     pinnedTasks,
     addTask,
     removeTask,
-    reorderTasks,
-    sortTasks,
     toggleTaskExpansion,
     toggleTaskCompletion,
     togglePinTask,
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
-    canUndo,
-    canRedo,
-    undo,
-    redo,
     restoreTask,
     updateTask,
     teamTasks,
@@ -169,114 +154,58 @@ const Index = () => {
     }
   };
 
-  // Props communes pour TaskList
-  const taskListProps = {
-    tasks: filteredTasks,
-    mainTasks: filteredMainTasks,
-    pinnedTasks,
-    onRemoveTask: removeTask,
-    onReorderTasks: reorderTasks,
-    onSortTasks: sortTasks,
-    onToggleExpansion: toggleTaskExpansion,
-    onToggleCompletion: toggleTaskCompletion,
-    onTogglePinTask: togglePinTask,
-    onAddTask: addTask,
-    onUpdateTask: updateTask,
-    getSubTasks,
-    calculateTotalTime,
-    canHaveSubTasks,
-    selectedTasks,
-    onToggleSelection: handleToggleSelection,
-    canUndo,
-    canRedo,
-    onUndo: undo,
-    onRedo: redo,
-    sidebarShowHabits: preferences.sidebarShowHabits,
-    sidebarShowProjects: preferences.sidebarShowProjects,
-    sidebarShowTeamTasks: preferences.sidebarShowTeamTasks,
-    todayHabits,
-    habitCompletions,
-    habitStreaks,
-    onToggleHabit: toggleHabitCompletion,
-    projects,
-    projectTasks,
-    onToggleProjectTask: toggleProjectTaskCompletion,
-    teamTasks,
-    onToggleTeamTask
-  };
-
   return (
-    <SidebarProvider>
-      <div className={`min-h-screen flex flex-col w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
-        {/* Header */}
-        <AppHeader
-          onOpenModal={() => setIsModalOpen(true)}
-          onOpenTaskList={() => setIsTaskListOpen(true)}
-          isMobile={isMobile}
-          contextFilter={contextFilter}
-          onContextFilterChange={setContextFilter}
-        />
+    <>
+      <MainLayout
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        navigationItems={navigationItems}
+        onOpenModal={() => setIsModalOpen(true)}
+        contextFilter={contextFilter}
+        onContextFilterChange={setContextFilter}
+        isTaskListOpen={isTaskListOpen}
+        setIsTaskListOpen={setIsTaskListOpen}
+        // Tasks
+        tasks={filteredTasks}
+        mainTasks={filteredMainTasks}
+        pinnedTasks={pinnedTasks}
+        selectedTasks={selectedTasks}
+        getSubTasks={getSubTasks}
+        calculateTotalTime={calculateTotalTime}
+        canHaveSubTasks={canHaveSubTasks}
+        onToggleSelection={handleToggleSelection}
+        onToggleExpansion={toggleTaskExpansion}
+        onToggleCompletion={toggleTaskCompletion}
+        onTogglePinTask={togglePinTask}
+        onRemoveTask={removeTask}
+        onAddTask={addTask}
+        onUpdateTask={updateTask}
+        // Habits
+        sidebarShowHabits={preferences.sidebarShowHabits}
+        todayHabits={todayHabits}
+        habitCompletions={habitCompletions}
+        habitStreaks={habitStreaks}
+        onToggleHabit={toggleHabitCompletion}
+        // Projects
+        sidebarShowProjects={preferences.sidebarShowProjects}
+        projects={projects}
+        projectTasks={projectTasks}
+        onToggleProjectTask={toggleProjectTaskCompletion}
+        // Team
+        sidebarShowTeamTasks={preferences.sidebarShowTeamTasks}
+        teamTasks={teamTasks}
+        onToggleTeamTask={onToggleTeamTask}
+      >
+        {renderCurrentView()}
+      </MainLayout>
 
-        {/* Navigation horizontale - desktop seulement */}
-        {!isMobile && (
-          <AppNavigation
-            currentView={currentView}
-            onViewChange={setCurrentView}
-            navigationItems={navigationItems}
-          />
-        )}
-
-        {/* Contenu principal */}
-        <main className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
-          {/* Desktop: TaskList sidebar */}
-          {!isMobile && (
-            <div className={`
-              bg-background border-r border-border flex flex-col shadow-sm min-h-0
-              transition-all duration-300 ease-in-out
-              ${isTaskListCollapsed ? 'w-16' : 'w-full md:w-[30%] lg:w-[25%]'}
-            `}>
-              <div className="flex-1 min-h-0">
-                <TaskList {...taskListProps} onCollapsedChange={setIsTaskListCollapsed} />
-              </div>
-            </div>
-          )}
-
-          {/* Mobile: TaskList drawer */}
-          {isMobile && (
-            <Sheet open={isTaskListOpen} onOpenChange={setIsTaskListOpen}>
-              <SheetContent side="left" className="w-full sm:w-[400px] p-0">
-                <div className="h-full min-h-0">
-                  <TaskList {...taskListProps} />
-                </div>
-              </SheetContent>
-            </Sheet>
-          )}
-
-          {/* Vue courante */}
-          <div className="flex-1 p-3 md:p-6 overflow-y-auto bg-background">
-            <div className="bg-card rounded-lg shadow-sm border border-border p-3 md:p-6 h-full">
-              {renderCurrentView()}
-            </div>
-          </div>
-        </main>
-
-        {/* Navigation mobile */}
-        {isMobile && (
-          <BottomNavigation
-            currentView={currentView}
-            onViewChange={setCurrentView}
-            navigationItems={navigationItems}
-          />
-        )}
-
-        {/* Modal création tâche */}
-        <TaskModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onAddTask={addTask}
-        />
-      </div>
-    </SidebarProvider>
+      {/* Modal création tâche */}
+      <TaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddTask={addTask}
+      />
+    </>
   );
 };
 
