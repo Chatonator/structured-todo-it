@@ -37,10 +37,17 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 
+// ⚠️ DEV MODE: Bypass authentication for visual development
+const DEV_BYPASS_AUTH = true;
+
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  
   const { isAuthenticated, loading } = useAuth();
+
+  // Bypass auth in dev mode
+  if (DEV_BYPASS_AUTH) {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (
