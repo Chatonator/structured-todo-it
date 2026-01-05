@@ -4,205 +4,267 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    /* ===== PALETTE CHAUDE TO-DO-IT 2.0 ===== */
+    
+    /* Backgrounds - tons crème/beige chaleureux */
+    --background: 39 100% 97%;          /* #FFF8E7 - Crème chaud principal */
+    --foreground: 25 30% 15%;           /* Brun foncé pour le texte */
+    
+    /* Cards - blanc cassé légèrement chaud */
+    --card: 40 100% 99%;                /* #FFFDF8 - Blanc cassé */
+    --card-foreground: 25 30% 15%;
+    
+    /* Popovers */
+    --popover: 40 100% 99%;
+    --popover-foreground: 25 30% 15%;
+    
+    /* Primary - Orange/Ambre chaleureux */
+    --primary: 32 95% 44%;              /* #D97706 - Ambre */
+    --primary-foreground: 40 100% 99%;
+    
+    /* Secondary - Beige léger */
+    --secondary: 35 60% 94%;            /* Beige doux */
+    --secondary-foreground: 25 30% 15%;
+    
+    /* Muted - Beige très doux */
+    --muted: 35 40% 92%;                /* #F5EDD8 */
+    --muted-foreground: 25 15% 45%;
+    
+    /* Accent - Jaune pâle chaleureux */
+    --accent: 45 90% 94%;               /* #FEF3C7 */
+    --accent-foreground: 25 30% 15%;
+    
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 40 100% 99%;
+    
+    /* Borders & Inputs - tons beige */
+    --border: 35 30% 85%;               /* Bordure beige douce */
+    --input: 35 30% 85%;
+    --ring: 32 95% 44%;                 /* Anneau ambre */
+    
+    --radius: 0.75rem;                  /* Bordures plus arrondies */
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar - tons crème/beige */
+    --sidebar-background: 35 70% 95%;   /* #FEF3E2 - Beige léger */
+    --sidebar-foreground: 25 30% 15%;
+    --sidebar-primary: 32 95% 44%;      /* Ambre */
+    --sidebar-primary-foreground: 40 100% 99%;
+    --sidebar-accent: 45 80% 92%;       /* Jaune pâle */
+    --sidebar-accent-foreground: 25 30% 15%;
+    --sidebar-border: 35 40% 88%;
+    --sidebar-ring: 32 95% 44%;
 
-    --habit: 330 81% 60%;
-    --habit-light: 322 88% 96%;
-    --habit-dark: 330 79% 44%;
+    /* Habits - Rose/Corail chaleureux */
+    --habit: 350 75% 55%;
+    --habit-light: 350 80% 95%;
+    --habit-dark: 350 70% 40%;
     --habit-foreground: 0 0% 100%;
 
+    /* Rewards - Or/Jaune */
     --reward: 43 96% 56%;
     --reward-light: 48 100% 96%;
     --reward-dark: 32 95% 44%;
     --reward-foreground: 26 83% 14%;
 
-    --project: 258 90% 66%;
-    --project-light: 258 100% 88%;
-    --project-dark: 258 90% 58%;
+    /* Projects - Violet/Lavande */
+    --project: 258 70% 60%;
+    --project-light: 258 80% 92%;
+    --project-dark: 258 70% 50%;
     --project-foreground: 0 0% 100%;
   }
  
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* ===== DARK MODE - Tons chocolat/brun chaleureux ===== */
+    --background: 25 25% 10%;           /* Brun très foncé */
+    --foreground: 35 30% 90%;           /* Crème clair */
+    
+    --card: 25 20% 14%;                 /* Brun foncé */
+    --card-foreground: 35 30% 90%;
+    
+    --popover: 25 20% 14%;
+    --popover-foreground: 35 30% 90%;
+    
+    --primary: 35 90% 55%;              /* Ambre plus clair en dark */
+    --primary-foreground: 25 25% 10%;
+    
+    --secondary: 25 15% 20%;
+    --secondary-foreground: 35 30% 90%;
+    
+    --muted: 25 15% 18%;
+    --muted-foreground: 35 20% 60%;
+    
+    --accent: 35 40% 22%;
+    --accent-foreground: 35 30% 90%;
+    
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 35 30% 90%;
+    
+    --border: 25 15% 22%;
+    --input: 25 15% 22%;
+    --ring: 35 90% 55%;
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 25 20% 12%;
+    --sidebar-foreground: 35 30% 90%;
+    --sidebar-primary: 35 90% 55%;
+    --sidebar-primary-foreground: 25 25% 10%;
+    --sidebar-accent: 25 20% 18%;
+    --sidebar-accent-foreground: 35 30% 90%;
+    --sidebar-border: 25 15% 20%;
+    --sidebar-ring: 35 90% 55%;
 
-    --habit: 330 81% 60%;
-    --habit-light: 322 88% 96%;
-    --habit-dark: 330 79% 44%;
+    --habit: 350 70% 55%;
+    --habit-light: 350 50% 20%;
+    --habit-dark: 350 65% 45%;
     --habit-foreground: 0 0% 100%;
 
-    --reward: 43 96% 56%;
-    --reward-light: 48 100% 96%;
-    --reward-dark: 32 95% 44%;
-    --reward-foreground: 26 83% 14%;
+    --reward: 43 90% 50%;
+    --reward-light: 43 50% 20%;
+    --reward-dark: 32 85% 40%;
+    --reward-foreground: 43 90% 95%;
 
-    --project: 258 90% 66%;
-    --project-light: 258 100% 88%;
-    --project-dark: 258 90% 58%;
+    --project: 258 65% 55%;
+    --project-light: 258 40% 22%;
+    --project-dark: 258 60% 45%;
     --project-foreground: 0 0% 100%;
   }
 }
 
-/* Styles de base pour l'application */
-body {
-  @apply bg-background text-foreground antialiased;
+/* ===== GLOBAL STYLES ===== */
+* {
+  @apply border-border;
 }
 
-/* ===== STYLES POUR LES COMPOSANTS SHADCN/UI ===== */
-/* Utilisation des classes Tailwind standards harmonisées */
+body {
+  @apply bg-background text-foreground antialiased;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
 
-/* Styles pour les conteneurs principaux */
+/* ===== TYPOGRAPHY ===== */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-semibold tracking-tight text-foreground;
+}
+
+/* ===== COMPONENTS BASE STYLES ===== */
+
+/* Container */
 .container {
   @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
 
-/* Styles pour les cartes (cards) */
+/* Cards - style amélioré */
 .card {
-  @apply bg-card rounded-lg shadow-md p-4 border border-border;
+  @apply bg-card rounded-xl shadow-sm p-4 border border-border transition-shadow duration-200;
 }
 
-/* Styles pour les formulaires */
+.card:hover {
+  @apply shadow-md;
+}
+
+/* Form controls */
 .form-control {
-  @apply block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-input text-foreground;
+  @apply block w-full px-3 py-2 border border-input rounded-lg shadow-sm 
+         focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary 
+         sm:text-sm bg-background text-foreground transition-all duration-200;
 }
 
-/* Styles pour les boutons */
+/* Buttons */
 .btn {
-  @apply inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 bg-background text-foreground;
+  @apply inline-flex items-center justify-center px-4 py-2 rounded-lg 
+         text-sm font-medium transition-all duration-200
+         focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
 }
 
 .btn-primary {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary;
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 
+         shadow-sm hover:shadow-md active:scale-[0.98];
 }
 
 .btn-secondary {
-  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary;
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80
+         border border-border;
 }
 
-/* Styles pour la navigation */
+/* Navigation links */
 .nav-link {
-  @apply text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium;
+  @apply text-muted-foreground hover:text-foreground hover:bg-accent 
+         px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200;
 }
 
-/* Styles pour les listes */
+.nav-link.active {
+  @apply bg-accent text-foreground font-semibold;
+}
+
+/* List items */
 .list-item {
-  @apply px-4 py-2 border-b border-border bg-background text-foreground;
+  @apply px-4 py-3 border-b border-border bg-card text-foreground 
+         transition-colors duration-200 hover:bg-accent/50;
 }
 
-/* Styles pour les liens */
+/* Links */
 .link {
-  @apply text-primary hover:text-primary/80;
+  @apply text-primary hover:text-primary/80 underline-offset-4 hover:underline;
 }
 
-/* Styles pour les icônes */
+/* Icons */
 .icon {
   @apply h-5 w-5 inline-block align-middle;
 }
 
-/* ===== STYLES SPÉCIFIQUES À L'APPLICATION TODO-IT ===== */
-
-/* Styles pour la barre latérale */
+/* ===== SIDEBAR STYLES ===== */
 .sidebar {
-  @apply bg-card border-r border-border h-full;
+  background-color: hsl(var(--sidebar-background));
+  border-right: 1px solid hsl(var(--sidebar-border));
+  @apply h-full;
 }
 
-/* Styles pour l'en-tête de la tâche */
+/* ===== TASK STYLES ===== */
 .task-header {
   @apply flex items-center justify-between p-4 border-b border-border bg-card text-foreground;
 }
 
-/* Styles pour le pied de page de la tâche */
 .task-footer {
   @apply p-4 border-t border-border bg-card text-foreground;
 }
 
-/* Styles pour les catégories de tâches */
+/* Category badges */
 .category-badge {
-  @apply inline-block bg-accent text-foreground rounded-full px-2 py-1 text-xs font-bold mr-2 border border-border;
+  @apply inline-flex items-center bg-accent text-foreground rounded-full 
+         px-2.5 py-0.5 text-xs font-medium;
 }
 
-/* Styles pour les niveaux de tâches */
+/* Level badges */
 .level-badge {
-  @apply inline-block bg-muted text-foreground rounded-full px-2 py-1 text-xs font-bold mr-2 border border-border;
+  @apply inline-flex items-center bg-muted text-muted-foreground rounded-full 
+         px-2 py-0.5 text-xs font-medium;
 }
 
-/* Styles pour les tâches complétées */
+/* Completed tasks */
 .task-completed {
-  @apply line-through text-muted-foreground;
+  @apply line-through text-muted-foreground opacity-60;
 }
 
-/* Styles pour les champs de formulaire personnalisés */
+/* Custom inputs */
 .custom-input {
-  @apply appearance-none block w-full bg-input text-foreground border border-border rounded py-2 px-4 leading-tight focus:outline-none focus:bg-background focus:border-primary;
+  @apply appearance-none block w-full bg-background text-foreground 
+         border border-input rounded-lg py-2 px-4 
+         focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary
+         transition-all duration-200;
 }
 
-/* Styles pour les étiquettes de formulaire personnalisées */
+/* Custom labels */
 .custom-label {
-  @apply block uppercase tracking-wide text-muted-foreground text-xs font-bold mb-2;
+  @apply block text-sm font-medium text-foreground mb-1.5;
 }
 
-/* Styles pour les alertes */
+/* Alerts */
 .alert {
-  @apply relative px-4 py-3 leading-normal bg-card text-foreground border border-border rounded;
+  @apply relative px-4 py-3 rounded-lg bg-card text-foreground border border-border;
 }
 
-/* ===== ANIMATIONS ET INTERACTIONS ===== */
+/* ===== ANIMATIONS & INTERACTIONS ===== */
 
-/* Animations pour le drag & drop */
+/* Drag & drop */
 .dragging {
   opacity: 0.3 !important;
   transform: scale(0.95) rotate(2deg) !important;
@@ -215,13 +277,15 @@ body {
   transform: scale(1.02);
 }
 
+/* Task items */
 .task-item {
   position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .task-item:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+  @apply shadow-md;
 }
 
 .task-item.dragging {
@@ -231,31 +295,31 @@ body {
 }
 
 .task-pinned {
-  @apply bg-pinned/10 border border-pinned/30 shadow-md;
+  @apply bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 shadow-sm;
 }
 
-/* Ombres colorées par catégorie */
+/* Category shadows on hover */
 .task-item[data-category="Obligation"]:hover {
-  @apply shadow-lg shadow-category-obligation/25;
+  @apply shadow-lg shadow-red-500/15;
 }
 
 .task-item[data-category="Quotidien"]:hover {
-  @apply shadow-lg shadow-category-quotidien/25;
+  @apply shadow-lg shadow-amber-500/15;
 }
 
 .task-item[data-category="Envie"]:hover {
-  @apply shadow-lg shadow-category-envie/25;
+  @apply shadow-lg shadow-green-500/15;
 }
 
 .task-item[data-category="Autres"]:hover {
-  @apply shadow-lg shadow-category-autres/25;
+  @apply shadow-lg shadow-violet-500/15;
 }
 
-/* Calendrier - créneaux horaires */
+/* Calendar time slots */
 .calendar-time-slot {
   position: relative;
   transition: all 0.2s ease;
-  @apply bg-background text-foreground border border-border;
+  @apply bg-background text-foreground border border-border rounded-lg;
 }
 
 .calendar-time-slot:hover {
@@ -266,19 +330,16 @@ body {
   @apply bg-primary/10 border-2 border-dashed border-primary shadow-inner;
 }
 
-/* Animations de bounce pour les indicateurs */
+/* Gentle bounce animation */
 @keyframes gentle-bounce {
   0%, 20%, 53%, 80%, 100% {
     transform: translate3d(0, 0, 0);
   }
   40%, 43% {
-    transform: translate3d(0, -8px, 0);
+    transform: translate3d(0, -6px, 0);
   }
   70% {
-    transform: translate3d(0, -4px, 0);
-  }
-  90% {
-    transform: translate3d(0, -2px, 0);
+    transform: translate3d(0, -3px, 0);
   }
 }
 
@@ -286,12 +347,12 @@ body {
   animation: gentle-bounce 2s ease-in-out infinite;
 }
 
-/* Amélioration des scrollbars (discrètes) */
+/* ===== CUSTOM SCROLLBAR ===== */
 .custom-scrollbar {
-  overscroll-behavior: contain; /* évite que la page scrolle quand on atteint le haut/bas */
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: hsl(var(--muted) / 0.28) transparent; /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -303,33 +364,46 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted) / 0.22);
+  background-color: hsl(var(--muted-foreground) / 0.2);
   border-radius: 999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted) / 0.32);
+  background-color: hsl(var(--muted-foreground) / 0.35);
 }
 
-
-/* États de focus améliorés */
+/* ===== FOCUS STATES ===== */
 .focus-ring:focus-visible {
-  @apply outline-2 outline-primary outline-offset-2;
+  @apply outline-none ring-2 ring-ring/50 ring-offset-2 ring-offset-background;
 }
 
-/* Transitions fluides pour les modales */
+/* ===== MODAL TRANSITIONS ===== */
 .modal-overlay {
-  @apply bg-foreground/50 backdrop-blur transition-all duration-200;
+  @apply bg-foreground/40 backdrop-blur-sm transition-all duration-200;
 }
 
 .modal-content {
   transform: scale(0.95);
   opacity: 0;
   transition: all 0.2s ease;
-  @apply bg-card text-foreground border border-border;
+  @apply bg-card text-foreground border border-border rounded-xl shadow-xl;
 }
 
 .modal-content.open {
   transform: scale(1);
   opacity: 1;
+}
+
+/* ===== GLASS EFFECT ===== */
+.glass {
+  @apply bg-background/80 backdrop-blur-md border border-border/50;
+}
+
+/* ===== WARM GRADIENT UTILITIES ===== */
+.gradient-warm {
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--accent)) 100%);
+}
+
+.gradient-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(32 100% 55%) 100%);
 }

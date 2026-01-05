@@ -19,108 +19,104 @@ export default {
     },
     extend: {
       colors: {
-        // ===== PALETTE UNIFIÉE (15 COULEURS) =====
-        // Noir/Texte
-        border: '#e2e8f0',              // #1 - Gris clair (bordures)
-        input: '#e2e8f0',
-        ring: '#3b82f6',                // #2 - Bleu vif (focus)
-        background: '#ffffff',          // #3 - Blanc pur
-        foreground: '#0f172a',          // #4 - Noir bleuté (texte principal)
+        // ===== PALETTE CHAUDE TO-DO-IT 2.0 =====
+        // Utilisation de HSL pour la cohérence avec les variables CSS
+        
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         
         primary: {
-          DEFAULT: '#3b82f6',           // #2 - Bleu vif
-          foreground: '#ffffff'         // #3 - Blanc pur
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))'
         },
         secondary: {
-          DEFAULT: '#f1f5f9',           // #5 - Gris très clair
-          foreground: '#0f172a'         // #4 - Noir bleuté
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))'
         },
         destructive: {
-          DEFAULT: '#dc2626',           // #6 - Rouge foncé
-          foreground: '#ffffff'         // #3 - Blanc pur
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))'
         },
         muted: {
-          DEFAULT: '#f8fafc',           // #7 - Gris proche du blanc
-          foreground: '#64748b'         // #8 - Gris moyen
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))'
         },
         accent: {
-          DEFAULT: '#f1f5f9',           // #5 - Gris très clair
-          foreground: '#0f172a'         // #4 - Noir bleuté
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))'
         },
         popover: {
-          DEFAULT: '#ffffff',           // #3 - Blanc pur
-          foreground: '#0f172a'         // #4 - Noir bleuté
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))'
         },
         card: {
-          DEFAULT: '#ffffff',           // #3 - Blanc pur
-          foreground: '#0f172a'         // #4 - Noir bleuté
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))'
         },
         sidebar: {
-          DEFAULT: '#f8fafc',           // #7 - Gris proche du blanc
-          foreground: '#0f172a',        // #4 - Noir bleuté
-          primary: '#3b82f6',           // #2 - Bleu vif
-          'primary-foreground': '#ffffff', // #3 - Blanc pur
-          accent: '#f1f5f9',            // #5 - Gris très clair
-          'accent-foreground': '#0f172a', // #4 - Noir bleuté
-          border: '#e2e8f0',            // #1 - Gris clair
-          ring: '#3b82f6'               // #2 - Bleu vif
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))'
         },
         
         // ===== COULEURS SYSTÈME =====
         system: {
-          success: '#16a34a',           // #9 - Vert vif
-          warning: '#f59e0b',           // #10 - Orange vif
-          error: '#dc2626',             // #6 - Rouge foncé
-          info: '#3b82f6'               // #2 - Bleu vif
+          success: '#16a34a',           // Vert vif
+          warning: '#f59e0b',           // Orange vif
+          error: '#dc2626',             // Rouge
+          info: '#3b82f6'               // Bleu
         },
 
         // ===== COULEURS CATÉGORIES =====
         category: {
-          obligation: '#dc2626',        // #6 - Rouge foncé
-          quotidien: '#f59e0b',         // #10 - Orange vif
-          envie: '#16a34a',             // #9 - Vert vif
-          autres: '#8b5cf6',            // #11 - Violet
-          // Variantes light
-          'obligation-light': '#fffbeb', // #12 - Jaune très pâle
-          'quotidien-light': '#fffbeb',  // #12 - Jaune très pâle
-          'envie-light': '#f0fdf4',      // #13 - Vert très pâle
-          'autres-light': '#eff6ff'      // #14 - Bleu très pâle
+          obligation: '#dc2626',        // Rouge
+          quotidien: '#f59e0b',         // Orange
+          envie: '#16a34a',             // Vert
+          autres: '#8b5cf6',            // Violet
+          'obligation-light': '#fef2f2',
+          'quotidien-light': '#fffbeb',
+          'envie-light': '#f0fdf4',
+          'autres-light': '#f5f3ff'
         },
 
         // ===== COULEURS PRIORITÉS =====
         priority: {
-          highest: '#dc2626',           // #6 - Rouge foncé
-          high: '#f59e0b',              // #10 - Orange vif
-          medium: '#eab308',            // #15 - Jaune vif
-          low: '#16a34a',               // #9 - Vert vif
-          // Variantes light
-          'highest-light': '#fffbeb',   // #12 - Jaune très pâle
-          'high-light': '#fffbeb',      // #12 - Jaune très pâle
-          'medium-light': '#fffbeb',    // #12 - Jaune très pâle
-          'low-light': '#f0fdf4'        // #13 - Vert très pâle
+          highest: '#dc2626',
+          high: '#f59e0b',
+          medium: '#eab308',
+          low: '#16a34a',
+          'highest-light': '#fef2f2',
+          'high-light': '#fffbeb',
+          'medium-light': '#fefce8',
+          'low-light': '#f0fdf4'
         },
 
         // ===== COULEURS CONTEXTES =====
         context: {
-          pro: '#3b82f6',               // #2 - Bleu vif
-          perso: '#8b5cf6',             // #11 - Violet
-          // Variantes light
-          'pro-light': '#eff6ff',       // #14 - Bleu très pâle
-          'perso-light': '#f5f3ff'      // Violet très pâle (proche #14)
+          pro: '#3b82f6',
+          perso: '#8b5cf6',
+          'pro-light': '#eff6ff',
+          'perso-light': '#f5f3ff'
         },
 
-        // ===== COULEUR ÉPINGLÉ =====
-        pinned: '#f59e0b',              // #10 - Orange vif
+        // ===== COULEURS SPÉCIALES =====
+        pinned: '#f59e0b',
 
-        // ===== COULEUR HABITUDES (16ème couleur) =====
         habit: {
-          DEFAULT: '#ec4899',           // #16 - Rose vif (habitudes)
-          light: '#fdf2f8',             // Rose très pâle
-          dark: '#be185d',              // Rose foncé
-          foreground: '#ffffff'         // Texte sur fond rose
+          DEFAULT: 'hsl(var(--habit))',
+          light: 'hsl(var(--habit-light))',
+          dark: 'hsl(var(--habit-dark))',
+          foreground: 'hsl(var(--habit-foreground))'
         },
 
-        // ===== COULEUR RÉCOMPENSES (17ème couleur) =====
         reward: {
           DEFAULT: 'hsl(var(--reward))',
           light: 'hsl(var(--reward-light))',
@@ -128,12 +124,11 @@ export default {
           foreground: 'hsl(var(--reward-foreground))'
         },
 
-        // ===== COULEUR PROJETS (18ème couleur) =====
         project: {
-          DEFAULT: '#a78bfa',           // #18 - Violet (projets)
-          light: '#ede9fe',             // Violet très pâle
-          dark: '#7c3aed',              // Violet foncé
-          foreground: '#ffffff'         // Texte sur fond project
+          DEFAULT: 'hsl(var(--project))',
+          light: 'hsl(var(--project-light))',
+          dark: 'hsl(var(--project-dark))',
+          foreground: 'hsl(var(--project-foreground))'
         }
       },
       borderRadius: {
