@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import React, { useEffect, useMemo } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import TaskList from '@/components/task/TaskList';
+import AppSidebar from '@/components/sidebar/AppSidebar';
 import TaskModal from '@/components/task/TaskModal';
 import HomeView from '@/components/views/HomeView';
 import TasksView from '@/components/views/TasksView';
@@ -169,14 +169,12 @@ const Index = () => {
     }
   };
 
-  // Props communes pour TaskList
-  const taskListProps = {
+  // Props communes pour AppSidebar
+  const sidebarProps = {
     tasks: filteredTasks,
     mainTasks: filteredMainTasks,
     pinnedTasks,
     onRemoveTask: removeTask,
-    onReorderTasks: reorderTasks,
-    onSortTasks: sortTasks,
     onToggleExpansion: toggleTaskExpansion,
     onToggleCompletion: toggleTaskCompletion,
     onTogglePinTask: togglePinTask,
@@ -187,10 +185,6 @@ const Index = () => {
     canHaveSubTasks,
     selectedTasks,
     onToggleSelection: handleToggleSelection,
-    canUndo,
-    canRedo,
-    onUndo: undo,
-    onRedo: redo,
     sidebarShowHabits: preferences.sidebarShowHabits,
     sidebarShowProjects: preferences.sidebarShowProjects,
     sidebarShowTeamTasks: preferences.sidebarShowTeamTasks,
@@ -206,59 +200,49 @@ const Index = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className={`min-h-screen flex flex-col w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
-        {/* Header */}
-        <AppHeader
-          onOpenModal={() => setIsModalOpen(true)}
-          onOpenTaskList={() => setIsTaskListOpen(true)}
-          isMobile={isMobile}
-          contextFilter={contextFilter}
-          onContextFilterChange={setContextFilter}
-        />
+    <SidebarProvider defaultOpen={true}>
+      <div className={`min-h-screen flex w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
+        {/* Desktop: AppSidebar */}
+        {!isMobile && <AppSidebar {...sidebarProps} />}
 
-        {/* Navigation horizontale - desktop seulement */}
-        {!isMobile && (
-          <AppNavigation
-            currentView={currentView}
-            onViewChange={setCurrentView}
-            navigationItems={navigationItems}
-          />
+        {/* Mobile: Sidebar en drawer */}
+        {isMobile && (
+          <Sheet open={isTaskListOpen} onOpenChange={setIsTaskListOpen}>
+            <SheetContent side="left" className="w-full sm:w-[400px] p-0">
+              <div className="h-full min-h-0">
+                <AppSidebar {...sidebarProps} />
+              </div>
+            </SheetContent>
+          </Sheet>
         )}
 
         {/* Contenu principal */}
-        <main className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
-          {/* Desktop: TaskList sidebar */}
-          {!isMobile && (
-            <div className={`
-              bg-background border-r border-border flex flex-col shadow-sm min-h-0
-              transition-all duration-300 ease-in-out
-              ${isTaskListCollapsed ? 'w-16' : 'w-full md:w-[30%] lg:w-[25%]'}
-            `}>
-              <div className="flex-1 min-h-0">
-                <TaskList {...taskListProps} onCollapsedChange={setIsTaskListCollapsed} />
-              </div>
-            </div>
-          )}
+        <SidebarInset className="flex flex-col">
+          {/* Header */}
+          <AppHeader
+            onOpenModal={() => setIsModalOpen(true)}
+            onOpenTaskList={() => setIsTaskListOpen(true)}
+            isMobile={isMobile}
+            contextFilter={contextFilter}
+            onContextFilterChange={setContextFilter}
+          />
 
-          {/* Mobile: TaskList drawer */}
-          {isMobile && (
-            <Sheet open={isTaskListOpen} onOpenChange={setIsTaskListOpen}>
-              <SheetContent side="left" className="w-full sm:w-[400px] p-0">
-                <div className="h-full min-h-0">
-                  <TaskList {...taskListProps} />
-                </div>
-              </SheetContent>
-            </Sheet>
+          {/* Navigation horizontale - desktop seulement */}
+          {!isMobile && (
+            <AppNavigation
+              currentView={currentView}
+              onViewChange={setCurrentView}
+              navigationItems={navigationItems}
+            />
           )}
 
           {/* Vue courante */}
-          <div className="flex-1 p-3 md:p-6 overflow-y-auto bg-background">
+          <main className="flex-1 p-3 md:p-6 overflow-y-auto">
             <div className="bg-card rounded-lg shadow-sm border border-border p-3 md:p-6 h-full">
               {renderCurrentView()}
             </div>
-          </div>
-        </main>
+          </main>
+        </SidebarInset>
 
         {/* Navigation mobile */}
         {isMobile && (

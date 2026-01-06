@@ -1,5 +1,4 @@
 // Task components barrel file
-export { default as TaskList } from './TaskList';
 export { default as TaskModal } from './TaskModal';
 export { default as QuickAddTask } from './QuickAddTask';
 export { RecurringTaskBadge } from './RecurringTaskBadge';
