@@ -2,35 +2,49 @@ import React, { useState } from 'react';
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarMenuButton,
-  useSidebar
+  SidebarMenuItem,
+  SidebarSeparator,
+  SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, ListTodo, Dumbbell, Briefcase, Users, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp } from 'lucide-react';
+import {
+  Home,
+  ListTodo,
+  Grid3X3,
+  Calendar,
+  FolderKanban,
+  Heart,
+  Trophy,
+  CheckCircle2,
+  Plus,
+  Settings,
+  ChevronRight,
+  Clock,
+  Flame,
+} from 'lucide-react';
 import { Task } from '@/types/task';
 import { Habit, HabitStreak } from '@/types/habit';
 import { Project } from '@/types/project';
 import QuickAddTask from '@/components/task/QuickAddTask';
-import SidebarTaskItem from '@/components/layout/SidebarTaskItem';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
-interface ProjectTaskForSidebar {
-  task: Task;
-  projectName: string;
-  projectIcon?: string;
+// Types pour les props
+interface NavigationItem {
+  key: string;
+  title: string;
+  icon: React.ElementType;
 }
 
-interface TeamTask {
+interface TeamTaskForSidebar {
   id: string;
   name: string;
   isCompleted: boolean;
@@ -38,348 +52,341 @@ interface TeamTask {
   estimatedTime: number;
 }
 
-interface AppSidebarProps {
-  // Tasks
-  tasks: Task[];
-  mainTasks: Task[];
-  pinnedTasks: string[];
-  selectedTasks: string[];
-  getSubTasks: (parentId: string) => Task[];
-  calculateTotalTime: (task: Task) => number;
-  canHaveSubTasks: (task: Task) => boolean;
-  onToggleSelection: (taskId: string) => void;
-  onToggleExpansion: (taskId: string) => void;
-  onToggleCompletion: (taskId: string) => void;
-  onTogglePinTask: (taskId: string) => void;
-  onRemoveTask: (taskId: string) => void;
-  onAddTask: (task: any) => void;
-  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
-  // Habits
-  sidebarShowHabits: boolean;
-  todayHabits: Habit[];
-  habitCompletions: Record<string, boolean>;
-  habitStreaks: Record<string, HabitStreak>;
-  onToggleHabit: (habitId: string) => Promise<boolean | void>;
-  // Projects
-  sidebarShowProjects: boolean;
-  projects: Project[];
-  projectTasks: ProjectTaskForSidebar[];
-  onToggleProjectTask: (taskId: string) => void;
-  // Team
-  sidebarShowTeamTasks: boolean;
-  teamTasks: TeamTask[];
-  onToggleTeamTask: (taskId: string) => void;
+interface ProjectTaskForSidebar {
+  task: Task;
+  projectName: string;
+  projectIcon?: string;
 }
 
-/**
- * Nouvelle sidebar utilisant les composants Shadcn
- */
+interface AppSidebarProps {
+  currentView: string;
+  onViewChange: (view: string) => void;
+  onOpenModal: () => void;
+  onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  // Tâches
+  tasks: Task[];
+  onToggleCompletion: (taskId: string) => void;
+  // Habitudes (optionnel)
+  showHabits?: boolean;
+  todayHabits?: Habit[];
+  habitCompletions?: Record<string, boolean>;
+  habitStreaks?: Record<string, HabitStreak>;
+  onToggleHabit?: (habitId: string) => Promise<boolean | void>;
+  // Projets (optionnel)
+  showProjects?: boolean;
+  projects?: Project[];
+  projectTasks?: ProjectTaskForSidebar[];
+  onToggleProjectTask?: (taskId: string) => void;
+  // Équipe (optionnel)
+  showTeamTasks?: boolean;
+  teamTasks?: TeamTaskForSidebar[];
+  onToggleTeamTask?: (taskId: string) => void;
+}
+
+// Configuration de la navigation
+const navigationItems: NavigationItem[] = [
+  { key: 'home', title: 'Accueil', icon: Home },
+  { key: 'tasks', title: 'Tâches', icon: ListTodo },
+  { key: 'eisenhower', title: 'Eisenhower', icon: Grid3X3 },
+  { key: 'timeline', title: 'Timeline', icon: Calendar },
+  { key: 'projects', title: 'Projets', icon: FolderKanban },
+  { key: 'habits', title: 'Habitudes', icon: Heart },
+  { key: 'rewards', title: 'Récompenses', icon: Trophy },
+  { key: 'completed', title: 'Terminées', icon: CheckCircle2 },
+];
+
 const AppSidebar: React.FC<AppSidebarProps> = ({
-  tasks,
-  mainTasks,
-  pinnedTasks,
-  selectedTasks,
-  getSubTasks,
-  calculateTotalTime,
-  canHaveSubTasks,
-  onToggleSelection,
-  onToggleExpansion,
-  onToggleCompletion,
-  onTogglePinTask,
-  onRemoveTask,
+  currentView,
+  onViewChange,
+  onOpenModal,
   onAddTask,
-  onUpdateTask,
-  sidebarShowHabits,
-  todayHabits,
-  habitCompletions,
-  habitStreaks,
+  tasks,
+  onToggleCompletion,
+  showHabits = false,
+  todayHabits = [],
+  habitCompletions = {},
+  habitStreaks = {},
   onToggleHabit,
-  sidebarShowProjects,
-  projects,
-  projectTasks,
-  onToggleProjectTask,
-  sidebarShowTeamTasks,
-  teamTasks,
-  onToggleTeamTask
+  showProjects = false,
+  projects = [],
+  showTeamTasks = false,
+  teamTasks = [],
+  onToggleTeamTask,
 }) => {
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
   
-  const [isExtendedView, setIsExtendedView] = useState(false);
-  const [habitsOpen, setHabitsOpen] = useState(true);
-  const [projectsOpen, setProjectsOpen] = useState(true);
-  const [teamOpen, setTeamOpen] = useState(true);
-
-  // Tâches triées (épinglées en premier)
-  const sortedTasks = [...mainTasks].filter(t => !t.isCompleted).sort((a, b) => {
-    const aPinned = pinnedTasks.includes(a.id);
-    const bPinned = pinnedTasks.includes(b.id);
-    return aPinned === bPinned ? 0 : aPinned ? -1 : 1;
-  });
-
-  const activeHabits = todayHabits || [];
-  const completedHabitsCount = activeHabits.filter(h => habitCompletions[h.id]).length;
+  // Tâches actives (non complétées, niveau 0)
+  const activeTasks = tasks.filter(t => !t.isCompleted && t.level === 0 && !t.projectId).slice(0, 8);
   
-  const activeProjectTasks = (projectTasks || []).filter(pt => !pt.task.isCompleted);
-  const activeTeamTasks = (teamTasks || []).filter(t => !t.isCompleted);
-
-  // En mode collapsed, afficher juste les icônes
-  if (isCollapsed) {
-    return (
-      <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-        <SidebarContent className="py-4">
-          <div className="flex flex-col items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 bg-primary/10 hover:bg-primary/20"
-              onClick={() => {/* Ouvrir modal ajout */}}
-            >
-              <Plus className="w-5 h-5 text-primary" />
-            </Button>
-            
-            <div className="h-px w-8 bg-sidebar-border" />
-            
-            <div className="flex flex-col items-center gap-2">
-              <div className="relative">
-                <ListTodo className="w-5 h-5 text-muted-foreground" />
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {sortedTasks.length}
-                </span>
-              </div>
-              
-              {sidebarShowHabits && activeHabits.length > 0 && (
-                <div className="relative">
-                  <Dumbbell className="w-5 h-5 text-habit" />
-                  <span className="absolute -top-1 -right-1 bg-habit text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {activeHabits.length}
-                  </span>
-                </div>
-              )}
-              
-              {sidebarShowProjects && activeProjectTasks.length > 0 && (
-                <div className="relative">
-                  <Briefcase className="w-5 h-5 text-project" />
-                  <span className="absolute -top-1 -right-1 bg-project text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {activeProjectTasks.length}
-                  </span>
-                </div>
-              )}
-              
-              {sidebarShowTeamTasks && activeTeamTasks.length > 0 && (
-                <div className="relative">
-                  <Users className="w-5 h-5 text-primary" />
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {activeTeamTasks.length}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </SidebarContent>
-      </Sidebar>
-    );
-  }
+  // Habitudes du jour non complétées
+  const pendingHabits = todayHabits.filter(h => !habitCompletions[h.id]).slice(0, 5);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      {/* Header: Quick Add */}
-      <SidebarHeader className="p-0">
-        <QuickAddTask onAddTask={onAddTask} />
+      {/* Header avec logo */}
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex items-center gap-3 px-2 py-2">
+          <div className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-lg shadow-sm shrink-0">
+            <ListTodo className="w-5 h-5 text-primary-foreground" />
+          </div>
+          {!isCollapsed && (
+            <span className="font-bold text-lg text-sidebar-foreground">TO-DO-IT</span>
+          )}
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="custom-scrollbar">
-        {/* Section Tâches */}
+        {/* Navigation principale */}
         <SidebarGroup>
-          <div className="flex items-center justify-between px-3 py-2">
-            <SidebarGroupLabel className="p-0">
-              <div className="flex items-center gap-2">
-                <ListTodo className="w-4 h-4" />
-                <span>Tâches Actives ({sortedTasks.length})</span>
-              </div>
-            </SidebarGroupLabel>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExtendedView(!isExtendedView)}
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              {isExtendedView ? (
-                <ChevronsUp className="w-4 h-4" />
-              ) : (
-                <ChevronsDown className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-          
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sortedTasks.length === 0 ? (
-                <div className="px-3 py-6 text-center text-muted-foreground">
-                  <ListTodo className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Aucune tâche active</p>
-                  <p className="text-xs">Créez votre première tâche !</p>
-                </div>
-              ) : (
-                sortedTasks.map(task => (
-                  <SidebarTaskItem
-                    key={task.id}
-                    task={task}
-                    isPinned={pinnedTasks.includes(task.id)}
-                    isSelected={selectedTasks.includes(task.id)}
-                    isExtendedView={isExtendedView}
-                    subTasks={getSubTasks(task.id).filter(t => !t.isCompleted)}
-                    totalTime={calculateTotalTime(task)}
-                    canHaveSubTasks={canHaveSubTasks(task)}
-                    onToggleCompletion={onToggleCompletion}
-                    onToggleExpansion={onToggleExpansion}
-                    onTogglePinTask={onTogglePinTask}
-                    onRemoveTask={onRemoveTask}
-                    onUpdateTask={onUpdateTask}
-                  />
-                ))
-              )}
+              {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.key}>
+                  <SidebarMenuButton
+                    onClick={() => onViewChange(item.key)}
+                    isActive={currentView === item.key}
+                    tooltip={item.title}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Section Habitudes */}
-        {sidebarShowHabits && activeHabits.length > 0 && (
-          <Collapsible open={habitsOpen} onOpenChange={setHabitsOpen}>
-            <SidebarGroup>
-              <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-lg mx-2 px-2 py-2 transition-colors">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <Dumbbell className="w-4 h-4 text-habit" />
-                      <span>Habitudes ({completedHabitsCount}/{activeHabits.length})</span>
-                    </div>
-                    {habitsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </div>
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="px-2 pb-2">
-                  {activeHabits.map(habit => {
-                    const isCompleted = habitCompletions[habit.id] || false;
-                    const streak = habitStreaks[habit.id];
-                    return (
-                      <div
-                        key={habit.id}
-                        className={`
-                          flex items-center gap-2 p-2 rounded-lg border transition-colors
-                          border-l-4 border-l-habit
-                          ${isCompleted ? 'bg-habit/10 border-habit/30' : 'bg-card border-border hover:bg-sidebar-accent/50'}
-                        `}
-                      >
-                        <Checkbox
-                          checked={isCompleted}
-                          onCheckedChange={() => onToggleHabit(habit.id)}
-                          className="border-habit data-[state=checked]:bg-habit"
-                        />
-                        <span className={`flex-1 text-sm truncate ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
-                          {habit.icon && <span className="mr-1">{habit.icon}</span>}
-                          {habit.name}
-                        </span>
-                        {streak && streak.currentStreak > 0 && (
-                          <Badge variant="secondary" className="bg-habit/10 text-habit text-xs">
-                            🔥 {streak.currentStreak}
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  })}
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
+        <SidebarSeparator />
+
+        {/* Quick Add (visible seulement quand expanded) */}
+        {!isCollapsed && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Ajout rapide</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="px-2">
+                <QuickAddTask onAddTask={onAddTask} />
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
-        {/* Section Projets */}
-        {sidebarShowProjects && activeProjectTasks.length > 0 && (
-          <Collapsible open={projectsOpen} onOpenChange={setProjectsOpen}>
-            <SidebarGroup>
-              <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-lg mx-2 px-2 py-2 transition-colors">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-project" />
-                      <span>Tâches Projets ({activeProjectTasks.length})</span>
-                    </div>
-                    {projectsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </div>
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="px-2 pb-2 space-y-1">
-                  {activeProjectTasks.map(({ task, projectName, projectIcon }) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card hover:bg-sidebar-accent/50 transition-colors border-l-4 border-l-project"
-                    >
-                      <Checkbox
-                        checked={task.isCompleted}
-                        onCheckedChange={() => onToggleProjectTask(task.id)}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm truncate block">{task.name}</span>
-                        <Badge variant="outline" className="text-xs mt-0.5 text-project border-project/30">
-                          {projectIcon && <span className="mr-1">{projectIcon}</span>}
-                          {projectName}
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{task.estimatedTime}min</span>
-                    </div>
-                  ))}
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
+        {/* Bouton nouvelle tâche (mode collapsed) */}
+        {isCollapsed && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={onOpenModal} tooltip="Nouvelle tâche">
+                    <Plus className="h-4 w-4" />
+                    <span>Nouvelle</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
-        {/* Section Team */}
-        {sidebarShowTeamTasks && activeTeamTasks.length > 0 && (
-          <Collapsible open={teamOpen} onOpenChange={setTeamOpen}>
-            <SidebarGroup>
-              <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-lg mx-2 px-2 py-2 transition-colors">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary" />
-                      <span>Tâches d'équipe ({activeTeamTasks.length})</span>
-                    </div>
-                    {teamOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </div>
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="px-2 pb-2 space-y-1">
-                  {activeTeamTasks.map(task => (
-                    <div
+        <SidebarSeparator />
+
+        {/* Tâches actives */}
+        {!isCollapsed && activeTasks.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center justify-between">
+              <span>Tâches actives</span>
+              <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                {activeTasks.length}
+              </span>
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <ScrollArea className="h-[200px]">
+                <div className="space-y-1 px-2">
+                  {activeTasks.map((task) => (
+                    <TaskItem
                       key={task.id}
-                      className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card hover:bg-sidebar-accent/50 transition-colors border-l-4 border-l-primary"
-                    >
-                      <Checkbox
-                        checked={task.isCompleted}
-                        onCheckedChange={() => onToggleTeamTask(task.id)}
-                      />
-                      <span className="flex-1 text-sm truncate">{task.name}</span>
-                      <span className="text-xs text-muted-foreground">{task.estimatedTime}min</span>
-                    </div>
+                      task={task}
+                      onToggle={() => onToggleCompletion(task.id)}
+                    />
                   ))}
-                </SidebarGroupContent>
-              </CollapsibleContent>
+                </div>
+              </ScrollArea>
+              {tasks.filter(t => !t.isCompleted && t.level === 0 && !t.projectId).length > 8 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full mt-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => onViewChange('tasks')}
+                >
+                  Voir toutes les tâches
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Habitudes du jour */}
+        {!isCollapsed && showHabits && pendingHabits.length > 0 && onToggleHabit && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel className="flex items-center justify-between">
+                <span>Habitudes du jour</span>
+                <span className="text-xs bg-habit/10 text-habit px-1.5 py-0.5 rounded-full">
+                  {pendingHabits.length}
+                </span>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div className="space-y-1 px-2">
+                  {pendingHabits.map((habit) => (
+                    <HabitItem
+                      key={habit.id}
+                      habit={habit}
+                      streak={habitStreaks[habit.id]}
+                      onToggle={() => onToggleHabit(habit.id)}
+                    />
+                  ))}
+                </div>
+              </SidebarGroupContent>
             </SidebarGroup>
-          </Collapsible>
+          </>
+        )}
+
+        {/* Tâches d'équipe */}
+        {!isCollapsed && showTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel className="flex items-center justify-between">
+                <span>Tâches d'équipe</span>
+                <span className="text-xs bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded-full">
+                  {teamTasks.filter(t => !t.isCompleted).length}
+                </span>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div className="space-y-1 px-2">
+                  {teamTasks.filter(t => !t.isCompleted).slice(0, 5).map((task) => (
+                    <TeamTaskItem
+                      key={task.id}
+                      task={task}
+                      onToggle={() => onToggleTeamTask(task.id)}
+                    />
+                  ))}
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-sidebar-border">
-        <div className="text-xs text-muted-foreground text-center">
-          {sortedTasks.length} tâche{sortedTasks.length !== 1 ? 's' : ''} active{sortedTasks.length !== 1 ? 's' : ''}
+      {/* Footer */}
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Paramètres">
+              <Settings className="h-4 w-4" />
+              <span>Paramètres</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+        <div className="px-2 pb-2">
+          <SidebarTrigger className="w-full" />
         </div>
       </SidebarFooter>
     </Sidebar>
+  );
+};
+
+// Composant TaskItem compact
+interface TaskItemProps {
+  task: Task;
+  onToggle: () => void;
+}
+
+const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle }) => {
+  const categoryColors: Record<string, string> = {
+    Obligation: 'bg-red-500',
+    Quotidien: 'bg-amber-500',
+    Envie: 'bg-green-500',
+    Autres: 'bg-violet-500',
+  };
+
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-2 p-2 rounded-lg',
+        'hover:bg-sidebar-accent transition-colors cursor-pointer',
+        'border border-transparent hover:border-sidebar-border'
+      )}
+      onClick={onToggle}
+    >
+      <div className={cn('w-2 h-2 rounded-full shrink-0', categoryColors[task.category] || 'bg-gray-400')} />
+      <span className="text-sm truncate flex-1 text-sidebar-foreground">{task.name}</span>
+      {task.estimatedTime > 0 && (
+        <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0">
+          <Clock className="h-3 w-3" />
+          {task.estimatedTime}m
+        </span>
+      )}
+    </div>
+  );
+};
+
+// Composant HabitItem compact
+interface HabitItemProps {
+  habit: Habit;
+  streak?: HabitStreak;
+  onToggle: () => void;
+}
+
+const HabitItem: React.FC<HabitItemProps> = ({ habit, streak, onToggle }) => {
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-2 p-2 rounded-lg',
+        'hover:bg-habit/10 transition-colors cursor-pointer',
+        'border border-transparent hover:border-habit/20'
+      )}
+      onClick={onToggle}
+    >
+      <Heart className="w-4 h-4 text-habit shrink-0" />
+      <span className="text-sm truncate flex-1 text-sidebar-foreground">{habit.name}</span>
+      {streak && streak.currentStreak > 0 && (
+        <span className="text-xs text-habit flex items-center gap-1 shrink-0">
+          <Flame className="h-3 w-3" />
+          {streak.currentStreak}
+        </span>
+      )}
+    </div>
+  );
+};
+
+// Composant TeamTaskItem compact
+interface TeamTaskItemProps {
+  task: TeamTaskForSidebar;
+  onToggle: () => void;
+}
+
+const TeamTaskItem: React.FC<TeamTaskItemProps> = ({ task, onToggle }) => {
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-2 p-2 rounded-lg',
+        'hover:bg-blue-500/10 transition-colors cursor-pointer',
+        'border border-transparent hover:border-blue-500/20'
+      )}
+      onClick={onToggle}
+    >
+      <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+      <span className="text-sm truncate flex-1 text-sidebar-foreground">{task.name}</span>
+      {task.estimatedTime > 0 && (
+        <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0">
+          <Clock className="h-3 w-3" />
+          {task.estimatedTime}m
+        </span>
+      )}
+    </div>
   );
 };
 

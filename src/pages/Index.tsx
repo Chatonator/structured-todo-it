@@ -1,6 +1,14 @@
-import { Button } from '@/components/ui/button';
 import React, { useEffect, useMemo } from 'react';
-import TaskModal from '@/components/task/TaskModal';
+import { Button } from '@/components/ui/button';
+import { SidebarInset } from '@/components/ui/sidebar';
+
+// Layout components
+import AppLayout from '@/components/layout/AppLayout';
+import AppSidebar from '@/components/layout/AppSidebar';
+import NewAppHeader from '@/components/layout/NewAppHeader';
+import BottomNavigation from '@/components/layout/BottomNavigation';
+
+// Views
 import HomeView from '@/components/views/HomeView';
 import TasksView from '@/components/views/TasksView';
 import EisenhowerView from '@/components/views/EisenhowerView';
@@ -9,21 +17,25 @@ import HabitsView from '@/components/habits/HabitsView';
 import RewardsView from '@/components/rewards/RewardsView';
 import { ProjectsView } from '@/components/projects/ProjectsView';
 import TimelineView from '@/components/timeline/TimelineView';
-import MainLayout from '@/components/layout/MainLayout';
+import TaskModal from '@/components/task/TaskModal';
+
+// Hooks
 import { useAppState } from '@/hooks/useAppState';
 import { useUnifiedTasks } from '@/hooks/useUnifiedTasks';
 import { useTheme } from '@/hooks/useTheme';
+import { useIsMobile } from '@/hooks/shared/use-mobile';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllProjectTasks } from '@/hooks/useAllProjectTasks';
 import { useHabits } from '@/hooks/useHabits';
 import { useDecks } from '@/hooks/useDecks';
 
 /**
- * Page principale de l'application
- * Refactorisé pour utiliser le nouveau MainLayout
+ * Page principale de l'application TO-DO-IT 2.0
+ * Architecture refactorisée avec sidebar shadcn
  */
 const Index = () => {
   const { theme } = useTheme();
+  const isMobile = useIsMobile();
   
   // Hook centralisé pour l'état de l'application
   const {
@@ -32,10 +44,6 @@ const Index = () => {
     navigationItems,
     isModalOpen,
     setIsModalOpen,
-    isTaskListOpen,
-    setIsTaskListOpen,
-    selectedTasks,
-    handleToggleSelection,
     contextFilter,
     setContextFilter,
     applyFilters,
@@ -43,19 +51,15 @@ const Index = () => {
     preferences
   } = useAppState();
   
-  // Hook unifié pour les tâches (perso/équipe)
+  // Hook unifié pour les tâches
   const {
     tasks,
     mainTasks,
-    pinnedTasks,
     addTask,
     removeTask,
-    toggleTaskExpansion,
     toggleTaskCompletion,
-    togglePinTask,
     getSubTasks,
     calculateTotalTime,
-    canHaveSubTasks,
     restoreTask,
     updateTask,
     teamTasks,
@@ -74,16 +78,15 @@ const Index = () => {
     getHabitsForToday
   } = useHabits(defaultDeckId);
   
-  // Habitudes applicables aujourd'hui
+  // Habitudes du jour
   const todayHabits = getHabitsForToday();
   
   // Filtrage des tâches
-  const filteredTasks = useMemo(() => getFilteredTasks(tasks), [getFilteredTasks, tasks]);
+  const allFilteredTasks = useMemo(() => applyFilters(tasks), [applyFilters, tasks]);
   const filteredMainTasks = useMemo(() => 
     applyFilters(mainTasks.filter(task => task && !task.isCompleted)),
     [applyFilters, mainTasks]
   );
-  const allFilteredTasks = useMemo(() => applyFilters(tasks), [applyFilters, tasks]);
 
   // Application du thème
   useEffect(() => {
@@ -146,7 +149,7 @@ const Index = () => {
         <div className="text-center text-destructive p-8">
           <h3 className="text-lg font-medium mb-2">Erreur de rendu</h3>
           <p className="text-sm">Une erreur s'est produite lors de l'affichage de cette vue.</p>
-          <Button onClick={() => setCurrentView('tasks')}>
+          <Button onClick={() => setCurrentView('tasks')} className="mt-4">
             Retour aux tâches
           </Button>
         </div>
@@ -155,49 +158,54 @@ const Index = () => {
   };
 
   return (
-    <>
-      <MainLayout
+    <AppLayout>
+      {/* Sidebar */}
+      <AppSidebar
         currentView={currentView}
         onViewChange={setCurrentView}
-        navigationItems={navigationItems}
         onOpenModal={() => setIsModalOpen(true)}
-        contextFilter={contextFilter}
-        onContextFilterChange={setContextFilter}
-        isTaskListOpen={isTaskListOpen}
-        setIsTaskListOpen={setIsTaskListOpen}
-        // Tasks
-        tasks={filteredTasks}
-        mainTasks={filteredMainTasks}
-        pinnedTasks={pinnedTasks}
-        selectedTasks={selectedTasks}
-        getSubTasks={getSubTasks}
-        calculateTotalTime={calculateTotalTime}
-        canHaveSubTasks={canHaveSubTasks}
-        onToggleSelection={handleToggleSelection}
-        onToggleExpansion={toggleTaskExpansion}
-        onToggleCompletion={toggleTaskCompletion}
-        onTogglePinTask={togglePinTask}
-        onRemoveTask={removeTask}
         onAddTask={addTask}
-        onUpdateTask={updateTask}
-        // Habits
-        sidebarShowHabits={preferences.sidebarShowHabits}
+        tasks={tasks}
+        onToggleCompletion={toggleTaskCompletion}
+        showHabits={preferences.sidebarShowHabits}
         todayHabits={todayHabits}
         habitCompletions={habitCompletions}
         habitStreaks={habitStreaks}
         onToggleHabit={toggleHabitCompletion}
-        // Projects
-        sidebarShowProjects={preferences.sidebarShowProjects}
+        showProjects={preferences.sidebarShowProjects}
         projects={projects}
         projectTasks={projectTasks}
         onToggleProjectTask={toggleProjectTaskCompletion}
-        // Team
-        sidebarShowTeamTasks={preferences.sidebarShowTeamTasks}
+        showTeamTasks={preferences.sidebarShowTeamTasks}
         teamTasks={teamTasks}
         onToggleTeamTask={onToggleTeamTask}
-      >
-        {renderCurrentView()}
-      </MainLayout>
+      />
+
+      {/* Main content area */}
+      <SidebarInset className={`flex flex-col ${isMobile ? 'pb-16' : ''}`}>
+        {/* Header */}
+        <NewAppHeader
+          onOpenModal={() => setIsModalOpen(true)}
+          contextFilter={contextFilter}
+          onContextFilterChange={setContextFilter}
+        />
+
+        {/* Vue courante */}
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+          <div className="bg-card rounded-xl shadow-sm border border-border p-4 md:p-6 min-h-full">
+            {renderCurrentView()}
+          </div>
+        </main>
+      </SidebarInset>
+
+      {/* Navigation mobile */}
+      {isMobile && (
+        <BottomNavigation
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          navigationItems={navigationItems}
+        />
+      )}
 
       {/* Modal création tâche */}
       <TaskModal
@@ -205,7 +213,7 @@ const Index = () => {
         onClose={() => setIsModalOpen(false)}
         onAddTask={addTask}
       />
-    </>
+    </AppLayout>
   );
 };
 
