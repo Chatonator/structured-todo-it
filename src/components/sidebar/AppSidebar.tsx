@@ -6,12 +6,10 @@ import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarMenu,
-  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { ListTodo, CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -195,7 +193,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
   return (
     <>
-      <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <Sidebar collapsible="icon" className="border-r border-sidebar-border relative">
         {/* Header avec logo */}
         <SidebarHeader className="border-b border-sidebar-border p-2">
           <div className="flex items-center justify-center">
@@ -218,6 +216,27 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
             )}
           </div>
         </SidebarHeader>
+
+        {/* Bouton collapse subtil - au milieu de la sidebar, dépasse légèrement */}
+        <button
+          onClick={toggleSidebar}
+          className={cn(
+            "absolute top-1/2 -translate-y-1/2 z-50",
+            "w-5 h-10 rounded-r-md",
+            "bg-sidebar-accent/80 hover:bg-sidebar-accent border border-l-0 border-sidebar-border",
+            "flex items-center justify-center",
+            "text-sidebar-foreground/60 hover:text-sidebar-foreground",
+            "transition-all duration-200 shadow-sm",
+            isCollapsed ? "-right-5" : "-right-5"
+          )}
+          aria-label={isCollapsed ? "Déplier" : "Replier"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-3 h-3" />
+          ) : (
+            <ChevronLeft className="w-3 h-3" />
+          )}
+        </button>
 
         <SidebarContent className="custom-scrollbar">
           {/* Quick Add - caché en mode collapsed */}
@@ -292,7 +311,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                       <p className="text-xs">Créez votre première tâche !</p>
                     </div>
                   ) : (
-                    <div>
+                    <div className="space-y-0">
                       {sortedTasks.map(task => renderTask(task))}
                     </div>
                   )}
@@ -302,26 +321,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           </SidebarGroup>
         </SidebarContent>
 
-        {/* Footer avec bouton collapse */}
-        <SidebarFooter className="border-t border-sidebar-border p-2">
-          <button
-            onClick={toggleSidebar}
-            className={cn(
-              "flex items-center justify-center gap-2 w-full py-2 rounded-md",
-              "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-              "transition-colors text-sm"
-            )}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <>
-                <ChevronLeft className="w-4 h-4" />
-                <span>Replier</span>
-              </>
-            )}
-          </button>
-        </SidebarFooter>
+        {/* Footer supprimé - bouton collapse déplacé sur le côté */}
       </Sidebar>
 
       {/* Modale pour sous-tâches */}
