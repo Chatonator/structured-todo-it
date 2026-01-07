@@ -6,6 +6,7 @@ import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
@@ -13,8 +14,8 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ListTodo, CheckSquare } from 'lucide-react';
+import { ListTodo, CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import SidebarQuickAdd from './SidebarQuickAdd';
 import SidebarTaskItem from './SidebarTaskItem';
@@ -23,6 +24,7 @@ import { SidebarProjectsSection } from './SidebarProjectsSection';
 import { SidebarTeamTasksSection } from './SidebarTeamTasksSection';
 import TaskModal from '@/components/task/TaskModal';
 import { useProjects } from '@/hooks/useProjects';
+import { cn } from '@/lib/utils';
 
 interface TeamTaskForSidebar {
   id: string;
@@ -97,7 +99,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   teamTasks = [],
   onToggleTeamTask
 }) => {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === 'collapsed';
   const { assignTaskToProject } = useProjects();
 
@@ -163,7 +165,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     const isPinned = pinnedTasks.includes(task.id);
 
     return (
-      <div key={task.id} style={{ marginLeft: level > 0 ? `${level * 12}px` : 0 }}>
+      <div key={task.id} style={{ marginLeft: level > 0 ? `${level * 8}px` : 0 }}>
         <SidebarTaskItem
           task={task}
           subTasks={subTasks}
@@ -183,7 +185,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
         {/* Sous-tâches */}
         {subTasks.length > 0 && task.isExpanded && (
-          <div className="mt-1 space-y-1">
+          <div className="mt-0.5">
             {subTasks.map(subTask => renderTask(subTask, level + 1))}
           </div>
         )}
@@ -194,24 +196,32 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   return (
     <>
       <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-        {/* Header avec logo et trigger */}
-        <SidebarHeader className="border-b border-sidebar-border">
-          <div className="flex items-center justify-between px-2 py-1">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <ListTodo className="w-4 h-4 text-primary-foreground" />
-              </div>
-              {!isCollapsed && (
+        {/* Header avec logo */}
+        <SidebarHeader className="border-b border-sidebar-border p-2">
+          <div className="flex items-center justify-center">
+            {isCollapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center cursor-pointer" onClick={toggleSidebar}>
+                    <ListTodo className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">Déplier la sidebar</TooltipContent>
+              </Tooltip>
+            ) : (
+              <div className="flex items-center gap-2 w-full">
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                  <ListTodo className="w-4 h-4 text-primary-foreground" />
+                </div>
                 <span className="font-semibold text-sidebar-foreground">TO-DO-IT</span>
-              )}
-            </div>
-            <SidebarTrigger className="text-sidebar-foreground hover:bg-sidebar-accent" />
+              </div>
+            )}
           </div>
         </SidebarHeader>
 
         <SidebarContent className="custom-scrollbar">
-          {/* Quick Add - collapsible */}
-          <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={isCollapsed} />
+          {/* Quick Add - caché en mode collapsed */}
+          {!isCollapsed && <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={isCollapsed} />}
 
           {/* Sections optionnelles */}
           {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && !isCollapsed && (
@@ -239,29 +249,37 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
           {/* Section Tâches Actives */}
           <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center gap-2">
-              <CheckSquare className="w-4 h-4" />
-              {!isCollapsed && <span>Tâches Actives ({sortedTasks.length})</span>}
-            </SidebarGroupLabel>
+            {!isCollapsed && (
+              <SidebarGroupLabel className="flex items-center gap-2">
+                <CheckSquare className="w-4 h-4" />
+                <span>Tâches Actives ({sortedTasks.length})</span>
+              </SidebarGroupLabel>
+            )}
             
             <SidebarGroupContent>
               {isCollapsed ? (
                 // Mode collapsed: afficher juste les pastilles de couleur
                 <div className="flex flex-col items-center gap-1 py-2">
-                  {sortedTasks.slice(0, 5).map(task => (
-                    <div
-                      key={task.id}
-                      className={`w-2 h-2 rounded-full ${
-                        task.category === 'Obligation' ? 'bg-category-obligation' :
-                        task.category === 'Quotidien' ? 'bg-category-quotidien' :
-                        task.category === 'Envie' ? 'bg-category-envie' :
-                        'bg-category-autres'
-                      }`}
-                      title={task.name}
-                    />
+                  {sortedTasks.slice(0, 6).map(task => (
+                    <Tooltip key={task.id}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            'w-3 h-3 rounded-full cursor-pointer transition-transform hover:scale-125',
+                            task.category === 'Obligation' ? 'bg-category-obligation' :
+                            task.category === 'Quotidien' ? 'bg-category-quotidien' :
+                            task.category === 'Envie' ? 'bg-category-envie' :
+                            'bg-category-autres'
+                          )}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[200px]">
+                        {task.name}
+                      </TooltipContent>
+                    </Tooltip>
                   ))}
-                  {sortedTasks.length > 5 && (
-                    <span className="text-[10px] text-muted-foreground">+{sortedTasks.length - 5}</span>
+                  {sortedTasks.length > 6 && (
+                    <span className="text-[10px] text-muted-foreground mt-1">+{sortedTasks.length - 6}</span>
                   )}
                 </div>
               ) : (
@@ -274,7 +292,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                       <p className="text-xs">Créez votre première tâche !</p>
                     </div>
                   ) : (
-                    <div className="space-y-1">
+                    <div>
                       {sortedTasks.map(task => renderTask(task))}
                     </div>
                   )}
@@ -283,6 +301,27 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+
+        {/* Footer avec bouton collapse */}
+        <SidebarFooter className="border-t border-sidebar-border p-2">
+          <button
+            onClick={toggleSidebar}
+            className={cn(
+              "flex items-center justify-center gap-2 w-full py-2 rounded-md",
+              "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+              "transition-colors text-sm"
+            )}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <>
+                <ChevronLeft className="w-4 h-4" />
+                <span>Replier</span>
+              </>
+            )}
+          </button>
+        </SidebarFooter>
       </Sidebar>
 
       {/* Modale pour sous-tâches */}
