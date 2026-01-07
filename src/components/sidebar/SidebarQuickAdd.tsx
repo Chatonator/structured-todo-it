@@ -74,29 +74,9 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
     }
   };
 
-  // Mode collapsed: juste un bouton +
+  // Mode collapsed: ne rien afficher
   if (isCollapsed) {
-    return (
-      <SidebarGroup className="py-2">
-        <div className="flex justify-center">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="w-8 h-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => setIsOpen(true)}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              Nouvelle tâche
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </SidebarGroup>
-    );
+    return null;
   }
 
   // Mode expanded: section collapsible
