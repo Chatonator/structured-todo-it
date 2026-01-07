@@ -25,7 +25,6 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  Circle,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
@@ -91,9 +90,10 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   return (
     <SidebarMenuItem
       className={cn(
-        'group relative flex items-center rounded-md transition-all duration-200',
-        'hover:bg-sidebar-accent/70',
-        'border-b border-sidebar-border/30 last:border-b-0',
+        'group relative flex items-start rounded-md transition-all duration-200',
+        'hover:bg-sidebar-accent/60',
+        'border-b border-sidebar-border/40',
+        'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]',
         isPinned && 'bg-amber-50/50 dark:bg-amber-900/10'
       )}
     >
@@ -105,14 +105,14 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         )}
       />
 
-      {/* Contenu principal avec padding */}
-      <div className="flex items-center gap-1.5 flex-1 min-w-0 py-2 px-2">
-        {/* Expand/collapse pour sous-tâches */}
-        {hasSubTasks ? (
+      {/* Contenu principal - plus de place pour le texte */}
+      <div className="flex items-start gap-1 flex-1 min-w-0 py-2 pl-2 pr-1">
+        {/* Expand/collapse pour sous-tâches - plus compact */}
+        {hasSubTasks && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-5 w-5 shrink-0"
+            className="h-5 w-5 shrink-0 mt-0.5"
             onClick={() => onToggleExpansion(task.id)}
           >
             {task.isExpanded ? (
@@ -121,42 +121,19 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
               <ChevronRight className="h-3 w-3" />
             )}
           </Button>
-        ) : (
-          <div className="w-5 shrink-0" />
         )}
 
-        {/* Checkbox avec comportement hover - icône par défaut, checkbox au hover */}
-        <div className="shrink-0 w-4 h-4 relative">
-          {/* Cercle visible par défaut */}
-          <Circle 
-            className={cn(
-              "w-4 h-4 absolute inset-0 transition-opacity",
-              "group-hover:opacity-0",
-              task.isCompleted ? "opacity-0" : "opacity-40 text-muted-foreground"
-            )} 
-          />
-          {/* Checkbox visible au hover ou si complétée */}
-          <Checkbox
-            checked={task.isCompleted}
-            onCheckedChange={() => onToggleCompletion(task.id)}
-            className={cn(
-              "absolute inset-0 transition-opacity",
-              task.isCompleted ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-            )}
-          />
-        </div>
-
-        {/* Texte et métadonnées */}
+        {/* Texte et métadonnées - priorité au texte */}
         <div className="flex-1 min-w-0">
           <p
             className={cn(
-              'text-sm truncate leading-tight',
+              'text-sm leading-tight',
               task.isCompleted && 'line-through text-muted-foreground'
             )}
           >
             {task.name}
           </p>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
             <Clock className="w-3 h-3" />
             <span>{formatTime(totalTime)}</span>
             {hasSubTasks && (
@@ -167,79 +144,89 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           </div>
         </div>
 
-        {/* Menu d'actions (3 points) - visible seulement au hover */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-popover z-50">
-            <DropdownMenuItem onClick={() => onToggleCompletion(task.id)}>
-              <Check className="w-4 h-4 mr-2 text-green-600" />
-              {task.isCompleted ? 'Rouvrir' : 'Terminer'}
-            </DropdownMenuItem>
+        {/* Actions - visible seulement au hover */}
+        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Checkbox au hover seulement */}
+          <Checkbox
+            checked={task.isCompleted}
+            onCheckedChange={() => onToggleCompletion(task.id)}
+            className="h-4 w-4"
+          />
 
-            <DropdownMenuItem onClick={() => onEditTask(task)}>
-              <Edit className="w-4 h-4 mr-2" />
-              Modifier
-            </DropdownMenuItem>
-
-            {canHaveSubTasks && (
-              <DropdownMenuItem onClick={() => onCreateSubTask(task)}>
-                <Split className="w-4 h-4 mr-2" />
-                Diviser en sous-tâches
+          {/* Menu d'actions (3 points) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-popover z-50">
+              <DropdownMenuItem onClick={() => onToggleCompletion(task.id)}>
+                <Check className="w-4 h-4 mr-2 text-green-600" />
+                {task.isCompleted ? 'Rouvrir' : 'Terminer'}
               </DropdownMenuItem>
-            )}
 
-            {projects.length > 0 && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <FolderPlus className="w-4 h-4 mr-2" />
-                  Ajouter au projet
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="bg-popover z-50">
-                  {projects.map(project => (
-                    <DropdownMenuItem
-                      key={project.id}
-                      onClick={() => onAssignToProject(task.id, project.id)}
-                    >
-                      {project.icon} {project.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )}
+              <DropdownMenuItem onClick={() => onEditTask(task)}>
+                <Edit className="w-4 h-4 mr-2" />
+                Modifier
+              </DropdownMenuItem>
 
-            <DropdownMenuItem onClick={() => onTogglePinTask(task.id)}>
-              {isPinned ? (
-                <>
-                  <PinOff className="w-4 h-4 mr-2" />
-                  Désépingler
-                </>
-              ) : (
-                <>
-                  <Pin className="w-4 h-4 mr-2" />
-                  Épingler
-                </>
+              {canHaveSubTasks && (
+                <DropdownMenuItem onClick={() => onCreateSubTask(task)}>
+                  <Split className="w-4 h-4 mr-2" />
+                  Diviser en sous-tâches
+                </DropdownMenuItem>
               )}
-            </DropdownMenuItem>
 
-            <DropdownMenuSeparator />
+              {projects.length > 0 && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <FolderPlus className="w-4 h-4 mr-2" />
+                    Ajouter au projet
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="bg-popover z-50">
+                    {projects.map(project => (
+                      <DropdownMenuItem
+                        key={project.id}
+                        onClick={() => onAssignToProject(task.id, project.id)}
+                      >
+                        {project.icon} {project.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
 
-            <DropdownMenuItem
-              onClick={() => onRemoveTask(task.id)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Supprimer
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem onClick={() => onTogglePinTask(task.id)}>
+                {isPinned ? (
+                  <>
+                    <PinOff className="w-4 h-4 mr-2" />
+                    Désépingler
+                  </>
+                ) : (
+                  <>
+                    <Pin className="w-4 h-4 mr-2" />
+                    Épingler
+                  </>
+                )}
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                onClick={() => onRemoveTask(task.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Supprimer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </SidebarMenuItem>
   );
