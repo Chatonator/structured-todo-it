@@ -193,37 +193,45 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
   return (
     <>
-      <div className="relative">
-        <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      {/* Bouton fixé au milieu du viewport - toujours visible */}
+      <button
+        onClick={toggleSidebar}
+        className={cn(
+          "fixed top-1/2 -translate-y-1/2 z-50",
+          "w-5 h-10 rounded-r-md",
+          "bg-sidebar-accent/90 hover:bg-sidebar-accent border border-l-0 border-sidebar-border",
+          "flex items-center justify-center",
+          "text-sidebar-foreground/60 hover:text-sidebar-foreground",
+          "transition-all duration-200 shadow-md",
+          isCollapsed ? "left-0" : "left-[16rem]"
+        )}
+        aria-label={isCollapsed ? "Déplier" : "Replier"}
+      >
+        {isCollapsed ? (
+          <ChevronRight className="w-3 h-3" />
+        ) : (
+          <ChevronLeft className="w-3 h-3" />
+        )}
+      </button>
+
+      {/* Sidebar - utilise offcanvas pour disparaître complètement */}
+      <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
           {/* Header avec logo */}
           <SidebarHeader className="border-b border-sidebar-border p-2">
-            <div className="flex items-center justify-center">
-              {isCollapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center cursor-pointer" onClick={toggleSidebar}>
-                      <ListTodo className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">Déplier la sidebar</TooltipContent>
-                </Tooltip>
-              ) : (
-                <div className="flex items-center gap-2 w-full">
-                  <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                    <ListTodo className="w-4 h-4 text-primary-foreground" />
-                  </div>
-                  <span className="font-semibold text-sidebar-foreground">TO-DO-IT</span>
-                </div>
-              )}
+            <div className="flex items-center gap-2 w-full">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                <ListTodo className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <span className="font-semibold text-sidebar-foreground">TO-DO-IT</span>
             </div>
           </SidebarHeader>
 
           <SidebarContent className="custom-scrollbar">
-            {/* Quick Add - caché en mode collapsed */}
-            {!isCollapsed && <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={isCollapsed} />}
+            {/* Quick Add */}
+            <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={false} />
 
             {/* Sections optionnelles */}
-            {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && !isCollapsed && (
+            {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
               <SidebarHabitsSection
                 habits={todayHabits}
                 completions={habitCompletions}
@@ -232,14 +240,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
               />
             )}
 
-            {sidebarShowProjects && projectTasks.length > 0 && onToggleProjectTask && !isCollapsed && (
+            {sidebarShowProjects && projectTasks.length > 0 && onToggleProjectTask && (
               <SidebarProjectsSection 
                 projectTasks={projectTasks} 
                 onToggleComplete={onToggleProjectTask}
               />
             )}
 
-            {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && !isCollapsed && (
+            {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (
               <SidebarTeamTasksSection
                 tasks={teamTasks}
                 onToggleComplete={onToggleTeamTask}
@@ -248,81 +256,29 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
             {/* Section Tâches Actives */}
             <SidebarGroup>
-              {!isCollapsed && (
-                <SidebarGroupLabel className="flex items-center gap-2">
-                  <CheckSquare className="w-4 h-4" />
-                  <span>Tâches Actives ({sortedTasks.length})</span>
-                </SidebarGroupLabel>
-              )}
+              <SidebarGroupLabel className="flex items-center gap-2">
+                <CheckSquare className="w-4 h-4" />
+                <span>Tâches Actives ({sortedTasks.length})</span>
+              </SidebarGroupLabel>
               
               <SidebarGroupContent>
-                {isCollapsed ? (
-                  // Mode collapsed: afficher juste les pastilles de couleur
-                  <div className="flex flex-col items-center gap-1 py-2">
-                    {sortedTasks.slice(0, 6).map(task => (
-                      <Tooltip key={task.id}>
-                        <TooltipTrigger asChild>
-                          <div
-                            className={cn(
-                              'w-3 h-3 rounded-full cursor-pointer transition-transform hover:scale-125',
-                              task.category === 'Obligation' ? 'bg-category-obligation' :
-                              task.category === 'Quotidien' ? 'bg-category-quotidien' :
-                              task.category === 'Envie' ? 'bg-category-envie' :
-                              'bg-category-autres'
-                            )}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-[200px]">
-                          {task.name}
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                    {sortedTasks.length > 6 && (
-                      <span className="text-[10px] text-muted-foreground mt-1">+{sortedTasks.length - 6}</span>
-                    )}
-                  </div>
-                ) : (
-                  // Mode expanded: liste complète
-                  <SidebarMenu>
-                    {sortedTasks.length === 0 ? (
-                      <div className="text-center py-6 text-muted-foreground">
-                        <CheckSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                        <p className="text-sm">Aucune tâche active</p>
-                        <p className="text-xs">Créez votre première tâche !</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-0">
-                        {sortedTasks.map(task => renderTask(task))}
-                      </div>
-                    )}
-                  </SidebarMenu>
-                )}
+                <SidebarMenu>
+                  {sortedTasks.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <CheckSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                      <p className="text-sm">Aucune tâche active</p>
+                      <p className="text-xs">Créez votre première tâche !</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-0">
+                      {sortedTasks.map(task => renderTask(task))}
+                    </div>
+                  )}
+                </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
         </Sidebar>
-
-        {/* Bouton collapse subtil - au milieu, dépasse légèrement de la sidebar */}
-        <button
-          onClick={toggleSidebar}
-          className={cn(
-            "absolute top-1/2 -translate-y-1/2 z-50",
-            "w-4 h-8 rounded-r-md",
-            "bg-sidebar-accent/80 hover:bg-sidebar-accent border border-l-0 border-sidebar-border",
-            "flex items-center justify-center",
-            "text-sidebar-foreground/60 hover:text-sidebar-foreground",
-            "transition-all duration-200 shadow-sm",
-            isCollapsed ? "left-[2.75rem]" : "left-[16rem]"
-          )}
-          aria-label={isCollapsed ? "Déplier" : "Replier"}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="w-3 h-3" />
-          ) : (
-            <ChevronLeft className="w-3 h-3" />
-          )}
-        </button>
-      </div>
 
       {/* Modale pour sous-tâches */}
       {selectedParentTask && (
