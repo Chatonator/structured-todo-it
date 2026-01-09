@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  RefreshCw,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ interface SidebarTaskItemProps {
   totalTime: number;
   isSelected: boolean;
   isPinned: boolean;
+  isRecurring?: boolean;
   canHaveSubTasks: boolean;
   onToggleSelection: (taskId: string) => void;
   onToggleExpansion: (taskId: string) => void;
@@ -74,6 +76,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   totalTime,
   isSelected,
   isPinned,
+  isRecurring = false,
   canHaveSubTasks,
   onToggleSelection,
   onToggleExpansion,
@@ -86,16 +89,20 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
 }) => {
   const { projects } = useProjects();
   const hasSubTasks = subTasks.length > 0;
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <SidebarMenuItem
       className={cn(
-        'group relative flex items-start rounded-md transition-all duration-200',
+        'group relative flex items-center rounded-md transition-all duration-200',
         'hover:bg-sidebar-accent/60',
         'border-b border-sidebar-border/40',
         'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]',
-        isPinned && 'bg-amber-50/50 dark:bg-amber-900/10'
+        // Style spécial pour tâches épinglées
+        isPinned && 'bg-gradient-to-r from-amber-50/80 to-transparent dark:from-amber-900/20 dark:to-transparent'
       )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Barre de couleur catégorie - collée au bord gauche */}
       <div
@@ -105,14 +112,14 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         )}
       />
 
-      {/* Contenu principal - plus de place pour le texte */}
-      <div className="flex items-start gap-1 flex-1 min-w-0 py-2 pl-2 pr-1">
-        {/* Expand/collapse pour sous-tâches - plus compact */}
+      {/* Contenu principal */}
+      <div className="flex items-center gap-1 flex-1 min-w-0 py-2 pl-2 pr-1">
+        {/* Expand/collapse pour sous-tâches - toujours visible si a des sous-tâches */}
         {hasSubTasks && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-5 w-5 shrink-0 mt-0.5"
+            className="h-5 w-5 shrink-0"
             onClick={() => onToggleExpansion(task.id)}
           >
             {task.isExpanded ? (
@@ -123,30 +130,52 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           </Button>
         )}
 
-        {/* Texte et métadonnées - priorité au texte */}
-        <div className="flex-1 min-w-0">
-          <p
-            className={cn(
-              'text-sm leading-tight',
-              task.isCompleted && 'line-through text-muted-foreground'
-            )}
-          >
-            {task.name}
-          </p>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+        {/* Icône épingle pour tâches épinglées - visible quand plié */}
+        {isPinned && !isHovered && (
+          <Pin className="w-3 h-3 text-amber-500 shrink-0" />
+        )}
+
+        {/* Texte - priorité maximale */}
+        <p
+          className={cn(
+            'text-sm leading-tight flex-1 min-w-0 truncate',
+            task.isCompleted && 'line-through text-muted-foreground'
+          )}
+        >
+          {task.name}
+        </p>
+
+        {/* Indicateur récurrent - visible seulement si récurrent et pas en hover */}
+        {isRecurring && !isHovered && (
+          <RefreshCw className="w-3 h-3 text-blue-500 shrink-0" />
+        )}
+
+        {/* Métadonnées et actions - visible au hover */}
+        <div
+          className={cn(
+            'flex items-center gap-1.5 shrink-0 transition-all duration-200',
+            isHovered ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0 overflow-hidden'
+          )}
+        >
+          {/* Temps estimé */}
+          <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
             <Clock className="w-3 h-3" />
             <span>{formatTime(totalTime)}</span>
-            {hasSubTasks && (
-              <span className="text-[10px] bg-muted px-1 rounded">
-                +{subTasks.length}
-              </span>
-            )}
           </div>
-        </div>
 
-        {/* Actions - visible seulement au hover */}
-        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          {/* Checkbox au hover seulement */}
+          {/* Badge sous-tâches */}
+          {hasSubTasks && (
+            <span className="text-[10px] bg-muted px-1 rounded whitespace-nowrap">
+              +{subTasks.length}
+            </span>
+          )}
+
+          {/* Indicateur récurrent au hover */}
+          {isRecurring && (
+            <RefreshCw className="w-3 h-3 text-blue-500" />
+          )}
+
+          {/* Checkbox */}
           <Checkbox
             checked={task.isCompleted}
             onCheckedChange={() => onToggleCompletion(task.id)}
