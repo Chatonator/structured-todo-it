@@ -49,6 +49,7 @@ interface AppSidebarProps {
   onTogglePinTask: (taskId: string) => void;
   onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
   onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
+  onToggleRecurring?: (taskId: string, taskName: string, estimatedTime: number) => void;
   getSubTasks: (parentId: string) => Task[];
   calculateTotalTime: (task: Task) => number;
   canHaveSubTasks: (task: Task) => boolean;
@@ -80,6 +81,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   onTogglePinTask,
   onAddTask,
   onUpdateTask,
+  onToggleRecurring,
   getSubTasks,
   calculateTotalTime,
   canHaveSubTasks,
@@ -222,6 +224,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           onCreateSubTask={handleCreateSubTask}
           onEditTask={handleEditTask}
           onAssignToProject={handleAssignToProject}
+          onToggleRecurring={onToggleRecurring}
         />
 
         {/* Sous-tâches */}

@@ -46,6 +46,7 @@ interface SidebarTaskItemProps {
   onCreateSubTask: (task: Task) => void;
   onEditTask: (task: Task) => void;
   onAssignToProject: (taskId: string, projectId: string) => Promise<boolean>;
+  onToggleRecurring?: (taskId: string, taskName: string, estimatedTime: number) => void;
 }
 
 const getCategoryColor = (category: Task['category']) => {
@@ -86,6 +87,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   onCreateSubTask,
   onEditTask,
   onAssignToProject,
+  onToggleRecurring,
 }) => {
   const { projects } = useProjects();
   const hasSubTasks = subTasks.length > 0;
@@ -135,11 +137,12 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           <Pin className="w-3 h-3 text-amber-500 shrink-0" />
         )}
 
-        {/* Texte - priorité maximale */}
+        {/* Texte - priorité maximale, visible en entier au hover */}
         <p
           className={cn(
-            'text-sm leading-tight flex-1 min-w-0 truncate',
-            task.isCompleted && 'line-through text-muted-foreground'
+            'text-sm leading-tight flex-1 min-w-0 transition-all duration-200',
+            task.isCompleted && 'line-through text-muted-foreground',
+            isHovered ? 'whitespace-normal break-words' : 'truncate'
           )}
         >
           {task.name}
@@ -228,6 +231,14 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
                     ))}
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+              )}
+
+              {/* Option Récurrence */}
+              {onToggleRecurring && (
+                <DropdownMenuItem onClick={() => onToggleRecurring(task.id, task.name, totalTime)}>
+                  <RefreshCw className={cn("w-4 h-4 mr-2", isRecurring && "text-blue-500")} />
+                  {isRecurring ? 'Retirer récurrence' : 'Rendre récurrent'}
+                </DropdownMenuItem>
               )}
 
               <DropdownMenuItem onClick={() => onTogglePinTask(task.id)}>
