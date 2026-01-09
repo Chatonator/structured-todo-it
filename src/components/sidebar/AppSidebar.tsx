@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Task } from '@/types/task';
 import { Habit, HabitStreak } from '@/types/habit';
 import { Project } from '@/types/project';
@@ -13,9 +13,9 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { ListTodo, CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import SidebarQuickAdd from './SidebarQuickAdd';
+import SidebarSearchFilter, { TaskFilters, defaultFilters } from './SidebarSearchFilter';
 import SidebarTaskItem from './SidebarTaskItem';
 import { SidebarHabitsSection } from './SidebarHabitsSection';
 import { SidebarProjectsSection } from './SidebarProjectsSection';
@@ -42,6 +42,7 @@ interface AppSidebarProps {
   tasks: Task[];
   mainTasks: Task[];
   pinnedTasks: string[];
+  recurringTaskIds?: string[];
   onRemoveTask: (taskId: string) => void;
   onToggleExpansion: (taskId: string) => void;
   onToggleCompletion: (taskId: string) => void;
@@ -72,6 +73,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   tasks,
   mainTasks,
   pinnedTasks,
+  recurringTaskIds = [],
   onRemoveTask,
   onToggleExpansion,
   onToggleCompletion,
@@ -107,15 +109,54 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  // États recherche et filtres
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
+
   // Tâches actives (exclure celles assignées à un projet)
   const activeTasks = mainTasks.filter(task => !task.isCompleted && !task.projectId);
 
+  // Filtrage et recherche des tâches
+  const filteredTasks = useMemo(() => {
+    let result = activeTasks;
+
+    // Recherche par nom
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(task => task.name.toLowerCase().includes(query));
+    }
+
+    // Filtre par catégorie
+    if (filters.categories.length > 0) {
+      result = result.filter(task => filters.categories.includes(task.category));
+    }
+
+    // Filtre par contexte
+    if (filters.contexts.length > 0) {
+      result = result.filter(task => filters.contexts.includes(task.context));
+    }
+
+    // Filtre épinglées uniquement
+    if (filters.showPinned) {
+      result = result.filter(task => pinnedTasks.includes(task.id));
+    }
+
+    // Filtre récurrentes uniquement
+    if (filters.showRecurring) {
+      result = result.filter(task => recurringTaskIds.includes(task.id));
+    }
+
+    return result;
+  }, [activeTasks, searchQuery, filters, pinnedTasks, recurringTaskIds]);
+
   // Tri avec épinglées en tête
-  const sortedTasks = [...activeTasks].sort((a, b) => {
-    const aPinned = pinnedTasks.includes(a.id);
-    const bPinned = pinnedTasks.includes(b.id);
-    return aPinned === bPinned ? 0 : aPinned ? -1 : 1;
-  });
+  const sortedTasks = useMemo(() => {
+    return [...filteredTasks].sort((a, b) => {
+      const aPinned = pinnedTasks.includes(a.id);
+      const bPinned = pinnedTasks.includes(b.id);
+      return aPinned === bPinned ? 0 : aPinned ? -1 : 1;
+    });
+  }, [filteredTasks, pinnedTasks]);
 
   // Gestion de la création de sous-tâches
   const handleCreateSubTask = (parentTask: Task) => {
@@ -161,6 +202,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     const totalTime = calculateTotalTime(task);
     const isSelected = selectedTasks.includes(task.id);
     const isPinned = pinnedTasks.includes(task.id);
+    const isRecurring = recurringTaskIds.includes(task.id);
 
     return (
       <div key={task.id} style={{ marginLeft: level > 0 ? `${level * 8}px` : 0 }}>
@@ -170,6 +212,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           totalTime={totalTime}
           isSelected={isSelected}
           isPinned={isPinned}
+          isRecurring={isRecurring}
           canHaveSubTasks={canHaveSubTasks(task)}
           onToggleSelection={onToggleSelection}
           onToggleExpansion={onToggleExpansion}
@@ -230,6 +273,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
             {/* Quick Add */}
             <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={false} />
 
+            {/* Recherche et Filtres */}
+            <SidebarSearchFilter
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
+
             {/* Sections optionnelles */}
             {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
               <SidebarHabitsSection
@@ -258,7 +309,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
             <SidebarGroup>
               <SidebarGroupLabel className="flex items-center gap-2">
                 <CheckSquare className="w-4 h-4" />
-                <span>Tâches Actives ({sortedTasks.length})</span>
+                <span>
+                  Tâches Actives ({sortedTasks.length}
+                  {(searchQuery || filters.categories.length > 0 || filters.contexts.length > 0 || filters.showPinned || filters.showRecurring) && 
+                    sortedTasks.length !== activeTasks.length && (
+                      <span className="text-muted-foreground">/{activeTasks.length}</span>
+                    )}
+                  )
+                </span>
               </SidebarGroupLabel>
               
               <SidebarGroupContent>
