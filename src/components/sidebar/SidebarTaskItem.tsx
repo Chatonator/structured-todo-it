@@ -114,50 +114,53 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         )}
       />
 
-      {/* Contenu principal */}
-      <div className="flex items-center gap-1 flex-1 min-w-0 py-2 pl-2 pr-1">
-        {/* Expand/collapse pour sous-tâches - toujours visible si a des sous-tâches */}
-        {hasSubTasks && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5 shrink-0"
-            onClick={() => onToggleExpansion(task.id)}
-          >
-            {task.isExpanded ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
-          </Button>
-        )}
-
-        {/* Icône épingle pour tâches épinglées - visible quand plié */}
-        {isPinned && !isHovered && (
-          <Pin className="w-3 h-3 text-amber-500 shrink-0" />
-        )}
-
-        {/* Texte - priorité maximale, visible en entier au hover */}
-        <p
-          className={cn(
-            'text-sm leading-tight flex-1 min-w-0 transition-all duration-200',
-            task.isCompleted && 'line-through text-muted-foreground',
-            isHovered ? 'whitespace-normal break-words' : 'truncate'
+      {/* Contenu principal - layout vertical au hover */}
+      <div className="flex flex-col flex-1 min-w-0 py-2 pl-2 pr-1">
+        {/* Ligne du texte */}
+        <div className="flex items-start gap-1 w-full">
+          {/* Expand/collapse pour sous-tâches - toujours visible si a des sous-tâches */}
+          {hasSubTasks && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 shrink-0 mt-0.5"
+              onClick={() => onToggleExpansion(task.id)}
+            >
+              {task.isExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+            </Button>
           )}
-        >
-          {task.name}
-        </p>
 
-        {/* Indicateur récurrent - visible seulement si récurrent et pas en hover */}
-        {isRecurring && !isHovered && (
-          <RefreshCw className="w-3 h-3 text-blue-500 shrink-0" />
-        )}
+          {/* Icône épingle pour tâches épinglées - visible quand plié */}
+          {isPinned && !isHovered && (
+            <Pin className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
+          )}
 
-        {/* Métadonnées et actions - visible au hover */}
+          {/* Texte - priorité maximale, visible en entier au hover */}
+          <p
+            className={cn(
+              'text-sm leading-tight flex-1 min-w-0 transition-all duration-200',
+              task.isCompleted && 'line-through text-muted-foreground',
+              isHovered ? 'whitespace-normal break-words' : 'truncate'
+            )}
+          >
+            {task.name}
+          </p>
+
+          {/* Indicateur récurrent - visible seulement si récurrent et pas en hover */}
+          {isRecurring && !isHovered && (
+            <RefreshCw className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
+          )}
+        </div>
+
+        {/* Métadonnées et actions - SOUS le texte, visible au hover */}
         <div
           className={cn(
-            'flex items-center gap-1.5 shrink-0 transition-all duration-200',
-            isHovered ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0 overflow-hidden'
+            'flex items-center gap-2 mt-1.5 transition-all duration-200',
+            isHovered ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0 overflow-hidden'
           )}
         >
           {/* Temps estimé */}
@@ -177,6 +180,9 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           {isRecurring && (
             <RefreshCw className="w-3 h-3 text-blue-500" />
           )}
+
+          {/* Spacer pour pousser checkbox et menu à droite */}
+          <div className="flex-1" />
 
           {/* Checkbox */}
           <Checkbox
