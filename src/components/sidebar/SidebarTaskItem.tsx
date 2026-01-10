@@ -92,6 +92,10 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   const { projects } = useProjects();
   const hasSubTasks = subTasks.length > 0;
   const [isHovered, setIsHovered] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // La tâche reste dépliée si hover OU si le menu est ouvert
+  const isExpanded = isHovered || isMenuOpen;
 
   return (
     <SidebarMenuItem
@@ -135,7 +139,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           )}
 
           {/* Icône épingle pour tâches épinglées - visible quand plié */}
-          {isPinned && !isHovered && (
+          {isPinned && !isExpanded && (
             <Pin className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
           )}
 
@@ -144,14 +148,14 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
             className={cn(
               'text-sm leading-tight flex-1 min-w-0 transition-all duration-200',
               task.isCompleted && 'line-through text-muted-foreground',
-              isHovered ? 'whitespace-normal break-words' : 'truncate'
+              isExpanded ? 'whitespace-normal break-words' : 'truncate'
             )}
           >
             {task.name}
           </p>
 
           {/* Indicateur récurrent - visible seulement si récurrent et pas en hover */}
-          {isRecurring && !isHovered && (
+          {isRecurring && !isExpanded && (
             <RefreshCw className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
           )}
         </div>
@@ -160,7 +164,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         <div
           className={cn(
             'flex items-center gap-2 mt-1.5 transition-all duration-200',
-            isHovered ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0 overflow-hidden'
+            isExpanded ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0 overflow-hidden'
           )}
         >
           {/* Temps estimé */}
@@ -192,7 +196,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           />
 
           {/* Menu d'actions (3 points) */}
-          <DropdownMenu>
+          <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
