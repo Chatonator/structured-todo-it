@@ -151,8 +151,9 @@ export const useRecurringTasks = () => {
   const ensureRecurringTaskHasEvent = useCallback(async (
     taskId: string,
     taskName: string,
-    recurrenceInterval: string,
-    estimatedTime: number
+    frequency: string,
+    estimatedTime: number,
+    interval: number = 1
   ): Promise<boolean> => {
     if (!user) return false;
 
@@ -166,7 +167,18 @@ export const useRecurringTasks = () => {
         .eq('user_id', user.id);
 
       if (existing && existing.length > 0) {
-        return true; // Event existe déjà
+        // Mettre à jour l'event existant avec la nouvelle récurrence
+        const recurrence: RecurrenceConfig = {
+          frequency,
+          interval
+        };
+        
+        await supabase
+          .from('time_events')
+          .update({ recurrence: recurrence as any })
+          .eq('id', existing[0].id);
+          
+        return true;
       }
 
       // Créer l'event avec récurrence
@@ -174,8 +186,8 @@ export const useRecurringTasks = () => {
       today.setHours(9, 0, 0, 0); // Par défaut à 9h
 
       const recurrence: RecurrenceConfig = {
-        frequency: recurrenceInterval === 'bi-monthly' ? 'bi-weekly' : recurrenceInterval,
-        interval: 1
+        frequency,
+        interval
       };
 
       const { error } = await supabase

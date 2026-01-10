@@ -30,6 +30,14 @@ import {
 import { useProjects } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
 
+// Options de fréquence de récurrence
+const RECURRENCE_OPTIONS = [
+  { value: '3-days', label: 'Tous les 3 jours', frequency: 'daily', interval: 3 },
+  { value: 'weekly', label: 'Hebdomadaire', frequency: 'weekly', interval: 1 },
+  { value: 'bi-weekly', label: 'Toutes les 2 semaines', frequency: 'weekly', interval: 2 },
+  { value: 'monthly', label: 'Mensuel', frequency: 'monthly', interval: 1 },
+] as const;
+
 interface SidebarTaskItemProps {
   task: Task;
   subTasks: Task[];
@@ -46,7 +54,8 @@ interface SidebarTaskItemProps {
   onCreateSubTask: (task: Task) => void;
   onEditTask: (task: Task) => void;
   onAssignToProject: (taskId: string, projectId: string) => Promise<boolean>;
-  onToggleRecurring?: (taskId: string, taskName: string, estimatedTime: number) => void;
+  onSetRecurring?: (taskId: string, taskName: string, estimatedTime: number, frequency: string, interval: number) => void;
+  onRemoveRecurring?: (taskId: string) => void;
 }
 
 const getCategoryColor = (category: Task['category']) => {
@@ -87,7 +96,8 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   onCreateSubTask,
   onEditTask,
   onAssignToProject,
-  onToggleRecurring,
+  onSetRecurring,
+  onRemoveRecurring,
 }) => {
   const { projects } = useProjects();
   const hasSubTasks = subTasks.length > 0;
@@ -252,12 +262,29 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
               )}
 
               {/* Option Récurrence */}
-              {onToggleRecurring && (
-                <DropdownMenuItem onClick={() => onToggleRecurring(task.id, task.name, totalTime)}>
-                  <RefreshCw className={cn("w-4 h-4 mr-2", isRecurring && "text-blue-500")} />
-                  {isRecurring ? 'Retirer récurrence' : 'Rendre récurrent'}
+              {isRecurring && onRemoveRecurring ? (
+                <DropdownMenuItem onClick={() => onRemoveRecurring(task.id)}>
+                  <RefreshCw className="w-4 h-4 mr-2 text-blue-500" />
+                  Retirer récurrence
                 </DropdownMenuItem>
-              )}
+              ) : onSetRecurring ? (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Rendre récurrent
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="bg-popover z-50">
+                    {RECURRENCE_OPTIONS.map(option => (
+                      <DropdownMenuItem
+                        key={option.value}
+                        onClick={() => onSetRecurring(task.id, task.name, totalTime, option.frequency, option.interval)}
+                      >
+                        {option.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              ) : null}
 
               <DropdownMenuItem onClick={() => onTogglePinTask(task.id)}>
                 {isPinned ? (
