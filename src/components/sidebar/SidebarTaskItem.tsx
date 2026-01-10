@@ -100,20 +100,28 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   return (
     <SidebarMenuItem
       className={cn(
-        'group relative flex items-center rounded-md transition-all duration-200',
+        'group relative flex items-center rounded-md transition-all duration-200 overflow-hidden',
         'hover:bg-sidebar-accent/60',
         'border-b border-sidebar-border/40',
-        'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]',
-        // Style spécial pour tâches épinglées
-        isPinned && 'bg-gradient-to-r from-amber-50/80 to-transparent dark:from-amber-900/20 dark:to-transparent'
+        'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]'
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Dégradé épinglé à gauche */}
+      {isPinned && (
+        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-amber-200/50 to-transparent dark:from-amber-600/30 dark:to-transparent pointer-events-none" />
+      )}
+      
+      {/* Dégradé récurrent à droite */}
+      {isRecurring && (
+        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-blue-200/40 to-transparent dark:from-blue-600/25 dark:to-transparent pointer-events-none" />
+      )}
+
       {/* Barre de couleur catégorie - collée au bord gauche */}
       <div
         className={cn(
-          'w-1 self-stretch rounded-l-md shrink-0',
+          'w-1 self-stretch rounded-l-md shrink-0 z-10',
           getCategoryColor(task.category)
         )}
       />
