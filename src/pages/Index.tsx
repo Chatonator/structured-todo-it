@@ -91,15 +91,22 @@ const Index = () => {
     toggleCompletion: toggleHabitCompletion,
     getHabitsForToday
   } = useHabits(defaultDeckId);
-  const { ensureRecurringTaskHasEvent } = useRecurringTasks();
-  const { deleteEntityEvent } = useTimeEventSync();
+  const { ensureRecurringTaskHasEvent, processRecurringTasks } = useRecurringTasks();
+  const { deleteEntityEvent, updateEventStatus } = useTimeEventSync();
   
   // État pour les IDs des tâches récurrentes
   const [recurringTaskIds, setRecurringTaskIds] = useState<string[]>([]);
 
-  // Charger les IDs des tâches récurrentes au montage
+  // Charger les IDs des tâches récurrentes et traiter les récurrences au montage
   useEffect(() => {
-    const loadRecurringTaskIds = async () => {
+    const initRecurringTasks = async () => {
+      // Traiter les tâches récurrentes qui doivent être réactivées
+      const reactivatedCount = await processRecurringTasks();
+      if (reactivatedCount > 0) {
+        console.log(`${reactivatedCount} tâche(s) récurrente(s) réactivée(s)`);
+      }
+      
+      // Charger les IDs des tâches récurrentes
       const { data } = await supabase
         .from('time_events')
         .select('entity_id')
@@ -110,26 +117,29 @@ const Index = () => {
         setRecurringTaskIds(data.map(e => e.entity_id));
       }
     };
-    loadRecurringTaskIds();
-  }, []);
+    initRecurringTasks();
+  }, [processRecurringTasks]);
   
   // Habitudes applicables aujourd'hui
   const todayHabits = getHabitsForToday();
 
-  // Handler pour toggle la récurrence d'une tâche
-  const handleToggleRecurring = useCallback(async (taskId: string, taskName: string, estimatedTime: number) => {
-    const isCurrentlyRecurring = recurringTaskIds.includes(taskId);
-    
-    if (isCurrentlyRecurring) {
-      // Supprimer la récurrence
-      await deleteEntityEvent('task', taskId);
-      setRecurringTaskIds(prev => prev.filter(id => id !== taskId));
-    } else {
-      // Ajouter la récurrence (par défaut: quotidien)
-      await ensureRecurringTaskHasEvent(taskId, taskName, 'daily', estimatedTime);
-      setRecurringTaskIds(prev => [...prev, taskId]);
-    }
-  }, [recurringTaskIds, deleteEntityEvent, ensureRecurringTaskHasEvent]);
+  // Handler pour ajouter la récurrence à une tâche
+  const handleSetRecurring = useCallback(async (
+    taskId: string, 
+    taskName: string, 
+    estimatedTime: number, 
+    frequency: string, 
+    interval: number
+  ) => {
+    await ensureRecurringTaskHasEvent(taskId, taskName, frequency, estimatedTime, interval);
+    setRecurringTaskIds(prev => [...prev, taskId]);
+  }, [ensureRecurringTaskHasEvent]);
+
+  // Handler pour supprimer la récurrence d'une tâche
+  const handleRemoveRecurring = useCallback(async (taskId: string) => {
+    await deleteEntityEvent('task', taskId);
+    setRecurringTaskIds(prev => prev.filter(id => id !== taskId));
+  }, [deleteEntityEvent]);
   
   // Filtrage des tâches
   const filteredTasks = useMemo(() => getFilteredTasks(tasks), [getFilteredTasks, tasks]);
@@ -220,7 +230,8 @@ const Index = () => {
     onTogglePinTask: togglePinTask,
     onAddTask: addTask,
     onUpdateTask: updateTask,
-    onToggleRecurring: handleToggleRecurring,
+    onSetRecurring: handleSetRecurring,
+    onRemoveRecurring: handleRemoveRecurring,
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
