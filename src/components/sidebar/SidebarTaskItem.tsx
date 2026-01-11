@@ -113,19 +113,16 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         'group relative flex items-center rounded-md transition-all duration-200 overflow-hidden',
         'hover:bg-sidebar-accent/60',
         'border-b border-sidebar-border/40',
-        'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]'
+        'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]',
+        // Fond doré pour les tâches épinglées
+        isPinned && 'bg-[#EFBF04]/15 dark:bg-[#EFBF04]/10'
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Dégradé épinglé à gauche */}
-      {isPinned && (
-        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-amber-200/50 to-transparent dark:from-amber-600/30 dark:to-transparent pointer-events-none" />
-      )}
-      
-      {/* Dégradé récurrent à droite */}
+      {/* Dégradé récurrent à droite (au-dessus du fond doré si épinglé) */}
       {isRecurring && (
-        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-blue-200/40 to-transparent dark:from-blue-600/25 dark:to-transparent pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-blue-200/40 to-transparent dark:from-blue-600/25 dark:to-transparent pointer-events-none z-[1]" />
       )}
 
       {/* Barre de couleur catégorie - collée au bord gauche */}
