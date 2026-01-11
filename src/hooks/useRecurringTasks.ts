@@ -41,6 +41,7 @@ export const useRecurringTasks = () => {
 
     switch (recurrence.frequency) {
       case 'daily':
+        // Si interval > 1, c'est "tous les X jours"
         return addDays(currentDate, interval);
       case 'weekly':
         return addWeeks(currentDate, interval);
@@ -51,7 +52,8 @@ export const useRecurringTasks = () => {
       case 'yearly':
         return addMonths(currentDate, 12 * interval);
       default:
-        return addDays(currentDate, 1);
+        // Fallback : utiliser interval comme nombre de jours
+        return addDays(currentDate, interval);
     }
   }, []);
 

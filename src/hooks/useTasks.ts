@@ -5,6 +5,7 @@
 import { useCallback, useMemo } from 'react';
 import { useItems } from './useItems';
 import { useGamification } from './useGamification';
+import { useTimeEventSync } from './useTimeEventSync';
 import { Task, TaskCategory, TaskContext } from '@/types/task';
 import { Item, ItemMetadata } from '@/types/item';
 
@@ -60,6 +61,7 @@ export const useTasks = () => {
   });
   
   const { rewardTaskCompletion } = useGamification();
+  const { updateEventStatus } = useTimeEventSync();
 
   // Convert items to tasks
   const tasks = useMemo(() => items.map(itemToTask), [items]);
@@ -121,18 +123,27 @@ export const useTasks = () => {
     await deleteItem(taskId);
   }, [deleteItem]);
 
-  // Toggle completion with gamification
+  // Toggle completion with gamification and time_event sync
   const toggleTaskCompletion = useCallback(async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
+    const willBeCompleted = !task.isCompleted;
+    
     await toggleComplete(taskId);
     
+    // Sync time_event status for recurring tasks
+    await updateEventStatus(
+      'task', 
+      taskId, 
+      willBeCompleted ? 'completed' : 'scheduled'
+    );
+    
     // Reward if completing (not uncompleting)
-    if (!task.isCompleted) {
+    if (willBeCompleted) {
       await rewardTaskCompletion(task);
     }
-  }, [tasks, toggleComplete, rewardTaskCompletion]);
+  }, [tasks, toggleComplete, rewardTaskCompletion, updateEventStatus]);
 
   // Toggle expansion
   const toggleTaskExpansion = useCallback(async (taskId: string) => {
