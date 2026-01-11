@@ -128,7 +128,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
       {/* Barre de couleur catégorie - collée au bord gauche */}
       <div
         className={cn(
-          'w-1 self-stretch rounded-l-md shrink-0 z-10',
+          'w-1.5 self-stretch rounded-l-md shrink-0 z-10',
           getCategoryColor(task.category)
         )}
       />
