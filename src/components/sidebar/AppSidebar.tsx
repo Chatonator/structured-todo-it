@@ -43,6 +43,7 @@ interface AppSidebarProps {
   mainTasks: Task[];
   pinnedTasks: string[];
   recurringTaskIds?: string[];
+  taskSchedules?: Record<string, { date: Date; time: string }>;
   onRemoveTask: (taskId: string) => void;
   onToggleExpansion: (taskId: string) => void;
   onToggleCompletion: (taskId: string) => void;
@@ -51,6 +52,7 @@ interface AppSidebarProps {
   onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
   onSetRecurring?: (taskId: string, taskName: string, estimatedTime: number, frequency: string, interval: number) => void;
   onRemoveRecurring?: (taskId: string) => void;
+  onScheduleTask?: (taskId: string, date: Date, time: string) => void;
   getSubTasks: (parentId: string) => Task[];
   calculateTotalTime: (task: Task) => number;
   canHaveSubTasks: (task: Task) => boolean;
@@ -76,6 +78,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   mainTasks,
   pinnedTasks,
   recurringTaskIds = [],
+  taskSchedules = {},
   onRemoveTask,
   onToggleExpansion,
   onToggleCompletion,
@@ -84,6 +87,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   onUpdateTask,
   onSetRecurring,
   onRemoveRecurring,
+  onScheduleTask,
   getSubTasks,
   calculateTotalTime,
   canHaveSubTasks,
@@ -207,6 +211,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     const isSelected = selectedTasks.includes(task.id);
     const isPinned = pinnedTasks.includes(task.id);
     const isRecurring = recurringTaskIds.includes(task.id);
+    const schedule = taskSchedules[task.id];
 
     return (
       <div key={task.id} style={{ marginLeft: level > 0 ? `${level * 8}px` : 0 }}>
@@ -217,6 +222,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           isSelected={isSelected}
           isPinned={isPinned}
           isRecurring={isRecurring}
+          scheduledDate={schedule?.date}
+          scheduledTime={schedule?.time}
           canHaveSubTasks={canHaveSubTasks(task)}
           onToggleSelection={onToggleSelection}
           onToggleExpansion={onToggleExpansion}
@@ -228,6 +235,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           onAssignToProject={handleAssignToProject}
           onSetRecurring={onSetRecurring}
           onRemoveRecurring={onRemoveRecurring}
+          onScheduleTask={onScheduleTask}
         />
 
         {/* Sous-tâches */}

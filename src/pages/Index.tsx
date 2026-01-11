@@ -92,12 +92,13 @@ const Index = () => {
     getHabitsForToday
   } = useHabits(defaultDeckId);
   const { ensureRecurringTaskHasEvent, processRecurringTasks } = useRecurringTasks();
-  const { deleteEntityEvent, updateEventStatus } = useTimeEventSync();
+  const { deleteEntityEvent, updateEventStatus, syncTaskEventWithSchedule, getEntityEvent } = useTimeEventSync();
   
-  // État pour les IDs des tâches récurrentes
+  // État pour les IDs des tâches récurrentes et les planifications
   const [recurringTaskIds, setRecurringTaskIds] = useState<string[]>([]);
+  const [taskSchedules, setTaskSchedules] = useState<Record<string, { date: Date; time: string }>>({});
 
-  // Charger les IDs des tâches récurrentes et traiter les récurrences au montage
+  // Charger les IDs des tâches récurrentes et les planifications au montage
   useEffect(() => {
     const initRecurringTasks = async () => {
       // Traiter les tâches récurrentes qui doivent être réactivées
@@ -106,15 +107,31 @@ const Index = () => {
         console.log(`${reactivatedCount} tâche(s) récurrente(s) réactivée(s)`);
       }
       
-      // Charger les IDs des tâches récurrentes
+      // Charger les événements de tâches
       const { data } = await supabase
         .from('time_events')
-        .select('entity_id')
-        .eq('entity_type', 'task')
-        .not('recurrence', 'is', null);
+        .select('entity_id, recurrence, starts_at')
+        .eq('entity_type', 'task');
       
       if (data) {
-        setRecurringTaskIds(data.map(e => e.entity_id));
+        // Récurrence IDs
+        const recurringIds = data
+          .filter(e => e.recurrence !== null)
+          .map(e => e.entity_id);
+        setRecurringTaskIds(recurringIds);
+        
+        // Planifications
+        const schedules: Record<string, { date: Date; time: string }> = {};
+        data.forEach(e => {
+          if (e.starts_at) {
+            const startsAt = new Date(e.starts_at);
+            schedules[e.entity_id] = {
+              date: startsAt,
+              time: startsAt.toTimeString().slice(0, 5)
+            };
+          }
+        });
+        setTaskSchedules(schedules);
       }
     };
     initRecurringTasks();
@@ -140,6 +157,23 @@ const Index = () => {
     await deleteEntityEvent('task', taskId);
     setRecurringTaskIds(prev => prev.filter(id => id !== taskId));
   }, [deleteEntityEvent]);
+  
+  // Handler pour planifier une tâche
+  const handleScheduleTask = useCallback(async (taskId: string, date: Date, time: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    await syncTaskEventWithSchedule(task, {
+      date,
+      time,
+      isRecurring: recurringTaskIds.includes(taskId)
+    });
+    
+    setTaskSchedules(prev => ({
+      ...prev,
+      [taskId]: { date, time }
+    }));
+  }, [tasks, syncTaskEventWithSchedule, recurringTaskIds]);
   
   // Filtrage des tâches
   const filteredTasks = useMemo(() => getFilteredTasks(tasks), [getFilteredTasks, tasks]);
@@ -224,6 +258,7 @@ const Index = () => {
     mainTasks: filteredMainTasks,
     pinnedTasks,
     recurringTaskIds,
+    taskSchedules,
     onRemoveTask: removeTask,
     onToggleExpansion: toggleTaskExpansion,
     onToggleCompletion: toggleTaskCompletion,
@@ -232,6 +267,7 @@ const Index = () => {
     onUpdateTask: updateTask,
     onSetRecurring: handleSetRecurring,
     onRemoveRecurring: handleRemoveRecurring,
+    onScheduleTask: handleScheduleTask,
     getSubTasks,
     calculateTotalTime,
     canHaveSubTasks,
