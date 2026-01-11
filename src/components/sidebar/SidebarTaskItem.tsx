@@ -12,6 +12,13 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
 import { SidebarMenuItem } from '@/components/ui/sidebar';
 import {
   MoreHorizontal,
@@ -26,9 +33,12 @@ import {
   ChevronRight,
   Clock,
   RefreshCw,
+  CalendarIcon,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 // Options de fréquence de récurrence
 const RECURRENCE_OPTIONS = [
@@ -45,6 +55,8 @@ interface SidebarTaskItemProps {
   isSelected: boolean;
   isPinned: boolean;
   isRecurring?: boolean;
+  scheduledDate?: Date;
+  scheduledTime?: string;
   canHaveSubTasks: boolean;
   onToggleSelection: (taskId: string) => void;
   onToggleExpansion: (taskId: string) => void;
@@ -56,6 +68,7 @@ interface SidebarTaskItemProps {
   onAssignToProject: (taskId: string, projectId: string) => Promise<boolean>;
   onSetRecurring?: (taskId: string, taskName: string, estimatedTime: number, frequency: string, interval: number) => void;
   onRemoveRecurring?: (taskId: string) => void;
+  onScheduleTask?: (taskId: string, date: Date, time: string) => void;
 }
 
 const getCategoryColor = (category: Task['category']) => {
@@ -87,6 +100,8 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   isSelected,
   isPinned,
   isRecurring = false,
+  scheduledDate,
+  scheduledTime,
   canHaveSubTasks,
   onToggleSelection,
   onToggleExpansion,
@@ -98,14 +113,26 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   onAssignToProject,
   onSetRecurring,
   onRemoveRecurring,
+  onScheduleTask,
 }) => {
   const { projects } = useProjects();
   const hasSubTasks = subTasks.length > 0;
   const [isHovered, setIsHovered] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSchedulePopoverOpen, setIsSchedulePopoverOpen] = useState(false);
+  const [tempDate, setTempDate] = useState<Date | undefined>(scheduledDate);
+  const [tempTime, setTempTime] = useState(scheduledTime || '09:00');
 
-  // La tâche reste dépliée si hover OU si le menu est ouvert
-  const isExpanded = isHovered || isMenuOpen;
+  // La tâche reste dépliée si hover OU si le menu est ouvert OU si popover planification ouvert
+  const isExpanded = isHovered || isMenuOpen || isSchedulePopoverOpen;
+
+  const handleScheduleConfirm = () => {
+    if (tempDate && onScheduleTask) {
+      onScheduleTask(task.id, tempDate, tempTime);
+      setIsSchedulePopoverOpen(false);
+      setIsMenuOpen(false);
+    }
+  };
 
   return (
     <SidebarMenuItem
@@ -282,6 +309,73 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
               ) : null}
+
+              {/* Option Planification */}
+              {onScheduleTask && (
+                <Popover open={isSchedulePopoverOpen} onOpenChange={setIsSchedulePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <DropdownMenuItem 
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setIsSchedulePopoverOpen(true);
+                      }}
+                    >
+                      <CalendarIcon className="w-4 h-4 mr-2 text-primary" />
+                      {scheduledDate ? 'Replanifier' : 'Planifier'}
+                    </DropdownMenuItem>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="w-auto p-3 bg-popover z-[100]" 
+                    align="start"
+                    side="right"
+                    sideOffset={8}
+                  >
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium">Planifier la tâche</p>
+                      <Calendar
+                        mode="single"
+                        selected={tempDate}
+                        onSelect={setTempDate}
+                        initialFocus
+                        locale={fr}
+                        className="pointer-events-auto"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <Input
+                          type="time"
+                          value={tempTime}
+                          onChange={(e) => setTempTime(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => setIsSchedulePopoverOpen(false)}
+                        >
+                          Annuler
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={handleScheduleConfirm}
+                          disabled={!tempDate}
+                        >
+                          Confirmer
+                        </Button>
+                      </div>
+                      {scheduledDate && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          Actuellement: {format(scheduledDate, 'dd/MM/yyyy', { locale: fr })} à {scheduledTime}
+                        </p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
 
               <DropdownMenuItem onClick={() => onTogglePinTask(task.id)}>
                 {isPinned ? (
