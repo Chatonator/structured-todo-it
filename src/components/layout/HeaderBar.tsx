@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Plus, Menu, Search } from 'lucide-react';
+import { CheckSquare, Plus, Menu } from 'lucide-react';
 import { TaskContext } from '@/types/task';
 import ContextPills from '@/components/layout/ContextPills';
 import ViewNavigation from '@/components/layout/ViewNavigation';
@@ -62,18 +62,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
             <h1 className="text-xl font-bold text-foreground tracking-tight">TO-DO-IT</h1>
           </div>
           
-          {/* Barre de recherche (desktop, optionnel pour future implémentation) */}
+          {/* Sélecteur de contexte (desktop) */}
           {!isMobile && (
-            <div className="hidden lg:flex items-center flex-1 max-w-md mx-4">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Rechercher..."
-                  className="w-full h-9 pl-10 pr-4 rounded-lg bg-muted/50 border border-border/50 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
-                />
-              </div>
-            </div>
+            <ContextPills
+              contextFilter={contextFilter}
+              onContextFilterChange={onContextFilterChange}
+            />
           )}
           
           {/* Actions rapides + Profil */}
@@ -92,25 +86,14 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
         </div>
       </div>
 
-      {/* Niveau 2 - Barre contextuelle (desktop seulement) */}
+      {/* Niveau 2 - Navigation des vues (desktop seulement) */}
       {!isMobile && (
         <div className="px-4 md:px-6 py-2 bg-muted/20 border-t border-border/30">
-          <div className="flex items-center justify-between gap-4">
-            {/* Sélecteur de contexte */}
-            <ContextPills
-              contextFilter={contextFilter}
-              onContextFilterChange={onContextFilterChange}
-            />
-            
-            {/* Navigation des vues */}
-            <div className="flex-1 flex justify-end">
-              <ViewNavigation
-                currentView={currentView}
-                onViewChange={onViewChange}
-                navigationItems={navigationItems}
-              />
-            </div>
-          </div>
+          <ViewNavigation
+            currentView={currentView}
+            onViewChange={onViewChange}
+            navigationItems={navigationItems}
+          />
         </div>
       )}
     </header>
