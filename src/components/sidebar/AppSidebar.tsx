@@ -16,7 +16,7 @@ import { ListTodo, CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import SidebarQuickAdd from './SidebarQuickAdd';
 import SidebarSearchFilter, { TaskFilters, defaultFilters } from './SidebarSearchFilter';
-import SidebarSortSelector, { SortConfig, defaultSortConfig } from './SidebarSortSelector';
+import SidebarSortSelector, { SortConfig, defaultSortConfig, CATEGORY_SORT_ORDER } from './SidebarSortSelector';
 import SidebarTaskItem from './SidebarTaskItem';
 import { SidebarHabitsSection } from './SidebarHabitsSection';
 import { SidebarProjectsSection } from './SidebarProjectsSection';
@@ -174,13 +174,13 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           comparison = a.name.localeCompare(b.name, 'fr');
           break;
         case 'category':
-          comparison = a.category.localeCompare(b.category, 'fr');
+          // Ordre: Crucial (Obligation) > Envies > Régulier (Quotidien) > Optionnel (Autres)
+          const orderA = CATEGORY_SORT_ORDER[a.category] ?? 99;
+          const orderB = CATEGORY_SORT_ORDER[b.category] ?? 99;
+          comparison = orderA - orderB;
           break;
         case 'estimatedTime':
           comparison = a.estimatedTime - b.estimatedTime;
-          break;
-        case 'context':
-          comparison = a.context.localeCompare(b.context, 'fr');
           break;
         case 'createdAt':
         default:
@@ -314,16 +314,25 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           </SidebarHeader>
 
           <SidebarContent className="custom-scrollbar">
-            {/* Quick Add */}
-            <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={false} />
-
-            {/* Recherche et Filtres */}
-            <SidebarSearchFilter
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              filters={filters}
-              onFiltersChange={setFilters}
-            />
+            {/* Quick Add + Recherche + Filtres + Tri en mode compact */}
+            <div className="px-2 py-2 space-y-2 border-b border-sidebar-border">
+              {/* Ligne 1: Bouton nouvelle tâche */}
+              <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={false} />
+              
+              {/* Ligne 2: Recherche + Tri + Filtre */}
+              <div className="flex items-center gap-1">
+                <SidebarSearchFilter
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                />
+                <SidebarSortSelector
+                  sortConfig={sortConfig}
+                  onSortChange={setSortConfig}
+                />
+              </div>
+            </div>
 
             {/* Sections optionnelles */}
             {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
@@ -355,12 +364,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                 <CheckSquare className="w-4 h-4" />
                 <span>Tâches</span>
               </SidebarGroupLabel>
-
-              {/* Sélecteur de tri */}
-              <SidebarSortSelector
-                sortConfig={sortConfig}
-                onSortChange={setSortConfig}
-              />
               
               <SidebarGroupContent>
                 <SidebarMenu>

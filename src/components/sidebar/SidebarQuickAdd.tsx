@@ -81,36 +81,39 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
 
   // Mode expanded: section collapsible
   return (
-    <SidebarGroup>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton className="w-full justify-between hover:bg-sidebar-accent">
-            <div className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              <span className="font-medium">Nouvelle tâche</span>
-            </div>
-            {isOpen ? (
-              <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            )}
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-between h-7 text-xs hover:bg-sidebar-accent"
+        >
+          <div className="flex items-center gap-1.5">
+            <Plus className="w-3.5 h-3.5" />
+            <span className="font-medium">Nouvelle tâche</span>
+          </div>
+          {isOpen ? (
+            <ChevronUp className="w-3 h-3 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-3 h-3 text-muted-foreground" />
+          )}
+        </Button>
+      </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <SidebarGroupContent className="p-3 space-y-3 bg-sidebar-accent/30 rounded-lg mt-2">
+          <div className="p-2 space-y-2 bg-sidebar-accent/30 rounded-lg mt-1.5">
             <Input
               placeholder="Titre de la tâche..."
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="text-sm bg-background"
+              className="text-xs h-7 bg-background"
               autoFocus
             />
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               <Select value={context} onValueChange={(value) => setContext(value as TaskContext)}>
-                <SelectTrigger className="text-xs h-8 bg-background">
+                <SelectTrigger className="text-[10px] h-6 bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -120,7 +123,7 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
               </Select>
 
               <Select value={estimatedTime} onValueChange={setEstimatedTime}>
-                <SelectTrigger className="text-xs h-8 bg-background">
+                <SelectTrigger className="text-[10px] h-6 bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -137,7 +140,7 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
             </div>
 
             <Select value={category} onValueChange={(value) => setCategory(value as TaskCategory)}>
-              <SelectTrigger className="text-xs h-8 bg-background">
+              <SelectTrigger className="text-[10px] h-6 bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -170,17 +173,16 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
 
             <Button 
               onClick={handleSubmit}
-              className="w-full h-8 text-xs"
+              className="w-full h-6 text-[10px]"
               size="sm"
               disabled={!name.trim()}
             >
               <Plus className="w-3 h-3 mr-1" />
-              Créer la tâche
+              Créer
             </Button>
-          </SidebarGroupContent>
+          </div>
         </CollapsibleContent>
       </Collapsible>
-    </SidebarGroup>
   );
 };
 

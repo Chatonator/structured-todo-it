@@ -75,48 +75,47 @@ const SidebarSearchFilter: React.FC<SidebarSearchFilterProps> = ({
   const contexts: TaskContext[] = ['Pro', 'Perso'];
 
   return (
-    <div className="px-3 py-2 space-y-2">
-      {/* Barre de recherche + bouton filtre */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Rechercher..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 h-8 text-sm bg-sidebar-accent/50"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5"
-              onClick={() => onSearchChange('')}
-            >
-              <X className="w-3 h-3" />
-            </Button>
-          )}
-        </div>
+    <>
+      {/* Barre de recherche + bouton filtre - mode inline */}
+      <div className="relative flex-1">
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Rechercher..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="pl-7 pr-7 h-7 text-xs bg-sidebar-accent/50"
+        />
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5"
+            onClick={() => onSearchChange('')}
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        )}
+      </div>
 
-        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn(
-                "h-8 w-8 shrink-0",
-                hasActiveFilters && "border-primary text-primary"
-              )}
-            >
-              <Filter className="w-4 h-4" />
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
-                  {activeFilterCount}
-                </span>
-              )}
-            </Button>
-          </PopoverTrigger>
+      <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-7 w-7 shrink-0",
+              hasActiveFilters && "text-primary"
+            )}
+          >
+            <Filter className="w-3.5 h-3.5" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary text-primary-foreground text-[9px] rounded-full flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
           <PopoverContent className="w-56 p-3 bg-popover z-50" align="end">
             <div className="space-y-4">
               {/* Catégories */}
@@ -199,12 +198,11 @@ const SidebarSearchFilter: React.FC<SidebarSearchFilterProps> = ({
               )}
             </div>
           </PopoverContent>
-        </Popover>
-      </div>
+      </Popover>
 
       {/* Badges des filtres actifs */}
       {hasActiveFilters && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 mt-1.5 px-0.5">
           {filters.categories.map(category => (
             <Badge
               key={category}
@@ -249,7 +247,7 @@ const SidebarSearchFilter: React.FC<SidebarSearchFilterProps> = ({
           )}
         </div>
       )}
-    </div>
+    </>
   );
 };
 
