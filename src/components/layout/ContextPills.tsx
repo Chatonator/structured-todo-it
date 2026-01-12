@@ -76,16 +76,16 @@ const ContextPills: React.FC<ContextPillsProps> = ({
         })}
       </div>
 
-      {/* Dropdown pour équipes si plusieurs */}
+      {/* Dropdown unique pour équipes (même avec 1 seule équipe) */}
       {teams.length > 0 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant={currentTeam ? 'default' : 'ghost'}
+              variant={currentTeam ? 'default' : 'outline'}
               size="sm"
               className={cn(
-                "h-8 px-3 gap-1.5",
-                currentTeam && "bg-primary text-primary-foreground"
+                "h-8 px-3 gap-1.5 border-border/50",
+                currentTeam && "bg-primary text-primary-foreground border-primary"
               )}
             >
               <Users className="w-3.5 h-3.5" />
@@ -95,7 +95,7 @@ const ContextPills: React.FC<ContextPillsProps> = ({
               <ChevronDown className="w-3 h-3 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[160px]">
+          <DropdownMenuContent align="start" className="min-w-[160px] bg-background border-border">
             {teams.map((team) => (
               <DropdownMenuItem
                 key={team.id}
@@ -111,22 +111,6 @@ const ContextPills: React.FC<ContextPillsProps> = ({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-      )}
-
-      {/* Affichage inline pour 1 seule équipe */}
-      {teams.length === 1 && (
-        <button
-          onClick={() => handleTeamClick(teams[0].id)}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-all duration-200 rounded-md",
-            currentTeam?.id === teams[0].id
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          )}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">{teams[0].name}</span>
-        </button>
       )}
     </div>
   );
