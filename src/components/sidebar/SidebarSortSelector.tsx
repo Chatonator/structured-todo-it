@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type SortField = 'name' | 'category' | 'estimatedTime' | 'createdAt' | 'context';
+export type SortField = 'name' | 'category' | 'estimatedTime' | 'createdAt';
 export type SortDirection = 'asc' | 'desc';
 
 export interface SortConfig {
@@ -24,12 +24,19 @@ export const defaultSortConfig: SortConfig = {
 };
 
 const sortOptions: { value: SortField; label: string }[] = [
-  { value: 'createdAt', label: 'Date de création' },
+  { value: 'createdAt', label: 'Date' },
   { value: 'name', label: 'Nom' },
   { value: 'category', label: 'Catégorie' },
-  { value: 'estimatedTime', label: 'Durée estimée' },
-  { value: 'context', label: 'Contexte' },
+  { value: 'estimatedTime', label: 'Durée' },
 ];
+
+// Category priority order for sorting
+export const CATEGORY_SORT_ORDER: Record<string, number> = {
+  'Obligation': 1, // Crucial
+  'Envie': 2,      // Envies
+  'Quotidien': 3,  // Régulier
+  'Autres': 4,     // Optionnel
+};
 
 interface SidebarSortSelectorProps {
   sortConfig: SortConfig;
@@ -54,43 +61,49 @@ const SidebarSortSelector: React.FC<SidebarSortSelectorProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-1 px-3 py-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 justify-start text-xs text-muted-foreground hover:text-foreground h-7"
-          >
-            <ArrowUpDown className="w-3 h-3 mr-2" />
-            {currentLabel}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuRadioGroup value={sortConfig.field} onValueChange={handleFieldChange}>
-            {sortOptions.map(option => (
-              <DropdownMenuRadioItem key={option.value} value={option.value}>
-                {option.label}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={toggleDirection}
-        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-        title={sortConfig.direction === 'asc' ? 'Croissant' : 'Décroissant'}
-      >
-        {sortConfig.direction === 'asc' ? (
-          <ArrowUp className="w-3.5 h-3.5" />
-        ) : (
-          <ArrowDown className="w-3.5 h-3.5" />
-        )}
-      </Button>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          title={`Trier par ${currentLabel}`}
+        >
+          <ArrowUpDown className="w-3.5 h-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40 bg-popover z-50">
+        <DropdownMenuRadioGroup value={sortConfig.field} onValueChange={handleFieldChange}>
+          {sortOptions.map(option => (
+            <DropdownMenuRadioItem key={option.value} value={option.value} className="text-xs">
+              {option.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.preventDefault();
+            toggleDirection();
+          }}
+          className="w-full justify-start text-xs h-7"
+        >
+          {sortConfig.direction === 'asc' ? (
+            <>
+              <ArrowUp className="w-3 h-3 mr-2" />
+              Croissant
+            </>
+          ) : (
+            <>
+              <ArrowDown className="w-3 h-3 mr-2" />
+              Décroissant
+            </>
+          )}
+        </Button>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
