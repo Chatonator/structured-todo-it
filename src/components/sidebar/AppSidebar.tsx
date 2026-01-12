@@ -16,6 +16,7 @@ import { ListTodo, CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import SidebarQuickAdd from './SidebarQuickAdd';
 import SidebarSearchFilter, { TaskFilters, defaultFilters } from './SidebarSearchFilter';
+import SidebarSortSelector, { SortConfig, defaultSortConfig } from './SidebarSortSelector';
 import SidebarTaskItem from './SidebarTaskItem';
 import { SidebarHabitsSection } from './SidebarHabitsSection';
 import { SidebarProjectsSection } from './SidebarProjectsSection';
@@ -117,9 +118,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // États recherche et filtres
+  // États recherche, filtres et tri
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
+  const [sortConfig, setSortConfig] = useState<SortConfig>(defaultSortConfig);
 
   // Tâches actives (exclure celles assignées à un projet)
   const activeTasks = mainTasks.filter(task => !task.isCompleted && !task.projectId);
@@ -157,14 +159,42 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     return result;
   }, [activeTasks, searchQuery, filters, pinnedTasks, recurringTaskIds]);
 
-  // Tri avec épinglées en tête
+  // Tri des tâches
   const sortedTasks = useMemo(() => {
-    return [...filteredTasks].sort((a, b) => {
+    const sorted = [...filteredTasks].sort((a, b) => {
+      // Les tâches épinglées restent toujours en tête
       const aPinned = pinnedTasks.includes(a.id);
       const bPinned = pinnedTasks.includes(b.id);
-      return aPinned === bPinned ? 0 : aPinned ? -1 : 1;
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+
+      // Tri selon le champ sélectionné
+      let comparison = 0;
+      switch (sortConfig.field) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name, 'fr');
+          break;
+        case 'category':
+          comparison = a.category.localeCompare(b.category, 'fr');
+          break;
+        case 'estimatedTime':
+          comparison = a.estimatedTime - b.estimatedTime;
+          break;
+        case 'context':
+          comparison = a.context.localeCompare(b.context, 'fr');
+          break;
+        case 'createdAt':
+        default:
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          comparison = dateA - dateB;
+          break;
+      }
+
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
-  }, [filteredTasks, pinnedTasks]);
+
+    return sorted;
+  }, [filteredTasks, pinnedTasks, sortConfig]);
 
   // Gestion de la création de sous-tâches
   const handleCreateSubTask = (parentTask: Task) => {
@@ -323,15 +353,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
             <SidebarGroup>
               <SidebarGroupLabel className="flex items-center gap-2">
                 <CheckSquare className="w-4 h-4" />
-                <span>
-                  Tâches Actives ({sortedTasks.length}
-                  {(searchQuery || filters.categories.length > 0 || filters.contexts.length > 0 || filters.showPinned || filters.showRecurring) && 
-                    sortedTasks.length !== activeTasks.length && (
-                      <span className="text-muted-foreground">/{activeTasks.length}</span>
-                    )}
-                  )
-                </span>
+                <span>Tâches</span>
               </SidebarGroupLabel>
+
+              {/* Sélecteur de tri */}
+              <SidebarSortSelector
+                sortConfig={sortConfig}
+                onSortChange={setSortConfig}
+              />
               
               <SidebarGroupContent>
                 <SidebarMenu>
