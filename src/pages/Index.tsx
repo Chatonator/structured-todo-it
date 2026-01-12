@@ -13,8 +13,7 @@ import HabitsView from '@/components/habits/HabitsView';
 import RewardsView from '@/components/rewards/RewardsView';
 import { ProjectsView } from '@/components/projects/ProjectsView';
 import TimelineView from '@/components/timeline/TimelineView';
-import AppHeader from '@/components/layout/AppHeader';
-import AppNavigation from '@/components/layout/AppNavigation';
+import HeaderBar from '@/components/layout/HeaderBar';
 import BottomNavigation from '@/components/layout/BottomNavigation';
 import { useAppState } from '@/hooks/useAppState';
 import { useUnifiedTasks } from '@/hooks/useUnifiedTasks';
@@ -306,23 +305,17 @@ const Index = () => {
 
         {/* Contenu principal */}
         <SidebarInset className="flex flex-col">
-          {/* Header */}
-          <AppHeader
+          {/* Header bicouche */}
+          <HeaderBar
             onOpenModal={() => setIsModalOpen(true)}
             onOpenTaskList={() => setIsTaskListOpen(true)}
             isMobile={isMobile}
             contextFilter={contextFilter}
             onContextFilterChange={setContextFilter}
+            currentView={currentView}
+            onViewChange={setCurrentView}
+            navigationItems={navigationItems}
           />
-
-          {/* Navigation horizontale - desktop seulement */}
-          {!isMobile && (
-            <AppNavigation
-              currentView={currentView}
-              onViewChange={setCurrentView}
-              navigationItems={navigationItems}
-            />
-          )}
 
           {/* Vue courante */}
           <main className="flex-1 p-3 md:p-6 overflow-y-auto">
