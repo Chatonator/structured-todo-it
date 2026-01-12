@@ -13,10 +13,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { SidebarMenuItem } from '@/components/ui/sidebar';
@@ -312,69 +313,15 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
 
               {/* Option Planification */}
               {onScheduleTask && (
-                <Popover open={isSchedulePopoverOpen} onOpenChange={setIsSchedulePopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <DropdownMenuItem 
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        setIsSchedulePopoverOpen(true);
-                      }}
-                    >
-                      <CalendarIcon className="w-4 h-4 mr-2 text-primary" />
-                      {scheduledDate ? 'Replanifier' : 'Planifier'}
-                    </DropdownMenuItem>
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-auto p-3 bg-popover z-[100]" 
-                    align="start"
-                    side="right"
-                    sideOffset={8}
-                  >
-                    <div className="space-y-3">
-                      <p className="text-sm font-medium">Planifier la tâche</p>
-                      <Calendar
-                        mode="single"
-                        selected={tempDate}
-                        onSelect={setTempDate}
-                        initialFocus
-                        locale={fr}
-                        className="pointer-events-auto"
-                      />
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <Input
-                          type="time"
-                          value={tempTime}
-                          onChange={(e) => setTempTime(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => setIsSchedulePopoverOpen(false)}
-                        >
-                          Annuler
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={handleScheduleConfirm}
-                          disabled={!tempDate}
-                        >
-                          Confirmer
-                        </Button>
-                      </div>
-                      {scheduledDate && (
-                        <p className="text-xs text-muted-foreground text-center">
-                          Actuellement: {format(scheduledDate, 'dd/MM/yyyy', { locale: fr })} à {scheduledTime}
-                        </p>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <DropdownMenuItem 
+                  onSelect={() => {
+                    setIsMenuOpen(false);
+                    setTimeout(() => setIsSchedulePopoverOpen(true), 100);
+                  }}
+                >
+                  <CalendarIcon className="w-4 h-4 mr-2 text-primary" />
+                  {scheduledDate ? 'Replanifier' : 'Planifier'}
+                </DropdownMenuItem>
               )}
 
               <DropdownMenuItem onClick={() => onTogglePinTask(task.id)}>
@@ -404,6 +351,54 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Dialog de planification - séparé du dropdown */}
+      <Dialog open={isSchedulePopoverOpen} onOpenChange={setIsSchedulePopoverOpen}>
+        <DialogContent className="sm:max-w-[350px]">
+          <DialogHeader>
+            <DialogTitle>Planifier la tâche</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <Calendar
+              mode="single"
+              selected={tempDate}
+              onSelect={setTempDate}
+              locale={fr}
+              className="pointer-events-auto rounded-md border mx-auto"
+            />
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <Input
+                type="time"
+                value={tempTime}
+                onChange={(e) => setTempTime(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setIsSchedulePopoverOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={handleScheduleConfirm}
+                disabled={!tempDate}
+              >
+                Confirmer
+              </Button>
+            </div>
+            {scheduledDate && (
+              <p className="text-xs text-muted-foreground text-center">
+                Actuellement: {format(scheduledDate, 'dd/MM/yyyy', { locale: fr })} à {scheduledTime}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarMenuItem>
   );
 };
