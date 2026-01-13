@@ -69,13 +69,28 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
       filtered.sort((a, b) => {
         switch (sortBy) {
           case 'priority-high': {
-            const prioA = a.subCategory ? SUB_CATEGORY_CONFIG[a.subCategory]?.priority || 0 : 0;
-            const prioB = b.subCategory ? SUB_CATEGORY_CONFIG[b.subCategory]?.priority || 0 : 0;
+            // Priorité: 4 = Le plus important, 3 = Important, 2 = Peut attendre, 1 = Si j'ai le temps, 0 = non défini
+            const getPriority = (task: Task) => {
+              if (!task.subCategory) return 0;
+              return SUB_CATEGORY_CONFIG[task.subCategory]?.priority ?? 0;
+            };
+            const prioA = getPriority(a);
+            const prioB = getPriority(b);
+            // Si même priorité, trier par nom pour consistance
+            if (prioB === prioA) return a.name.localeCompare(b.name);
             return prioB - prioA;
           }
           case 'priority-low': {
-            const prioA = a.subCategory ? SUB_CATEGORY_CONFIG[a.subCategory]?.priority || 0 : 0;
-            const prioB = b.subCategory ? SUB_CATEGORY_CONFIG[b.subCategory]?.priority || 0 : 0;
+            const getPriority = (task: Task) => {
+              if (!task.subCategory) return 0;
+              return SUB_CATEGORY_CONFIG[task.subCategory]?.priority ?? 0;
+            };
+            const prioA = getPriority(a);
+            const prioB = getPriority(b);
+            // Mettre les tâches sans priorité à la fin
+            if (prioA === 0 && prioB !== 0) return 1;
+            if (prioB === 0 && prioA !== 0) return -1;
+            if (prioA === prioB) return a.name.localeCompare(b.name);
             return prioA - prioB;
           }
           case 'name':

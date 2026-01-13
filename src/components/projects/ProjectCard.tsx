@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Calendar } from 'lucide-react';
+import { useProjectProgress } from '@/hooks/useProjectProgress';
 
 interface ProjectCardProps {
   project: Project;
@@ -11,6 +12,8 @@ interface ProjectCardProps {
 
 export const ProjectCard = ({ project, onClick }: ProjectCardProps) => {
   const statusConfig = PROJECT_STATUS_CONFIG[project.status];
+  // Utiliser la progression dynamique calculée depuis les tâches
+  const dynamicProgress = useProjectProgress(project.id);
   
   return (
     <Card 
@@ -40,9 +43,9 @@ export const ProjectCard = ({ project, onClick }: ProjectCardProps) => {
         <div className="space-y-1">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Progression</span>
-            <span className="font-medium">{project.progress}%</span>
+            <span className="font-medium">{dynamicProgress}%</span>
           </div>
-          <Progress value={project.progress} className="h-2" />
+          <Progress value={dynamicProgress} className="h-2" />
         </div>
         
         {project.targetDate && (
