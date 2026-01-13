@@ -6,11 +6,23 @@ import { useProjects } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
 import { KanbanBoard } from './KanbanBoard';
 import TaskModal from '@/components/task/TaskModal';
-import { ArrowLeft, Edit, Plus, Calendar, Target, Trash2 } from 'lucide-react';
+import { 
+  ArrowLeft, Edit, Plus, Calendar, Target, Trash2, 
+  Search, Filter, ArrowUpDown, X 
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Task } from '@/types/task';
+import { Task, SubTaskCategory, SUB_CATEGORY_CONFIG } from '@/types/task';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 
 interface ProjectDetailProps {
   project: Project;
@@ -19,6 +31,9 @@ interface ProjectDetailProps {
   onDelete?: () => void;
 }
 
+type SortOption = 'none' | 'priority-high' | 'priority-low' | 'name' | 'time';
+type PriorityFilter = SubTaskCategory | 'all';
+
 export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDetailProps) => {
   const { tasksByStatus, updateTaskStatus, reloadTasks } = useProjectTasks(project.id);
   const { addTask, updateTask, removeTask } = useTasks();
@@ -26,13 +41,80 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
   const { toast } = useToast();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('none');
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
+  
   const statusConfig = PROJECT_STATUS_CONFIG[project.status];
 
-  // Statistiques mémorisées
-  const stats = useMemo(() => ({
-    total: tasksByStatus.todo.length + tasksByStatus.inProgress.length + tasksByStatus.done.length,
-    done: tasksByStatus.done.length
-  }), [tasksByStatus]);
+  // Fonction de filtrage et tri des tâches
+  const filterAndSortTasks = useCallback((tasks: Task[]): Task[] => {
+    let filtered = [...tasks];
+    
+    // Recherche par nom
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(task => 
+        task.name.toLowerCase().includes(query)
+      );
+    }
+    
+    // Filtre par priorité
+    if (priorityFilter !== 'all') {
+      filtered = filtered.filter(task => task.subCategory === priorityFilter);
+    }
+    
+    // Tri
+    if (sortBy !== 'none') {
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'priority-high': {
+            const prioA = a.subCategory ? SUB_CATEGORY_CONFIG[a.subCategory]?.priority || 0 : 0;
+            const prioB = b.subCategory ? SUB_CATEGORY_CONFIG[b.subCategory]?.priority || 0 : 0;
+            return prioB - prioA;
+          }
+          case 'priority-low': {
+            const prioA = a.subCategory ? SUB_CATEGORY_CONFIG[a.subCategory]?.priority || 0 : 0;
+            const prioB = b.subCategory ? SUB_CATEGORY_CONFIG[b.subCategory]?.priority || 0 : 0;
+            return prioA - prioB;
+          }
+          case 'name':
+            return a.name.localeCompare(b.name);
+          case 'time':
+            return (b.estimatedTime || 0) - (a.estimatedTime || 0);
+          default:
+            return 0;
+        }
+      });
+    }
+    
+    return filtered;
+  }, [searchQuery, sortBy, priorityFilter]);
+
+  // Tâches filtrées et triées par statut
+  const filteredTasksByStatus = useMemo(() => ({
+    todo: filterAndSortTasks(tasksByStatus.todo),
+    inProgress: filterAndSortTasks(tasksByStatus.inProgress),
+    done: filterAndSortTasks(tasksByStatus.done)
+  }), [tasksByStatus, filterAndSortTasks]);
+
+  // Statistiques calculées dynamiquement depuis les tâches réelles
+  const stats = useMemo(() => {
+    const total = tasksByStatus.todo.length + tasksByStatus.inProgress.length + tasksByStatus.done.length;
+    const done = tasksByStatus.done.length;
+    const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+    
+    return { total, done, progress };
+  }, [tasksByStatus]);
+
+  // Vérifier si des filtres sont actifs
+  const hasActiveFilters = searchQuery.trim() !== '' || sortBy !== 'none' || priorityFilter !== 'all';
+
+  const clearFilters = useCallback(() => {
+    setSearchQuery('');
+    setSortBy('none');
+    setPriorityFilter('all');
+  }, []);
 
   const handleDelete = useCallback(async () => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le projet "${project.name}" ? Cette action est irréversible.`)) {
@@ -49,7 +131,6 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
   }, []);
 
   const handleToggleComplete = useCallback(async (taskId: string) => {
-    // Chercher la tâche dans le tasksByStatus mémorisé
     const allTasks = [...tasksByStatus.todo, ...tasksByStatus.inProgress, ...tasksByStatus.done];
     const task = allTasks.find(t => t.id === taskId);
     
@@ -89,10 +170,26 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
     reloadTasks();
   }, [updateTask, reloadTasks]);
 
+  const priorityOptions: { value: PriorityFilter; label: string }[] = [
+    { value: 'all', label: 'Toutes les priorités' },
+    { value: 'Le plus important', label: '🔴 Le plus important' },
+    { value: 'Important', label: '🟠 Important' },
+    { value: 'Peut attendre', label: '🟡 Peut attendre' },
+    { value: "Si j'ai le temps", label: '🟢 Si j\'ai le temps' },
+  ];
+
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: 'none', label: 'Aucun tri' },
+    { value: 'priority-high', label: 'Priorité ↓ (haute → basse)' },
+    { value: 'priority-low', label: 'Priorité ↑ (basse → haute)' },
+    { value: 'name', label: 'Nom (A → Z)' },
+    { value: 'time', label: 'Durée (longue → courte)' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div className="flex items-start gap-4">
           <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft className="w-5 h-5" />
@@ -117,7 +214,7 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={onEdit}>
             <Edit className="w-4 h-4 mr-2" />
             Modifier
@@ -133,17 +230,17 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats - avec progression calculée dynamiquement */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-card p-4 rounded-lg border">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Progression</p>
-              <p className="text-2xl font-bold">{project.progress}%</p>
+              <p className="text-2xl font-bold">{stats.progress}%</p>
             </div>
             <Target className="w-8 h-8 text-project" />
           </div>
-          <Progress value={project.progress} className="mt-2" />
+          <Progress value={stats.progress} className="mt-2" />
         </div>
 
         {project.targetDate && (
@@ -176,11 +273,109 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
         </div>
       </div>
 
-      {/* Kanban Board */}
+      {/* Barre de recherche et filtres */}
+      <div className="flex flex-col sm:flex-row gap-3 p-4 bg-muted/30 rounded-lg border">
+        {/* Recherche */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Rechercher une tâche..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-background"
+          />
+        </div>
+
+        {/* Filtre par priorité */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant={priorityFilter !== 'all' ? 'default' : 'outline'} 
+              className="gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              <span className="hidden sm:inline">
+                {priorityFilter === 'all' ? 'Priorité' : priorityFilter}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Filtrer par priorité</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {priorityOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => setPriorityFilter(option.value)}
+                className={priorityFilter === option.value ? 'bg-accent' : ''}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Tri */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant={sortBy !== 'none' ? 'default' : 'outline'} 
+              className="gap-2"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              <span className="hidden sm:inline">Trier</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Trier les tâches</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {sortOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => setSortBy(option.value)}
+                className={sortBy === option.value ? 'bg-accent' : ''}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Bouton effacer les filtres */}
+        {hasActiveFilters && (
+          <Button variant="ghost" size="icon" onClick={clearFilters}>
+            <X className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+
+      {/* Indicateur de filtres actifs */}
+      {hasActiveFilters && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Filtres actifs :</span>
+          {searchQuery && (
+            <Badge variant="secondary" className="gap-1">
+              Recherche: "{searchQuery}"
+            </Badge>
+          )}
+          {priorityFilter !== 'all' && (
+            <Badge variant="secondary" className="gap-1">
+              {priorityFilter}
+            </Badge>
+          )}
+          {sortBy !== 'none' && (
+            <Badge variant="secondary" className="gap-1">
+              Tri: {sortOptions.find(o => o.value === sortBy)?.label}
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {/* Kanban Board avec tâches filtrées */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Tableau Kanban</h2>
         <KanbanBoard
-          tasks={tasksByStatus}
+          tasks={filteredTasksByStatus}
           onStatusChange={updateTaskStatus}
           onTaskClick={handleTaskClick}
           onToggleComplete={handleToggleComplete}
