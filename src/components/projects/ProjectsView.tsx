@@ -185,3 +185,5 @@ export const ProjectsView = () => {
     </div>
   );
 };
+
+export default ProjectsView;
