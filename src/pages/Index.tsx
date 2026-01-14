@@ -1,20 +1,13 @@
 import { Button } from '@/components/ui/button';
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import React, { useEffect, useMemo, useState, useCallback, Suspense } from 'react';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import AppSidebar from '@/components/sidebar/AppSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import TaskModal from '@/components/task/TaskModal';
-import HomeView from '@/components/views/HomeView';
-import TasksView from '@/components/views/TasksView';
-import EisenhowerView from '@/components/views/EisenhowerView';
-import CompletedTasksView from '@/components/views/CompletedTasksView';
-import HabitsView from '@/components/habits/HabitsView';
-import RewardsView from '@/components/rewards/RewardsView';
-import { ProjectsView } from '@/components/projects/ProjectsView';
-import TimelineView from '@/components/timeline/TimelineView';
 import HeaderBar from '@/components/layout/HeaderBar';
 import BottomNavigation from '@/components/layout/BottomNavigation';
+import { ViewLoadingState } from '@/components/layout/view';
 import { useAppState } from '@/hooks/useAppState';
 import { useUnifiedTasks } from '@/hooks/useUnifiedTasks';
 import { useTheme } from '@/hooks/useTheme';
@@ -25,6 +18,16 @@ import { useHabits } from '@/hooks/useHabits';
 import { useDecks } from '@/hooks/useDecks';
 import { useRecurringTasks } from '@/hooks/useRecurringTasks';
 import { useTimeEventSync } from '@/hooks/useTimeEventSync';
+
+// Lazy load views for better performance
+const HomeView = React.lazy(() => import('@/components/views/HomeView'));
+const TasksView = React.lazy(() => import('@/components/views/TasksView'));
+const EisenhowerView = React.lazy(() => import('@/components/views/EisenhowerView'));
+const CompletedTasksView = React.lazy(() => import('@/components/views/CompletedTasksView'));
+const HabitsView = React.lazy(() => import('@/components/habits/HabitsView'));
+const RewardsView = React.lazy(() => import('@/components/rewards/RewardsView'));
+const ProjectsView = React.lazy(() => import('@/components/projects/ProjectsView'));
+const TimelineView = React.lazy(() => import('@/components/timeline/TimelineView'));
 
 /**
  * Page principale de l'application
@@ -187,12 +190,18 @@ const Index = () => {
     document.documentElement.setAttribute('data-theme', theme || 'light');
   }, [theme]);
 
-  // Rendu de la vue courante
+  // Rendu de la vue courante avec Suspense
   const renderCurrentView = () => {
+    const loadingFallback = (
+      <div className="p-6">
+        <ViewLoadingState variant="cards" count={6} />
+      </div>
+    );
+
     try {
-      switch (currentView) {
-        case 'home':
-          return (
+      return (
+        <Suspense fallback={loadingFallback}>
+          {currentView === 'home' && (
             <HomeView 
               tasks={allFilteredTasks}
               projects={projects}
@@ -204,9 +213,8 @@ const Index = () => {
               onViewChange={setCurrentView}
               calculateTotalTime={calculateTotalTime}
             />
-          );
-        case 'tasks':
-          return (
+          )}
+          {currentView === 'tasks' && (
             <TasksView 
               tasks={allFilteredTasks}
               mainTasks={filteredMainTasks}
@@ -214,29 +222,23 @@ const Index = () => {
               calculateTotalTime={calculateTotalTime}
               onUpdateTask={updateTask}
             />
-          );
-        case 'eisenhower':
-          return <EisenhowerView tasks={allFilteredTasks.filter(t => !t.isCompleted)} />;
-        case 'timeline':
-          return <TimelineView />;
-        case 'projects':
-          return <ProjectsView />;
-        case 'habits':
-          return <HabitsView />;
-        case 'rewards':
-          return <RewardsView />;
-        case 'completed':
-          const completedTasksList = applyFilters(tasks.filter(t => t && t.isCompleted));
-          return (
+          )}
+          {currentView === 'eisenhower' && (
+            <EisenhowerView tasks={allFilteredTasks.filter(t => !t.isCompleted)} />
+          )}
+          {currentView === 'timeline' && <TimelineView />}
+          {currentView === 'projects' && <ProjectsView />}
+          {currentView === 'habits' && <HabitsView />}
+          {currentView === 'rewards' && <RewardsView />}
+          {currentView === 'completed' && (
             <CompletedTasksView 
-              tasks={completedTasksList} 
+              tasks={applyFilters(tasks.filter(t => t && t.isCompleted))} 
               onRestoreTask={restoreTask}
               onRemoveTask={removeTask}
             />
-          );
-        default:
-          return <div className="text-center text-muted-foreground">Vue non trouvée</div>;
-      }
+          )}
+        </Suspense>
+      );
     } catch (error) {
       console.error('Erreur lors du rendu de la vue:', error);
       return (
