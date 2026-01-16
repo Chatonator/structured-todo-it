@@ -1,12 +1,13 @@
-
 import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, CATEGORY_CSS_NAMES } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, AlertTriangle, Target, Calendar, Archive } from 'lucide-react';
+import { Clock, AlertTriangle, Target, Calendar, Archive, Grid3X3 } from 'lucide-react';
+import { ViewLayout } from '@/components/layout/view';
+import { useViewDataContext } from '@/contexts/ViewDataContext';
 
 interface EisenhowerViewProps {
-  tasks: Task[];
+  className?: string;
 }
 
 // Mappage des catégories vers les quadrants d'Eisenhower
@@ -15,10 +16,14 @@ const getCategoryQuadrant = (category: string): 'urgent-important' | 'important-
   return config ? config.eisenhowerQuadrant : 'not-urgent-not-important';
 };
 
-const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
+const EisenhowerView: React.FC<EisenhowerViewProps> = ({ className }) => {
+  const { tasks } = useViewDataContext();
   const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
 
-  // Organisation des tâches par quadrant avec couleurs thématiques
+  // Filtrer les tâches actives
+  const activeTasks = tasks.filter(t => !t.isCompleted);
+
+  // Organisation des tâches par quadrant
   const quadrants = React.useMemo(() => ({
     'urgent-important': {
       title: 'Urgent & Important',
@@ -27,7 +32,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       description: 'Crises, urgences, problèmes pressants',
       bgColor: 'bg-category-obligation',
       borderColor: 'border-category-obligation',
-      tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-important')
+      tasks: activeTasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-important')
     },
     'important-not-urgent': {
       title: 'Important & Non Urgent',
@@ -36,7 +41,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       description: 'Prévention, amélioration, développement',
       bgColor: 'bg-category-envie',
       borderColor: 'border-category-envie',
-      tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'important-not-urgent')
+      tasks: activeTasks.filter(task => getCategoryQuadrant(task.category) === 'important-not-urgent')
     },
     'urgent-not-important': {
       title: 'Urgent & Non Important',
@@ -45,7 +50,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       description: 'Interruptions, certains appels, emails',
       bgColor: 'bg-category-quotidien',
       borderColor: 'border-category-quotidien',
-      tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-not-important')
+      tasks: activeTasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-not-important')
     },
     'not-urgent-not-important': {
       title: 'Non Urgent & Non Important',
@@ -54,14 +59,12 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
       description: 'Distractions, certaines activités',
       bgColor: 'bg-category-autres',
       borderColor: 'border-category-autres',
-      tasks: tasks.filter(task => getCategoryQuadrant(task.category) === 'not-urgent-not-important')
+      tasks: activeTasks.filter(task => getCategoryQuadrant(task.category) === 'not-urgent-not-important')
     }
-  }), [tasks]);
+  }), [activeTasks]);
 
   const formatDuration = (minutes: number): string => {
-    if (minutes < 60) {
-      return `${minutes} min`;
-    }
+    if (minutes < 60) return `${minutes} min`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
@@ -81,7 +84,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
         className={`
           p-3 border rounded-lg hover:shadow-sm transition-all
           ${task.isCompleted ? 'opacity-60 bg-muted' : 'bg-card'}
-          ${categoryConfig.borderPattern}
+          ${categoryConfig?.borderPattern || ''}
         `}
       >
         <div className="flex items-start justify-between mb-2">
@@ -104,123 +107,119 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ tasks }) => {
     );
   };
 
-  if (tasks.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <Target className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">Aucune tâche à organiser</h3>
-        <p className="text-sm text-muted-foreground">Créez des tâches pour voir la matrice d'Eisenhower</p>
-      </div>
-    );
-  }
+  const isEmpty = activeTasks.length === 0;
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div>
-        <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">Matrice d'Eisenhower</h2>
-        <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">
-          Organisez vos tâches selon leur urgence et leur importance
-        </p>
-        
-        {/* Statistiques globales - responsive */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
-          {Object.entries(quadrants).map(([key, quadrant]) => {
-            return (
-              <div key={key} className="text-center p-2 md:p-3 bg-card border border-border rounded-lg">
-                <div className="flex items-center justify-center mb-1">
-                  {React.cloneElement(quadrant.icon, { 
-                    className: "w-4 h-4 md:w-5 md:h-5 text-primary" 
-                  })}
-                </div>
-                <div className="text-base md:text-lg font-bold text-foreground">{quadrant.tasks.length}</div>
-                <div className="text-xs text-muted-foreground">tâches</div>
-                <div className="text-xs text-muted-foreground hidden sm:block">{formatDuration(getTotalTime(quadrant.tasks))}</div>
+    <ViewLayout
+      header={{
+        title: "Matrice d'Eisenhower",
+        subtitle: "Organisez vos tâches selon leur urgence et leur importance",
+        icon: <Grid3X3 className="w-5 h-5" />
+      }}
+      state={isEmpty ? 'empty' : 'success'}
+      emptyProps={{
+        title: "Aucune tâche à organiser",
+        message: "Créez des tâches pour voir la matrice d'Eisenhower",
+        icon: <Target className="w-12 h-12" />
+      }}
+      className={className}
+    >
+      <div className="space-y-4 md:space-y-6">
+        {/* Statistiques globales */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4">
+          {Object.entries(quadrants).map(([key, quadrant]) => (
+            <div key={key} className="text-center p-2 md:p-3 bg-card border border-border rounded-lg">
+              <div className="flex items-center justify-center mb-1">
+                {React.cloneElement(quadrant.icon, { 
+                  className: "w-4 h-4 md:w-5 md:h-5 text-primary" 
+                })}
               </div>
-            );
-          })}
+              <div className="text-base md:text-lg font-bold text-foreground">{quadrant.tasks.length}</div>
+              <div className="text-xs text-muted-foreground">tâches</div>
+              <div className="text-xs text-muted-foreground hidden sm:block">{formatDuration(getTotalTime(quadrant.tasks))}</div>
+            </div>
+          ))}
         </div>
-      </div>
 
-      {/* Matrice 2x2 - responsive */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-        {Object.entries(quadrants).map(([key, quadrant]) => {
-          return (
-          <Card 
-            key={key} 
-            className={`cursor-pointer transition-all hover:shadow-md border-2 bg-card ${quadrant.borderColor}`}
-            onClick={() => setSelectedQuadrant(selectedQuadrant === key ? null : key)}
-          >
-            <CardHeader className={`py-3 rounded-t-lg text-white ${quadrant.bgColor}`}>
-              <CardTitle className="flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-2">
-                  {quadrant.icon}
-                  <div>
-                    <div className="font-bold text-white">{quadrant.title}</div>
-                    <div className="text-xs font-normal opacity-80 text-white">{quadrant.subtitle}</div>
+        {/* Matrice 2x2 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          {Object.entries(quadrants).map(([key, quadrant]) => (
+            <Card 
+              key={key} 
+              className={`cursor-pointer transition-all hover:shadow-md border-2 bg-card ${quadrant.borderColor}`}
+              onClick={() => setSelectedQuadrant(selectedQuadrant === key ? null : key)}
+            >
+              <CardHeader className={`py-3 rounded-t-lg text-white ${quadrant.bgColor}`}>
+                <CardTitle className="flex items-center justify-between text-sm">
+                  <div className="flex items-center space-x-2">
+                    {quadrant.icon}
+                    <div>
+                      <div className="font-bold text-white">{quadrant.title}</div>
+                      <div className="text-xs font-normal opacity-80 text-white">{quadrant.subtitle}</div>
+                    </div>
                   </div>
-                </div>
-                <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">
-                  {quadrant.tasks.length}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-3 italic">
-                {quadrant.description}
-              </p>
+                  <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">
+                    {quadrant.tasks.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
               
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {quadrant.tasks.length > 0 ? (
-                  quadrant.tasks.map(task => renderTaskCard(task))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    <div className="text-xs">Aucune tâche dans ce quadrant</div>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground mb-3 italic">
+                  {quadrant.description}
+                </p>
+                
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {quadrant.tasks.length > 0 ? (
+                    quadrant.tasks.map(task => renderTaskCard(task))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      <div className="text-xs">Aucune tâche dans ce quadrant</div>
+                    </div>
+                  )}
+                </div>
+                
+                {quadrant.tasks.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Total: {quadrant.tasks.length} tâche{quadrant.tasks.length > 1 ? 's' : ''}</span>
+                      <span>{formatDuration(getTotalTime(quadrant.tasks))}</span>
+                    </div>
                   </div>
                 )}
-              </div>
-              
-              {quadrant.tasks.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Total: {quadrant.tasks.length} tâche{quadrant.tasks.length > 1 ? 's' : ''}</span>
-                    <span>{formatDuration(getTotalTime(quadrant.tasks))}</span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          );
-        })}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-      {/* Conseils d'action */}
-      <Card className="bg-accent border-border">
-        <CardHeader>
-          <CardTitle className="text-lg text-foreground">💡 Conseils d'action</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-foreground">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-semibold mb-1 text-category-obligation">🔥 Urgent & Important</h4>
-              <p className="text-xs text-muted-foreground">Traitez immédiatement ces tâches. Elles ne peuvent pas attendre.</p>
+        {/* Conseils d'action */}
+        <Card className="bg-accent border-border">
+          <CardHeader>
+            <CardTitle className="text-lg text-foreground">💡 Conseils d'action</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-foreground">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold mb-1 text-category-obligation">🔥 Urgent & Important</h4>
+                <p className="text-xs text-muted-foreground">Traitez immédiatement ces tâches. Elles ne peuvent pas attendre.</p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-1 text-category-envie">🎯 Important & Non Urgent</h4>
+                <p className="text-xs text-muted-foreground">Planifiez du temps dédié. C'est ici que vous devez investir le plus.</p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-1 text-category-quotidien">⚡ Urgent & Non Important</h4>
+                <p className="text-xs text-muted-foreground">Déléguez si possible, ou traitez rapidement.</p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-1 text-category-autres">🗑️ Non Urgent & Non Important</h4>
+                <p className="text-xs text-muted-foreground">Éliminez ou minimisez ces activités.</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-semibold mb-1 text-category-envie">🎯 Important & Non Urgent</h4>
-              <p className="text-xs text-muted-foreground">Planifiez du temps dédié. C'est ici que vous devez investir le plus.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-1 text-category-quotidien">⚡ Urgent & Non Important</h4>
-              <p className="text-xs text-muted-foreground">Déléguez si possible, ou traitez rapidement.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-1 text-category-autres">🗑️ Non Urgent & Non Important</h4>
-              <p className="text-xs text-muted-foreground">Éliminez ou minimisez ces activités.</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
+    </ViewLayout>
   );
 };
 

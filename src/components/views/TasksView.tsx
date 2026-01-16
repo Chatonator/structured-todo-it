@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Task, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG, CONTEXT_CONFIG } from '@/types/task';
 import { Clock, CheckSquare, Users, Calendar, Edit } from 'lucide-react';
@@ -6,30 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import TaskModal from '@/components/task/TaskModal';
+import { ViewLayout } from '@/components/layout/view';
+import { useViewDataContext } from '@/contexts/ViewDataContext';
 
 interface TasksViewProps {
-  tasks: Task[];
-  mainTasks: Task[];
-  getSubTasks: (parentId: string) => Task[];
-  calculateTotalTime: (task: Task) => number;
-  onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
+  className?: string;
 }
 
 /**
  * Vue Tâches - Affichage aéré et visuellement agréable de toutes les tâches
- * Sécurisée contre les données undefined/null
+ * Utilise ViewLayout et useViewDataContext
  */
-const TasksView: React.FC<TasksViewProps> = ({
-  tasks = [],
-  mainTasks = [],
-  getSubTasks,
-  calculateTotalTime,
-  onUpdateTask
-}) => {
+const TasksView: React.FC<TasksViewProps> = ({ className }) => {
+  const { tasks, mainTasks, getSubTasks, calculateTotalTime, updateTask } = useViewDataContext();
+  
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Sécurisation des props
+  // Sécurisation des données
   const safeTasks = Array.isArray(tasks) ? tasks : [];
   const safeMainTasks = Array.isArray(mainTasks) ? mainTasks : [];
 
@@ -42,10 +35,7 @@ const TasksView: React.FC<TasksViewProps> = ({
   };
 
   const handleEditTask = (task: Task) => {
-    if (!task || typeof task !== 'object') {
-      console.warn('Tentative d\'édition d\'une tâche invalide:', task);
-      return;
-    }
+    if (!task || typeof task !== 'object') return;
     setEditingTask(task);
     setIsEditModalOpen(true);
   };
@@ -56,24 +46,12 @@ const TasksView: React.FC<TasksViewProps> = ({
   };
 
   const renderTaskCard = (task: Task) => {
-    if (!task || typeof task !== 'object') {
-      console.warn('Tentative de rendu d\'une tâche invalide:', task);
-      return null;
-    }
+    if (!task || typeof task !== 'object') return null;
 
-    // Protection contre les catégories inconnues
     const categoryConfig = CATEGORY_CONFIG[task.category] || { cssName: 'default' };
     const subCategoryConfig = task.subCategory && SUB_CATEGORY_CONFIG[task.subCategory] 
       ? SUB_CATEGORY_CONFIG[task.subCategory] 
       : null;
-    
-    if (!CATEGORY_CONFIG[task.category]) {
-      console.warn('Catégorie inconnue:', task.category, task);
-    }
-    
-    if (task.subCategory && !SUB_CATEGORY_CONFIG[task.subCategory]) {
-      console.warn('Sous-catégorie inconnue:', task.subCategory, task);
-    }
 
     const contextConfig = CONTEXT_CONFIG[task.context] || CONTEXT_CONFIG['Perso'];
     const subTasks = getSubTasks ? getSubTasks(task.id || '') : [];
@@ -98,7 +76,7 @@ const TasksView: React.FC<TasksViewProps> = ({
               {subCategoryConfig && (
                 <Badge 
                   variant="outline" 
-                 className={`text-xs ${
+                  className={`text-xs ${
                     subCategoryConfig.priority > 3 ? 'bg-priority-highest/10 border-priority-highest text-priority-highest' :
                     subCategoryConfig.priority > 2 ? 'bg-priority-high/10 border-priority-high text-priority-high' :
                     subCategoryConfig.priority > 1 ? 'bg-priority-medium/10 border-priority-medium text-priority-medium' :
@@ -139,8 +117,6 @@ const TasksView: React.FC<TasksViewProps> = ({
                 <Calendar className="w-4 h-4" />
                 <span>{task.createdAt ? new Date(task.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}</span>
               </div>
-
-              {/* Planification affichée via time_events dans TaskItemContent */}
             </div>
             
             <div className="flex items-center gap-2">
@@ -193,101 +169,94 @@ const TasksView: React.FC<TasksViewProps> = ({
     );
   };
 
-  // Séparer les tâches actives et terminées de manière sécurisée
+  // Tâches actives et terminées
   const activeTasks = safeMainTasks.filter(task => task && !task.isCompleted);
   const completedTasks = safeMainTasks.filter(task => task && task.isCompleted);
 
+  const isEmpty = activeTasks.length === 0 && completedTasks.length === 0;
+
   return (
     <>
-      <div className="space-y-8 bg-background text-foreground">
-        {/* En-tête */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Toutes les tâches
-          </h1>
-          <p className="text-muted-foreground">
-            Vue d'ensemble de vos tâches avec un affichage détaillé et aéré
-          </p>
-        </div>
+      <ViewLayout
+        header={{
+          title: "Toutes les tâches",
+          subtitle: "Vue d'ensemble de vos tâches avec un affichage détaillé et aéré",
+          icon: <CheckSquare className="w-5 h-5" />
+        }}
+        state={isEmpty ? 'empty' : 'success'}
+        emptyProps={{
+          title: "Aucune tâche pour le moment",
+          message: "Commencez par créer votre première tâche !",
+          icon: <CheckSquare className="w-12 h-12" />
+        }}
+        className={className}
+      >
+        <div className="space-y-8">
+          {/* Statistiques rapides */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-foreground">{activeTasks.length}</div>
+                <div className="text-sm text-muted-foreground">Tâches actives</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-foreground">{completedTasks.length}</div>
+                <div className="text-sm text-muted-foreground">Tâches terminées</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-foreground">
+                  {formatDuration(activeTasks.reduce((total, task) => {
+                    const taskTime = calculateTotalTime ? calculateTotalTime(task) : (Number(task.estimatedTime) || 0);
+                    return total + taskTime;
+                  }, 0))}
+                </div>
+                <div className="text-sm text-muted-foreground">Temps total estimé</div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Statistiques rapides */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">{activeTasks.length}</div>
-              <div className="text-sm text-muted-foreground">Tâches actives</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">{completedTasks.length}</div>
-              <div className="text-sm text-muted-foreground">Tâches terminées</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">
-                {formatDuration(activeTasks.reduce((total, task) => {
-                  const taskTime = calculateTotalTime ? calculateTotalTime(task) : (Number(task.estimatedTime) || 0);
-                  return total + taskTime;
-                }, 0))}
+          {/* Tâches actives */}
+          {activeTasks.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                <div className="w-1 h-6 bg-primary rounded"></div>
+                Tâches actives ({activeTasks.length})
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {activeTasks.map(task => renderTaskCard(task)).filter(Boolean)}
               </div>
-              <div className="text-sm text-muted-foreground">Temps total estimé</div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
+
+          {/* Tâches terminées */}
+          {completedTasks.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                <div className="w-1 h-6 bg-system-success rounded"></div>
+                Tâches terminées ({completedTasks.length})
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {completedTasks.map(task => renderTaskCard(task)).filter(Boolean)}
+              </div>
+            </div>
+          )}
         </div>
-
-        {/* Tâches actives */}
-        {activeTasks.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
-              <div className="w-1 h-6 bg-primary rounded"></div>
-              Tâches actives ({activeTasks.length})
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {activeTasks.map(task => renderTaskCard(task)).filter(Boolean)}
-            </div>
-          </div>
-        )}
-
-        {/* Tâches terminées */}
-        {completedTasks.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
-              <div className="w-1 h-6 bg-system-success rounded"></div>
-              Tâches terminées ({completedTasks.length})
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {completedTasks.map(task => renderTaskCard(task)).filter(Boolean)}
-            </div>
-          </div>
-        )}
-
-        {/* Message si aucune tâche */}
-        {activeTasks.length === 0 && completedTasks.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📝</div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              Aucune tâche pour le moment
-            </h3>
-            <p className="text-muted-foreground">
-              Commencez par créer votre première tâche !
-            </p>
-          </div>
-        )}
-      </div>
+      </ViewLayout>
 
       {/* Modal d'édition */}
       {isEditModalOpen && (
-  <TaskModal
-    key={editingTask?.id}
-    isOpen
-    onClose={handleCloseEditModal}
-    onUpdateTask={onUpdateTask}
-    editingTask={editingTask}
-  />
-)}
-
+        <TaskModal
+          key={editingTask?.id}
+          isOpen
+          onClose={handleCloseEditModal}
+          onUpdateTask={updateTask}
+          editingTask={editingTask}
+        />
+      )}
     </>
   );
 };
