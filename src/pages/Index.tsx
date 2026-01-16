@@ -1,43 +1,26 @@
-import { Button } from '@/components/ui/button';
-import React, { useEffect, useMemo, useState, useCallback, Suspense } from 'react';
+import React, { useEffect } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import AppSidebar from '@/components/sidebar/AppSidebar';
-import { supabase } from '@/integrations/supabase/client';
 import TaskModal from '@/components/task/TaskModal';
 import HeaderBar from '@/components/layout/HeaderBar';
 import BottomNavigation from '@/components/layout/BottomNavigation';
-import { ViewLoadingState } from '@/components/layout/view';
-import { useAppState } from '@/hooks/useAppState';
-import { useUnifiedTasks } from '@/hooks/useUnifiedTasks';
+import MainContent from '@/components/layout/MainContent';
+import { AppProvider, useApp } from '@/contexts/AppContext';
+import { ViewDataProvider, useViewDataContext } from '@/contexts/ViewDataContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsMobile } from '@/hooks/shared/use-mobile';
-import { useProjects } from '@/hooks/useProjects';
-import { useAllProjectTasks } from '@/hooks/useAllProjectTasks';
-import { useHabits } from '@/hooks/useHabits';
-import { useDecks } from '@/hooks/useDecks';
-import { useRecurringTasks } from '@/hooks/useRecurringTasks';
-import { useTimeEventSync } from '@/hooks/useTimeEventSync';
-
-// Lazy load views for better performance
-const HomeView = React.lazy(() => import('@/components/views/HomeView'));
-const TasksView = React.lazy(() => import('@/components/views/TasksView'));
-const EisenhowerView = React.lazy(() => import('@/components/views/EisenhowerView'));
-const CompletedTasksView = React.lazy(() => import('@/components/views/CompletedTasksView'));
-const HabitsView = React.lazy(() => import('@/components/habits/HabitsView'));
-const RewardsView = React.lazy(() => import('@/components/rewards/RewardsView'));
-const ProjectsView = React.lazy(() => import('@/components/projects/ProjectsView'));
-const TimelineView = React.lazy(() => import('@/components/timeline/TimelineView'));
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 /**
- * Page principale de l'application
- * Refactorisé pour utiliser les hooks useAppState et useUnifiedTasks
+ * Contenu principal de l'application
+ * Séparé pour pouvoir utiliser les contextes
  */
-const Index = () => {
+const IndexContent: React.FC = () => {
   const { theme } = useTheme();
   const isMobile = useIsMobile();
+  const { preferences } = useUserPreferences();
   
-  // Hook centralisé pour l'état de l'application
   const {
     currentView,
     setCurrentView,
@@ -46,246 +29,52 @@ const Index = () => {
     setIsModalOpen,
     isTaskListOpen,
     setIsTaskListOpen,
-    isTaskListCollapsed,
-    setIsTaskListCollapsed,
-    selectedTasks,
-    handleToggleSelection,
     contextFilter,
     setContextFilter,
-    applyFilters,
-    getFilteredTasks,
-    preferences
-  } = useAppState();
+    selectedItems,
+    toggleSelection
+  } = useApp();
   
-  // Hook unifié pour les tâches (perso/équipe)
-  const {
-    tasks,
-    mainTasks,
-    pinnedTasks,
-    addTask,
-    removeTask,
-    reorderTasks,
-    sortTasks,
-    toggleTaskExpansion,
-    toggleTaskCompletion,
-    togglePinTask,
-    getSubTasks,
-    calculateTotalTime,
-    canHaveSubTasks,
-    canUndo,
-    canRedo,
-    undo,
-    redo,
-    restoreTask,
-    updateTask,
-    teamTasks,
-    onToggleTeamTask
-  } = useUnifiedTasks();
-  
-  // Hooks pour projets et habitudes
-  const { projects } = useProjects();
-  const { projectTasks, toggleProjectTaskCompletion } = useAllProjectTasks(projects);
-  const { defaultDeckId } = useDecks();
-  const { 
-    completions: habitCompletions, 
-    streaks: habitStreaks, 
-    loading: habitsLoading,
-    toggleCompletion: toggleHabitCompletion,
-    getHabitsForToday
-  } = useHabits(defaultDeckId);
-  const { ensureRecurringTaskHasEvent, processRecurringTasks } = useRecurringTasks();
-  const { deleteEntityEvent, updateEventStatus, syncTaskEventWithSchedule, getEntityEvent } = useTimeEventSync();
-  
-  // État pour les IDs des tâches récurrentes et les planifications
-  const [recurringTaskIds, setRecurringTaskIds] = useState<string[]>([]);
-  const [taskSchedules, setTaskSchedules] = useState<Record<string, { date: Date; time: string }>>({});
-
-  // Charger les IDs des tâches récurrentes et les planifications au montage
-  useEffect(() => {
-    const initRecurringTasks = async () => {
-      // Traiter les tâches récurrentes qui doivent être réactivées
-      const reactivatedCount = await processRecurringTasks();
-      if (reactivatedCount > 0) {
-        console.log(`${reactivatedCount} tâche(s) récurrente(s) réactivée(s)`);
-      }
-      
-      // Charger les événements de tâches
-      const { data } = await supabase
-        .from('time_events')
-        .select('entity_id, recurrence, starts_at')
-        .eq('entity_type', 'task');
-      
-      if (data) {
-        // Récurrence IDs
-        const recurringIds = data
-          .filter(e => e.recurrence !== null)
-          .map(e => e.entity_id);
-        setRecurringTaskIds(recurringIds);
-        
-        // Planifications
-        const schedules: Record<string, { date: Date; time: string }> = {};
-        data.forEach(e => {
-          if (e.starts_at) {
-            const startsAt = new Date(e.starts_at);
-            schedules[e.entity_id] = {
-              date: startsAt,
-              time: startsAt.toTimeString().slice(0, 5)
-            };
-          }
-        });
-        setTaskSchedules(schedules);
-      }
-    };
-    initRecurringTasks();
-  }, [processRecurringTasks]);
-  
-  // Habitudes applicables aujourd'hui
-  const todayHabits = getHabitsForToday();
-
-  // Handler pour ajouter la récurrence à une tâche
-  const handleSetRecurring = useCallback(async (
-    taskId: string, 
-    taskName: string, 
-    estimatedTime: number, 
-    frequency: string, 
-    interval: number
-  ) => {
-    await ensureRecurringTaskHasEvent(taskId, taskName, frequency, estimatedTime, interval);
-    setRecurringTaskIds(prev => [...prev, taskId]);
-  }, [ensureRecurringTaskHasEvent]);
-
-  // Handler pour supprimer la récurrence d'une tâche
-  const handleRemoveRecurring = useCallback(async (taskId: string) => {
-    await deleteEntityEvent('task', taskId);
-    setRecurringTaskIds(prev => prev.filter(id => id !== taskId));
-  }, [deleteEntityEvent]);
-  
-  // Handler pour planifier une tâche
-  const handleScheduleTask = useCallback(async (taskId: string, date: Date, time: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    await syncTaskEventWithSchedule(task, {
-      date,
-      time,
-      isRecurring: recurringTaskIds.includes(taskId)
-    });
-    
-    setTaskSchedules(prev => ({
-      ...prev,
-      [taskId]: { date, time }
-    }));
-  }, [tasks, syncTaskEventWithSchedule, recurringTaskIds]);
-  
-  // Filtrage des tâches
-  const filteredTasks = useMemo(() => getFilteredTasks(tasks), [getFilteredTasks, tasks]);
-  const filteredMainTasks = useMemo(() => 
-    applyFilters(mainTasks.filter(task => task && !task.isCompleted)),
-    [applyFilters, mainTasks]
-  );
-  const allFilteredTasks = useMemo(() => applyFilters(tasks), [applyFilters, tasks]);
+  const viewData = useViewDataContext();
 
   // Application du thème
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme || 'light');
   }, [theme]);
 
-  // Rendu de la vue courante avec Suspense
-  const renderCurrentView = () => {
-    const loadingFallback = (
-      <div className="p-6">
-        <ViewLoadingState variant="cards" count={6} />
-      </div>
-    );
-
-    try {
-      return (
-        <Suspense fallback={loadingFallback}>
-          {currentView === 'home' && (
-            <HomeView 
-              tasks={allFilteredTasks}
-              projects={projects}
-              habits={todayHabits}
-              habitCompletions={habitCompletions}
-              habitStreaks={habitStreaks}
-              habitsLoading={habitsLoading}
-              onToggleHabit={toggleHabitCompletion}
-              onViewChange={setCurrentView}
-              calculateTotalTime={calculateTotalTime}
-            />
-          )}
-          {currentView === 'tasks' && (
-            <TasksView 
-              tasks={allFilteredTasks}
-              mainTasks={filteredMainTasks}
-              getSubTasks={getSubTasks}
-              calculateTotalTime={calculateTotalTime}
-              onUpdateTask={updateTask}
-            />
-          )}
-          {currentView === 'eisenhower' && (
-            <EisenhowerView tasks={allFilteredTasks.filter(t => !t.isCompleted)} />
-          )}
-          {currentView === 'timeline' && <TimelineView />}
-          {currentView === 'projects' && <ProjectsView />}
-          {currentView === 'habits' && <HabitsView />}
-          {currentView === 'rewards' && <RewardsView />}
-          {currentView === 'completed' && (
-            <CompletedTasksView 
-              tasks={applyFilters(tasks.filter(t => t && t.isCompleted))} 
-              onRestoreTask={restoreTask}
-              onRemoveTask={removeTask}
-            />
-          )}
-        </Suspense>
-      );
-    } catch (error) {
-      console.error('Erreur lors du rendu de la vue:', error);
-      return (
-        <div className="text-center text-destructive p-8">
-          <h3 className="text-lg font-medium mb-2">Erreur de rendu</h3>
-          <p className="text-sm">Une erreur s'est produite lors de l'affichage de cette vue.</p>
-          <Button onClick={() => setCurrentView('tasks')}>
-            Retour aux tâches
-          </Button>
-        </div>
-      );
-    }
-  };
-
-  // Props communes pour AppSidebar
+  // Props pour la sidebar
   const sidebarProps = {
-    tasks: filteredTasks,
-    mainTasks: filteredMainTasks,
-    pinnedTasks,
-    recurringTaskIds,
-    taskSchedules,
-    onRemoveTask: removeTask,
-    onToggleExpansion: toggleTaskExpansion,
-    onToggleCompletion: toggleTaskCompletion,
-    onTogglePinTask: togglePinTask,
-    onAddTask: addTask,
-    onUpdateTask: updateTask,
-    onSetRecurring: handleSetRecurring,
-    onRemoveRecurring: handleRemoveRecurring,
-    onScheduleTask: handleScheduleTask,
-    getSubTasks,
-    calculateTotalTime,
-    canHaveSubTasks,
-    selectedTasks,
-    onToggleSelection: handleToggleSelection,
+    tasks: viewData.tasks.filter(t => !t.isCompleted),
+    mainTasks: viewData.mainTasks.filter(t => !t.isCompleted),
+    pinnedTasks: viewData.pinnedTasks,
+    recurringTaskIds: viewData.recurringTaskIds,
+    taskSchedules: viewData.taskSchedules,
+    onRemoveTask: viewData.removeTask,
+    onToggleExpansion: viewData.toggleTaskExpansion,
+    onToggleCompletion: viewData.toggleTaskCompletion,
+    onTogglePinTask: viewData.togglePinTask,
+    onAddTask: viewData.addTask,
+    onUpdateTask: viewData.updateTask,
+    onSetRecurring: viewData.handleSetRecurring,
+    onRemoveRecurring: viewData.handleRemoveRecurring,
+    onScheduleTask: viewData.handleScheduleTask,
+    getSubTasks: viewData.getSubTasks,
+    calculateTotalTime: viewData.calculateTotalTime,
+    canHaveSubTasks: viewData.canHaveSubTasks,
+    selectedTasks: selectedItems,
+    onToggleSelection: toggleSelection,
     sidebarShowHabits: preferences.sidebarShowHabits,
     sidebarShowProjects: preferences.sidebarShowProjects,
     sidebarShowTeamTasks: preferences.sidebarShowTeamTasks,
-    todayHabits,
-    habitCompletions,
-    habitStreaks,
-    onToggleHabit: toggleHabitCompletion,
-    projects,
-    projectTasks,
-    onToggleProjectTask: toggleProjectTaskCompletion,
-    teamTasks,
-    onToggleTeamTask
+    todayHabits: viewData.todayHabits,
+    habitCompletions: viewData.habitCompletions,
+    habitStreaks: viewData.habitStreaks,
+    onToggleHabit: viewData.toggleHabitCompletion,
+    projects: viewData.projects,
+    projectTasks: viewData.projectTasks,
+    onToggleProjectTask: viewData.toggleProjectTaskCompletion,
+    teamTasks: viewData.teamTasks,
+    onToggleTeamTask: viewData.onToggleTeamTask
   };
 
   return (
@@ -307,7 +96,6 @@ const Index = () => {
 
         {/* Contenu principal */}
         <SidebarInset className="flex flex-col">
-          {/* Header bicouche */}
           <HeaderBar
             onOpenModal={() => setIsModalOpen(true)}
             onOpenTaskList={() => setIsTaskListOpen(true)}
@@ -319,12 +107,7 @@ const Index = () => {
             navigationItems={navigationItems}
           />
 
-          {/* Vue courante */}
-          <main className="flex-1 p-3 md:p-6 overflow-y-auto">
-            <div className="bg-card rounded-lg shadow-sm border border-border p-3 md:p-6 h-full">
-              {renderCurrentView()}
-            </div>
-          </main>
+          <MainContent />
         </SidebarInset>
 
         {/* Navigation mobile */}
@@ -340,10 +123,23 @@ const Index = () => {
         <TaskModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onAddTask={addTask}
+          onAddTask={viewData.addTask}
         />
       </div>
     </SidebarProvider>
+  );
+};
+
+/**
+ * Page principale - Wrapper avec providers
+ */
+const Index: React.FC = () => {
+  return (
+    <AppProvider defaultView="home">
+      <ViewDataProvider>
+        <IndexContent />
+      </ViewDataProvider>
+    </AppProvider>
   );
 };
 
