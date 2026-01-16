@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { Task } from '@/types/task';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
-// Global filter interface
-export interface GlobalFilters {
-  search: string;
-  context: string;
-  category: string;
-  priority: string;
-  status: 'all' | 'active' | 'completed';
+// Types
+export type ContextFilter = 'Pro' | 'Perso' | 'all';
+
+export interface NavigationItem {
+  key: string;
+  title: string;
+  icon: string;
 }
 
 // App context interface
@@ -15,39 +16,31 @@ export interface AppContextValue {
   // Navigation
   currentView: string;
   setCurrentView: (view: string) => void;
-  navigateTo: (view: string, params?: Record<string, any>) => void;
-  viewParams: Record<string, any>;
+  navigationItems: NavigationItem[];
+  
+  // UI State
+  isModalOpen: boolean;
+  setIsModalOpen: (open: boolean) => void;
+  isTaskListOpen: boolean;
+  setIsTaskListOpen: (open: boolean) => void;
   
   // Selection
   selectedItems: string[];
   toggleSelection: (id: string) => void;
-  selectItems: (ids: string[]) => void;
   clearSelection: () => void;
-  isSelected: (id: string) => boolean;
   
   // Filters
-  filters: GlobalFilters;
-  updateFilters: (updates: Partial<GlobalFilters>) => void;
-  resetFilters: () => void;
+  contextFilter: ContextFilter;
+  setContextFilter: (filter: ContextFilter) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
   
-  // Modals & UI State
-  isTaskModalOpen: boolean;
-  setTaskModalOpen: (open: boolean) => void;
+  // Task Modal
   editingTask: Task | null;
   setEditingTask: (task: Task | null) => void;
-  
-  // Actions
   openTaskModal: (task?: Task) => void;
   closeTaskModal: () => void;
 }
-
-const defaultFilters: GlobalFilters = {
-  search: '',
-  context: 'all',
-  category: 'all',
-  priority: 'all',
-  status: 'all',
-};
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
@@ -56,34 +49,62 @@ export interface AppProviderProps {
   defaultView?: string;
 }
 
+// Configuration de la navigation
+const allNavigationItems: NavigationItem[] = [
+  { key: 'home', title: 'Home', icon: '🏠' },
+  { key: 'tasks', title: 'Tâches', icon: '📝' },
+  { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
+  { key: 'timeline', title: 'Timeline', icon: '⏱️' },
+  { key: 'projects', title: 'Projets', icon: '💼' },
+  { key: 'habits', title: 'Habitudes', icon: '💪' },
+  { key: 'rewards', title: 'Récompenses', icon: '🏆' },
+  { key: 'completed', title: 'Terminées', icon: '✅' }
+];
+
 export const AppProvider: React.FC<AppProviderProps> = ({ 
   children, 
   defaultView = 'home' 
 }) => {
+  const { preferences } = useUserPreferences();
+  
   // Navigation state
   const [currentView, setCurrentView] = useState(defaultView);
-  const [viewParams, setViewParams] = useState<Record<string, any>>({});
+  
+  // UI state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTaskListOpen, setIsTaskListOpen] = useState(false);
   
   // Selection state
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   
   // Filter state
-  const [filters, setFilters] = useState<GlobalFilters>(defaultFilters);
+  const [contextFilter, setContextFilter] = useState<ContextFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // Modal state
-  const [isTaskModalOpen, setTaskModalOpen] = useState(false);
+  // Task modal state
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  // Navigation handlers
-  const navigateTo = useCallback((view: string, params?: Record<string, any>) => {
-    setCurrentView(view);
-    setViewParams(params || {});
-    // Clear selection when navigating
-    setSelectedItems([]);
-  }, []);
+  // Navigation items filtrées et ordonnées
+  const navigationItems = useMemo(() => {
+    const orderMap = new Map(
+      preferences.categoryOrder.map(cat => [cat.id, { order: cat.order, visible: cat.visible }])
+    );
+
+    return allNavigationItems
+      .filter(item => {
+        const pref = orderMap.get(item.key);
+        return pref ? pref.visible : true;
+      })
+      .sort((a, b) => {
+        const orderA = orderMap.get(a.key)?.order ?? 999;
+        const orderB = orderMap.get(b.key)?.order ?? 999;
+        return orderA - orderB;
+      });
+  }, [preferences.categoryOrder]);
 
   // Selection handlers
   const toggleSelection = useCallback((id: string) => {
+    if (!id) return;
     setSelectedItems(prev => 
       prev.includes(id) 
         ? prev.filter(itemId => itemId !== id)
@@ -91,35 +112,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({
     );
   }, []);
 
-  const selectItems = useCallback((ids: string[]) => {
-    setSelectedItems(ids);
-  }, []);
-
   const clearSelection = useCallback(() => {
     setSelectedItems([]);
-  }, []);
-
-  const isSelected = useCallback((id: string) => {
-    return selectedItems.includes(id);
-  }, [selectedItems]);
-
-  // Filter handlers
-  const updateFilters = useCallback((updates: Partial<GlobalFilters>) => {
-    setFilters(prev => ({ ...prev, ...updates }));
-  }, []);
-
-  const resetFilters = useCallback(() => {
-    setFilters(defaultFilters);
   }, []);
 
   // Modal actions
   const openTaskModal = useCallback((task?: Task) => {
     setEditingTask(task || null);
-    setTaskModalOpen(true);
+    setIsModalOpen(true);
   }, []);
 
   const closeTaskModal = useCallback(() => {
-    setTaskModalOpen(false);
+    setIsModalOpen(false);
     setEditingTask(null);
   }, []);
 
@@ -128,46 +132,43 @@ export const AppProvider: React.FC<AppProviderProps> = ({
     // Navigation
     currentView,
     setCurrentView,
-    navigateTo,
-    viewParams,
+    navigationItems,
+    
+    // UI State
+    isModalOpen,
+    setIsModalOpen,
+    isTaskListOpen,
+    setIsTaskListOpen,
     
     // Selection
     selectedItems,
     toggleSelection,
-    selectItems,
     clearSelection,
-    isSelected,
     
     // Filters
-    filters,
-    updateFilters,
-    resetFilters,
+    contextFilter,
+    setContextFilter,
+    searchQuery,
+    setSearchQuery,
     
-    // Modals
-    isTaskModalOpen,
-    setTaskModalOpen,
+    // Task Modal
     editingTask,
     setEditingTask,
-    
-    // Actions
     openTaskModal,
     closeTaskModal,
   }), [
     currentView,
-    viewParams,
+    navigationItems,
+    isModalOpen,
+    isTaskListOpen,
     selectedItems,
     toggleSelection,
-    selectItems,
     clearSelection,
-    isSelected,
-    filters,
-    updateFilters,
-    resetFilters,
-    isTaskModalOpen,
+    contextFilter,
+    searchQuery,
     editingTask,
     openTaskModal,
     closeTaskModal,
-    navigateTo,
   ]);
 
   return (
@@ -177,7 +178,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   );
 };
 
-// Hook to use the app context
+// Hook principal
 export const useApp = (): AppContextValue => {
   const context = useContext(AppContext);
   if (!context) {
@@ -186,25 +187,20 @@ export const useApp = (): AppContextValue => {
   return context;
 };
 
-// Specialized hooks for specific functionality
+// Hooks spécialisés
 export const useAppNavigation = () => {
-  const { currentView, setCurrentView, navigateTo, viewParams } = useApp();
-  return { currentView, setCurrentView, navigateTo, viewParams };
-};
-
-export const useAppSelection = () => {
-  const { selectedItems, toggleSelection, selectItems, clearSelection, isSelected } = useApp();
-  return { selectedItems, toggleSelection, selectItems, clearSelection, isSelected };
+  const { currentView, setCurrentView, navigationItems } = useApp();
+  return { currentView, setCurrentView, navigationItems };
 };
 
 export const useAppFilters = () => {
-  const { filters, updateFilters, resetFilters } = useApp();
-  return { filters, updateFilters, resetFilters };
+  const { contextFilter, setContextFilter, searchQuery, setSearchQuery } = useApp();
+  return { contextFilter, setContextFilter, searchQuery, setSearchQuery };
 };
 
 export const useTaskModal = () => {
-  const { isTaskModalOpen, editingTask, openTaskModal, closeTaskModal, setTaskModalOpen, setEditingTask } = useApp();
-  return { isTaskModalOpen, editingTask, openTaskModal, closeTaskModal, setTaskModalOpen, setEditingTask };
+  const { isModalOpen, editingTask, openTaskModal, closeTaskModal, setIsModalOpen, setEditingTask } = useApp();
+  return { isModalOpen, editingTask, openTaskModal, closeTaskModal, setIsModalOpen, setEditingTask };
 };
 
 export default AppContext;
