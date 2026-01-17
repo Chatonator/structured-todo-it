@@ -10,9 +10,10 @@ import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TimeOccurrence } from '@/lib/time/types';
+import { ViewLayout } from '@/components/layout/view';
 
 const TimelineView: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -48,7 +49,7 @@ const TimelineView: React.FC = () => {
     });
 
     // Trier par heure dans chaque jour
-    grouped.forEach((occs, day) => {
+    grouped.forEach((occs) => {
       occs.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
     });
 
@@ -78,10 +79,10 @@ const TimelineView: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-500/10 text-green-700 border-green-500/20';
-      case 'pending': return 'bg-blue-500/10 text-blue-700 border-blue-500/20';
-      case 'skipped': return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
-      case 'missed': return 'bg-red-500/10 text-red-700 border-red-500/20';
+      case 'completed': return 'bg-system-success/10 text-system-success border-system-success/20';
+      case 'pending': return 'bg-primary/10 text-primary border-primary/20';
+      case 'skipped': return 'bg-muted text-muted-foreground border-border';
+      case 'missed': return 'bg-system-error/10 text-system-error border-system-error/20';
       default: return 'bg-muted text-muted-foreground border-border';
     }
   };
@@ -201,95 +202,100 @@ const TimelineView: React.FC = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Chargement de la timeline...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header avec navigation */}
-      <div className="bg-background border-b px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handlePrevious}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleToday}>
-              Aujourd'hui
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleNext}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-
-          <h2 className="text-2xl font-bold">
-            {viewMode === 'day'
-              ? format(selectedDate, 'd MMMM yyyy', { locale: fr })
-              : `Semaine du ${format(selectedDate, 'd MMMM', { locale: fr })}`
-            }
-          </h2>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant={viewMode === 'day' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('day')}
-            >
-              Jour
-            </Button>
-            <Button
-              variant={viewMode === 'week' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('week')}
-            >
-              Semaine
-            </Button>
-          </div>
+  // Header personnalisé avec navigation
+  const TimelineHeader = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrevious}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleToday}>
+            Aujourd'hui
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleNext}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{occurrences.length}</span>
-              <span className="text-muted-foreground">événements</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{Math.round(totalBusyTime / 60)}h</span>
-              <span className="text-muted-foreground">occupé</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{Math.round(totalFreeTime / 60)}h</span>
-              <span className="text-muted-foreground">libre</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">
-                {occurrences.filter(o => o.status === 'completed').length}
-              </span>
-              <span className="text-muted-foreground">complétés</span>
-            </div>
-          </div>
+        <h2 className="text-xl font-bold">
+          {viewMode === 'day'
+            ? format(selectedDate, 'd MMMM yyyy', { locale: fr })
+            : `Semaine du ${format(selectedDate, 'd MMMM', { locale: fr })}`
+          }
+        </h2>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === 'day' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('day')}
+          >
+            Jour
+          </Button>
+          <Button
+            variant={viewMode === 'week' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('week')}
+          >
+            Semaine
+          </Button>
         </div>
       </div>
 
-      {/* Timeline content */}
-      <div className="flex-1 overflow-auto p-6">
-        {viewMode === 'day' ? (
-          renderDayColumn(selectedDate)
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6">
-            {Array.from({ length: 7 }, (_, i) => renderDayColumn(addDays(selectedDate, i)))}
-          </div>
-        )}
+      {/* Stats */}
+      <div className="flex items-center gap-6 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{occurrences.length}</span>
+          <span className="text-muted-foreground">événements</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{Math.round(totalBusyTime / 60)}h</span>
+          <span className="text-muted-foreground">occupé</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{Math.round(totalFreeTime / 60)}h</span>
+          <span className="text-muted-foreground">libre</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-medium">
+            {occurrences.filter(o => o.status === 'completed').length}
+          </span>
+          <span className="text-muted-foreground">complétés</span>
+        </div>
       </div>
     </div>
+  );
+
+  return (
+    <ViewLayout
+      header={{
+        title: "Timeline",
+        subtitle: "Vue chronologique de vos événements",
+        icon: <CalendarIcon className="w-5 h-5" />
+      }}
+      state={loading ? 'loading' : 'success'}
+      loadingProps={{ variant: 'list' }}
+      contentProps={{ padding: 'none' }}
+    >
+      <div className="flex flex-col h-full">
+        {/* Header avec navigation */}
+        <div className="border-b px-4 py-4">
+          <TimelineHeader />
+        </div>
+
+        {/* Timeline content */}
+        <div className="flex-1 overflow-auto p-4">
+          {viewMode === 'day' ? (
+            renderDayColumn(selectedDate)
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6">
+              {Array.from({ length: 7 }, (_, i) => renderDayColumn(addDays(selectedDate, i)))}
+            </div>
+          )}
+        </div>
+      </div>
+    </ViewLayout>
   );
 };
 
