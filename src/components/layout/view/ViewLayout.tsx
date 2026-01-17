@@ -57,11 +57,11 @@ export const ViewLayout: React.FC<ViewLayoutProps> = ({
 
   return (
     <div className={cn(
-      "flex flex-col h-full min-h-0",
+      "flex flex-col h-full min-h-0 overflow-hidden",
       containerClassName
     )}>
       <div className={cn(
-        "flex-1 flex flex-col min-h-0 p-6",
+        "flex-1 flex flex-col min-h-0 p-4 md:p-6",
         className
       )}>
         {header && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ViewRouter } from '@/components/routing/ViewRouter';
 import { useApp } from '@/contexts/AppContext';
+import { cn } from '@/lib/utils';
 
 interface MainContentProps {
   className?: string;
@@ -8,14 +9,18 @@ interface MainContentProps {
 
 /**
  * Composant principal pour le rendu des vues
- * Les vues utilisent désormais useViewDataContext pour accéder aux données
+ * Conteneur optimisé sans double padding - les vues gèrent leur propre espacement via ViewLayout
  */
 export const MainContent: React.FC<MainContentProps> = ({ className }) => {
   const { currentView } = useApp();
 
   return (
-    <main className={`flex-1 p-3 md:p-6 overflow-y-auto ${className || ''}`}>
-      <div className="bg-card rounded-lg shadow-sm border border-border p-3 md:p-6 h-full">
+    <main className={cn(
+      "flex-1 overflow-y-auto",
+      "p-2 md:p-4",
+      className
+    )}>
+      <div className="bg-card rounded-lg shadow-sm border border-border h-full overflow-hidden">
         <ViewRouter currentView={currentView} />
       </div>
     </main>

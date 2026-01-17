@@ -7,6 +7,7 @@ import { ProjectDetail } from './ProjectDetail';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Briefcase, FolderPlus } from 'lucide-react';
+import { ViewLayout } from '@/components/layout/view';
 
 export const ProjectsView = () => {
   const { projects, loading, createProject, updateProject } = useProjects();
@@ -39,6 +40,7 @@ export const ProjectsView = () => {
     setShowModal(true);
   };
 
+  // Vue détail d'un projet
   if (detailProject) {
     return (
       <>
@@ -65,14 +67,6 @@ export const ProjectsView = () => {
   const completedProjects = projects.filter(p => p.status === 'completed');
   const archivedProjects = projects.filter(p => p.status === 'archived');
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
   // Zone pour créer un nouveau projet
   const NewProjectZone = () => (
     <div
@@ -92,85 +86,84 @@ export const ProjectsView = () => {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Briefcase className="w-8 h-8 text-project" />
-          <div>
-            <h1 className="text-3xl font-bold">Projets</h1>
-            <p className="text-muted-foreground">
-              Gérez vos projets complexes avec des tâches organisées
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => setShowModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nouveau projet
-        </Button>
-      </div>
-
-      {/* Empty State */}
-      {projects.length === 0 ? (
-        <div className="text-center py-16">
-          <NewProjectZone />
-        </div>
-      ) : (
-        <Tabs defaultValue="active">
-          <TabsList>
-            <TabsTrigger value="active">
-              Actifs ({activeProjects.length})
-            </TabsTrigger>
-            <TabsTrigger value="completed">
-              Terminés ({completedProjects.length})
-            </TabsTrigger>
-            {archivedProjects.length > 0 && (
-              <TabsTrigger value="archived">
-                Archivés ({archivedProjects.length})
-              </TabsTrigger>
-            )}
-          </TabsList>
-
-          <TabsContent value="active" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeProjects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onClick={() => handleCardClick(project)}
-                />
-              ))}
-              <NewProjectZone />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="completed" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {completedProjects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onClick={() => handleCardClick(project)}
-                />
-              ))}
-            </div>
-          </TabsContent>
-
+    <ViewLayout
+      header={{
+        title: "Projets",
+        subtitle: "Gérez vos projets complexes avec des tâches organisées",
+        icon: <Briefcase className="w-5 h-5" />,
+        actions: (
+          <Button onClick={() => setShowModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nouveau projet
+          </Button>
+        )
+      }}
+      state={loading ? 'loading' : projects.length === 0 ? 'empty' : 'success'}
+      loadingProps={{ variant: 'cards' }}
+      emptyProps={{
+        title: "Aucun projet",
+        description: "Créez votre premier projet pour organiser vos tâches",
+        icon: <FolderPlus className="w-12 h-12" />,
+        action: {
+          label: "Créer un projet",
+          onClick: () => setShowModal(true)
+        }
+      }}
+    >
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList>
+          <TabsTrigger value="active">
+            Actifs ({activeProjects.length})
+          </TabsTrigger>
+          <TabsTrigger value="completed">
+            Terminés ({completedProjects.length})
+          </TabsTrigger>
           {archivedProjects.length > 0 && (
-            <TabsContent value="archived" className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {archivedProjects.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    onClick={() => handleCardClick(project)}
-                  />
-                ))}
-              </div>
-            </TabsContent>
+            <TabsTrigger value="archived">
+              Archivés ({archivedProjects.length})
+            </TabsTrigger>
           )}
-        </Tabs>
-      )}
+        </TabsList>
+
+        <TabsContent value="active" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activeProjects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onClick={() => handleCardClick(project)}
+              />
+            ))}
+            <NewProjectZone />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="completed" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {completedProjects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onClick={() => handleCardClick(project)}
+              />
+            ))}
+          </div>
+        </TabsContent>
+
+        {archivedProjects.length > 0 && (
+          <TabsContent value="archived" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {archivedProjects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onClick={() => handleCardClick(project)}
+                />
+              ))}
+            </div>
+          </TabsContent>
+        )}
+      </Tabs>
 
       {/* Modal */}
       <ProjectModal
@@ -182,7 +175,7 @@ export const ProjectsView = () => {
         onSave={selectedProject ? handleUpdateProject : handleCreateProject}
         project={selectedProject}
       />
-    </div>
+    </ViewLayout>
   );
 };
 

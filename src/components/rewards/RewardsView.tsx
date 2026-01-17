@@ -3,29 +3,33 @@ import { useGamification } from '@/hooks/useGamification';
 import ProgressOverview from './ProgressOverview';
 import RecentActivity from './RecentActivity';
 import LevelUpAnimation from './LevelUpAnimation';
+import { ViewLayout } from '@/components/layout/view';
+import { Trophy } from 'lucide-react';
 
 const RewardsView: React.FC = () => {
   const { progress, loading: progressLoading, levelUpAnimation, getProgressPercentage } = useGamification();
 
-  if (progressLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Chargement...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 p-4">
-      {levelUpAnimation && <LevelUpAnimation level={progress?.currentLevel || 1} />}
+    <ViewLayout
+      header={{
+        title: "Récompenses",
+        subtitle: "Suivez votre progression et vos accomplissements",
+        icon: <Trophy className="w-5 h-5" />
+      }}
+      state={progressLoading ? 'loading' : 'success'}
+      loadingProps={{ variant: 'cards' }}
+    >
+      <div className="space-y-6 pb-20 md:pb-6">
+        {levelUpAnimation && <LevelUpAnimation level={progress?.currentLevel || 1} />}
 
-      <ProgressOverview 
-        progress={progress}
-        progressPercentage={getProgressPercentage()}
-      />
+        <ProgressOverview 
+          progress={progress}
+          progressPercentage={getProgressPercentage()}
+        />
 
-      <RecentActivity userId={progress?.userId || ''} />
-    </div>
+        <RecentActivity userId={progress?.userId || ''} />
+      </div>
+    </ViewLayout>
   );
 };
 

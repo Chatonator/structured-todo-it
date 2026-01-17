@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { useDecks } from '@/hooks/useDecks';
 import { useHabits } from '@/hooks/useHabits';
 import { useHabitStats } from '@/hooks/useHabitStats';
@@ -13,6 +13,7 @@ import HabitItem from './HabitItem';
 import HabitModal from './HabitModal';
 import DeckManagement from './DeckManagement';
 import { Habit } from '@/types/habit';
+import { ViewLayout } from '@/components/layout/view';
 
 const HabitsView = () => {
   const { decks, loading: decksLoading, defaultDeckId, createDeck, updateDeck, deleteDeck } = useDecks();
@@ -54,25 +55,26 @@ const HabitsView = () => {
     }
   };
 
-  if (decksLoading) {
+  // État vide - aucun deck
+  if (!decksLoading && decks.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Chargement...</p>
-      </div>
-    );
-  }
-
-  if (decks.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Aucun deck d'habitudes</h2>
-          <p className="text-muted-foreground mb-6">Créez votre premier deck pour commencer à suivre vos habitudes</p>
-        </div>
-        <Button onClick={() => setIsDeckManagementOpen(true)} className="bg-habit hover:bg-habit-dark">
-          <Plus className="w-4 h-4 mr-2" />
-          Créer mon premier deck
-        </Button>
+      <ViewLayout
+        header={{
+          title: "Habitudes",
+          subtitle: "Suivez vos habitudes quotidiennes",
+          icon: <Heart className="w-5 h-5" />
+        }}
+        state="empty"
+        emptyProps={{
+          title: "Aucun deck d'habitudes",
+          description: "Créez votre premier deck pour commencer à suivre vos habitudes",
+          icon: <Heart className="w-12 h-12" />,
+          action: {
+            label: "Créer mon premier deck",
+            onClick: () => setIsDeckManagementOpen(true)
+          }
+        }}
+      >
         <DeckManagement
           isOpen={isDeckManagementOpen}
           onClose={() => setIsDeckManagementOpen(false)}
@@ -81,17 +83,35 @@ const HabitsView = () => {
           onUpdateDeck={updateDeck}
           onDeleteDeck={deleteDeck}
         />
-      </div>
+      </ViewLayout>
     );
   }
 
   const selectedDeck = decks.find(d => d.id === selectedDeckId);
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-6">
-      <div className="max-w-4xl mx-auto p-6">
+    <ViewLayout
+      header={{
+        title: "Habitudes",
+        subtitle: "Suivez vos habitudes quotidiennes",
+        icon: <Heart className="w-5 h-5" />,
+        actions: selectedDeckId ? (
+          <Button
+            onClick={() => setIsHabitModalOpen(true)}
+            size="sm"
+            className="bg-habit hover:bg-habit-dark"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter
+          </Button>
+        ) : undefined
+      }}
+      state={decksLoading ? 'loading' : 'success'}
+      loadingProps={{ variant: 'list' }}
+    >
+      <div className="max-w-4xl mx-auto space-y-4 pb-20 md:pb-6">
         {/* Sélecteur de deck */}
-        <div className="mb-4">
+        <div>
           <DeckSelector
             decks={decks}
             selectedDeckId={selectedDeckId}
@@ -109,20 +129,12 @@ const HabitsView = () => {
               totalCount={todayHabits.length}
             />
 
-            {/* Liste des habitudes - Priorité haute */}
-            <div className="mt-4">
+            {/* Liste des habitudes */}
+            <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold text-foreground">
                   {selectedDeck?.name || 'Mes habitudes'}
                 </h2>
-                <Button
-                  onClick={() => setIsHabitModalOpen(true)}
-                  size="sm"
-                  className="bg-habit hover:bg-habit-dark"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ajouter
-                </Button>
               </div>
 
               {habitsLoading ? (
@@ -133,7 +145,7 @@ const HabitsView = () => {
                   <Button
                     onClick={() => setIsHabitModalOpen(true)}
                     variant="outline"
-                    className="border-habit text-habit hover:bg-habit-light"
+                    className="border-habit text-habit hover:bg-habit/10"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Créer ma première habitude
@@ -159,7 +171,7 @@ const HabitsView = () => {
 
             {/* Section Statistiques - Collapsible */}
             {!habitStats.loading && habitStats.totalHabits > 0 && (
-              <div className="mt-6">
+              <div>
                 <button
                   onClick={() => setShowStats(!showStats)}
                   className="flex items-center justify-between w-full py-3 px-4 bg-card rounded-lg border border-border hover:bg-muted/50 transition-colors"
@@ -208,7 +220,7 @@ const HabitsView = () => {
           onDeleteDeck={deleteDeck}
         />
       </div>
-    </div>
+    </ViewLayout>
   );
 };
 
