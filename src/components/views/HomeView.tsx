@@ -1,10 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
-  CheckSquare, 
-  Clock, 
   Briefcase, 
   ArrowRight,
   Target,
@@ -14,6 +11,7 @@ import HomeHabitsSection from './HomeHabitsSection';
 import { ViewLayout } from '@/components/layout/view';
 import { useViewDataContext } from '@/contexts/ViewDataContext';
 import { useApp } from '@/contexts/AppContext';
+import { StatCard, TaskCard } from '@/components/primitives';
 
 interface HomeViewProps {
   className?: string;
@@ -51,13 +49,6 @@ const HomeView: React.FC<HomeViewProps> = ({ className }) => {
     .filter(p => p.status === 'in-progress')
     .sort((a, b) => (b.progress || 0) - (a.progress || 0))[0];
 
-  const formatDuration = (minutes: number): string => {
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h${remainingMinutes}m` : `${hours}h`;
-  };
-
   const completedHabitsCount = todayHabits.filter(h => habitCompletions[h.id]).length;
   const completedTasksCount = tasks.filter(t => t.isCompleted).length;
   const activeProjectsCount = projects.filter(p => p.status === 'in-progress').length;
@@ -72,31 +63,28 @@ const HomeView: React.FC<HomeViewProps> = ({ className }) => {
       className={className}
     >
       <div className="space-y-6 pb-20 md:pb-6">
-        {/* Stats rapides */}
+        {/* Stats rapides - Utilisation de StatCard */}
         <div className="grid grid-cols-3 gap-4">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-project">{activeProjectsCount}</div>
-              <div className="text-xs text-muted-foreground">Projets en cours</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-habit">{completedHabitsCount}/{todayHabits.length}</div>
-              <div className="text-xs text-muted-foreground">Habitudes du jour</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-system-success">{completedTasksCount}</div>
-              <div className="text-xs text-muted-foreground">Terminées</div>
-            </CardContent>
-          </Card>
+          <StatCard
+            value={activeProjectsCount}
+            label="Projets en cours"
+            valueClassName="text-project"
+          />
+          <StatCard
+            value={`${completedHabitsCount}/${todayHabits.length}`}
+            label="Habitudes du jour"
+            valueClassName="text-habit"
+          />
+          <StatCard
+            value={completedTasksCount}
+            label="Terminées"
+            valueClassName="text-system-success"
+          />
         </div>
 
         {/* Grille principale */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Tâches prioritaires */}
+          {/* Tâches prioritaires - Utilisation de TaskCard */}
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -123,32 +111,14 @@ const HomeView: React.FC<HomeViewProps> = ({ className }) => {
               ) : (
                 <div className="space-y-2 max-h-[280px] overflow-y-auto">
                   {topTasks.map(task => (
-                    <div
+                    <TaskCard
                       key={task.id}
-                      className="flex items-start gap-3 p-3 bg-accent rounded-lg hover:bg-accent/80 transition-colors"
-                    >
-                      <CheckSquare className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{task.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${
-                              task.category?.toLowerCase() === 'obligation' ? 'bg-category-obligation/10 border-category-obligation text-category-obligation' :
-                              task.category?.toLowerCase() === 'quotidien' ? 'bg-category-quotidien/10 border-category-quotidien text-category-quotidien' :
-                              task.category?.toLowerCase() === 'envie' ? 'bg-category-envie/10 border-category-envie text-category-envie' :
-                              'bg-category-autres/10 border-category-autres text-category-autres'
-                            }`}
-                          >
-                            {task.category}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatDuration(calculateTotalTime(task))}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                      task={task}
+                      totalTime={calculateTotalTime(task)}
+                      variant="compact"
+                      showCategory={true}
+                      showDuration={true}
+                    />
                   ))}
                 </div>
               )}
