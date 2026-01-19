@@ -7,5 +7,5 @@ export * from './badges';
 // Cards
 export * from './cards';
 
-// Lists (à venir)
-// export * from './lists';
+// Lists
+export * from './lists';
