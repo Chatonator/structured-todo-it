@@ -1,111 +1,95 @@
-import React, { useState } from 'react';
-import { Task, CATEGORY_CONFIG, CATEGORY_CSS_NAMES } from '@/types/task';
+import React, { useMemo } from 'react';
+import { Task, CATEGORY_CONFIG } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, AlertTriangle, Target, Calendar, Archive, Grid3X3 } from 'lucide-react';
-import { ViewLayout } from '@/components/layout/view';
+import { AlertTriangle, Target, Calendar, Archive, Grid3X3 } from 'lucide-react';
+import { ViewLayout, ViewStats } from '@/components/layout/view';
+import { QuadrantCard, QuadrantConfig, EisenhowerQuadrant } from '@/components/primitives';
 import { useViewDataContext } from '@/contexts/ViewDataContext';
+import { formatDuration } from '@/lib/formatters';
 
 interface EisenhowerViewProps {
   className?: string;
 }
 
 // Mappage des catégories vers les quadrants d'Eisenhower
-const getCategoryQuadrant = (category: string): 'urgent-important' | 'important-not-urgent' | 'urgent-not-important' | 'not-urgent-not-important' => {
+const getCategoryQuadrant = (category: string): EisenhowerQuadrant => {
   const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG];
   return config ? config.eisenhowerQuadrant : 'not-urgent-not-important';
 };
 
+// Configuration des quadrants
+const QUADRANT_CONFIGS: Record<EisenhowerQuadrant, QuadrantConfig> = {
+  'urgent-important': {
+    title: 'Urgent & Important',
+    subtitle: 'À FAIRE MAINTENANT',
+    icon: <AlertTriangle className="w-5 h-5 text-white" />,
+    description: 'Crises, urgences, problèmes pressants',
+    bgColor: 'bg-category-obligation',
+    borderColor: 'border-category-obligation',
+  },
+  'important-not-urgent': {
+    title: 'Important & Non Urgent',
+    subtitle: 'À PLANIFIER',
+    icon: <Target className="w-5 h-5 text-white" />,
+    description: 'Prévention, amélioration, développement',
+    bgColor: 'bg-category-envie',
+    borderColor: 'border-category-envie',
+  },
+  'urgent-not-important': {
+    title: 'Urgent & Non Important',
+    subtitle: 'À DÉLÉGUER',
+    icon: <Calendar className="w-5 h-5 text-white" />,
+    description: 'Interruptions, certains appels, emails',
+    bgColor: 'bg-category-quotidien',
+    borderColor: 'border-category-quotidien',
+  },
+  'not-urgent-not-important': {
+    title: 'Non Urgent & Non Important',
+    subtitle: 'À ÉLIMINER',
+    icon: <Archive className="w-5 h-5 text-white" />,
+    description: 'Distractions, certaines activités',
+    bgColor: 'bg-category-autres',
+    borderColor: 'border-category-autres',
+  },
+};
+
 const EisenhowerView: React.FC<EisenhowerViewProps> = ({ className }) => {
   const { tasks } = useViewDataContext();
-  const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
 
   // Filtrer les tâches actives
   const activeTasks = tasks.filter(t => !t.isCompleted);
 
   // Organisation des tâches par quadrant
-  const quadrants = React.useMemo(() => ({
-    'urgent-important': {
-      title: 'Urgent & Important',
-      subtitle: 'À FAIRE MAINTENANT',
-      icon: <AlertTriangle className="w-5 h-5 text-white" />,
-      description: 'Crises, urgences, problèmes pressants',
-      bgColor: 'bg-category-obligation',
-      borderColor: 'border-category-obligation',
-      tasks: activeTasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-important')
-    },
-    'important-not-urgent': {
-      title: 'Important & Non Urgent',
-      subtitle: 'À PLANIFIER',
-      icon: <Target className="w-5 h-5 text-white" />,
-      description: 'Prévention, amélioration, développement',
-      bgColor: 'bg-category-envie',
-      borderColor: 'border-category-envie',
-      tasks: activeTasks.filter(task => getCategoryQuadrant(task.category) === 'important-not-urgent')
-    },
-    'urgent-not-important': {
-      title: 'Urgent & Non Important',
-      subtitle: 'À DÉLÉGUER',
-      icon: <Calendar className="w-5 h-5 text-white" />,
-      description: 'Interruptions, certains appels, emails',
-      bgColor: 'bg-category-quotidien',
-      borderColor: 'border-category-quotidien',
-      tasks: activeTasks.filter(task => getCategoryQuadrant(task.category) === 'urgent-not-important')
-    },
-    'not-urgent-not-important': {
-      title: 'Non Urgent & Non Important',
-      subtitle: 'À ÉLIMINER',
-      icon: <Archive className="w-5 h-5 text-white" />,
-      description: 'Distractions, certaines activités',
-      bgColor: 'bg-category-autres',
-      borderColor: 'border-category-autres',
-      tasks: activeTasks.filter(task => getCategoryQuadrant(task.category) === 'not-urgent-not-important')
-    }
-  }), [activeTasks]);
+  const quadrants = useMemo(() => {
+    const result: Record<EisenhowerQuadrant, Task[]> = {
+      'urgent-important': [],
+      'important-not-urgent': [],
+      'urgent-not-important': [],
+      'not-urgent-not-important': [],
+    };
 
-  const formatDuration = (minutes: number): string => {
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+    activeTasks.forEach(task => {
+      const quadrant = getCategoryQuadrant(task.category);
+      result[quadrant].push(task);
+    });
+
+    return result;
+  }, [activeTasks]);
+
+  const getTotalTime = (taskList: Task[]): number => {
+    return taskList.reduce((total, task) => total + (task.estimatedTime || 0), 0);
   };
 
-  const getTotalTime = (quadrantTasks: Task[]): number => {
-    return quadrantTasks.reduce((total, task) => total + task.estimatedTime, 0);
-  };
-
-  const renderTaskCard = (task: Task) => {
-    const categoryConfig = CATEGORY_CONFIG[task.category];
-    const cssName = CATEGORY_CSS_NAMES[task.category];
-    
-    return (
-      <div
-        key={task.id}
-        className={`
-          p-3 border rounded-lg hover:shadow-sm transition-all
-          ${task.isCompleted ? 'opacity-60 bg-muted' : 'bg-card'}
-          ${categoryConfig?.borderPattern || ''}
-        `}
-      >
-        <div className="flex items-start justify-between mb-2">
-          <h4 className={`text-sm font-medium ${task.isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-            {task.name}
-          </h4>
-          <div className={`w-3 h-3 rounded-full bg-category-${cssName}`} />
-        </div>
-        
-        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-          <Clock className="w-3 h-3" />
-          <span>{formatDuration(task.estimatedTime)}</span>
-          {task.isCompleted && (
-            <Badge variant="outline" className="text-xs bg-system-success/10 text-system-success">
-              Terminée
-            </Badge>
-          )}
-        </div>
-      </div>
-    );
-  };
+  // Stats pour ViewStats
+  const stats = Object.entries(quadrants).map(([key, taskList]) => ({
+    id: key,
+    label: 'tâches',
+    value: taskList.length,
+    icon: React.cloneElement(QUADRANT_CONFIGS[key as EisenhowerQuadrant].icon, {
+      className: "w-4 h-4 md:w-5 md:h-5 text-primary"
+    }),
+    subtitle: formatDuration(getTotalTime(taskList)),
+  }));
 
   const isEmpty = activeTasks.length === 0;
 
@@ -116,6 +100,7 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ className }) => {
         subtitle: "Organisez vos tâches selon leur urgence et leur importance",
         icon: <Grid3X3 className="w-5 h-5" />
       }}
+      variant="grid"
       state={isEmpty ? 'empty' : 'success'}
       emptyProps={{
         title: "Aucune tâche à organiser",
@@ -126,69 +111,19 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ className }) => {
     >
       <div className="space-y-4 md:space-y-6">
         {/* Statistiques globales */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4">
-          {Object.entries(quadrants).map(([key, quadrant]) => (
-            <div key={key} className="text-center p-2 md:p-3 bg-card border border-border rounded-lg">
-              <div className="flex items-center justify-center mb-1">
-                {React.cloneElement(quadrant.icon, { 
-                  className: "w-4 h-4 md:w-5 md:h-5 text-primary" 
-                })}
-              </div>
-              <div className="text-base md:text-lg font-bold text-foreground">{quadrant.tasks.length}</div>
-              <div className="text-xs text-muted-foreground">tâches</div>
-              <div className="text-xs text-muted-foreground hidden sm:block">{formatDuration(getTotalTime(quadrant.tasks))}</div>
-            </div>
-          ))}
-        </div>
+        <ViewStats stats={stats} columns={4} variant="compact" />
 
-        {/* Matrice 2x2 */}
+        {/* Matrice 2x2 avec QuadrantCard */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-          {Object.entries(quadrants).map(([key, quadrant]) => (
-            <Card 
-              key={key} 
-              className={`cursor-pointer transition-all hover:shadow-md border-2 bg-card ${quadrant.borderColor}`}
-              onClick={() => setSelectedQuadrant(selectedQuadrant === key ? null : key)}
-            >
-              <CardHeader className={`py-3 rounded-t-lg text-white ${quadrant.bgColor}`}>
-                <CardTitle className="flex items-center justify-between text-sm">
-                  <div className="flex items-center space-x-2">
-                    {quadrant.icon}
-                    <div>
-                      <div className="font-bold text-white">{quadrant.title}</div>
-                      <div className="text-xs font-normal opacity-80 text-white">{quadrant.subtitle}</div>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">
-                    {quadrant.tasks.length}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground mb-3 italic">
-                  {quadrant.description}
-                </p>
-                
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {quadrant.tasks.length > 0 ? (
-                    quadrant.tasks.map(task => renderTaskCard(task))
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      <div className="text-xs">Aucune tâche dans ce quadrant</div>
-                    </div>
-                  )}
-                </div>
-                
-                {quadrant.tasks.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Total: {quadrant.tasks.length} tâche{quadrant.tasks.length > 1 ? 's' : ''}</span>
-                      <span>{formatDuration(getTotalTime(quadrant.tasks))}</span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {(Object.keys(quadrants) as EisenhowerQuadrant[]).map((quadrantKey) => (
+            <QuadrantCard
+              key={quadrantKey}
+              quadrant={quadrantKey}
+              config={QUADRANT_CONFIGS[quadrantKey]}
+              tasks={quadrants[quadrantKey]}
+              maxVisibleTasks={6}
+              showTotalTime
+            />
           ))}
         </div>
 

@@ -15,3 +15,4 @@ export { ViewErrorState, type ViewErrorStateProps } from './ViewErrorState';
 export { ViewStats, type ViewStatsProps, type ViewStatsItem } from './ViewStats';
 export { ViewToolbar, type ViewToolbarProps, type FilterOption, type SortOption } from './ViewToolbar';
 export { ViewTabs, type ViewTabsProps, type ViewTab } from './ViewTabs';
+export { ViewSection, type ViewSectionProps } from './ViewSection';
