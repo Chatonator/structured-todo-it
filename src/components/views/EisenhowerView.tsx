@@ -81,15 +81,16 @@ const EisenhowerView: React.FC<EisenhowerViewProps> = ({ className }) => {
   };
 
   // Stats pour ViewStats
-  const stats = Object.entries(quadrants).map(([key, taskList]) => ({
-    id: key,
-    label: 'tâches',
-    value: taskList.length,
-    icon: React.cloneElement(QUADRANT_CONFIGS[key as EisenhowerQuadrant].icon, {
-      className: "w-4 h-4 md:w-5 md:h-5 text-primary"
-    }),
-    subtitle: formatDuration(getTotalTime(taskList)),
-  }));
+  const stats = Object.entries(quadrants).map(([key, taskList]) => {
+    const config = QUADRANT_CONFIGS[key as EisenhowerQuadrant];
+    return {
+      id: key,
+      label: 'tâches',
+      value: taskList.length,
+      icon: config.icon,
+      subtitle: formatDuration(getTotalTime(taskList)),
+    };
+  });
 
   const isEmpty = activeTasks.length === 0;
 

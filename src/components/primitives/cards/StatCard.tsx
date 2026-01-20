@@ -1,15 +1,14 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { LucideIcon } from 'lucide-react';
 
 export interface StatCardProps {
   /** Valeur principale à afficher */
   value: string | number;
   /** Label descriptif */
   label: string;
-  /** Icône optionnelle */
-  icon?: LucideIcon;
+  /** Icône optionnelle - peut être un LucideIcon ou un ReactNode */
+  icon?: ReactNode;
   /** Couleur de la valeur (utiliser les tokens du design system) */
   valueClassName?: string;
   /** Variante de layout */
@@ -22,6 +21,8 @@ export interface StatCardProps {
   /** Click handler optionnel */
   onClick?: () => void;
   className?: string;
+  /** Sous-titre optionnel */
+  subtitle?: string;
 }
 
 /**
@@ -31,12 +32,13 @@ export interface StatCardProps {
 export const StatCard: React.FC<StatCardProps> = ({
   value,
   label,
-  icon: Icon,
+  icon,
   valueClassName,
   variant = 'default',
   trend,
   onClick,
-  className
+  className,
+  subtitle
 }) => {
   const isClickable = !!onClick;
 
@@ -50,9 +52,10 @@ export const StatCard: React.FC<StatCardProps> = ({
         )}
         onClick={onClick}
       >
-        {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}
+        {icon && <span className="flex-shrink-0">{icon}</span>}
         <span className={cn("text-lg font-bold", valueClassName)}>{value}</span>
         <span className="text-xs text-muted-foreground">{label}</span>
+        {subtitle && <span className="text-xs text-muted-foreground">({subtitle})</span>}
       </div>
     );
   }
@@ -69,14 +72,15 @@ export const StatCard: React.FC<StatCardProps> = ({
       >
         <CardContent className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {Icon && (
+            {icon && (
               <div className="p-2 rounded-lg bg-accent">
-                <Icon className="w-5 h-5 text-muted-foreground" />
+                {icon}
               </div>
             )}
             <div>
               <div className="text-xs text-muted-foreground">{label}</div>
               <div className={cn("text-xl font-bold", valueClassName)}>{value}</div>
+              {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
             </div>
           </div>
           {trend && (
@@ -104,13 +108,14 @@ export const StatCard: React.FC<StatCardProps> = ({
       onClick={onClick}
     >
       <CardContent className="p-4 text-center">
-        {Icon && (
+        {icon && (
           <div className="flex justify-center mb-2">
-            <Icon className="w-5 h-5 text-muted-foreground" />
+            {icon}
           </div>
         )}
         <div className={cn("text-2xl font-bold", valueClassName)}>{value}</div>
         <div className="text-xs text-muted-foreground">{label}</div>
+        {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
         {trend && (
           <div className={cn(
             "text-xs font-medium mt-1",
