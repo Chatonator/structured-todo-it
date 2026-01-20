@@ -73,3 +73,34 @@ export function formatPercentage(value: number, decimals: number = 0): string {
   const normalizedValue = value > 1 ? value : value * 100;
   return `${normalizedValue.toFixed(decimals)}%`;
 }
+
+/**
+ * Formate une durée relative depuis maintenant (pour l'activité récente)
+ * @param date - Date à formater
+ * @returns String comme "À l'instant", "Il y a 5min", "Il y a 2h", "Il y a 3j"
+ */
+export function formatRelativeTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return "À l'instant";
+  if (minutes < 60) return `Il y a ${minutes}min`;
+  if (hours < 24) return `Il y a ${hours}h`;
+  return `Il y a ${days}j`;
+}
+
+/**
+ * Formate une durée en format long (pour les vues avec plus d'espace)
+ * @param minutes - Nombre de minutes
+ * @returns String formatée (ex: "5 min", "1h 30min", "2h")
+ */
+export function formatDurationLong(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+}

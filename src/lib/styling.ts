@@ -212,3 +212,50 @@ export function getStatusLabel(status: StatusType): string {
   };
   return labels[status] ?? status;
 }
+
+// ===== TIMELINE STATUS (pour TimelineView) =====
+
+export type TimelineStatusType = 'completed' | 'pending' | 'skipped' | 'missed';
+
+const TIMELINE_STATUS_STYLES: Record<TimelineStatusType, string> = {
+  'completed': 'bg-system-success/10 text-system-success border-system-success/20',
+  'pending': 'bg-primary/10 text-primary border-primary/20',
+  'skipped': 'bg-muted text-muted-foreground border-border',
+  'missed': 'bg-system-error/10 text-system-error border-system-error/20'
+};
+
+/**
+ * Retourne les classes CSS pour un statut de timeline
+ */
+export function getTimelineStatusClasses(status: TimelineStatusType): string {
+  return TIMELINE_STATUS_STYLES[status] ?? TIMELINE_STATUS_STYLES['pending'];
+}
+
+// ===== ROLE STYLES (pour TeamManagement) =====
+
+export type TeamRole = 'owner' | 'admin' | 'member';
+
+const ROLE_STYLES: Record<TeamRole, string> = {
+  'owner': 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400',
+  'admin': 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-400',
+  'member': 'bg-muted text-muted-foreground border-border'
+};
+
+/**
+ * Retourne les classes CSS pour un rôle d'équipe
+ */
+export function getRoleClasses(role: TeamRole): string {
+  return ROLE_STYLES[role] ?? ROLE_STYLES['member'];
+}
+
+/**
+ * Retourne le label pour un rôle
+ */
+export function getRoleLabel(role: TeamRole): string {
+  const labels: Record<TeamRole, string> = {
+    'owner': 'Propriétaire',
+    'admin': 'Admin',
+    'member': 'Membre'
+  };
+  return labels[role] ?? role;
+}
