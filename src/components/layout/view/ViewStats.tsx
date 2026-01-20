@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { StatCard, type StatCardProps } from '@/components/primitives/cards';
+import { StatCard } from '@/components/primitives/cards';
 
-export interface ViewStatsItem extends Omit<StatCardProps, 'variant'> {
+export interface ViewStatsItem {
   id: string;
+  value: string | number;
+  label: string;
+  icon?: ReactNode;
+  subtitle?: string;
+  valueClassName?: string;
+  trend?: { value: number; label?: string };
+  onClick?: () => void;
 }
 
 export interface ViewStatsProps {
