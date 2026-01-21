@@ -52,7 +52,7 @@ export interface SidebarData {
   // Projets
   projects: Project[];
   projectTasks: any;
-  onToggleProjectTask: (projectId: string, taskId: string) => Promise<void>;
+  onToggleProjectTask: (taskId: string) => void;
   
   // Équipe
   teamTasks: any[];

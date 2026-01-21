@@ -1,7 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { Task } from '@/types/task';
-import { Habit, HabitStreak } from '@/types/habit';
-import { Project } from '@/types/project';
 import {
   Sidebar,
   SidebarContent,
@@ -23,94 +21,52 @@ import { SidebarProjectsSection } from './SidebarProjectsSection';
 import { SidebarTeamTasksSection } from './SidebarTeamTasksSection';
 import TaskModal from '@/components/task/TaskModal';
 import { useProjects } from '@/hooks/useProjects';
+import { useSidebarContext } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 
-interface TeamTaskForSidebar {
-  id: string;
-  name: string;
-  isCompleted: boolean;
-  category: string;
-  estimatedTime: number;
-}
-
-interface ProjectTaskForSidebar {
-  task: Task;
-  projectName: string;
-  projectIcon?: string;
-}
-
-interface AppSidebarProps {
-  tasks: Task[];
-  mainTasks: Task[];
-  pinnedTasks: string[];
-  recurringTaskIds?: string[];
-  taskSchedules?: Record<string, { date: Date; time: string }>;
-  onRemoveTask: (taskId: string) => void;
-  onToggleExpansion: (taskId: string) => void;
-  onToggleCompletion: (taskId: string) => void;
-  onTogglePinTask: (taskId: string) => void;
-  onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
-  onUpdateTask?: (taskId: string, updates: Partial<Task>) => void;
-  onSetRecurring?: (taskId: string, taskName: string, estimatedTime: number, frequency: string, interval: number) => void;
-  onRemoveRecurring?: (taskId: string) => void;
-  onScheduleTask?: (taskId: string, date: Date, time: string) => void;
-  getSubTasks: (parentId: string) => Task[];
-  calculateTotalTime: (task: Task) => number;
-  canHaveSubTasks: (task: Task) => boolean;
-  selectedTasks: string[];
-  onToggleSelection: (taskId: string) => void;
-  // Props pour les sections optionnelles
-  sidebarShowHabits?: boolean;
-  sidebarShowProjects?: boolean;
-  sidebarShowTeamTasks?: boolean;
-  todayHabits?: Habit[];
-  habitCompletions?: Record<string, boolean>;
-  habitStreaks?: Record<string, HabitStreak>;
-  onToggleHabit?: (habitId: string) => Promise<boolean | void>;
-  projects?: Project[];
-  projectTasks?: ProjectTaskForSidebar[];
-  onToggleProjectTask?: (taskId: string) => void;
-  teamTasks?: TeamTaskForSidebar[];
-  onToggleTeamTask?: (taskId: string) => void;
-}
-
-const AppSidebar: React.FC<AppSidebarProps> = ({
-  tasks,
-  mainTasks,
-  pinnedTasks,
-  recurringTaskIds = [],
-  taskSchedules = {},
-  onRemoveTask,
-  onToggleExpansion,
-  onToggleCompletion,
-  onTogglePinTask,
-  onAddTask,
-  onUpdateTask,
-  onSetRecurring,
-  onRemoveRecurring,
-  onScheduleTask,
-  getSubTasks,
-  calculateTotalTime,
-  canHaveSubTasks,
-  selectedTasks,
-  onToggleSelection,
-  // Sections optionnelles
-  sidebarShowHabits = false,
-  sidebarShowProjects = false,
-  sidebarShowTeamTasks = false,
-  todayHabits = [],
-  habitCompletions = {},
-  habitStreaks = {},
-  onToggleHabit,
-  projects = [],
-  projectTasks = [],
-  onToggleProjectTask,
-  teamTasks = [],
-  onToggleTeamTask
-}) => {
+/**
+ * AppSidebar - Utilise SidebarContext pour toutes ses données
+ * Plus aucun prop nécessaire !
+ */
+const AppSidebar: React.FC = () => {
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === 'collapsed';
   const { assignTaskToProject } = useProjects();
+
+  // Récupérer toutes les données depuis le contexte
+  const {
+    tasks,
+    mainTasks,
+    pinnedTasks,
+    recurringTaskIds,
+    taskSchedules,
+    onRemoveTask,
+    onToggleExpansion,
+    onToggleCompletion,
+    onTogglePinTask,
+    onAddTask,
+    onUpdateTask,
+    onSetRecurring,
+    onRemoveRecurring,
+    onScheduleTask,
+    getSubTasks,
+    calculateTotalTime,
+    canHaveSubTasks,
+    selectedTasks,
+    onToggleSelection,
+    sidebarShowHabits,
+    sidebarShowProjects,
+    sidebarShowTeamTasks,
+    todayHabits,
+    habitCompletions,
+    habitStreaks,
+    onToggleHabit,
+    projects,
+    projectTasks,
+    onToggleProjectTask,
+    teamTasks,
+    onToggleTeamTask
+  } = useSidebarContext();
 
   // États modaux
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
@@ -174,7 +130,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           comparison = a.name.localeCompare(b.name, 'fr');
           break;
         case 'category':
-          // Ordre: Crucial (Obligation) > Envies > Régulier (Quotidien) > Optionnel (Autres)
           const orderA = CATEGORY_SORT_ORDER[a.category] ?? 99;
           const orderB = CATEGORY_SORT_ORDER[b.category] ?? 99;
           comparison = orderA - orderB;
@@ -303,86 +258,86 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
       {/* Sidebar - utilise offcanvas pour disparaître complètement */}
       <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
-          {/* Header avec logo */}
-          <SidebarHeader className="border-b border-sidebar-border p-2">
-            <div className="flex items-center gap-2 w-full">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                <ListTodo className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="font-semibold text-sidebar-foreground">TO-DO-IT</span>
+        {/* Header avec logo */}
+        <SidebarHeader className="border-b border-sidebar-border p-2">
+          <div className="flex items-center gap-2 w-full">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <ListTodo className="w-4 h-4 text-primary-foreground" />
             </div>
-          </SidebarHeader>
+            <span className="font-semibold text-sidebar-foreground">TO-DO-IT</span>
+          </div>
+        </SidebarHeader>
 
-          <SidebarContent className="custom-scrollbar">
-            {/* Quick Add + Recherche + Filtres + Tri en mode compact */}
-            <div className="px-2 py-2 space-y-2 border-b border-sidebar-border">
-              {/* Ligne 1: Bouton nouvelle tâche */}
-              <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={false} />
-              
-              {/* Ligne 2: Recherche + Tri + Filtre */}
-              <div className="flex items-center gap-1">
-                <SidebarSearchFilter
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                />
-                <SidebarSortSelector
-                  sortConfig={sortConfig}
-                  onSortChange={setSortConfig}
-                />
-              </div>
+        <SidebarContent className="custom-scrollbar">
+          {/* Quick Add + Recherche + Filtres + Tri en mode compact */}
+          <div className="px-2 py-2 space-y-2 border-b border-sidebar-border">
+            {/* Ligne 1: Bouton nouvelle tâche */}
+            <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={false} />
+            
+            {/* Ligne 2: Recherche + Tri + Filtre */}
+            <div className="flex items-center gap-1">
+              <SidebarSearchFilter
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
+              <SidebarSortSelector
+                sortConfig={sortConfig}
+                onSortChange={setSortConfig}
+              />
             </div>
+          </div>
 
-            {/* Sections optionnelles */}
-            {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
-              <SidebarHabitsSection
-                habits={todayHabits}
-                completions={habitCompletions}
-                streaks={habitStreaks}
-                onToggleHabit={onToggleHabit}
-              />
-            )}
+          {/* Sections optionnelles */}
+          {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
+            <SidebarHabitsSection
+              habits={todayHabits}
+              completions={habitCompletions}
+              streaks={habitStreaks}
+              onToggleHabit={onToggleHabit}
+            />
+          )}
 
-            {sidebarShowProjects && projectTasks.length > 0 && onToggleProjectTask && (
-              <SidebarProjectsSection 
-                projectTasks={projectTasks} 
-                onToggleComplete={onToggleProjectTask}
-              />
-            )}
+          {sidebarShowProjects && projectTasks.length > 0 && onToggleProjectTask && (
+            <SidebarProjectsSection 
+              projectTasks={projectTasks} 
+              onToggleComplete={onToggleProjectTask}
+            />
+          )}
 
-            {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (
-              <SidebarTeamTasksSection
-                tasks={teamTasks}
-                onToggleComplete={onToggleTeamTask}
-              />
-            )}
+          {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (
+            <SidebarTeamTasksSection
+              tasks={teamTasks}
+              onToggleComplete={onToggleTeamTask}
+            />
+          )}
 
-            {/* Section Tâches Actives */}
-            <SidebarGroup>
-              <SidebarGroupLabel className="flex items-center gap-2">
-                <CheckSquare className="w-4 h-4" />
-                <span>Tâches</span>
-              </SidebarGroupLabel>
-              
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {sortedTasks.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground">
-                      <CheckSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                      <p className="text-sm">Aucune tâche active</p>
-                      <p className="text-xs">Créez votre première tâche !</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-0">
-                      {sortedTasks.map(task => renderTask(task))}
-                    </div>
-                  )}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-        </Sidebar>
+          {/* Section Tâches Actives */}
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center gap-2">
+              <CheckSquare className="w-4 h-4" />
+              <span>Tâches</span>
+            </SidebarGroupLabel>
+            
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {sortedTasks.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <CheckSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">Aucune tâche active</p>
+                    <p className="text-xs">Créez votre première tâche !</p>
+                  </div>
+                ) : (
+                  <div className="space-y-0">
+                    {sortedTasks.map(task => renderTask(task))}
+                  </div>
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
 
       {/* Modale pour sous-tâches */}
       {selectedParentTask && (

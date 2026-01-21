@@ -8,18 +8,17 @@ import BottomNavigation from '@/components/layout/BottomNavigation';
 import MainContent from '@/components/layout/MainContent';
 import { AppProvider, useApp } from '@/contexts/AppContext';
 import { ViewDataProvider, useViewDataContext } from '@/contexts/ViewDataContext';
+import { SidebarProvider as AppSidebarProvider } from '@/contexts/SidebarContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsMobile } from '@/hooks/shared/use-mobile';
-import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 /**
  * Contenu principal de l'application
- * Séparé pour pouvoir utiliser les contextes
+ * Utilise les contextes pour éviter le prop drilling
  */
 const IndexContent: React.FC = () => {
   const { theme } = useTheme();
   const isMobile = useIsMobile();
-  const { preferences } = useUserPreferences();
   
   const {
     currentView,
@@ -30,9 +29,7 @@ const IndexContent: React.FC = () => {
     isTaskListOpen,
     setIsTaskListOpen,
     contextFilter,
-    setContextFilter,
-    selectedItems,
-    toggleSelection
+    setContextFilter
   } = useApp();
   
   const viewData = useViewDataContext();
@@ -42,53 +39,18 @@ const IndexContent: React.FC = () => {
     document.documentElement.setAttribute('data-theme', theme || 'light');
   }, [theme]);
 
-  // Props pour la sidebar
-  const sidebarProps = {
-    tasks: viewData.tasks.filter(t => !t.isCompleted),
-    mainTasks: viewData.mainTasks.filter(t => !t.isCompleted),
-    pinnedTasks: viewData.pinnedTasks,
-    recurringTaskIds: viewData.recurringTaskIds,
-    taskSchedules: viewData.taskSchedules,
-    onRemoveTask: viewData.removeTask,
-    onToggleExpansion: viewData.toggleTaskExpansion,
-    onToggleCompletion: viewData.toggleTaskCompletion,
-    onTogglePinTask: viewData.togglePinTask,
-    onAddTask: viewData.addTask,
-    onUpdateTask: viewData.updateTask,
-    onSetRecurring: viewData.handleSetRecurring,
-    onRemoveRecurring: viewData.handleRemoveRecurring,
-    onScheduleTask: viewData.handleScheduleTask,
-    getSubTasks: viewData.getSubTasks,
-    calculateTotalTime: viewData.calculateTotalTime,
-    canHaveSubTasks: viewData.canHaveSubTasks,
-    selectedTasks: selectedItems,
-    onToggleSelection: toggleSelection,
-    sidebarShowHabits: preferences.sidebarShowHabits,
-    sidebarShowProjects: preferences.sidebarShowProjects,
-    sidebarShowTeamTasks: preferences.sidebarShowTeamTasks,
-    todayHabits: viewData.todayHabits,
-    habitCompletions: viewData.habitCompletions,
-    habitStreaks: viewData.habitStreaks,
-    onToggleHabit: viewData.toggleHabitCompletion,
-    projects: viewData.projects,
-    projectTasks: viewData.projectTasks,
-    onToggleProjectTask: viewData.toggleProjectTaskCompletion,
-    teamTasks: viewData.teamTasks,
-    onToggleTeamTask: viewData.onToggleTeamTask
-  };
-
   return (
     <SidebarProvider defaultOpen={true}>
       <div className={`min-h-screen flex w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
-        {/* Desktop: AppSidebar */}
-        {!isMobile && <AppSidebar {...sidebarProps} />}
+        {/* Desktop: AppSidebar - zéro props grâce au contexte */}
+        {!isMobile && <AppSidebar />}
 
         {/* Mobile: Sidebar en drawer */}
         {isMobile && (
           <Sheet open={isTaskListOpen} onOpenChange={setIsTaskListOpen}>
             <SheetContent side="left" className="w-full sm:w-[400px] p-0">
               <div className="h-full min-h-0">
-                <AppSidebar {...sidebarProps} />
+                <AppSidebar />
               </div>
             </SheetContent>
           </Sheet>
@@ -132,12 +94,15 @@ const IndexContent: React.FC = () => {
 
 /**
  * Page principale - Wrapper avec providers
+ * Ordre: AppProvider > ViewDataProvider > SidebarProvider > IndexContent
  */
 const Index: React.FC = () => {
   return (
     <AppProvider defaultView="home">
       <ViewDataProvider>
-        <IndexContent />
+        <AppSidebarProvider>
+          <IndexContent />
+        </AppSidebarProvider>
       </ViewDataProvider>
     </AppProvider>
   );
