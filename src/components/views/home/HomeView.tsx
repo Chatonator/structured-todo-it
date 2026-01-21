@@ -9,9 +9,10 @@ import {
 } from 'lucide-react';
 import HomeHabitsSection from './HomeHabitsSection';
 import { ViewLayout } from '@/components/layout/view';
-import { useViewDataContext } from '@/contexts/ViewDataContext';
+import { useHomeViewData } from '@/hooks/view-data';
 import { useApp } from '@/contexts/AppContext';
 import { StatCard, TaskCard } from '@/components/primitives';
+import { useViewDataContext } from '@/contexts/ViewDataContext';
 
 interface HomeViewProps {
   className?: string;
@@ -19,39 +20,10 @@ interface HomeViewProps {
 
 const HomeView: React.FC<HomeViewProps> = ({ className }) => {
   const { setCurrentView } = useApp();
-  const {
-    tasks,
-    projects,
-    todayHabits,
-    habitCompletions,
-    habitStreaks,
-    habitsLoading,
-    toggleHabitCompletion,
-    calculateTotalTime
-  } = useViewDataContext();
+  const { data, state } = useHomeViewData();
+  const { habitCompletions, habitStreaks, toggleHabitCompletion, habitsLoading, calculateTotalTime } = useViewDataContext();
 
-  // Tâches actives seulement
-  const activeTasks = tasks.filter(t => !t.isCompleted);
-  
-  // Sélectionner les 6 tâches les plus importantes
-  const topTasks = activeTasks
-    .filter(t => t.level === 1)
-    .sort((a, b) => {
-      const aPriority = a.subCategory ? 5 - (parseInt(a.subCategory.slice(-1)) || 0) : 0;
-      const bPriority = b.subCategory ? 5 - (parseInt(b.subCategory.slice(-1)) || 0) : 0;
-      if (aPriority !== bPriority) return bPriority - aPriority;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    })
-    .slice(0, 6);
-
-  // Projet actif avec le plus de progression
-  const activeProject = projects
-    .filter(p => p.status === 'in-progress')
-    .sort((a, b) => (b.progress || 0) - (a.progress || 0))[0];
-
-  const completedHabitsCount = todayHabits.filter(h => habitCompletions[h.id]).length;
-  const completedTasksCount = tasks.filter(t => t.isCompleted).length;
-  const activeProjectsCount = projects.filter(p => p.status === 'in-progress').length;
+  const { topPriorityTasks, activeProject, todayHabits, stats } = data;
 
   return (
     <ViewLayout
@@ -60,23 +32,24 @@ const HomeView: React.FC<HomeViewProps> = ({ className }) => {
         subtitle: "Vue d'ensemble de votre journée",
         icon: <Home className="w-5 h-5" />
       }}
+      state={state.loading ? 'loading' : 'success'}
       className={className}
     >
       <div className="space-y-6 pb-20 md:pb-6">
-        {/* Stats rapides - Utilisation de StatCard */}
+        {/* Stats rapides */}
         <div className="grid grid-cols-3 gap-4">
           <StatCard
-            value={activeProjectsCount}
+            value={data.projects.filter(p => p.status === 'in-progress').length}
             label="Projets en cours"
             valueClassName="text-project"
           />
           <StatCard
-            value={`${completedHabitsCount}/${todayHabits.length}`}
+            value={`${Object.values(habitCompletions).filter(Boolean).length}/${todayHabits.length}`}
             label="Habitudes du jour"
             valueClassName="text-habit"
           />
           <StatCard
-            value={completedTasksCount}
+            value={stats.completedToday}
             label="Terminées"
             valueClassName="text-system-success"
           />
@@ -84,7 +57,7 @@ const HomeView: React.FC<HomeViewProps> = ({ className }) => {
 
         {/* Grille principale */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Tâches prioritaires - Utilisation de TaskCard */}
+          {/* Tâches prioritaires */}
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -104,13 +77,13 @@ const HomeView: React.FC<HomeViewProps> = ({ className }) => {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              {topTasks.length === 0 ? (
+              {topPriorityTasks.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
                   Aucune tâche prioritaire
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                  {topTasks.map(task => (
+                  {topPriorityTasks.map(task => (
                     <TaskCard
                       key={task.id}
                       task={task}

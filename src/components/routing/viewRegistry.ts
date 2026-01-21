@@ -8,13 +8,15 @@ import {
   Award,
   Grid3X3,
   CheckCircle,
-  Users
 } from 'lucide-react';
 
 // Base view props that all views should accept
 export interface BaseViewProps {
   className?: string;
 }
+
+// Loading variant for skeleton states
+export type LoadingVariant = 'cards' | 'list' | 'grid' | 'kanban' | 'timeline';
 
 // View configuration interface
 export interface ViewConfig {
@@ -26,17 +28,18 @@ export interface ViewConfig {
   order: number;
   group: 'main' | 'productivity' | 'tracking' | 'other';
   requiresAuth?: boolean;
+  loadingVariant?: LoadingVariant;
 }
 
-// Lazy load all views for performance
-const HomeView = lazy(() => import('@/components/views/HomeView'));
-const TasksView = lazy(() => import('@/components/views/TasksView'));
-const TimelineView = lazy(() => import('@/components/timeline/TimelineView'));
-const ProjectsView = lazy(() => import('@/components/projects/ProjectsView'));
-const HabitsView = lazy(() => import('@/components/habits/HabitsView'));
-const RewardsView = lazy(() => import('@/components/rewards/RewardsView'));
-const EisenhowerView = lazy(() => import('@/components/views/EisenhowerView'));
-const CompletedTasksView = lazy(() => import('@/components/views/CompletedTasksView'));
+// Lazy load all views - using new organized structure
+const HomeView = lazy(() => import('@/components/views/home/HomeView'));
+const TasksView = lazy(() => import('@/components/views/tasks/TasksView'));
+const CompletedTasksView = lazy(() => import('@/components/views/tasks/CompletedTasksView'));
+const TimelineView = lazy(() => import('@/components/views/timeline/TimelineView'));
+const ProjectsView = lazy(() => import('@/components/views/projects/ProjectsView'));
+const HabitsView = lazy(() => import('@/components/views/habits/HabitsView'));
+const RewardsView = lazy(() => import('@/components/views/rewards/RewardsView'));
+const EisenhowerView = lazy(() => import('@/components/views/eisenhower/EisenhowerView'));
 
 // View Registry - Single source of truth for all views
 export const viewRegistry: Record<string, ViewConfig> = {
@@ -48,6 +51,7 @@ export const viewRegistry: Record<string, ViewConfig> = {
     component: HomeView,
     order: 1,
     group: 'main',
+    loadingVariant: 'cards',
   },
   tasks: {
     id: 'tasks',
@@ -57,6 +61,7 @@ export const viewRegistry: Record<string, ViewConfig> = {
     component: TasksView,
     order: 2,
     group: 'main',
+    loadingVariant: 'list',
   },
   timeline: {
     id: 'timeline',
@@ -66,6 +71,7 @@ export const viewRegistry: Record<string, ViewConfig> = {
     component: TimelineView,
     order: 3,
     group: 'productivity',
+    loadingVariant: 'timeline',
   },
   projects: {
     id: 'projects',
@@ -75,6 +81,7 @@ export const viewRegistry: Record<string, ViewConfig> = {
     component: ProjectsView,
     order: 4,
     group: 'productivity',
+    loadingVariant: 'kanban',
   },
   habits: {
     id: 'habits',
@@ -84,6 +91,7 @@ export const viewRegistry: Record<string, ViewConfig> = {
     component: HabitsView,
     order: 5,
     group: 'tracking',
+    loadingVariant: 'cards',
   },
   rewards: {
     id: 'rewards',
@@ -93,6 +101,7 @@ export const viewRegistry: Record<string, ViewConfig> = {
     component: RewardsView,
     order: 6,
     group: 'tracking',
+    loadingVariant: 'cards',
   },
   eisenhower: {
     id: 'eisenhower',
@@ -102,6 +111,7 @@ export const viewRegistry: Record<string, ViewConfig> = {
     component: EisenhowerView,
     order: 7,
     group: 'productivity',
+    loadingVariant: 'grid',
   },
   completed: {
     id: 'completed',
@@ -111,6 +121,7 @@ export const viewRegistry: Record<string, ViewConfig> = {
     component: CompletedTasksView,
     order: 8,
     group: 'other',
+    loadingVariant: 'list',
   },
 };
 
