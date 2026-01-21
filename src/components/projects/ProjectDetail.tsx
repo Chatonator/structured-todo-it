@@ -11,7 +11,7 @@ import { KanbanBoard } from './KanbanBoard';
 import TaskModal from '@/components/task/TaskModal';
 import { 
   ArrowLeft, Edit, Plus, Calendar, Target, Trash2, 
-  Search, Filter, ArrowUpDown, X 
+  Search, Filter, ArrowUpDown, X, CheckCircle2 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Task, SubTaskCategory, SUB_CATEGORY_CONFIG } from '@/types/task';
@@ -37,7 +37,7 @@ type PriorityFilter = SubTaskCategory | 'all';
 export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDetailProps) => {
   const { tasksByStatus, updateTaskStatus, reloadTasks } = useProjectTasks(project.id);
   const { addTask, updateTask, removeTask } = useTasks();
-  const { deleteProject } = useProjects();
+  const { deleteProject, completeProject } = useProjects();
   const { toast } = useToast();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -140,6 +140,15 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
     }
   }, [project.id, project.name, deleteProject, onDelete]);
 
+  const handleComplete = useCallback(async () => {
+    if (window.confirm(`Marquer le projet "${project.name}" comme terminé ?`)) {
+      const success = await completeProject(project.id);
+      if (success && onDelete) {
+        onDelete(); // Retour à la liste après complétion
+      }
+    }
+  }, [project.id, project.name, completeProject, onDelete]);
+
   const handleTaskClick = useCallback((task: Task) => {
     setSelectedTask(task);
     setShowTaskModal(true);
@@ -234,6 +243,16 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
             <Edit className="w-4 h-4 mr-2" />
             Modifier
           </Button>
+          {project.status !== 'completed' && (
+            <Button 
+              variant="outline" 
+              onClick={handleComplete}
+              className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Terminer
+            </Button>
+          )}
           <Button variant="destructive" onClick={handleDelete}>
             <Trash2 className="w-4 h-4 mr-2" />
             Supprimer
