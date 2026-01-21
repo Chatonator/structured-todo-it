@@ -14,11 +14,11 @@ export interface SidebarData {
   // Tâches actives
   tasks: Task[];
   mainTasks: Task[];
-  pinnedTasks: Task[];
+  pinnedTasks: string[];
   
   // Récurrence
-  recurringTaskIds: Set<string>;
-  taskSchedules: Map<string, { startsAt: Date; isAllDay: boolean }>;
+  recurringTaskIds: string[];
+  taskSchedules: Record<string, any>;
   
   // Actions tâches
   onRemoveTask: (id: string) => void;
@@ -78,10 +78,10 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({ children }) =>
     // Tâches filtrées (actives uniquement)
     tasks: viewData.tasks.filter(t => !t.isCompleted),
     mainTasks: viewData.mainTasks.filter(t => !t.isCompleted),
-    pinnedTasks: viewData.pinnedTasks as Task[],
+    pinnedTasks: viewData.pinnedTasks as string[],
     
     // Récurrence
-    recurringTaskIds: viewData.recurringTaskIds,
+    recurringTaskIds: viewData.recurringTaskIds as string[],
     taskSchedules: viewData.taskSchedules,
     
     // Actions tâches
