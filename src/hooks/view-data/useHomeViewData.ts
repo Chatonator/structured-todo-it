@@ -15,24 +15,29 @@ export const useHomeViewData = () => {
     [viewData.tasks]
   );
 
-  // Tâches pinnées (déjà des Task[])
-  const pinnedTasks = useMemo(() => 
-    (viewData.pinnedTasks as Task[]).filter(t => !t.isCompleted),
+  // IDs des tâches pinnées
+  const pinnedTaskIds = useMemo(() => 
+    new Set(viewData.pinnedTasks as string[]),
     [viewData.pinnedTasks]
+  );
+
+  // Tâches pinnées (résolution des IDs en Task[])
+  const pinnedTasks = useMemo(() => 
+    activeTasks.filter(t => pinnedTaskIds.has(t.id)),
+    [activeTasks, pinnedTaskIds]
   );
 
   // Top 5 tâches prioritaires
   const topPriorityTasks = useMemo(() => {
     const pinnedActive = pinnedTasks.slice(0, 3);
-    const pinnedIds = new Set(pinnedActive.map(t => t.id));
     
     const others = activeTasks
-      .filter(t => !t.parentId && !pinnedIds.has(t.id))
+      .filter(t => !t.parentId && !pinnedTaskIds.has(t.id))
       .sort((a, b) => a.estimatedTime - b.estimatedTime)
       .slice(0, 5 - pinnedActive.length);
     
     return [...pinnedActive, ...others];
-  }, [activeTasks, pinnedTasks]);
+  }, [activeTasks, pinnedTasks, pinnedTaskIds]);
 
   // Projet actif
   const activeProject = useMemo(() => {
