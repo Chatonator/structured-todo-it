@@ -11,8 +11,11 @@ import { KanbanBoard } from './KanbanBoard';
 import TaskModal from '@/components/task/TaskModal';
 import { 
   ArrowLeft, Edit, Plus, Calendar, Target, Trash2, 
-  Search, Filter, ArrowUpDown, X, CheckCircle2 
+  Search, Filter, ArrowUpDown, X, CheckCircle2, ListPlus,
+  Eye, EyeOff
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Task, SubTaskCategory, SUB_CATEGORY_CONFIG } from '@/types/task';
 import {
@@ -37,7 +40,7 @@ type PriorityFilter = SubTaskCategory | 'all';
 export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDetailProps) => {
   const { tasksByStatus, updateTaskStatus, reloadTasks } = useProjectTasks(project.id);
   const { addTask, updateTask, removeTask } = useTasks();
-  const { deleteProject, completeProject } = useProjects();
+  const { deleteProject, completeProject, updateProject } = useProjects();
   const { toast } = useToast();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -149,6 +152,20 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
     }
   }, [project.id, project.name, completeProject, onDelete]);
 
+  // Toggle sidebar visibility for project tasks
+  const handleToggleSidebar = useCallback(async () => {
+    const currentValue = (project as any).showInSidebar ?? false;
+    await updateProject(project.id, { 
+      showInSidebar: !currentValue 
+    } as any);
+    toast({
+      title: currentValue ? "Masqué de la sidebar" : "Affiché dans la sidebar",
+      description: currentValue 
+        ? "Les tâches de ce projet ne s'affichent plus dans la sidebar"
+        : "Les tâches de ce projet apparaissent maintenant dans la sidebar",
+    });
+  }, [project, updateProject, toast]);
+
   const handleTaskClick = useCallback((task: Task) => {
     setSelectedTask(task);
     setShowTaskModal(true);
@@ -238,7 +255,23 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          {/* Toggle sidebar visibility */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-card">
+            <Switch
+              id="show-in-sidebar"
+              checked={(project as any).showInSidebar ?? false}
+              onCheckedChange={handleToggleSidebar}
+            />
+            <Label htmlFor="show-in-sidebar" className="text-sm cursor-pointer flex items-center gap-1">
+              {(project as any).showInSidebar ? (
+                <><Eye className="w-4 h-4 text-project" /> Sidebar</>
+              ) : (
+                <><EyeOff className="w-4 h-4 text-muted-foreground" /> Sidebar</>
+              )}
+            </Label>
+          </div>
+
           <Button variant="outline" onClick={onEdit}>
             <Edit className="w-4 h-4 mr-2" />
             Modifier
@@ -257,9 +290,13 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
             <Trash2 className="w-4 h-4 mr-2" />
             Supprimer
           </Button>
-          <Button onClick={handleCreateTask}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nouvelle tâche
+          {/* Project-specific new task button - differentiated style */}
+          <Button 
+            onClick={handleCreateTask}
+            className="bg-project hover:bg-project/90 text-white"
+          >
+            <ListPlus className="w-4 h-4 mr-2" />
+            Ajouter au projet
           </Button>
         </div>
       </div>

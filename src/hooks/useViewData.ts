@@ -53,6 +53,8 @@ export const useViewData = () => {
     // ===== Projets =====
     projects: projectsData.projects,
     projectTasks: projectsData.projectTasks,
+    sidebarProjects: projectsData.sidebarProjects,
+    sidebarProjectTasks: projectsData.sidebarProjectTasks,
     toggleProjectTaskCompletion: projectsData.toggleProjectTaskCompletion,
     
     // ===== Habitudes =====
