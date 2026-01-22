@@ -10,7 +10,7 @@ import { Project, ProjectStatus } from '@/types/project';
 import { Item, ItemMetadata } from '@/types/item';
 
 // Convert Item to Project for backward compatibility
-function itemToProject(item: Item): Project {
+function itemToProject(item: Item): Project & { showInSidebar?: boolean } {
   const meta = item.metadata || {};
   return {
     id: item.id,
@@ -26,11 +26,12 @@ function itemToProject(item: Item): Project {
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     completedAt: meta.completedAt ? new Date(meta.completedAt as unknown as string) : undefined,
+    showInSidebar: (meta.showInSidebar as boolean) || false,
   };
 }
 
 // Convert Project to Item metadata
-function projectToItemMetadata(project: Partial<Project>): Partial<ItemMetadata> {
+function projectToItemMetadata(project: Partial<Project & { showInSidebar?: boolean }>): Partial<ItemMetadata> {
   return {
     description: project.description,
     icon: project.icon,
@@ -39,6 +40,7 @@ function projectToItemMetadata(project: Partial<Project>): Partial<ItemMetadata>
     targetDate: project.targetDate,
     progress: project.progress,
     completedAt: project.completedAt,
+    showInSidebar: project.showInSidebar,
     // Required harmonized fields
     category: 'Projet' as any,
     context: 'Perso' as any,
@@ -204,6 +206,61 @@ export const useProjects = () => {
     }
   }, [updateItem]);
 
+  // Create project from an existing task (with its subtasks)
+  const createProjectFromTask = useCallback(async (
+    taskId: string,
+    taskName: string,
+    subTasks: { id: string; name: string }[],
+    projectData?: { description?: string; icon?: string; color?: string }
+  ) => {
+    try {
+      // 1. Create the project
+      const project = await createProject(
+        projectData?.description ? `${taskName}` : taskName,
+        projectData?.description,
+        projectData?.icon || '📁',
+        projectData?.color || '#a78bfa'
+      );
+
+      if (!project) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de créer le projet",
+          variant: "destructive"
+        });
+        return null;
+      }
+
+      // 2. Assign all subtasks to the new project
+      for (const subTask of subTasks) {
+        await assignTaskToProject(subTask.id, project.id);
+      }
+
+      // 3. Archive the original task (mark as completed)
+      await updateItem(taskId, {
+        isCompleted: true,
+        metadata: {
+          archivedToProject: project.id,
+          archivedAt: new Date()
+        }
+      });
+
+      toast({
+        title: "🎉 Projet créé !",
+        description: `"${taskName}" a été converti en projet avec ${subTasks.length} tâche(s)`,
+      });
+
+      return project;
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le projet depuis la tâche",
+        variant: "destructive"
+      });
+      return null;
+    }
+  }, [createProject, assignTaskToProject, updateItem, toast]);
+
   return {
     projects,
     loading,
@@ -213,6 +270,7 @@ export const useProjects = () => {
     deleteProject,
     completeProject,
     assignTaskToProject,
+    createProjectFromTask,
     reloadProjects: reload
   };
 };

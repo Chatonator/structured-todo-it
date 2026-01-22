@@ -9,6 +9,7 @@ interface ProjectTaskForSidebar {
   task: Task;
   projectName: string;
   projectIcon?: string;
+  projectColor?: string;
 }
 
 interface SidebarProjectsSectionProps {
@@ -49,10 +50,11 @@ export const SidebarProjectsSection: React.FC<SidebarProjectsSectionProps> = ({
 
       {!isCollapsed && (
         <div className="px-3 pb-3 space-y-1">
-          {activeTasks.map(({ task, projectName, projectIcon }) => (
+          {activeTasks.map(({ task, projectName, projectIcon, projectColor }) => (
             <div
               key={task.id}
               className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors border-l-4 border-l-project"
+              style={{ borderLeftColor: projectColor || 'hsl(var(--project))' }}
             >
               <Checkbox
                 checked={task.isCompleted}
@@ -62,7 +64,14 @@ export const SidebarProjectsSection: React.FC<SidebarProjectsSectionProps> = ({
                 <span className="text-sm truncate block">
                   {task.name}
                 </span>
-                <Badge variant="outline" className="text-xs mt-0.5 text-project border-project/30">
+                <Badge 
+                  variant="outline" 
+                  className="text-xs mt-0.5 text-project border-project/30"
+                  style={{ 
+                    color: projectColor || 'hsl(var(--project))',
+                    borderColor: projectColor ? `${projectColor}40` : undefined
+                  }}
+                >
                   {projectIcon && <span className="mr-1">{projectIcon}</span>}
                   {projectName}
                 </Badge>

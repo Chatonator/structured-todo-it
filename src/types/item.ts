@@ -118,6 +118,13 @@ export interface SubtaskMetadata extends TaskMetadata {
   level: 1 | 2;
 }
 
+export interface KanbanColumnConfig {
+  id: string;
+  name: string;
+  color: string;
+  order: number;
+}
+
 export interface ProjectMetadata {
   description?: string;
   icon?: string;
@@ -126,6 +133,8 @@ export interface ProjectMetadata {
   targetDate?: Date;
   progress: number;
   completedAt?: Date;
+  showInSidebar?: boolean;
+  kanbanColumns?: KanbanColumnConfig[];
 }
 
 export interface ProjectTaskMetadata {

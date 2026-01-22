@@ -63,6 +63,8 @@ const AppSidebar: React.FC = () => {
     onToggleHabit,
     projects,
     projectTasks,
+    sidebarProjects,
+    sidebarProjectTasks,
     onToggleProjectTask,
     teamTasks,
     onToggleTeamTask
@@ -299,9 +301,9 @@ const AppSidebar: React.FC = () => {
             />
           )}
 
-          {sidebarShowProjects && projectTasks.length > 0 && onToggleProjectTask && (
+          {sidebarShowProjects && sidebarProjectTasks.length > 0 && onToggleProjectTask && (
             <SidebarProjectsSection 
-              projectTasks={projectTasks} 
+              projectTasks={sidebarProjectTasks} 
               onToggleComplete={onToggleProjectTask}
             />
           )}

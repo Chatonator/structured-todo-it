@@ -52,6 +52,8 @@ export interface SidebarData {
   // Projets
   projects: Project[];
   projectTasks: any;
+  sidebarProjects: Project[];
+  sidebarProjectTasks: any[];
   onToggleProjectTask: (taskId: string) => void;
   
   // Équipe
@@ -116,6 +118,8 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({ children }) =>
     // Projets
     projects: viewData.projects,
     projectTasks: viewData.projectTasks,
+    sidebarProjects: viewData.sidebarProjects,
+    sidebarProjectTasks: viewData.sidebarProjectTasks,
     onToggleProjectTask: viewData.toggleProjectTaskCompletion,
     
     // Équipe
