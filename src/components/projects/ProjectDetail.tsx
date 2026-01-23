@@ -35,7 +35,7 @@ interface ProjectDetailProps {
 }
 
 type SortOption = 'none' | 'priority-high' | 'priority-low' | 'name' | 'time';
-type PriorityFilter = SubTaskCategory | 'all';
+type PriorityFilter = SubTaskCategory | 'all' | 'none';
 
 export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDetailProps) => {
   const { tasksByStatus, updateTaskStatus, reloadTasks } = useProjectTasks(project.id);
@@ -64,7 +64,11 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
     
     // Filtre par priorité
     if (priorityFilter !== 'all') {
-      filtered = filtered.filter(task => task.subCategory === priorityFilter);
+      if (priorityFilter === 'none') {
+        filtered = filtered.filter(task => !task.subCategory);
+      } else {
+        filtered = filtered.filter(task => task.subCategory === priorityFilter);
+      }
     }
     
     // Tri
@@ -217,6 +221,7 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
     { value: 'Important', label: '🟠 Important' },
     { value: 'Peut attendre', label: '🟡 Peut attendre' },
     { value: "Si j'ai le temps", label: '🟢 Si j\'ai le temps' },
+    { value: 'none', label: '⚪ Non définie' },
   ];
 
   const sortOptions: { value: SortOption; label: string }[] = [
