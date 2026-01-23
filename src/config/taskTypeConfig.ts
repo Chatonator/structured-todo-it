@@ -52,7 +52,7 @@ export const TASK_TYPE_CONFIGS: Record<TaskType, TaskTypeConfig> = {
   project: {
     showContextSelector: false,  // Pas de Pro/Perso pour les projets
     showCategorySelector: false, // Pas de catégories personnelles
-    showPrioritySelector: true,  // Priorité utile
+    showPrioritySelector: true,  // Priorité requise pour les projets
     showScheduling: true,
     showRecurrence: false,       // Projets rarement récurrents
     showAssignment: false,
@@ -67,7 +67,7 @@ export const TASK_TYPE_CONFIGS: Record<TaskType, TaskTypeConfig> = {
       context: 'Pro',           // Défaut Pro pour les projets
       category: 'Quotidien'     // Catégorie neutre par défaut
     },
-    requiredFields: ['name', 'estimatedTime']
+    requiredFields: ['name', 'estimatedTime', 'subCategory']  // Priorité requise
   },
   team: {
     showContextSelector: false,  // Pas de Pro/Perso pour les équipes

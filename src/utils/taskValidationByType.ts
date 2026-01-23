@@ -53,10 +53,15 @@ export function validateTaskByType(
     }
   }
 
-  // Validation de la priorité pour les sous-tâches
-  if (isSubTask && config.showPrioritySelector) {
+  // Validation de la priorité pour les sous-tâches (toujours requise)
+  // ou si explicitement requise dans requiredFields
+  if (config.showPrioritySelector && config.requiredFields.includes('subCategory')) {
     if (!draft.subCategory) {
       errors.push('La priorité est requise');
+    }
+  } else if (isSubTask && config.showPrioritySelector) {
+    if (!draft.subCategory) {
+      errors.push('La priorité est requise pour les sous-tâches');
     }
   }
 
