@@ -177,7 +177,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
           category: parentTask 
             ? parentTask.category 
             : (draft.category || config.defaults.category || 'Quotidien') as TaskCategory,
-          subCategory: parentTask ? draft.subCategory as SubTaskCategory : undefined,
+          // Toujours inclure subCategory si elle est définie (pour sous-tâches ET tâches projet)
+          subCategory: draft.subCategory ? draft.subCategory as SubTaskCategory : undefined,
           context: (draft.context || config.defaults.context || 'Pro') as TaskContext,
           estimatedTime: Number(draft.estimatedTime),
           parentId: parentTask?.id,
