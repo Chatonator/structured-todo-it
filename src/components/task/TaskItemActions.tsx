@@ -74,10 +74,21 @@ const TaskItemActions: React.FC<TaskItemActionsProps> = ({
     
     setIsConverting(true);
     try {
+      // Pass full metadata from subtasks to preserve priority (subCategory)
       await createProjectFromTask(
         task.id,
         projectName,
-        subTasks.map(st => ({ id: st.id, name: st.name })),
+        subTasks.map(st => ({ 
+          id: st.id, 
+          name: st.name,
+          metadata: {
+            category: st.category,
+            subCategory: st.subCategory,
+            context: st.context,
+            estimatedTime: st.estimatedTime,
+            duration: st.duration,
+          }
+        })),
         { description: projectDescription }
       );
       setShowConvertDialog(false);

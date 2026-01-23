@@ -186,19 +186,24 @@ export const useProjects = () => {
     }
   }, [projects, items, updateItem, toast, rewardProjectCompletion]);
 
-  // Assign task to project
+  // Assign task to project (preserves existing metadata like subCategory)
   const assignTaskToProject = useCallback(async (
     taskId: string,
-    projectId: string | null
+    projectId: string | null,
+    existingMetadata?: Record<string, unknown>
   ) => {
     try {
+      // Merge existing metadata with new project-specific fields
+      const mergedMetadata: Partial<ItemMetadata> = {
+        ...existingMetadata,
+        projectId: projectId || undefined,
+        projectStatus: projectId ? 'todo' as const : undefined,
+      };
+      
       await updateItem(taskId, {
         parentId: projectId,
         contextType: projectId ? 'project_task' : 'task',
-        metadata: {
-          projectId: projectId || undefined,
-          projectStatus: projectId ? 'todo' : undefined,
-        }
+        metadata: mergedMetadata
       });
       return true;
     } catch (error: any) {
@@ -207,10 +212,11 @@ export const useProjects = () => {
   }, [updateItem]);
 
   // Create project from an existing task (with its subtasks)
+  // subTasks should include full metadata to preserve priority (subCategory)
   const createProjectFromTask = useCallback(async (
     taskId: string,
     taskName: string,
-    subTasks: { id: string; name: string }[],
+    subTasks: { id: string; name: string; metadata?: Record<string, unknown> }[],
     projectData?: { description?: string; icon?: string; color?: string }
   ) => {
     try {
@@ -231,9 +237,9 @@ export const useProjects = () => {
         return null;
       }
 
-      // 2. Assign all subtasks to the new project
+      // 2. Assign all subtasks to the new project, preserving their metadata
       for (const subTask of subTasks) {
-        await assignTaskToProject(subTask.id, project.id);
+        await assignTaskToProject(subTask.id, project.id, subTask.metadata);
       }
 
       // 3. Archive the original task (mark as completed)
