@@ -27,6 +27,7 @@ import {
   Edit,
   Split,
   FolderPlus,
+  FolderKanban,
   Pin,
   PinOff,
   Trash2,
@@ -67,6 +68,7 @@ interface SidebarTaskItemProps {
   onCreateSubTask: (task: Task) => void;
   onEditTask: (task: Task) => void;
   onAssignToProject: (taskId: string, projectId: string) => Promise<boolean>;
+  onCreateProjectFromTask: (task: Task, subTasks: Task[]) => void;
   onSetRecurring?: (taskId: string, taskName: string, estimatedTime: number, frequency: string, interval: number) => void;
   onRemoveRecurring?: (taskId: string) => void;
   onScheduleTask?: (taskId: string, date: Date, time: string) => void;
@@ -112,6 +114,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   onCreateSubTask,
   onEditTask,
   onAssignToProject,
+  onCreateProjectFromTask,
   onSetRecurring,
   onRemoveRecurring,
   onScheduleTask,
@@ -284,6 +287,14 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
                     ))}
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+              )}
+
+              {/* Option Créer un projet - pour les tâches niveau 0 */}
+              {task.level === 0 && (
+                <DropdownMenuItem onClick={() => onCreateProjectFromTask(task, subTasks)}>
+                  <FolderKanban className="w-4 h-4 mr-2 text-violet-500" />
+                  Créer un projet
+                </DropdownMenuItem>
               )}
 
               {/* Option Récurrence */}

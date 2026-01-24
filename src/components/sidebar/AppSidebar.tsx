@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils';
 const AppSidebar: React.FC = () => {
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === 'collapsed';
-  const { assignTaskToProject } = useProjects();
+  const { assignTaskToProject, createProjectFromTask } = useProjects();
 
   // Récupérer toutes les données depuis le contexte
   const {
@@ -191,6 +191,26 @@ const AppSidebar: React.FC = () => {
     return success;
   };
 
+  // Créer un projet à partir d'une tâche (avec ses sous-tâches)
+  const handleCreateProjectFromTask = async (task: Task, subTasks: Task[]) => {
+    await createProjectFromTask(
+      task.id,
+      task.name,
+      subTasks.map(st => ({
+        id: st.id,
+        name: st.name,
+        metadata: {
+          category: st.category,
+          subCategory: st.subCategory,
+          context: st.context,
+          estimatedTime: st.estimatedTime,
+          duration: st.duration,
+        }
+      })),
+      { description: `Projet créé à partir de la tâche "${task.name}"` }
+    );
+  };
+
   // Rendu récursif d'une tâche avec ses sous-tâches
   const renderTask = (task: Task, level: number = 0): React.ReactNode => {
     const subTasks = getSubTasks(task.id).filter(t => !t.isCompleted);
@@ -220,6 +240,7 @@ const AppSidebar: React.FC = () => {
           onCreateSubTask={handleCreateSubTask}
           onEditTask={handleEditTask}
           onAssignToProject={handleAssignToProject}
+          onCreateProjectFromTask={handleCreateProjectFromTask}
           onSetRecurring={onSetRecurring}
           onRemoveRecurring={onRemoveRecurring}
           onScheduleTask={onScheduleTask}
