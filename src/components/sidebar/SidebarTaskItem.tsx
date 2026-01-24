@@ -26,8 +26,8 @@ import {
   Check,
   Edit,
   Split,
-  FolderPlus,
   FolderKanban,
+  Plus,
   Pin,
   PinOff,
   Trash2,
@@ -270,31 +270,36 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
                 </DropdownMenuItem>
               )}
 
-              {projects.length > 0 && (
+              {/* Menu Projets unifié */}
+              {(projects.length > 0 || task.level === 0) && (
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    <FolderPlus className="w-4 h-4 mr-2" />
-                    Ajouter au projet
+                    <FolderKanban className="w-4 h-4 mr-2 text-project" />
+                    Projets
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="bg-popover z-50">
+                    {/* Option créer un projet - uniquement pour tâches niveau 0 */}
+                    {task.level === 0 && (
+                      <>
+                        <DropdownMenuItem onClick={() => onCreateProjectFromTask(task, subTasks)}>
+                          <Plus className="w-4 h-4 mr-2 text-project" />
+                          Créer un projet
+                        </DropdownMenuItem>
+                        {projects.length > 0 && <DropdownMenuSeparator />}
+                      </>
+                    )}
+                    {/* Liste des projets existants */}
                     {projects.map(project => (
                       <DropdownMenuItem
                         key={project.id}
                         onClick={() => onAssignToProject(task.id, project.id)}
                       >
-                        {project.icon} {project.name}
+                        <span className="mr-2">{project.icon}</span>
+                        {project.name}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
-              )}
-
-              {/* Option Créer un projet - pour les tâches niveau 0 */}
-              {task.level === 0 && (
-                <DropdownMenuItem onClick={() => onCreateProjectFromTask(task, subTasks)}>
-                  <FolderKanban className="w-4 h-4 mr-2 text-violet-500" />
-                  Créer un projet
-                </DropdownMenuItem>
               )}
 
               {/* Option Récurrence */}
