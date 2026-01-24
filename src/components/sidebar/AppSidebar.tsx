@@ -322,7 +322,8 @@ const AppSidebar: React.FC = () => {
             />
           )}
 
-          {sidebarShowProjects && sidebarProjectTasks.length > 0 && onToggleProjectTask && (
+          {/* Section Projets - s'affiche si des projets ont showInSidebar activé */}
+          {sidebarProjectTasks.length > 0 && onToggleProjectTask && (
             <SidebarProjectsSection 
               projectTasks={sidebarProjectTasks} 
               onToggleComplete={onToggleProjectTask}

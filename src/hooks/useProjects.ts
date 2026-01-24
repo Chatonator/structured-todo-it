@@ -111,15 +111,27 @@ export const useProjects = () => {
   // Update project
   const updateProject = useCallback(async (
     projectId: string,
-    updates: Partial<Project>
+    updates: Partial<Project & { showInSidebar?: boolean }>
   ) => {
     try {
       const item = items.find(i => i.id === projectId);
       if (!item) return false;
 
+      // Build metadata updates properly, only including fields that are being updated
+      const metadataUpdates: Record<string, unknown> = {};
+      
+      if (updates.description !== undefined) metadataUpdates.description = updates.description;
+      if (updates.icon !== undefined) metadataUpdates.icon = updates.icon;
+      if (updates.color !== undefined) metadataUpdates.color = updates.color;
+      if (updates.status !== undefined) metadataUpdates.status = updates.status;
+      if (updates.targetDate !== undefined) metadataUpdates.targetDate = updates.targetDate;
+      if (updates.progress !== undefined) metadataUpdates.progress = updates.progress;
+      if (updates.completedAt !== undefined) metadataUpdates.completedAt = updates.completedAt;
+      if (updates.showInSidebar !== undefined) metadataUpdates.showInSidebar = updates.showInSidebar;
+
       await updateItem(projectId, {
         name: updates.name ?? item.name,
-        metadata: { ...item.metadata, ...projectToItemMetadata(updates) },
+        metadata: { ...item.metadata, ...metadataUpdates },
       });
 
       return true;
