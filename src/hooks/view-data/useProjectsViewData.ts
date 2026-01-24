@@ -30,9 +30,7 @@ export const useProjectsViewData = () => {
 
   // Tasks from projects that should show in sidebar
   const sidebarProjectTasks = useMemo(() => 
-    projectTasks.filter(pt => 
-      sidebarProjects.some(p => p.id === pt.task.projectId)
-    ),
+    projectTasks.filter(pt => sidebarProjects.some(p => p.id === pt.task.projectId)),
     [projectTasks, sidebarProjects]
   );
 

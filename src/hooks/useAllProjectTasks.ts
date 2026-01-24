@@ -11,6 +11,7 @@ interface ProjectTaskWithInfo {
   task: Task;
   projectName: string;
   projectIcon?: string;
+  projectColor?: string;
 }
 
 export const useAllProjectTasks = (projects: Project[]) => {
@@ -45,7 +46,8 @@ export const useAllProjectTasks = (projects: Project[]) => {
       return {
         task,
         projectName: project?.name || 'Projet',
-        projectIcon: project?.icon
+        projectIcon: project?.icon,
+        projectColor: project?.color
       };
     });
   }, [projectTasks, projects]);
