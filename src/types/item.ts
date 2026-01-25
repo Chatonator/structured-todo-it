@@ -55,7 +55,7 @@ export interface ItemMetadata {
   duration?: number;
   level?: 0 | 1 | 2;
   isExpanded?: boolean;
-  projectStatus?: TaskProjectStatus;
+  projectStatus?: string; // Dynamic status for custom Kanban columns
   projectId?: string;
   
   // === Project-specific ===
@@ -143,7 +143,7 @@ export interface ProjectTaskMetadata {
   context: TaskContext;
   estimatedTime: number;
   duration?: number;
-  projectStatus: TaskProjectStatus;
+  projectStatus: string; // Dynamic status for custom Kanban columns
 }
 
 export interface HabitMetadata {

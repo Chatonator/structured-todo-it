@@ -4,8 +4,12 @@
 
 import { useCallback, useMemo } from 'react';
 import { useItems } from './useItems';
-import { TaskProjectStatus } from '@/types/project';
 import { itemToTask } from '@/utils/itemConverters';
+import { KanbanColumnConfig } from '@/types/item';
+import { Task } from '@/types/task';
+
+// Default columns for backward compatibility
+const DEFAULT_COLUMN_IDS = ['todo', 'in-progress', 'done'];
 
 export const useProjectTasks = (projectId: string | null) => {
   const { 
@@ -26,14 +30,16 @@ export const useProjectTasks = (projectId: string | null) => {
   // Convert to tasks
   const tasks = useMemo(() => projectItems.map(itemToTask), [projectItems]);
 
-  // Update task status (kanban)
+  // Update task status (kanban) - supports custom column IDs
   const updateTaskStatus = useCallback(async (
     taskId: string,
-    newStatus: TaskProjectStatus
+    newStatus: string
   ): Promise<boolean> => {
     const item = projectItems.find(i => i.id === taskId);
     if (!item) return false;
 
+    // Consider task completed if status is 'done' (default) or any custom "done-like" column
+    // For custom columns, we keep isCompleted logic simple: only 'done' marks it complete
     const isCompleted = newStatus === 'done';
     
     try {
@@ -47,7 +53,31 @@ export const useProjectTasks = (projectId: string | null) => {
     }
   }, [projectItems, updateItem]);
 
-  // Tasks grouped by status for Kanban board
+  // Tasks grouped by status for Kanban board (supports dynamic columns)
+  const getTasksByColumns = useCallback((columns?: KanbanColumnConfig[]): Record<string, Task[]> => {
+    const columnIds = columns?.map(c => c.id) || DEFAULT_COLUMN_IDS;
+    
+    const result: Record<string, Task[]> = {};
+    columnIds.forEach(id => {
+      result[id] = [];
+    });
+
+    tasks.forEach(task => {
+      const status = task.projectStatus || 'todo';
+      // If status matches a column, add it there; otherwise default to first column
+      if (result[status]) {
+        result[status].push(task);
+      } else {
+        // Fallback to first column if status doesn't match any column
+        const firstColumn = columnIds[0] || 'todo';
+        result[firstColumn]?.push(task);
+      }
+    });
+
+    return result;
+  }, [tasks]);
+
+  // Legacy tasksByStatus for backward compatibility (3 default columns)
   const tasksByStatus = useMemo(() => ({
     todo: tasks.filter(t => !t.projectStatus || t.projectStatus === 'todo'),
     inProgress: tasks.filter(t => t.projectStatus === 'in-progress'),
@@ -58,6 +88,7 @@ export const useProjectTasks = (projectId: string | null) => {
     tasks,
     loading,
     tasksByStatus,
+    getTasksByColumns,
     updateTaskStatus,
     reloadTasks: reload
   };
