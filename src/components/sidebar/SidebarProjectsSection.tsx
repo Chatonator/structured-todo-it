@@ -62,14 +62,14 @@ export const SidebarProjectsSection: React.FC<SidebarProjectsSectionProps> = ({
               rightSlot={
                 <Badge 
                   variant="outline" 
-                  className="text-xs text-project border-project/30"
+                  className="text-xs px-1.5 py-0"
                   style={{ 
-                    color: projectColor || undefined,
-                    borderColor: projectColor ? `${projectColor}40` : undefined
+                    color: projectColor || 'hsl(var(--project))',
+                    borderColor: projectColor ? `${projectColor}40` : 'hsl(var(--project) / 0.3)'
                   }}
                 >
-                  {projectIcon && <span className="mr-1">{projectIcon}</span>}
-                  {projectName}
+                  {projectIcon && <span>{projectIcon}</span>}
+                  {!projectIcon && projectName}
                 </Badge>
               }
             />
