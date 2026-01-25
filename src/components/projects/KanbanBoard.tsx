@@ -29,7 +29,7 @@ const PriorityBadge = ({ priority }: { priority?: SubTaskCategory }) => {
   );
 };
 
-interface KanbanColumn {
+export interface KanbanColumn {
   id: string;
   name: string;
   color: string;
@@ -37,51 +37,33 @@ interface KanbanColumn {
 }
 
 interface KanbanBoardProps {
-  tasks: {
-    todo: Task[];
-    inProgress: Task[];
-    done: Task[];
-  };
+  // Dynamic tasks by column ID
+  tasksByColumn: Record<string, Task[]>;
   columns?: KanbanColumn[];
-  onStatusChange: (taskId: string, newStatus: TaskProjectStatus) => void;
+  onStatusChange: (taskId: string, newStatus: string) => void;
   onTaskClick: (task: Task) => void;
   onToggleComplete: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
 }
 
-const DEFAULT_COLUMNS: KanbanColumn[] = [
+export const DEFAULT_COLUMNS: KanbanColumn[] = [
   { id: 'todo', name: 'À faire', color: 'bg-muted', order: 0 },
   { id: 'in-progress', name: 'En cours', color: 'bg-project/10', order: 1 },
   { id: 'done', name: 'Terminé', color: 'bg-green-50 dark:bg-green-900/20', order: 2 }
 ];
 
 const KanbanBoardComponent = ({ 
-  tasks, 
+  tasksByColumn, 
   columns = DEFAULT_COLUMNS,
   onStatusChange, 
   onTaskClick,
   onToggleComplete,
   onDeleteTask
 }: KanbanBoardProps) => {
-  // Map columns to tasks
+  // Get tasks for a column from the dynamic map
   const getTasksForColumn = useCallback((columnId: string): Task[] => {
-    switch (columnId) {
-      case 'todo': return tasks.todo;
-      case 'in-progress': return tasks.inProgress;
-      case 'done': return tasks.done;
-      default: return [];
-    }
-  }, [tasks]);
-
-  // Map column id to TaskProjectStatus
-  const columnIdToStatus = useCallback((columnId: string): TaskProjectStatus => {
-    switch (columnId) {
-      case 'todo': return 'todo';
-      case 'in-progress': return 'in-progress';
-      case 'done': return 'done';
-      default: return 'todo';
-    }
-  }, []);
+    return tasksByColumn[columnId] || [];
+  }, [tasksByColumn]);
 
   const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('taskId', taskId);
@@ -95,9 +77,10 @@ const KanbanBoardComponent = ({
     e.preventDefault();
     const taskId = e.dataTransfer.getData('taskId');
     if (taskId) {
-      onStatusChange(taskId, columnIdToStatus(columnId));
+      // Use column ID directly as the status (supports custom columns)
+      onStatusChange(taskId, columnId);
     }
-  }, [onStatusChange, columnIdToStatus]);
+  }, [onStatusChange]);
 
   const handleDeleteClick = useCallback((e: React.MouseEvent, taskId: string) => {
     e.stopPropagation();
@@ -107,9 +90,16 @@ const KanbanBoardComponent = ({
   }, [onDeleteTask]);
 
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
+  
+  // Dynamic grid columns based on number of columns
+  const gridCols = sortedColumns.length <= 3 
+    ? 'md:grid-cols-3' 
+    : sortedColumns.length <= 4 
+      ? 'md:grid-cols-4' 
+      : 'md:grid-cols-5';
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className={`grid grid-cols-1 ${gridCols} gap-4`}>
       {sortedColumns.map((column) => {
         const columnTasks = getTasksForColumn(column.id);
         
@@ -187,7 +177,3 @@ const KanbanBoardComponent = ({
 
 // React.memo pour éviter les re-renders inutiles
 export const KanbanBoard = React.memo(KanbanBoardComponent);
-
-// Export default columns for use in other components
-export { DEFAULT_COLUMNS };
-export type { KanbanColumn };

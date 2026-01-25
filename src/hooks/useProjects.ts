@@ -7,10 +7,16 @@ import { useItems } from './useItems';
 import { useGamification } from './useGamification';
 import { useToast } from './use-toast';
 import { Project, ProjectStatus } from '@/types/project';
-import { Item, ItemMetadata } from '@/types/item';
+import { Item, ItemMetadata, KanbanColumnConfig } from '@/types/item';
+
+// Extended Project type with kanban columns
+export interface ProjectWithKanban extends Project {
+  showInSidebar?: boolean;
+  kanbanColumns?: KanbanColumnConfig[];
+}
 
 // Convert Item to Project for backward compatibility
-function itemToProject(item: Item): Project & { showInSidebar?: boolean } {
+function itemToProject(item: Item): ProjectWithKanban {
   const meta = item.metadata || {};
   return {
     id: item.id,
@@ -27,11 +33,12 @@ function itemToProject(item: Item): Project & { showInSidebar?: boolean } {
     updatedAt: item.updatedAt,
     completedAt: meta.completedAt ? new Date(meta.completedAt as unknown as string) : undefined,
     showInSidebar: (meta.showInSidebar as boolean) || false,
+    kanbanColumns: meta.kanbanColumns as KanbanColumnConfig[] | undefined,
   };
 }
 
 // Convert Project to Item metadata
-function projectToItemMetadata(project: Partial<Project & { showInSidebar?: boolean }>): Partial<ItemMetadata> {
+function projectToItemMetadata(project: Partial<ProjectWithKanban>): Partial<ItemMetadata> {
   return {
     description: project.description,
     icon: project.icon,
@@ -41,6 +48,7 @@ function projectToItemMetadata(project: Partial<Project & { showInSidebar?: bool
     progress: project.progress,
     completedAt: project.completedAt,
     showInSidebar: project.showInSidebar,
+    kanbanColumns: project.kanbanColumns,
     // Required harmonized fields
     category: 'Projet' as any,
     context: 'Perso' as any,
@@ -111,7 +119,7 @@ export const useProjects = () => {
   // Update project
   const updateProject = useCallback(async (
     projectId: string,
-    updates: Partial<Project & { showInSidebar?: boolean }>
+    updates: Partial<ProjectWithKanban>
   ) => {
     try {
       const item = items.find(i => i.id === projectId);
@@ -128,6 +136,7 @@ export const useProjects = () => {
       if (updates.progress !== undefined) metadataUpdates.progress = updates.progress;
       if (updates.completedAt !== undefined) metadataUpdates.completedAt = updates.completedAt;
       if (updates.showInSidebar !== undefined) metadataUpdates.showInSidebar = updates.showInSidebar;
+      if (updates.kanbanColumns !== undefined) metadataUpdates.kanbanColumns = updates.kanbanColumns;
 
       await updateItem(projectId, {
         name: updates.name ?? item.name,

@@ -2,17 +2,18 @@ import { useState, useMemo, useCallback } from 'react';
 import { Project, PROJECT_STATUS_CONFIG } from '@/types/project';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
 import { useTasks } from '@/hooks/useTasks';
-import { useProjects } from '@/hooks/useProjects';
+import { useProjects, ProjectWithKanban } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import { KanbanBoard } from './KanbanBoard';
+import { KanbanBoard, DEFAULT_COLUMNS, KanbanColumn } from './KanbanBoard';
+import { KanbanColumnManager } from './KanbanColumnManager';
 import TaskModal from '@/components/task/TaskModal';
 import { 
   ArrowLeft, Edit, Plus, Calendar, Target, Trash2, 
   Search, Filter, ArrowUpDown, X, CheckCircle2, ListPlus,
-  Eye, EyeOff
+  Eye, EyeOff, Settings2
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface ProjectDetailProps {
-  project: Project;
+  project: ProjectWithKanban;
   onBack: () => void;
   onEdit: () => void;
   onDelete?: () => void;
@@ -38,7 +39,7 @@ type SortOption = 'none' | 'priority-high' | 'priority-low' | 'name' | 'time';
 type PriorityFilter = SubTaskCategory | 'all' | 'none';
 
 export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDetailProps) => {
-  const { tasksByStatus, updateTaskStatus, reloadTasks } = useProjectTasks(project.id);
+  const { getTasksByColumns, updateTaskStatus, reloadTasks, tasksByStatus } = useProjectTasks(project.id);
   const { addTask, updateTask, removeTask } = useTasks();
   const { deleteProject, completeProject, updateProject } = useProjects();
   const { toast } = useToast();
@@ -47,6 +48,13 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('none');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
+  const [showColumnManager, setShowColumnManager] = useState(false);
+  
+  // Get columns (project-specific or default)
+  const columns = useMemo(() => 
+    project.kanbanColumns || DEFAULT_COLUMNS,
+    [project.kanbanColumns]
+  );
   
   const statusConfig = PROJECT_STATUS_CONFIG[project.status];
 
@@ -113,21 +121,28 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
     return filtered;
   }, [searchQuery, sortBy, priorityFilter]);
 
-  // Tâches filtrées et triées par statut
-  const filteredTasksByStatus = useMemo(() => ({
-    todo: filterAndSortTasks(tasksByStatus.todo),
-    inProgress: filterAndSortTasks(tasksByStatus.inProgress),
-    done: filterAndSortTasks(tasksByStatus.done)
-  }), [tasksByStatus, filterAndSortTasks]);
+  // Tâches par colonnes avec filtrage
+  const filteredTasksByColumn = useMemo(() => {
+    const rawTasks = getTasksByColumns(columns);
+    const result: Record<string, Task[]> = {};
+    
+    Object.entries(rawTasks).forEach(([columnId, tasks]) => {
+      result[columnId] = filterAndSortTasks(tasks);
+    });
+    
+    return result;
+  }, [columns, getTasksByColumns, filterAndSortTasks]);
 
   // Statistiques calculées dynamiquement depuis les tâches réelles
   const stats = useMemo(() => {
-    const total = tasksByStatus.todo.length + tasksByStatus.inProgress.length + tasksByStatus.done.length;
-    const done = tasksByStatus.done.length;
+    const allTasks = Object.values(filteredTasksByColumn).flat();
+    const total = allTasks.length;
+    // Count done tasks (from 'done' column or any column with 'done' in its id)
+    const done = filteredTasksByColumn['done']?.length || 0;
     const progress = total > 0 ? Math.round((done / total) * 100) : 0;
     
     return { total, done, progress };
-  }, [tasksByStatus]);
+  }, [filteredTasksByColumn]);
 
   // Vérifier si des filtres sont actifs
   const hasActiveFilters = searchQuery.trim() !== '' || sortBy !== 'none' || priorityFilter !== 'all';
@@ -158,10 +173,10 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
 
   // Toggle sidebar visibility for project tasks
   const handleToggleSidebar = useCallback(async () => {
-    const currentValue = (project as any).showInSidebar ?? false;
+    const currentValue = project.showInSidebar ?? false;
     await updateProject(project.id, { 
       showInSidebar: !currentValue 
-    } as any);
+    });
     toast({
       title: currentValue ? "Masqué de la sidebar" : "Affiché dans la sidebar",
       description: currentValue 
@@ -170,20 +185,31 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
     });
   }, [project, updateProject, toast]);
 
+  // Update kanban columns
+  const handleColumnsChange = useCallback(async (newColumns: KanbanColumn[]) => {
+    await updateProject(project.id, { 
+      kanbanColumns: newColumns 
+    });
+    toast({
+      title: "Colonnes mises à jour",
+      description: "La configuration du tableau Kanban a été sauvegardée.",
+    });
+  }, [project.id, updateProject, toast]);
+
   const handleTaskClick = useCallback((task: Task) => {
     setSelectedTask(task);
     setShowTaskModal(true);
   }, []);
 
   const handleToggleComplete = useCallback(async (taskId: string) => {
-    const allTasks = [...tasksByStatus.todo, ...tasksByStatus.inProgress, ...tasksByStatus.done];
+    const allTasks = Object.values(filteredTasksByColumn).flat();
     const task = allTasks.find(t => t.id === taskId);
     
     if (task) {
       const newStatus = !task.isCompleted ? 'done' : 'todo';
       await updateTaskStatus(taskId, newStatus);
     }
-  }, [tasksByStatus, updateTaskStatus]);
+  }, [filteredTasksByColumn, updateTaskStatus]);
 
   const handleDeleteTask = useCallback(async (taskId: string) => {
     await removeTask(taskId);
@@ -276,6 +302,15 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
               )}
             </Label>
           </div>
+
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="h-auto py-2"
+            onClick={() => setShowColumnManager(true)}
+          >
+            <Settings2 className="w-4 h-4" />
+          </Button>
 
           <Button variant="outline" onClick={onEdit}>
             <Edit className="w-4 h-4 mr-2" />
@@ -449,15 +484,34 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
 
       {/* Kanban Board avec tâches filtrées */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Tableau Kanban</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Tableau Kanban</h2>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowColumnManager(true)}
+          >
+            <Settings2 className="w-4 h-4 mr-2" />
+            Colonnes
+          </Button>
+        </div>
         <KanbanBoard
-          tasks={filteredTasksByStatus}
+          tasksByColumn={filteredTasksByColumn}
+          columns={columns}
           onStatusChange={updateTaskStatus}
           onTaskClick={handleTaskClick}
           onToggleComplete={handleToggleComplete}
           onDeleteTask={handleDeleteTask}
         />
       </div>
+
+      {/* Kanban Column Manager Modal */}
+      <KanbanColumnManager
+        columns={columns}
+        onColumnsChange={handleColumnsChange}
+        isOpen={showColumnManager}
+        onClose={() => setShowColumnManager(false)}
+      />
 
       {/* Task Modal */}
       {showTaskModal && (
