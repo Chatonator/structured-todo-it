@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Habit } from '@/types/habit';
+import { Habit, HabitStreak } from '@/types/habit';
 import { ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-
-import { HabitStreak } from '@/types/habit';
+import { SidebarListItem } from './SidebarListItem';
 
 interface SidebarHabitsSectionProps {
   habits: Habit[];
@@ -47,37 +45,29 @@ export const SidebarHabitsSection: React.FC<SidebarHabitsSectionProps> = ({
       </Button>
 
       {!isCollapsed && (
-        <div className="px-3 pb-3 space-y-1">
+        <div className="px-1 pb-2">
           {habits.map(habit => {
             const isCompleted = completions[habit.id] || false;
             const streak = streaks[habit.id];
             
             return (
-              <div
+              <SidebarListItem
                 key={habit.id}
-                className={`
-                  flex items-center gap-2 p-2 rounded-lg border border-border transition-colors border-l-4 border-l-habit
-                  ${isCompleted ? 'bg-habit/10' : 'bg-card hover:bg-muted/50'}
-                `}
-              >
-                <Checkbox
-                  checked={isCompleted}
-                  onCheckedChange={() => onToggleHabit(habit.id)}
-                  className="border-habit data-[state=checked]:bg-habit data-[state=checked]:border-habit"
-                />
-                <div className="flex-1 min-w-0">
-                  <span className={`text-sm truncate block ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
-                    {habit.icon && <span className="mr-1">{habit.icon}</span>}
-                    {habit.name}
-                  </span>
-                </div>
-                {streak && streak.currentStreak > 0 && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-habit/10 text-habit text-xs">
-                    <span>🔥</span>
-                    <span className="font-bold">{streak.currentStreak}</span>
-                  </div>
-                )}
-              </div>
+                name={habit.name}
+                icon={habit.icon}
+                accentColor="hsl(var(--habit))"
+                isCompleted={isCompleted}
+                onToggleComplete={() => onToggleHabit(habit.id)}
+                showCheckbox
+                rightSlot={
+                  streak && streak.currentStreak > 0 ? (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-habit/10 text-habit text-xs">
+                      <span>🔥</span>
+                      <span className="font-bold">{streak.currentStreak}</span>
+                    </div>
+                  ) : null
+                }
+              />
             );
           })}
         </div>

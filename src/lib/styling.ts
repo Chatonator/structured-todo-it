@@ -9,6 +9,21 @@ import { TaskCategory, TaskContext, SubTaskCategory } from '@/types/task';
 
 export type CategoryStyleVariant = 'badge' | 'border' | 'background' | 'text';
 
+// Couleurs CSS directes pour les catégories (pour SidebarListItem)
+const CATEGORY_COLORS: Record<TaskCategory, string> = {
+  'Obligation': 'hsl(var(--category-obligation))',
+  'Quotidien': 'hsl(var(--category-quotidien))',
+  'Envie': 'hsl(var(--category-envie))',
+  'Autres': 'hsl(var(--category-autres))',
+};
+
+/**
+ * Retourne la valeur CSS de couleur pour une catégorie
+ */
+export function getCategoryColorValue(category: TaskCategory): string {
+  return CATEGORY_COLORS[category] ?? CATEGORY_COLORS['Autres'];
+}
+
 interface CategoryStyles {
   badge: string;
   border: string;

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { ChevronDown, ChevronUp, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { SidebarListItem } from './SidebarListItem';
 
 interface ProjectTaskForSidebar {
   task: Task;
@@ -23,7 +23,7 @@ export const SidebarProjectsSection: React.FC<SidebarProjectsSectionProps> = ({
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Filtrer uniquement les tâches non complétées (todo + in-progress)
+  // Filter only non-completed tasks (todo + in-progress)
   const activeTasks = projectTasks.filter(pt => !pt.task.isCompleted);
 
   if (activeTasks.length === 0) return null;
@@ -49,37 +49,30 @@ export const SidebarProjectsSection: React.FC<SidebarProjectsSectionProps> = ({
       </Button>
 
       {!isCollapsed && (
-        <div className="px-3 pb-3 space-y-1">
+        <div className="px-1 pb-2">
           {activeTasks.map(({ task, projectName, projectIcon, projectColor }) => (
-            <div
+            <SidebarListItem
               key={task.id}
-              className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors border-l-4 border-l-project"
-              style={{ borderLeftColor: projectColor || 'hsl(var(--project))' }}
-            >
-              <Checkbox
-                checked={task.isCompleted}
-                onCheckedChange={() => onToggleComplete(task.id)}
-              />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm truncate block">
-                  {task.name}
-                </span>
+              name={task.name}
+              accentColor={projectColor || 'hsl(var(--project))'}
+              isCompleted={task.isCompleted}
+              onToggleComplete={() => onToggleComplete(task.id)}
+              showCheckbox
+              estimatedTime={task.estimatedTime}
+              rightSlot={
                 <Badge 
                   variant="outline" 
-                  className="text-xs mt-0.5 text-project border-project/30"
+                  className="text-xs text-project border-project/30"
                   style={{ 
-                    color: projectColor || 'hsl(var(--project))',
+                    color: projectColor || undefined,
                     borderColor: projectColor ? `${projectColor}40` : undefined
                   }}
                 >
                   {projectIcon && <span className="mr-1">{projectIcon}</span>}
                   {projectName}
                 </Badge>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {task.estimatedTime}min
-              </span>
-            </div>
+              }
+            />
           ))}
         </div>
       )}
