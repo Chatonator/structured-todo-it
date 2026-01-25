@@ -97,9 +97,6 @@ export const SidebarListItem: React.FC<SidebarListItemProps> = ({
             {icon && <span className="mr-1">{icon}</span>}
             {name}
           </p>
-
-          {/* Right slot when collapsed */}
-          {!isExpanded && rightSlot}
         </div>
 
         {/* Metadata and actions - UNDER text, visible on hover */}
