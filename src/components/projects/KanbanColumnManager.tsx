@@ -1,4 +1,21 @@
 import React, { useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +46,66 @@ const COLUMN_COLORS = [
   'bg-purple-50 dark:bg-purple-900/20',
 ];
 
+interface SortableColumnItemProps {
+  column: KanbanColumn;
+  onRename: (newName: string) => void;
+  onRemove: () => void;
+  disabled: boolean;
+}
+
+const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
+  column,
+  onRename,
+  onRemove,
+  disabled,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: column.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 p-2 rounded-lg border bg-card"
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing"
+      >
+        <GripVertical className="w-4 h-4 text-muted-foreground" />
+      </div>
+      <div className={`w-4 h-4 rounded ${column.color}`} />
+      <Input
+        value={column.name}
+        onChange={(e) => onRename(e.target.value)}
+        className="flex-1 h-8"
+      />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 text-destructive"
+        onClick={onRemove}
+        disabled={disabled}
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+};
+
 export const KanbanColumnManager: React.FC<KanbanColumnManagerProps> = ({
   columns,
   onColumnsChange,
@@ -37,6 +114,24 @@ export const KanbanColumnManager: React.FC<KanbanColumnManagerProps> = ({
 }) => {
   const [localColumns, setLocalColumns] = useState<KanbanColumn[]>(columns);
   const [newColumnName, setNewColumnName] = useState('');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = localColumns.findIndex((col) => col.id === active.id);
+      const newIndex = localColumns.findIndex((col) => col.id === over.id);
+
+      setLocalColumns(arrayMove(localColumns, oldIndex, newIndex));
+    }
+  };
 
   const handleAddColumn = () => {
     if (!newColumnName.trim() || localColumns.length >= 6) return;
@@ -89,31 +184,28 @@ export const KanbanColumnManager: React.FC<KanbanColumnManagerProps> = ({
 
         <div className="space-y-4 py-4">
           {/* Liste des colonnes existantes */}
-          <div className="space-y-2">
-            {localColumns.map((column, index) => (
-              <div 
-                key={column.id}
-                className="flex items-center gap-2 p-2 rounded-lg border bg-card"
-              >
-                <GripVertical className="w-4 h-4 text-muted-foreground cursor-move" />
-                <div className={`w-4 h-4 rounded ${column.color}`} />
-                <Input
-                  value={column.name}
-                  onChange={(e) => handleRenameColumn(column.id, e.target.value)}
-                  className="flex-1 h-8"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive"
-                  onClick={() => handleRemoveColumn(column.id)}
-                  disabled={localColumns.length <= 2}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={localColumns.map((col) => col.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {localColumns.map((column) => (
+                  <SortableColumnItem
+                    key={column.id}
+                    column={column}
+                    onRename={(newName) => handleRenameColumn(column.id, newName)}
+                    onRemove={() => handleRemoveColumn(column.id)}
+                    disabled={localColumns.length <= 2}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
 
           {/* Ajouter une nouvelle colonne */}
           {localColumns.length < 6 && (
