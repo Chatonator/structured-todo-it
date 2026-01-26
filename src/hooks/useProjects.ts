@@ -143,6 +143,9 @@ export const useProjects = () => {
         metadata: { ...item.metadata, ...metadataUpdates },
       });
 
+      // Force reload to ensure UI updates immediately
+      reload();
+
       return true;
     } catch (error: any) {
       toast({
@@ -152,7 +155,7 @@ export const useProjects = () => {
       });
       return false;
     }
-  }, [items, updateItem, toast]);
+  }, [items, updateItem, toast, reload]);
 
   // Delete project
   const deleteProject = useCallback(async (projectId: string) => {

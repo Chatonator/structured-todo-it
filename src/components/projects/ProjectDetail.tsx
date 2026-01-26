@@ -185,16 +185,20 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
     });
   }, [project, updateProject, toast]);
 
-  // Update kanban columns
+  // Update kanban columns and force reload
   const handleColumnsChange = useCallback(async (newColumns: KanbanColumn[]) => {
-    await updateProject(project.id, { 
+    const success = await updateProject(project.id, { 
       kanbanColumns: newColumns 
     });
-    toast({
-      title: "Colonnes mises à jour",
-      description: "La configuration du tableau Kanban a été sauvegardée.",
-    });
-  }, [project.id, updateProject, toast]);
+    if (success) {
+      // Force reload of project data for immediate UI update
+      reloadTasks();
+      toast({
+        title: "Colonnes mises à jour",
+        description: "La configuration du tableau Kanban a été sauvegardée.",
+      });
+    }
+  }, [project.id, updateProject, reloadTasks, toast]);
 
   const handleTaskClick = useCallback((task: Task) => {
     setSelectedTask(task);

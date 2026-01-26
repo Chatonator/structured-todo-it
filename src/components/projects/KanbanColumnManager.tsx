@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -32,7 +32,7 @@ import { KanbanColumn, DEFAULT_COLUMNS } from './KanbanBoard';
 
 interface KanbanColumnManagerProps {
   columns: KanbanColumn[];
-  onColumnsChange: (columns: KanbanColumn[]) => void;
+  onColumnsChange: (columns: KanbanColumn[]) => Promise<void> | void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -113,6 +113,12 @@ export const KanbanColumnManager: React.FC<KanbanColumnManagerProps> = ({
   onClose,
 }) => {
   const [localColumns, setLocalColumns] = useState<KanbanColumn[]>(columns);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Sync local state when props change (e.g., after save or when modal reopens)
+  useEffect(() => {
+    setLocalColumns(columns);
+  }, [columns]);
   const [newColumnName, setNewColumnName] = useState('');
 
   const sensors = useSensors(
@@ -158,14 +164,19 @@ export const KanbanColumnManager: React.FC<KanbanColumnManagerProps> = ({
     ));
   };
 
-  const handleSave = () => {
-    // Reorder columns based on their position
-    const reorderedColumns = localColumns.map((col, index) => ({
-      ...col,
-      order: index
-    }));
-    onColumnsChange(reorderedColumns);
-    onClose();
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Reorder columns based on their position
+      const reorderedColumns = localColumns.map((col, index) => ({
+        ...col,
+        order: index
+      }));
+      await onColumnsChange(reorderedColumns);
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -236,8 +247,8 @@ export const KanbanColumnManager: React.FC<KanbanColumnManagerProps> = ({
             <Button variant="outline" onClick={onClose}>
               Annuler
             </Button>
-            <Button onClick={handleSave}>
-              Enregistrer
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </div>
         </DialogFooter>
