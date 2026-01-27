@@ -23,8 +23,9 @@ export const useProjectsViewData = () => {
   } = useAllProjectTasks(projects);
 
   // Projects that should show their tasks in the sidebar
+  // Note: showInSidebar is properly typed in ProjectWithKanban
   const sidebarProjects = useMemo(() => 
-    projects.filter(p => (p as any).showInSidebar === true),
+    projects.filter(p => p.showInSidebar === true),
     [projects]
   );
 

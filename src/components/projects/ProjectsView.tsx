@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { Project } from '@/types/project';
 import { ProjectCard } from './ProjectCard';
@@ -12,8 +12,20 @@ import { ViewLayout } from '@/components/layout/view';
 export const ProjectsView = () => {
   const { projects, loading, createProject, updateProject } = useProjects();
   const [showModal, setShowModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [detailProject, setDetailProject] = useState<Project | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [detailProjectId, setDetailProjectId] = useState<string | null>(null);
+
+  // Retrouver les projets dynamiquement depuis la source de données
+  // Cela garantit que les changements sont reflétés immédiatement
+  const selectedProject = useMemo(() => 
+    selectedProjectId ? projects.find(p => p.id === selectedProjectId) ?? null : null,
+    [projects, selectedProjectId]
+  );
+  
+  const detailProject = useMemo(() => 
+    detailProjectId ? projects.find(p => p.id === detailProjectId) ?? null : null,
+    [projects, detailProjectId]
+  );
 
   const handleCreateProject = async (data: any) => {
     await createProject(data.name, data.description, data.icon, data.color);
@@ -24,20 +36,20 @@ export const ProjectsView = () => {
     if (selectedProject) {
       await updateProject(selectedProject.id, data);
       setShowModal(false);
-      setSelectedProject(null);
-      if (detailProject && detailProject.id === selectedProject.id) {
-        setDetailProject(null);
-      }
+      setSelectedProjectId(null);
+      // Ne pas fermer la vue détail - le projet sera mis à jour automatiquement
     }
   };
 
   const handleCardClick = (project: Project) => {
-    setDetailProject(project);
+    setDetailProjectId(project.id);
   };
 
   const handleEditFromDetail = () => {
-    setSelectedProject(detailProject);
-    setShowModal(true);
+    if (detailProject) {
+      setSelectedProjectId(detailProject.id);
+      setShowModal(true);
+    }
   };
 
   // Vue détail d'un projet
@@ -46,15 +58,15 @@ export const ProjectsView = () => {
       <>
         <ProjectDetail
           project={detailProject}
-          onBack={() => setDetailProject(null)}
+          onBack={() => setDetailProjectId(null)}
           onEdit={handleEditFromDetail}
-          onDelete={() => setDetailProject(null)}
+          onDelete={() => setDetailProjectId(null)}
         />
         <ProjectModal
           open={showModal}
           onClose={() => {
             setShowModal(false);
-            setSelectedProject(null);
+            setSelectedProjectId(null);
           }}
           onSave={handleUpdateProject}
           project={selectedProject}
@@ -170,7 +182,7 @@ export const ProjectsView = () => {
         open={showModal}
         onClose={() => {
           setShowModal(false);
-          setSelectedProject(null);
+          setSelectedProjectId(null);
         }}
         onSave={selectedProject ? handleUpdateProject : handleCreateProject}
         project={selectedProject}

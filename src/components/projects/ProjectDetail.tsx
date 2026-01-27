@@ -38,10 +38,10 @@ interface ProjectDetailProps {
 type SortOption = 'none' | 'priority-high' | 'priority-low' | 'name' | 'time';
 type PriorityFilter = SubTaskCategory | 'all' | 'none';
 
-export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDetailProps) => {
-  const { getTasksByColumns, updateTaskStatus, reloadTasks, tasksByStatus } = useProjectTasks(project.id);
+export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }: ProjectDetailProps) => {
+  const { getTasksByColumns, updateTaskStatus, reloadTasks, tasksByStatus } = useProjectTasks(projectProp.id);
   const { addTask, updateTask, removeTask } = useTasks();
-  const { deleteProject, completeProject, updateProject } = useProjects();
+  const { deleteProject, completeProject, updateProject, projects } = useProjects();
   const { toast } = useToast();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -49,6 +49,13 @@ export const ProjectDetail = ({ project, onBack, onEdit, onDelete }: ProjectDeta
   const [sortBy, setSortBy] = useState<SortOption>('none');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [showColumnManager, setShowColumnManager] = useState(false);
+  
+  // Utiliser le projet le plus récent depuis le hook useProjects
+  // Cela garantit que les changements (showInSidebar, kanbanColumns, etc.) sont reflétés immédiatement
+  const project = useMemo(() => 
+    projects.find(p => p.id === projectProp.id) ?? projectProp,
+    [projects, projectProp]
+  );
   
   // Get columns (project-specific or default)
   const columns = useMemo(() => 

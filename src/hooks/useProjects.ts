@@ -143,7 +143,8 @@ export const useProjects = () => {
         metadata: { ...item.metadata, ...metadataUpdates },
       });
 
-      // Force reload to ensure UI updates immediately
+      // Immediate reload without waiting - React Query will handle the refetch
+      // The data is already updated optimistically via the mutation
       reload();
 
       return true;
