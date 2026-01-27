@@ -9,7 +9,7 @@ interface DeckManagementProps {
   isOpen: boolean;
   onClose: () => void;
   decks: Deck[];
-  onCreateDeck: (deck: Omit<Deck, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  onCreateDeck: (deck: Omit<Deck, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
   onUpdateDeck: (deckId: string, updates: Partial<Deck>) => Promise<boolean>;
   onDeleteDeck: (deckId: string) => Promise<boolean>;
 }
