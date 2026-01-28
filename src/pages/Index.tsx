@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import AppSidebar from '@/components/sidebar/AppSidebar';
@@ -9,8 +9,11 @@ import MainContent from '@/components/layout/MainContent';
 import { AppProvider, useApp } from '@/contexts/AppContext';
 import { ViewDataProvider, useViewDataContext } from '@/contexts/ViewDataContext';
 import { SidebarProvider as AppSidebarProvider } from '@/contexts/SidebarContext';
+import { useTeamContext } from '@/contexts/TeamContext';
+import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsMobile } from '@/hooks/shared/use-mobile';
+import type { Task } from '@/types/task';
 
 /**
  * Contenu principal de l'application
@@ -33,6 +36,44 @@ const IndexContent: React.FC = () => {
   } = useApp();
   
   const viewData = useViewDataContext();
+  
+  // Team context integration
+  const { currentTeam } = useTeamContext();
+  const teamTasks = useTeamTasks(currentTeam?.id ?? null);
+
+  // Dynamic task creation handler
+  const handleAddTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt'>) => {
+    if (currentTeam) {
+      // Create team task
+      await teamTasks.createTask({
+        name: task.name,
+        category: task.category,
+        subCategory: task.subCategory,
+        context: task.context,
+        estimatedTime: task.estimatedTime,
+        isCompleted: false,
+        level: task.level,
+        parentId: task.parentId,
+      });
+    } else {
+      // Create personal task
+      viewData.addTask(task);
+    }
+  }, [currentTeam, teamTasks, viewData]);
+
+  // Auto-switch to team view when team is selected
+  useEffect(() => {
+    if (currentTeam && currentView !== 'team') {
+      setCurrentView('team');
+    }
+  }, [currentTeam?.id]);
+
+  // Switch back when deselecting team
+  useEffect(() => {
+    if (!currentTeam && currentView === 'team') {
+      setCurrentView('home');
+    }
+  }, [currentTeam, currentView, setCurrentView]);
 
   // Application du thème
   useEffect(() => {
@@ -67,6 +108,7 @@ const IndexContent: React.FC = () => {
             currentView={currentView}
             onViewChange={setCurrentView}
             navigationItems={navigationItems}
+            currentTeam={currentTeam}
           />
 
           <MainContent />
@@ -85,7 +127,8 @@ const IndexContent: React.FC = () => {
         <TaskModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onAddTask={viewData.addTask}
+          onAddTask={handleAddTask}
+          taskType={currentTeam ? 'team' : 'personal'}
         />
       </div>
     </SidebarProvider>

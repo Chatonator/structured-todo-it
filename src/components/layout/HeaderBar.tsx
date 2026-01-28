@@ -1,10 +1,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Plus, Menu } from 'lucide-react';
+import { CheckSquare, Plus, Menu, Users } from 'lucide-react';
 import { TaskContext } from '@/types/task';
 import ContextPills from '@/components/layout/ContextPills';
 import ViewNavigation from '@/components/layout/ViewNavigation';
 import UserProfileBlock from '@/components/layout/UserProfileBlock';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import type { Team } from '@/hooks/useTeams';
 
 interface NavigationItem {
   key: string;
@@ -21,6 +24,7 @@ interface HeaderBarProps {
   currentView: string;
   onViewChange: (view: string) => void;
   navigationItems: NavigationItem[];
+  currentTeam?: Team | null;
 }
 
 /**
@@ -36,7 +40,8 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
   onContextFilterChange,
   currentView,
   onViewChange,
-  navigationItems
+  navigationItems,
+  currentTeam
 }) => {
   return (
     <header className="bg-background border-b border-border">
@@ -72,13 +77,24 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
           
           {/* Actions rapides + Profil */}
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Team mode indicator */}
+            {currentTeam && (
+              <Badge variant="secondary" className="gap-1.5 bg-primary/10 text-primary border-primary/20">
+                <Users className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{currentTeam.name}</span>
+              </Badge>
+            )}
+            
             <Button
               onClick={onOpenModal}
               size={isMobile ? "sm" : "default"}
-              className="shadow-sm hover:shadow-md transition-all duration-200 gap-2"
+              className={cn(
+                "shadow-sm hover:shadow-md transition-all duration-200 gap-2",
+                currentTeam && "bg-primary"
+              )}
             >
               <Plus className="w-4 h-4" />
-              {!isMobile && <span>Nouvelle tâche</span>}
+              {!isMobile && <span>{currentTeam ? 'Tâche équipe' : 'Nouvelle tâche'}</span>}
             </Button>
             
             {!isMobile && <UserProfileBlock />}
