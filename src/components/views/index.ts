@@ -22,3 +22,6 @@ export { ProjectsView } from './projects';
 
 // Rewards
 export { RewardsView } from './rewards';
+
+// Teams
+export { TeamTasksView } from './teams';

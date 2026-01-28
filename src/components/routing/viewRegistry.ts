@@ -8,6 +8,7 @@ import {
   Award,
   Grid3X3,
   CheckCircle,
+  Users,
 } from 'lucide-react';
 
 // Base view props that all views should accept
@@ -26,7 +27,7 @@ export interface ViewConfig {
   icon: typeof Home;
   component: ComponentType<any>;
   order: number;
-  group: 'main' | 'productivity' | 'tracking' | 'other';
+  group: 'main' | 'productivity' | 'tracking' | 'other' | 'team';
   requiresAuth?: boolean;
   loadingVariant?: LoadingVariant;
 }
@@ -40,6 +41,7 @@ const ProjectsView = lazy(() => import('@/components/views/projects/ProjectsView
 const HabitsView = lazy(() => import('@/components/views/habits/HabitsView'));
 const RewardsView = lazy(() => import('@/components/views/rewards/RewardsView'));
 const EisenhowerView = lazy(() => import('@/components/views/eisenhower/EisenhowerView'));
+const TeamTasksView = lazy(() => import('@/components/views/teams/TeamTasksView'));
 
 // View Registry - Single source of truth for all views
 export const viewRegistry: Record<string, ViewConfig> = {
@@ -121,6 +123,16 @@ export const viewRegistry: Record<string, ViewConfig> = {
     component: CompletedTasksView,
     order: 8,
     group: 'other',
+    loadingVariant: 'list',
+  },
+  team: {
+    id: 'team',
+    title: 'Équipe',
+    subtitle: 'Tâches partagées avec votre équipe',
+    icon: Users,
+    component: TeamTasksView,
+    order: 9,
+    group: 'team',
     loadingVariant: 'list',
   },
 };
