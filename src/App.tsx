@@ -105,7 +105,7 @@ const App = () => (
           <TeamProvider>
             <TooltipProvider>
               <Toaster />
-              <BrowserRouter basename={import.meta.env.DEV ? '/' : '/structured-todo-it/'}>
+              <BrowserRouter>
                 <Routes>
                   <Route 
                     path="/" 
