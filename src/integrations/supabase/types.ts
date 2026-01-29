@@ -225,6 +225,65 @@ export type Database = {
           },
         ]
       }
+      team_projects: {
+        Row: {
+          color: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          order_index: number
+          progress: number
+          status: string
+          target_date: string | null
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          order_index?: number
+          progress?: number
+          status?: string
+          target_date?: string | null
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+          progress?: number
+          status?: string
+          target_date?: string | null
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_projects_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_tasks: {
         Row: {
           assigned_to: string | null
@@ -242,6 +301,7 @@ export type Database = {
           level: number
           name: string
           parentid: string | null
+          project_id: string | null
           recurrenceinterval: string | null
           scheduleddate: string | null
           scheduledtime: string | null
@@ -266,6 +326,7 @@ export type Database = {
           level?: number
           name: string
           parentid?: string | null
+          project_id?: string | null
           recurrenceinterval?: string | null
           scheduleddate?: string | null
           scheduledtime?: string | null
@@ -290,6 +351,7 @@ export type Database = {
           level?: number
           name?: string
           parentid?: string | null
+          project_id?: string | null
           recurrenceinterval?: string | null
           scheduleddate?: string | null
           scheduledtime?: string | null
@@ -304,6 +366,13 @@ export type Database = {
             columns: ["parentid"]
             isOneToOne: false
             referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "team_projects"
             referencedColumns: ["id"]
           },
           {
