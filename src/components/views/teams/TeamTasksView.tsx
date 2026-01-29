@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks, TeamTask } from '@/hooks/useTeamTasks';
 import { useTeamProjects, TeamProject } from '@/hooks/useTeamProjects';
+import { useApp } from '@/contexts/AppContext';
+import { ViewLayout } from '@/components/layout/view';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +34,7 @@ import { TeamProjectCard } from '@/components/team/TeamProjectCard';
 import { TeamProjectModal } from '@/components/team/TeamProjectModal';
 
 interface TeamTasksViewProps {
-  onOpenTaskModal?: () => void;
+  className?: string;
 }
 
 // Helper to get display name from TeamMember
@@ -40,8 +42,9 @@ const getDisplayName = (member: TeamMember): string => {
   return member.profiles?.display_name || 'Membre';
 };
 
-const TeamTasksView: React.FC<TeamTasksViewProps> = ({ onOpenTaskModal }) => {
+const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
   const { currentTeam, teamMembers } = useTeamContext();
+  const { setIsModalOpen } = useApp();
   const { tasks, loading: tasksLoading, toggleComplete, deleteTask, assignTask } = useTeamTasks(currentTeam?.id ?? null);
   const { projects, loading: projectsLoading, createProject, updateProject, deleteProject } = useTeamProjects(currentTeam?.id ?? null);
   
@@ -61,27 +64,16 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ onOpenTaskModal }) => {
     return counts;
   }, [tasks]);
 
-  if (!currentTeam) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <Users className="w-16 h-16 text-muted-foreground mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Aucune équipe sélectionnée</h2>
-        <p className="text-muted-foreground">
-          Sélectionnez une équipe depuis le sélecteur de contexte pour voir les tâches partagées.
-        </p>
-      </div>
-    );
-  }
+  // Stats
+  const completedCount = tasks.filter(t => t.isCompleted).length;
+  const totalCount = tasks.length;
+  const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed');
 
   const filteredTasks = tasks.filter(task => {
     if (taskFilter === 'mine') return task.assigned_to !== null;
     if (taskFilter === 'unassigned') return task.assigned_to === null;
     return true;
   });
-
-  const completedCount = tasks.filter(t => t.isCompleted).length;
-  const totalCount = tasks.length;
-  const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed');
 
   const getMemberName = (userId: string | null): string | null => {
     if (!userId) return null;
@@ -113,37 +105,73 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ onOpenTaskModal }) => {
     setShowProjectModal(true);
   };
 
+  // Handle opening the main task modal (from Index.tsx)
+  const handleOpenTaskModal = () => {
+    setIsModalOpen(true);
+  };
+
+  // Empty state when no team selected
+  if (!currentTeam) {
+    return (
+      <ViewLayout
+        header={{
+          title: "Équipe",
+          subtitle: "Gérez les tâches de votre équipe",
+          icon: <Users className="w-5 h-5" />
+        }}
+        state="empty"
+        emptyProps={{
+          title: "Aucune équipe sélectionnée",
+          description: "Sélectionnez une équipe depuis le sélecteur de contexte pour voir les tâches partagées.",
+          icon: <Users className="w-12 h-12" />
+        }}
+        className={className}
+      >
+        <div />
+      </ViewLayout>
+    );
+  }
+
+  const isLoading = activeTab === 'tasks' ? tasksLoading : projectsLoading;
+
   return (
-    <div className="flex flex-col h-full p-4 md:p-6 space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="w-6 h-6 text-primary" />
-            {currentTeam.name}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {completedCount}/{totalCount} tâches • {projects.length} projets • {teamMembers.length} membres
-          </p>
-        </div>
-      </div>
+    <ViewLayout
+      header={{
+        title: currentTeam.name,
+        subtitle: `${completedCount}/${totalCount} tâches • ${projects.length} projets • ${teamMembers.length} membres`,
+        icon: <Users className="w-5 h-5" />,
+        actions: activeTab === 'tasks' ? (
+          <Button onClick={handleOpenTaskModal} size="sm" className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nouvelle tâche
+          </Button>
+        ) : (
+          <Button onClick={() => { setSelectedProject(null); setShowProjectModal(true); }} size="sm" className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nouveau projet
+          </Button>
+        )
+      }}
+      state={isLoading ? 'loading' : 'success'}
+      loadingProps={{ variant: 'list' }}
+      className={className}
+    >
+      <div className="space-y-4 pb-20 md:pb-6">
+        {/* Onglets */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'tasks' | 'projects')}>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <TabsList>
+              <TabsTrigger value="tasks" className="gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                Tâches ({totalCount})
+              </TabsTrigger>
+              <TabsTrigger value="projects" className="gap-2">
+                <Briefcase className="w-4 h-4" />
+                Projets ({projects.length})
+              </TabsTrigger>
+            </TabsList>
 
-      {/* Onglets */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'tasks' | 'projects')} className="flex-1 flex flex-col">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <TabsList>
-            <TabsTrigger value="tasks" className="gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              Tâches ({totalCount})
-            </TabsTrigger>
-            <TabsTrigger value="projects" className="gap-2">
-              <Briefcase className="w-4 h-4" />
-              Projets ({projects.length})
-            </TabsTrigger>
-          </TabsList>
-
-          {activeTab === 'tasks' && (
-            <div className="flex items-center gap-2">
+            {activeTab === 'tasks' && (
               <div className="flex bg-muted/50 rounded-lg p-0.5">
                 {[
                   { key: 'all', label: 'Toutes' },
@@ -164,73 +192,50 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ onOpenTaskModal }) => {
                   </button>
                 ))}
               </div>
-              {onOpenTaskModal && (
-                <Button onClick={onOpenTaskModal} size="sm" className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Tâche</span>
-                </Button>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
-          {activeTab === 'projects' && (
-            <Button onClick={() => { setSelectedProject(null); setShowProjectModal(true); }} size="sm" className="gap-2">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Projet</span>
-            </Button>
-          )}
-        </div>
+          {/* Contenu Tâches */}
+          <TabsContent value="tasks" className="mt-4">
+            {filteredTasks.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Circle className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                  <p className="text-muted-foreground text-center">
+                    {taskFilter === 'all' 
+                      ? "Aucune tâche dans cette équipe"
+                      : taskFilter === 'mine'
+                      ? "Aucune tâche vous est assignée"
+                      : "Toutes les tâches sont assignées"}
+                  </p>
+                  {taskFilter === 'all' && (
+                    <Button variant="outline" className="mt-4" onClick={handleOpenTaskModal}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Créer une tâche
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {filteredTasks.map(task => (
+                  <TaskRow 
+                    key={task.id}
+                    task={task}
+                    teamMembers={teamMembers}
+                    onToggleComplete={() => toggleComplete(task.id, !task.isCompleted)}
+                    onDelete={() => deleteTask(task.id)}
+                    onAssign={(userId) => assignTask(task.id, userId)}
+                    getMemberName={getMemberName}
+                    getMemberInitials={getMemberInitials}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-        {/* Contenu Tâches */}
-        <TabsContent value="tasks" className="flex-1 overflow-auto mt-4">
-          {tasksLoading ? (
-            <div className="flex items-center justify-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
-          ) : filteredTasks.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Circle className="w-12 h-12 text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground text-center">
-                  {taskFilter === 'all' 
-                    ? "Aucune tâche dans cette équipe"
-                    : taskFilter === 'mine'
-                    ? "Aucune tâche vous est assignée"
-                    : "Toutes les tâches sont assignées"}
-                </p>
-                {onOpenTaskModal && taskFilter === 'all' && (
-                  <Button variant="outline" className="mt-4" onClick={onOpenTaskModal}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Créer une tâche
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {filteredTasks.map(task => (
-                <TaskRow 
-                  key={task.id}
-                  task={task}
-                  teamMembers={teamMembers}
-                  onToggleComplete={() => toggleComplete(task.id, !task.isCompleted)}
-                  onDelete={() => deleteTask(task.id)}
-                  onAssign={(userId) => assignTask(task.id, userId)}
-                  getMemberName={getMemberName}
-                  getMemberInitials={getMemberInitials}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Contenu Projets */}
-        <TabsContent value="projects" className="flex-1 overflow-auto mt-4">
-          {projectsLoading ? (
-            <div className="flex items-center justify-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
-          ) : (
+          {/* Contenu Projets */}
+          <TabsContent value="projects" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeProjects.map(project => (
                 <TeamProjectCard
@@ -257,9 +262,9 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ onOpenTaskModal }) => {
                 </div>
               </div>
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Modal Projet */}
       <TeamProjectModal
@@ -268,7 +273,7 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ onOpenTaskModal }) => {
         onSave={selectedProject ? handleUpdateProject : handleCreateProject}
         project={selectedProject}
       />
-    </div>
+    </ViewLayout>
   );
 };
 
@@ -323,7 +328,7 @@ const TaskRow: React.FC<TaskRowProps> = ({
                 {task.category}
               </Badge>
             )}
-            {task.estimatedTime && (
+            {task.estimatedTime > 0 && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 {task.estimatedTime}min
