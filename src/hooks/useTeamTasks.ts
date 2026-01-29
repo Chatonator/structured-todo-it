@@ -8,6 +8,7 @@ export interface TeamTask extends Omit<Task, 'user_id'> {
   team_id: string;
   assigned_to: string | null;
   created_by: string;
+  project_id: string | null;
 }
 
 export const useTeamTasks = (teamId: string | null) => {
@@ -48,6 +49,7 @@ export const useTeamTasks = (teamId: string | null) => {
         scheduledTime: task.scheduledtime,
         subCategory: task.subcategory,
         createdAt: new Date(task.created_at),
+        project_id: task.project_id || null,
       })) as TeamTask[];
 
       setTasks(mappedTasks);
@@ -97,6 +99,7 @@ export const useTeamTasks = (teamId: string | null) => {
         parentid: taskData.parentId ?? null,
         level: taskData.level ?? 0,
         assigned_to: taskData.assigned_to ?? null,
+        project_id: taskData.project_id ?? null,
       };
 
       const { data, error } = await supabase
