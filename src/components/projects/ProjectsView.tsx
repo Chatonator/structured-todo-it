@@ -1,22 +1,34 @@
 import { useState, useMemo } from 'react';
-import { useProjects } from '@/hooks/useProjects';
-import { Project } from '@/types/project';
+import { useUnifiedProjects } from '@/hooks/useUnifiedProjects';
+import { UnifiedProject, isTeamProject } from '@/types/teamProject';
 import { ProjectCard } from './ProjectCard';
 import { ProjectModal } from './ProjectModal';
 import { ProjectDetail } from './ProjectDetail';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Briefcase, FolderPlus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Briefcase, FolderPlus, Users } from 'lucide-react';
 import { ViewLayout } from '@/components/layout/view';
 
 export const ProjectsView = () => {
-  const { projects, loading, createProject, updateProject } = useProjects();
+  const { 
+    projects, 
+    loading, 
+    isTeamMode,
+    teamName,
+    teamId,
+    createProject, 
+    updateProject,
+    getActiveProjects,
+    getCompletedProjects,
+    getArchivedProjects
+  } = useUnifiedProjects();
+  
   const [showModal, setShowModal] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [detailProjectId, setDetailProjectId] = useState<string | null>(null);
 
   // Retrouver les projets dynamiquement depuis la source de données
-  // Cela garantit que les changements sont reflétés immédiatement
   const selectedProject = useMemo(() => 
     selectedProjectId ? projects.find(p => p.id === selectedProjectId) ?? null : null,
     [projects, selectedProjectId]
@@ -37,11 +49,10 @@ export const ProjectsView = () => {
       await updateProject(selectedProject.id, data);
       setShowModal(false);
       setSelectedProjectId(null);
-      // Ne pas fermer la vue détail - le projet sera mis à jour automatiquement
     }
   };
 
-  const handleCardClick = (project: Project) => {
+  const handleCardClick = (project: UnifiedProject) => {
     setDetailProjectId(project.id);
   };
 
@@ -52,32 +63,16 @@ export const ProjectsView = () => {
     }
   };
 
-  // Vue détail d'un projet
-  if (detailProject) {
-    return (
-      <>
-        <ProjectDetail
-          project={detailProject}
-          onBack={() => setDetailProjectId(null)}
-          onEdit={handleEditFromDetail}
-          onDelete={() => setDetailProjectId(null)}
-        />
-        <ProjectModal
-          open={showModal}
-          onClose={() => {
-            setShowModal(false);
-            setSelectedProjectId(null);
-          }}
-          onSave={handleUpdateProject}
-          project={selectedProject}
-        />
-      </>
-    );
-  }
+  // Titre dynamique selon le mode
+  const viewTitle = isTeamMode ? `Projets de ${teamName}` : "Projets";
+  const viewSubtitle = isTeamMode 
+    ? "Gérez les projets de votre équipe" 
+    : "Gérez vos projets complexes avec des tâches organisées";
 
-  const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed');
-  const completedProjects = projects.filter(p => p.status === 'completed');
-  const archivedProjects = projects.filter(p => p.status === 'archived');
+  // Listes filtrées
+  const activeProjects = getActiveProjects();
+  const completedProjects = getCompletedProjects();
+  const archivedProjects = getArchivedProjects();
 
   // Zone pour créer un nouveau projet
   const NewProjectZone = () => (
@@ -100,24 +95,34 @@ export const ProjectsView = () => {
   return (
     <ViewLayout
       header={{
-        title: "Projets",
-        subtitle: "Gérez vos projets complexes avec des tâches organisées",
-        icon: <Briefcase className="w-5 h-5" />,
+        title: viewTitle,
+        subtitle: viewSubtitle,
+        icon: isTeamMode ? <Users className="w-5 h-5" /> : <Briefcase className="w-5 h-5" />,
         actions: (
-          <Button onClick={() => setShowModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nouveau projet
-          </Button>
+          <div className="flex items-center gap-2">
+            {isTeamMode && (
+              <Badge variant="secondary" className="gap-1">
+                <Users className="w-3 h-3" />
+                Équipe
+              </Badge>
+            )}
+            <Button onClick={() => setShowModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              {isTeamMode ? "Nouveau projet d'équipe" : "Nouveau projet"}
+            </Button>
+          </div>
         )
       }}
       state={loading ? 'loading' : projects.length === 0 ? 'empty' : 'success'}
       loadingProps={{ variant: 'cards' }}
       emptyProps={{
-        title: "Aucun projet",
-        description: "Créez votre premier projet pour organiser vos tâches",
+        title: isTeamMode ? "Aucun projet d'équipe" : "Aucun projet",
+        description: isTeamMode 
+          ? "Créez le premier projet pour votre équipe"
+          : "Créez votre premier projet pour organiser vos tâches",
         icon: <FolderPlus className="w-12 h-12" />,
         action: {
-          label: "Créer un projet",
+          label: isTeamMode ? "Créer un projet d'équipe" : "Créer un projet",
           onClick: () => setShowModal(true)
         }
       }}
@@ -186,6 +191,7 @@ export const ProjectsView = () => {
         }}
         onSave={selectedProject ? handleUpdateProject : handleCreateProject}
         project={selectedProject}
+        teamId={teamId ?? undefined}
       />
     </ViewLayout>
   );

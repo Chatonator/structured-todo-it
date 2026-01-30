@@ -1,48 +1,52 @@
 /**
- * TeamTasksView - Vue principale pour les équipes
- * Utilise les composants généralisés (ProjectCard, ProjectModal, TeamProjectDetail)
- * et supprime les doublons TeamProjectCard/TeamProjectModal
+ * TeamTasksView - Tableau de bord d'équipe simplifié
+ * 
+ * Cette vue sert de dashboard pour l'équipe avec :
+ * - Gestion des membres
+ * - Résumé des stats (tâches, projets)
+ * - Liens vers les vues unifiées (filtrage par équipe)
+ * 
+ * Les tâches et projets sont maintenant affichés dans TasksView et ProjectsView
+ * via le filtre équipe (currentTeam dans TeamContext).
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useTeamContext } from '@/contexts/TeamContext';
-import { useTeamTasks, TeamTask } from '@/hooks/useTeamTasks';
-import { useTeamProjects, TeamProject } from '@/hooks/useTeamProjects';
+import { useTeamTasks } from '@/hooks/useTeamTasks';
+import { useTeamProjects } from '@/hooks/useTeamProjects';
 import { useApp } from '@/contexts/AppContext';
 import { ViewLayout } from '@/components/layout/view';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator 
 } from '@/components/ui/dropdown-menu';
 import { 
   Users, 
   Plus, 
   MoreVertical, 
-  Trash2, 
-  UserPlus,
   CheckCircle2,
-  Circle,
   Clock,
-  User,
-  FolderPlus,
-  Briefcase,
-  ArrowLeft
+  FolderKanban,
+  ListTodo,
+  ArrowRight,
+  UserPlus,
+  Crown,
+  Shield,
+  Copy,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { TeamMember } from '@/hooks/useTeams';
-
-// Import des composants généralisés
-import { ProjectCard } from '@/components/projects/ProjectCard';
-import { ProjectModal } from '@/components/projects/ProjectModal';
-import { TeamProjectDetail } from '@/components/team/TeamProjectDetail';
-import { teamProjectToUnified, UnifiedProject } from '@/types/teamProject';
+import type { TeamMember, TeamRole } from '@/hooks/useTeams';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface TeamTasksViewProps {
   className?: string;
@@ -53,119 +57,74 @@ const getDisplayName = (member: TeamMember): string => {
   return member.profiles?.display_name || 'Membre';
 };
 
-const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
-  const { currentTeam, teamMembers } = useTeamContext();
-  const { setIsModalOpen } = useApp();
-  const { tasks, loading: tasksLoading, toggleComplete, deleteTask, assignTask } = useTeamTasks(currentTeam?.id ?? null);
-  const { 
-    projects, 
-    loading: projectsLoading, 
-    createProject, 
-    updateProject, 
-    deleteProject 
-  } = useTeamProjects(currentTeam?.id ?? null);
+// Role badge component
+const RoleBadge = ({ role }: { role: TeamRole }) => {
+  const config = {
+    owner: { label: 'Propriétaire', icon: Crown, className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200' },
+    admin: { label: 'Admin', icon: Shield, className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' },
+    member: { label: 'Membre', icon: Users, className: 'bg-muted text-muted-foreground' },
+  }[role];
+
+  const Icon = config.icon;
   
-  const [taskFilter, setTaskFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
-  const [activeTab, setActiveTab] = useState<'tasks' | 'projects'>('tasks');
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<TeamProject | null>(null);
-  // État pour la vue détail du projet
-  const [detailProjectId, setDetailProjectId] = useState<string | null>(null);
-
-  // Projet sélectionné pour la vue détail
-  const detailProject = useMemo(() => 
-    projects.find(p => p.id === detailProjectId) || null,
-    [projects, detailProjectId]
+  return (
+    <Badge variant="outline" className={cn('gap-1 text-xs', config.className)}>
+      <Icon className="w-3 h-3" />
+      {config.label}
+    </Badge>
   );
+};
 
-  // Convertir les projets d'équipe en UnifiedProject pour ProjectCard
-  const unifiedProjects = useMemo(() => 
-    projects.map(teamProjectToUnified),
-    [projects]
-  );
-
-  // Count tasks per project
-  const taskCountByProject = useMemo(() => {
-    const counts: Record<string, number> = {};
-    tasks.forEach(task => {
-      if (task.project_id) {
-        counts[task.project_id] = (counts[task.project_id] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [tasks]);
-
-  // Calculer la progression par projet
-  const progressByProject = useMemo(() => {
-    const progress: Record<string, number> = {};
-    projects.forEach(project => {
-      const projectTasks = tasks.filter(t => t.project_id === project.id);
-      const total = projectTasks.length;
-      const done = projectTasks.filter(t => t.isCompleted).length;
-      progress[project.id] = total > 0 ? Math.round((done / total) * 100) : 0;
-    });
-    return progress;
-  }, [projects, tasks]);
+const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
+  const { currentTeam, teamMembers, updateMemberRole, removeMember } = useTeamContext();
+  const { setCurrentView, setIsModalOpen } = useApp();
+  const { tasks, loading: tasksLoading } = useTeamTasks(currentTeam?.id ?? null);
+  const { projects, loading: projectsLoading } = useTeamProjects(currentTeam?.id ?? null);
+  const { toast } = useToast();
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // Stats
-  const completedCount = tasks.filter(t => t.isCompleted).length;
-  const totalCount = tasks.length;
-  const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed');
+  const stats = useMemo(() => {
+    const completedTasks = tasks.filter(t => t.isCompleted).length;
+    const totalTasks = tasks.length;
+    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    
+    const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed').length;
+    const completedProjects = projects.filter(p => p.status === 'completed').length;
+    
+    return {
+      totalTasks,
+      completedTasks,
+      completionRate,
+      activeProjects,
+      completedProjects,
+      totalProjects: projects.length,
+    };
+  }, [tasks, projects]);
 
-  const filteredTasks = tasks.filter(task => {
-    if (taskFilter === 'mine') return task.assigned_to !== null;
-    if (taskFilter === 'unassigned') return task.assigned_to === null;
-    return true;
-  });
-
-  const getMemberName = (userId: string | null): string | null => {
-    if (!userId) return null;
-    const member = teamMembers.find(m => m.user_id === userId);
-    return member ? getDisplayName(member) : 'Membre';
-  };
-
-  const getMemberInitials = (userId: string | null): string => {
-    const name = getMemberName(userId);
-    if (!name) return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  // Handlers pour les projets
-  const handleCreateProject = async (data: any) => {
-    await createProject(data.name, data.description, data.icon, data.color);
-    setShowProjectModal(false);
-  };
-
-  const handleUpdateProject = async (data: any) => {
-    if (selectedProject) {
-      await updateProject(selectedProject.id, data);
-      setShowProjectModal(false);
-      setSelectedProject(null);
+  // Copy invite code
+  const handleCopyInviteCode = () => {
+    if (currentTeam?.invite_code) {
+      navigator.clipboard.writeText(currentTeam.invite_code);
+      setCopiedCode(true);
+      toast({
+        title: "Code copié !",
+        description: "Le code d'invitation a été copié dans le presse-papier.",
+      });
+      setTimeout(() => setCopiedCode(false), 2000);
     }
   };
 
-  const handleDeleteProject = async () => {
-    if (detailProject) {
-      await deleteProject(detailProject.id);
-      setDetailProjectId(null);
-    }
+  // Navigate to unified views
+  const handleGoToTasks = () => {
+    setCurrentView('tasks');
   };
 
-  // Clic sur une carte projet -> ouvrir la vue détail
-  const handleProjectCardClick = (projectId: string) => {
-    setDetailProjectId(projectId);
+  const handleGoToProjects = () => {
+    setCurrentView('projects');
   };
 
-  // Bouton éditer dans la vue détail -> ouvrir le modal d'édition
-  const handleEditProjectFromDetail = () => {
-    if (detailProject) {
-      setSelectedProject(detailProject);
-      setShowProjectModal(true);
-    }
-  };
-
-  // Handle opening the main task modal (from Index.tsx)
-  const handleOpenTaskModal = () => {
+  const handleCreateTask = () => {
     setIsModalOpen(true);
   };
 
@@ -175,13 +134,13 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
       <ViewLayout
         header={{
           title: "Équipe",
-          subtitle: "Gérez les tâches de votre équipe",
+          subtitle: "Gérez votre équipe",
           icon: <Users className="w-5 h-5" />
         }}
         state="empty"
         emptyProps={{
           title: "Aucune équipe sélectionnée",
-          description: "Sélectionnez une équipe depuis le sélecteur de contexte pour voir les tâches partagées.",
+          description: "Sélectionnez une équipe depuis le sélecteur de contexte pour voir son tableau de bord.",
           icon: <Users className="w-12 h-12" />
         }}
         className={className}
@@ -191,66 +150,18 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
     );
   }
 
-  // Si un projet est sélectionné, afficher la vue détail
-  if (detailProject) {
-    return (
-      <ViewLayout
-        header={{
-          title: detailProject.name,
-          subtitle: `Projet d'équipe • ${currentTeam.name}`,
-          icon: <Briefcase className="w-5 h-5" />,
-          actions: (
-            <Button variant="ghost" size="sm" onClick={() => setDetailProjectId(null)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour aux projets
-            </Button>
-          )
-        }}
-        state="success"
-        className={className}
-      >
-        <TeamProjectDetail
-          project={detailProject}
-          teamId={currentTeam.id}
-          teamMembers={teamMembers}
-          onBack={() => setDetailProjectId(null)}
-          onEdit={handleEditProjectFromDetail}
-          onDelete={handleDeleteProject}
-        />
-
-        {/* Modal d'édition de projet */}
-        <ProjectModal
-          open={showProjectModal}
-          onClose={() => { setShowProjectModal(false); setSelectedProject(null); }}
-          onSave={handleUpdateProject}
-          project={selectedProject ? teamProjectToUnified(selectedProject) : null}
-          teamId={currentTeam.id}
-        />
-      </ViewLayout>
-    );
-  }
-
-  const isLoading = activeTab === 'tasks' ? tasksLoading : projectsLoading;
+  const isLoading = tasksLoading || projectsLoading;
 
   return (
     <ViewLayout
       header={{
         title: currentTeam.name,
-        subtitle: `${completedCount}/${totalCount} tâches • ${projects.length} projets • ${teamMembers.length} membres`,
+        subtitle: `${teamMembers.length} membre${teamMembers.length > 1 ? 's' : ''} • Tableau de bord`,
         icon: <Users className="w-5 h-5" />,
-        actions: activeTab === 'tasks' ? (
-          <Button onClick={handleOpenTaskModal} size="sm" className="gap-2">
+        actions: (
+          <Button onClick={handleCreateTask} size="sm" className="gap-2">
             <Plus className="w-4 h-4" />
             Nouvelle tâche
-          </Button>
-        ) : (
-          <Button 
-            onClick={() => { setSelectedProject(null); setShowProjectModal(true); }} 
-            size="sm" 
-            className="gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nouveau projet
           </Button>
         )
       }}
@@ -258,244 +169,211 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
       loadingProps={{ variant: 'list' }}
       className={className}
     >
-      <div className="space-y-4 pb-20 md:pb-6">
-        {/* Onglets */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'tasks' | 'projects')}>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <TabsList>
-              <TabsTrigger value="tasks" className="gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                Tâches ({totalCount})
-              </TabsTrigger>
-              <TabsTrigger value="projects" className="gap-2">
-                <Briefcase className="w-4 h-4" />
-                Projets ({projects.length})
-              </TabsTrigger>
-            </TabsList>
-
-            {activeTab === 'tasks' && (
-              <div className="flex bg-muted/50 rounded-lg p-0.5">
-                {[
-                  { key: 'all', label: 'Toutes' },
-                  { key: 'mine', label: 'Assignées' },
-                  { key: 'unassigned', label: 'Non assignées' },
-                ].map(f => (
-                  <button
-                    key={f.key}
-                    onClick={() => setTaskFilter(f.key as typeof taskFilter)}
-                    className={cn(
-                      "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-                      taskFilter === f.key 
-                        ? "bg-background text-foreground shadow-sm" 
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+      <div className="space-y-6 pb-20 md:pb-6">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Tâches</p>
+                  <p className="text-2xl font-bold">{stats.completedTasks}/{stats.totalTasks}</p>
+                </div>
+                <ListTodo className="w-8 h-8 text-primary/20" />
               </div>
-            )}
-          </div>
+              <Progress value={stats.completionRate} className="mt-2 h-1" />
+            </CardContent>
+          </Card>
 
-          {/* Contenu Tâches */}
-          <TabsContent value="tasks" className="mt-4">
-            {filteredTasks.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Circle className="w-12 h-12 text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground text-center">
-                    {taskFilter === 'all' 
-                      ? "Aucune tâche dans cette équipe"
-                      : taskFilter === 'mine'
-                      ? "Aucune tâche vous est assignée"
-                      : "Toutes les tâches sont assignées"}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Projets actifs</p>
+                  <p className="text-2xl font-bold">{stats.activeProjects}</p>
+                </div>
+                <FolderKanban className="w-8 h-8 text-project/20" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {stats.completedProjects} terminés
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Membres</p>
+                  <p className="text-2xl font-bold">{teamMembers.length}</p>
+                </div>
+                <Users className="w-8 h-8 text-muted-foreground/30" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={handleCopyInviteCode}>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Code d'invitation</p>
+                  <p className="text-lg font-mono font-bold truncate max-w-[120px]">
+                    {currentTeam.invite_code}
                   </p>
-                  {taskFilter === 'all' && (
-                    <Button variant="outline" className="mt-4" onClick={handleOpenTaskModal}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Créer une tâche
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-2">
-                {filteredTasks.map(task => (
-                  <TaskRow 
-                    key={task.id}
-                    task={task}
-                    teamMembers={teamMembers}
-                    onToggleComplete={() => toggleComplete(task.id, !task.isCompleted)}
-                    onDelete={() => deleteTask(task.id)}
-                    onAssign={(userId) => assignTask(task.id, userId)}
-                    getMemberName={getMemberName}
-                    getMemberInitials={getMemberInitials}
-                  />
-                ))}
+                </div>
+                {copiedCode ? (
+                  <Check className="w-6 h-6 text-primary" />
+                ) : (
+                  <Copy className="w-6 h-6 text-muted-foreground/50" />
+                )}
               </div>
-            )}
-          </TabsContent>
+              <p className="text-xs text-muted-foreground mt-2">
+                Cliquez pour copier
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Contenu Projets - Utilise ProjectCard généralisé */}
-          <TabsContent value="projects" className="mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeProjects.map(project => (
-                <ProjectCard
-                  key={project.id}
-                  project={teamProjectToUnified(project)}
-                  onClick={() => handleProjectCardClick(project.id)}
-                  taskCount={taskCountByProject[project.id] || 0}
-                  overrideProgress={progressByProject[project.id] || 0}
-                />
-              ))}
-              
-              {/* Zone pour créer un nouveau projet */}
-              <div
-                className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-3
-                  transition-all duration-200 min-h-[200px]
-                  border-border bg-card hover:border-muted-foreground/50 cursor-pointer"
-                onClick={() => { setSelectedProject(null); setShowProjectModal(true); }}
-              >
-                <FolderPlus className="w-10 h-10 text-muted-foreground" />
-                <div className="text-center">
-                  <p className="font-medium">Nouveau projet</p>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow group"
+            onClick={handleGoToTasks}
+          >
+            <CardContent className="pt-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <ListTodo className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">Voir les tâches</p>
                   <p className="text-sm text-muted-foreground">
-                    Cliquez pour créer un projet d'équipe
+                    {stats.totalTasks - stats.completedTasks} tâches en attente
                   </p>
                 </div>
               </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </CardContent>
+          </Card>
 
-      {/* Modal Projet - Utilise ProjectModal généralisé */}
-      <ProjectModal
-        open={showProjectModal}
-        onClose={() => { setShowProjectModal(false); setSelectedProject(null); }}
-        onSave={selectedProject ? handleUpdateProject : handleCreateProject}
-        project={selectedProject ? teamProjectToUnified(selectedProject) : null}
-        teamId={currentTeam.id}
-      />
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow group"
+            onClick={handleGoToProjects}
+          >
+            <CardContent className="pt-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-accent">
+                  <FolderKanban className="w-6 h-6 text-accent-foreground" />
+                </div>
+                <div>
+                  <p className="font-medium">Voir les projets</p>
+                  <p className="text-sm text-muted-foreground">
+                    {stats.activeProjects} projets actifs
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Team Members */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Membres de l'équipe</CardTitle>
+                <CardDescription>
+                  {teamMembers.length} membre{teamMembers.length > 1 ? 's' : ''}
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" className="gap-2">
+                <UserPlus className="w-4 h-4" />
+                Inviter
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {teamMembers.map((member) => (
+                <MemberRow
+                  key={member.id}
+                  member={member}
+                  currentTeamId={currentTeam.id}
+                  onUpdateRole={(role) => updateMemberRole(currentTeam.id, member.user_id, role)}
+                  onRemove={() => removeMember(currentTeam.id, member.user_id)}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </ViewLayout>
   );
 };
 
-interface TaskRowProps {
-  task: TeamTask;
-  teamMembers: TeamMember[];
-  onToggleComplete: () => void;
-  onDelete: () => void;
-  onAssign: (userId: string | null) => void;
-  getMemberName: (userId: string | null) => string | null;
-  getMemberInitials: (userId: string | null) => string;
+interface MemberRowProps {
+  member: TeamMember;
+  currentTeamId: string;
+  onUpdateRole: (role: TeamRole) => void;
+  onRemove: () => void;
 }
 
-const TaskRow: React.FC<TaskRowProps> = ({ 
-  task, 
-  teamMembers, 
-  onToggleComplete, 
-  onDelete, 
-  onAssign,
-  getMemberName,
-  getMemberInitials
-}) => {
+const MemberRow: React.FC<MemberRowProps> = ({ member, currentTeamId, onUpdateRole, onRemove }) => {
+  const displayName = getDisplayName(member);
+  const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  
   return (
-    <Card className={cn(
-      "transition-all duration-200 hover:shadow-md",
-      task.isCompleted && "opacity-60"
-    )}>
-      <CardContent className="flex items-center gap-3 p-3">
-        {/* Checkbox */}
-        <button
-          onClick={onToggleComplete}
-          className="shrink-0"
-        >
-          {task.isCompleted ? (
-            <CheckCircle2 className="w-5 h-5 text-primary" />
-          ) : (
-            <Circle className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
-          )}
-        </button>
-
-        {/* Contenu principal */}
-        <div className="flex-1 min-w-0">
-          <p className={cn(
-            "font-medium truncate",
-            task.isCompleted && "line-through text-muted-foreground"
-          )}>
-            {task.name}
+    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
+      <div className="flex items-center gap-3">
+        <Avatar className="w-10 h-10">
+          <AvatarFallback className="bg-primary/10 text-primary font-medium">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-medium">{displayName}</p>
+          <p className="text-xs text-muted-foreground">
+            Rejoint le {new Date(member.joined_at).toLocaleDateString('fr-FR')}
           </p>
-          <div className="flex items-center gap-2 mt-1">
-            {task.category && (
-              <Badge variant="secondary" className="text-xs">
-                {task.category}
-              </Badge>
-            )}
-            {task.estimatedTime > 0 && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {task.estimatedTime}min
-              </span>
-            )}
-          </div>
         </div>
+      </div>
 
-        {/* Assignation */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5">
-              {task.assigned_to ? (
-                <Avatar className="w-6 h-6">
-                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                    {getMemberInitials(task.assigned_to)}
-                  </AvatarFallback>
-                </Avatar>
-              ) : (
-                <UserPlus className="w-4 h-4 text-muted-foreground" />
+      <div className="flex items-center gap-2">
+        <RoleBadge role={member.role} />
+        
+        {member.role !== 'owner' && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {member.role !== 'admin' && (
+                <DropdownMenuItem onClick={() => onUpdateRole('admin')}>
+                  <Shield className="w-4 h-4 mr-2" />
+                  Promouvoir admin
+                </DropdownMenuItem>
               )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[160px]">
-            <DropdownMenuItem onClick={() => onAssign(null)}>
-              <User className="w-4 h-4 mr-2" />
-              Non assigné
-            </DropdownMenuItem>
-            {teamMembers.map(member => (
+              {member.role === 'admin' && (
+                <DropdownMenuItem onClick={() => onUpdateRole('member')}>
+                  <Users className="w-4 h-4 mr-2" />
+                  Rétrograder en membre
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
               <DropdownMenuItem 
-                key={member.user_id}
-                onClick={() => onAssign(member.user_id)}
+                onClick={onRemove}
+                className="text-destructive focus:text-destructive"
               >
-                <Avatar className="w-5 h-5 mr-2">
-                  <AvatarFallback className="text-xs">
-                    {getDisplayName(member).slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                {getDisplayName(member)}
+                Retirer de l'équipe
               </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Menu actions */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <MoreVertical className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem 
-              onClick={onDelete}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Supprimer
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </CardContent>
-    </Card>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+    </div>
   );
 };
 

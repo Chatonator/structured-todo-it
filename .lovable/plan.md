@@ -1,159 +1,78 @@
 
 # Plan d'Unification Tâches & Projets (Personnel + Équipe)
 
-## Problème Actuel
+## ✅ IMPLÉMENTÉ
 
-Vous avez raison : il existe **deux systèmes parallèles** qui ne communiquent pas :
-
-| Système | Tables | Hooks | Vues |
-|---------|--------|-------|------|
-| Personnel | `items` (unifié) | `useItems`, `useTasks`, `useProjects` | `TasksView`, `ProjectsView` |
-| Équipe | `team_tasks`, `team_projects` | `useTeamTasks`, `useTeamProjects` | `TeamTasksView` |
-
-Cela crée de la duplication de code et une UX incohérente.
+L'unification a été réalisée selon le plan suivant :
 
 ---
 
-## Solution Proposée : Unification via Filtrage
-
-L'idée est de **garder les vues existantes** (TasksView, ProjectsView) et d'y **intégrer les données d'équipe** via le système de filtrage déjà en place (`ContextPills` + `contextFilter`).
-
-### Principe clé
+## Architecture Finale
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
 │  ContextPills: [Toutes] [Perso] [Pro] [Équipe ▼]       │
+│  → Sélection d'une équipe → currentTeam défini         │
 └─────────────────────────────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────┐
 │  ProjectsView / TasksView                               │
 │  ─────────────────────────────────────────────────────  │
-│  Si contexte = "équipe" → affiche team_projects/tasks   │
-│  Si contexte = "perso/pro/all" → affiche items          │
+│  useUnifiedProjects / useUnifiedTasks                   │
+│  Si currentTeam → team_projects/tasks                   │
+│  Sinon → items (projets/tâches personnels)              │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Modifications Prévues
+## Fichiers Créés/Modifiés
 
-### Phase 1 : Hooks unifiés
-
-**1.1 Créer `useUnifiedProjects`**
-- Combine `useProjects` et `useTeamProjects`
-- Retourne des `UnifiedProject[]` (type déjà existant dans `teamProject.ts`)
-- Accepte un paramètre `teamId?: string` pour switcher entre personnel et équipe
-
-**1.2 Modifier `useUnifiedTasks`**
-- Déjà partiellement unifié
-- Ajouter le même pattern : si `teamId` présent → utiliser `team_tasks`
-
-### Phase 2 : Adapter les vues existantes
-
-**2.1 Modifier `ProjectsView`**
-- Utiliser `useUnifiedProjects(currentTeam?.id)` au lieu de `useProjects`
-- Les actions (création, édition, suppression) sont routées dynamiquement :
-  - Si `currentTeam` → appeler les méthodes team
-  - Sinon → appeler les méthodes personnelles
-- Ajouter une option "Projet d'équipe" dans `ProjectModal` si une équipe est sélectionnée
-
-**2.2 Adapter `TasksView` (si nécessaire)**
-- Même logique : afficher tâches d'équipe si contexte équipe sélectionné
-
-### Phase 3 : Améliorer le routage de création
-
-**3.1 Modifier `TaskModal`**
-- Ajouter un champ optionnel "Créer comme tâche d'équipe" (checkbox ou dropdown)
-- Visible seulement si l'utilisateur appartient à des équipes
-- Par défaut coché si contexte équipe actif
-
-**3.2 Modifier `ProjectModal`**
-- Ajouter le même champ "Projet d'équipe" avec sélection de l'équipe
-- Permettre de créer un projet d'équipe depuis n'importe quel contexte
-
-### Phase 4 : Supprimer la duplication
-
-**4.1 Simplifier `TeamTasksView`**
-- Supprimer la logique de liste des projets (déléguée à `ProjectsView`)
-- Garder uniquement ce qui est spécifique aux équipes :
-  - Gestion des membres
-  - Assignation des tâches
-  - Configuration de l'équipe
-
-**4.2 Optionnel : Convertir `TeamTasksView` en vue "Tableau de bord d'équipe"**
-- Résumé de l'activité
-- Membres et leurs tâches assignées
-- Lien vers les projets d'équipe (dans ProjectsView)
+| Fichier | Action | Description |
+|---------|--------|-------------|
+| `src/hooks/useUnifiedProjects.ts` | ✅ Créé | Hook unifié qui switch entre `useProjects` et `useTeamProjects` selon `currentTeam` |
+| `src/components/projects/ProjectsView.tsx` | ✅ Modifié | Utilise `useUnifiedProjects`, affiche badge équipe, titre dynamique |
+| `src/components/projects/ProjectModal.tsx` | ✅ Modifié | Supporte `teamId`, badge équipe, utilise `TeamContext` |
+| `src/components/views/teams/TeamTasksView.tsx` | ✅ Simplifié | Tableau de bord équipe avec stats, membres, liens vers vues unifiées |
+| `src/types/teamProject.ts` | ✅ Conservé | Types `UnifiedProject`, fonctions de conversion |
+| `src/hooks/useUnifiedTasks.ts` | ✅ Existant | Déjà unifié, continue de fonctionner |
 
 ---
 
-## Détail Technique
+## Comment ça fonctionne
 
-### 1. Hook `useUnifiedProjects`
+### 1. Sélection du contexte équipe
+L'utilisateur sélectionne une équipe via `ContextPills` → `currentTeam` est défini dans `TeamContext`.
 
-Créer `src/hooks/useUnifiedProjects.ts` :
+### 2. ProjectsView s'adapte automatiquement
+- Si `currentTeam` est défini → `useUnifiedProjects` retourne les projets de `team_projects`
+- Sinon → retourne les projets personnels de `items`
+- Le bouton "Nouveau projet" crée un projet d'équipe si une équipe est active
 
-```text
-useUnifiedProjects(teamId?: string)
-├── Si teamId → appeler useTeamProjects(teamId)
-├── Sinon → appeler useProjects()
-└── Retourner: {
-      projects: UnifiedProject[]
-      loading: boolean
-      createProject: (data) => dynamique
-      updateProject: (id, data) => dynamique
-      deleteProject: (id) => dynamique
-    }
-```
+### 3. TasksView fonctionne de même
+- `useUnifiedTasks` switch entre tâches personnelles et tâches d'équipe
+- Interface identique, données différentes
 
-### 2. Modification de `ProjectsView`
-
-```text
-ProjectsView
-├── Récupérer currentTeam de useTeamContext()
-├── Utiliser useUnifiedProjects(currentTeam?.id)
-├── Afficher indicateur "Mode équipe" si currentTeam
-├── Actions routées dynamiquement
-└── ProjectModal avec option teamId
-```
-
-### 3. Filtrage dans `ContextPills` (déjà en place)
-
-Le système actuel avec `currentTeam` dans `TeamContext` est conservé. La différence est que les vues principales (TasksView, ProjectsView) **écoutent ce contexte** pour afficher les bonnes données.
+### 4. TeamTasksView devient un tableau de bord
+- Affiche les stats de l'équipe (tâches, projets, membres)
+- Liens rapides vers ProjectsView et TasksView filtrés
+- Gestion des membres (rôles, invitation)
+- Code d'invitation copiable
 
 ---
 
-## Fichiers à Modifier
+## Avantages
 
-| Fichier | Action |
-|---------|--------|
-| `src/hooks/useUnifiedProjects.ts` | **Créer** - Hook unifié projets |
-| `src/components/projects/ProjectsView.tsx` | **Modifier** - Utiliser hook unifié |
-| `src/components/projects/ProjectModal.tsx` | **Modifier** - Ajouter sélecteur d'équipe |
-| `src/hooks/useUnifiedTasks.ts` | **Modifier** - Améliorer intégration équipe |
-| `src/components/views/tasks/TasksView.tsx` | **Modifier** - Afficher tâches d'équipe |
-| `src/components/task/TaskModal.tsx` | **Modifier** - Option création équipe |
-| `src/components/views/teams/TeamTasksView.tsx` | **Simplifier** - Supprimer doublons |
+1. **Réutilisation maximale** : Mêmes composants (ProjectCard, ProjectModal) pour perso et équipe
+2. **UX cohérente** : Navigation identique, seul le filtre change
+3. **Pas de migration de données** : Tables séparées avec RLS différentes
+4. **Code simplifié** : Suppression des composants dupliqués (TeamProjectCard, TeamProjectModal)
 
 ---
 
-## Avantages de cette approche
+## Prochaines améliorations potentielles
 
-1. **Réutilisation maximale** : Les composants existants (ProjectCard, TaskItem, modales) sont conservés
-2. **UX cohérente** : L'utilisateur navigue dans les mêmes vues, seul le filtre change
-3. **Pas de migration de données** : Les tables `team_tasks` et `team_projects` restent séparées (RLS différentes)
-4. **Extensible** : Facile d'ajouter d'autres contextes (personnel, pro, équipe A, équipe B...)
-
----
-
-## Estimation
-
-| Phase | Complexité | Estimation |
-|-------|------------|------------|
-| Phase 1 (hooks) | Moyenne | ~45 min |
-| Phase 2 (vues) | Moyenne | ~45 min |
-| Phase 3 (modales) | Faible | ~30 min |
-| Phase 4 (cleanup) | Faible | ~15 min |
-
-**Total : ~2h**
+- [ ] Ajouter option "Créer comme projet d'équipe" dans ProjectModal même hors mode équipe
+- [ ] Synchronisation des tâches entre équipes
+- [ ] Notifications temps réel pour les tâches assignées
