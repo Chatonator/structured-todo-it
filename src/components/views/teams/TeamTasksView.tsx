@@ -1,3 +1,9 @@
+/**
+ * TeamTasksView - Vue principale pour les équipes
+ * Utilise les composants généralisés (ProjectCard, ProjectModal, TeamProjectDetail)
+ * et supprime les doublons TeamProjectCard/TeamProjectModal
+ */
+
 import React, { useState, useMemo } from 'react';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks, TeamTask } from '@/hooks/useTeamTasks';
@@ -26,12 +32,17 @@ import {
   Clock,
   User,
   FolderPlus,
-  Briefcase
+  Briefcase,
+  ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TeamMember } from '@/hooks/useTeams';
-import { TeamProjectCard } from '@/components/team/TeamProjectCard';
-import { TeamProjectModal } from '@/components/team/TeamProjectModal';
+
+// Import des composants généralisés
+import { ProjectCard } from '@/components/projects/ProjectCard';
+import { ProjectModal } from '@/components/projects/ProjectModal';
+import { TeamProjectDetail } from '@/components/team/TeamProjectDetail';
+import { teamProjectToUnified, UnifiedProject } from '@/types/teamProject';
 
 interface TeamTasksViewProps {
   className?: string;
@@ -46,12 +57,32 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
   const { currentTeam, teamMembers } = useTeamContext();
   const { setIsModalOpen } = useApp();
   const { tasks, loading: tasksLoading, toggleComplete, deleteTask, assignTask } = useTeamTasks(currentTeam?.id ?? null);
-  const { projects, loading: projectsLoading, createProject, updateProject, deleteProject } = useTeamProjects(currentTeam?.id ?? null);
+  const { 
+    projects, 
+    loading: projectsLoading, 
+    createProject, 
+    updateProject, 
+    deleteProject 
+  } = useTeamProjects(currentTeam?.id ?? null);
   
   const [taskFilter, setTaskFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
   const [activeTab, setActiveTab] = useState<'tasks' | 'projects'>('tasks');
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<TeamProject | null>(null);
+  // État pour la vue détail du projet
+  const [detailProjectId, setDetailProjectId] = useState<string | null>(null);
+
+  // Projet sélectionné pour la vue détail
+  const detailProject = useMemo(() => 
+    projects.find(p => p.id === detailProjectId) || null,
+    [projects, detailProjectId]
+  );
+
+  // Convertir les projets d'équipe en UnifiedProject pour ProjectCard
+  const unifiedProjects = useMemo(() => 
+    projects.map(teamProjectToUnified),
+    [projects]
+  );
 
   // Count tasks per project
   const taskCountByProject = useMemo(() => {
@@ -63,6 +94,18 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
     });
     return counts;
   }, [tasks]);
+
+  // Calculer la progression par projet
+  const progressByProject = useMemo(() => {
+    const progress: Record<string, number> = {};
+    projects.forEach(project => {
+      const projectTasks = tasks.filter(t => t.project_id === project.id);
+      const total = projectTasks.length;
+      const done = projectTasks.filter(t => t.isCompleted).length;
+      progress[project.id] = total > 0 ? Math.round((done / total) * 100) : 0;
+    });
+    return progress;
+  }, [projects, tasks]);
 
   // Stats
   const completedCount = tasks.filter(t => t.isCompleted).length;
@@ -87,6 +130,7 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  // Handlers pour les projets
   const handleCreateProject = async (data: any) => {
     await createProject(data.name, data.description, data.icon, data.color);
     setShowProjectModal(false);
@@ -100,9 +144,24 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
     }
   };
 
-  const handleProjectClick = (project: TeamProject) => {
-    setSelectedProject(project);
-    setShowProjectModal(true);
+  const handleDeleteProject = async () => {
+    if (detailProject) {
+      await deleteProject(detailProject.id);
+      setDetailProjectId(null);
+    }
+  };
+
+  // Clic sur une carte projet -> ouvrir la vue détail
+  const handleProjectCardClick = (projectId: string) => {
+    setDetailProjectId(projectId);
+  };
+
+  // Bouton éditer dans la vue détail -> ouvrir le modal d'édition
+  const handleEditProjectFromDetail = () => {
+    if (detailProject) {
+      setSelectedProject(detailProject);
+      setShowProjectModal(true);
+    }
   };
 
   // Handle opening the main task modal (from Index.tsx)
@@ -132,6 +191,45 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
     );
   }
 
+  // Si un projet est sélectionné, afficher la vue détail
+  if (detailProject) {
+    return (
+      <ViewLayout
+        header={{
+          title: detailProject.name,
+          subtitle: `Projet d'équipe • ${currentTeam.name}`,
+          icon: <Briefcase className="w-5 h-5" />,
+          actions: (
+            <Button variant="ghost" size="sm" onClick={() => setDetailProjectId(null)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Retour aux projets
+            </Button>
+          )
+        }}
+        state="success"
+        className={className}
+      >
+        <TeamProjectDetail
+          project={detailProject}
+          teamId={currentTeam.id}
+          teamMembers={teamMembers}
+          onBack={() => setDetailProjectId(null)}
+          onEdit={handleEditProjectFromDetail}
+          onDelete={handleDeleteProject}
+        />
+
+        {/* Modal d'édition de projet */}
+        <ProjectModal
+          open={showProjectModal}
+          onClose={() => { setShowProjectModal(false); setSelectedProject(null); }}
+          onSave={handleUpdateProject}
+          project={selectedProject ? teamProjectToUnified(selectedProject) : null}
+          teamId={currentTeam.id}
+        />
+      </ViewLayout>
+    );
+  }
+
   const isLoading = activeTab === 'tasks' ? tasksLoading : projectsLoading;
 
   return (
@@ -146,7 +244,11 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
             Nouvelle tâche
           </Button>
         ) : (
-          <Button onClick={() => { setSelectedProject(null); setShowProjectModal(true); }} size="sm" className="gap-2">
+          <Button 
+            onClick={() => { setSelectedProject(null); setShowProjectModal(true); }} 
+            size="sm" 
+            className="gap-2"
+          >
             <Plus className="w-4 h-4" />
             Nouveau projet
           </Button>
@@ -234,15 +336,16 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
             )}
           </TabsContent>
 
-          {/* Contenu Projets */}
+          {/* Contenu Projets - Utilise ProjectCard généralisé */}
           <TabsContent value="projects" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeProjects.map(project => (
-                <TeamProjectCard
+                <ProjectCard
                   key={project.id}
-                  project={project}
-                  onClick={() => handleProjectClick(project)}
+                  project={teamProjectToUnified(project)}
+                  onClick={() => handleProjectCardClick(project.id)}
                   taskCount={taskCountByProject[project.id] || 0}
+                  overrideProgress={progressByProject[project.id] || 0}
                 />
               ))}
               
@@ -266,12 +369,13 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
         </Tabs>
       </div>
 
-      {/* Modal Projet */}
-      <TeamProjectModal
+      {/* Modal Projet - Utilise ProjectModal généralisé */}
+      <ProjectModal
         open={showProjectModal}
         onClose={() => { setShowProjectModal(false); setSelectedProject(null); }}
         onSave={selectedProject ? handleUpdateProject : handleCreateProject}
-        project={selectedProject}
+        project={selectedProject ? teamProjectToUnified(selectedProject) : null}
+        teamId={currentTeam.id}
       />
     </ViewLayout>
   );

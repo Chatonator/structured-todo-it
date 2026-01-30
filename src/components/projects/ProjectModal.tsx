@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Project, PROJECT_ICONS, PROJECT_COLORS, PROJECT_STATUS_CONFIG } from '@/types/project';
+import { UnifiedProject } from '@/types/teamProject';
 
 interface ProjectModalProps {
   open: boolean;
@@ -18,11 +19,13 @@ interface ProjectModalProps {
     status?: string;
     targetDate?: Date;
   }) => void;
-  project?: Project | null;
+  project?: Project | UnifiedProject | null;
   initialName?: string;
+  // Mode équipe - change le titre et peut affecter certaines options
+  teamId?: string;
 }
 
-export const ProjectModal = ({ open, onClose, onSave, project, initialName }: ProjectModalProps) => {
+export const ProjectModal = ({ open, onClose, onSave, project, initialName, teamId }: ProjectModalProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('📚');
@@ -63,13 +66,17 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName }: Pr
     onClose();
   };
 
+  const modalTitle = project 
+    ? 'Modifier le projet' 
+    : teamId 
+      ? "Nouveau projet d'équipe" 
+      : 'Nouveau projet';
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            {project ? 'Modifier le projet' : 'Nouveau projet'}
-          </DialogTitle>
+          <DialogTitle>{modalTitle}</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
