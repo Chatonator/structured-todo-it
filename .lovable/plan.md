@@ -1,265 +1,159 @@
 
-# Plan "Table Rase" : Refonte Complète des Équipes
+# Plan d'Unification Tâches & Projets (Personnel + Équipe)
 
-## Analyse comparative
+## Problème Actuel
 
-### Ce qui fonctionne bien (projets perso)
-- Architecture unifiée `items` avec `useItems` → très élégant
-- `ProjectsView` → navigation fluide grille/détail
-- `ProjectDetail` → Kanban, filtres, recherche, colonnes personnalisables
-- `ProjectCard` → progression dynamique via `useProjectProgress`
-- `ProjectModal` → création/édition complète
+Vous avez raison : il existe **deux systèmes parallèles** qui ne communiquent pas :
 
-### Ce qui ne fonctionne pas (équipes actuelles)
-- Tables Supabase séparées (`team_tasks`, `team_projects`) → OK, nécessaire pour RLS multi-utilisateurs
-- `TeamProjectCard` / `TeamProjectModal` → doublons simplistes sans les features
-- **Pas de vue détail projet** → pas de Kanban, pas de gestion de tâches par projet
-- Pas de `useTeamProjectTasks` → impossible de lier tâches et projets d'équipe
+| Système | Tables | Hooks | Vues |
+|---------|--------|-------|------|
+| Personnel | `items` (unifié) | `useItems`, `useTasks`, `useProjects` | `TasksView`, `ProjectsView` |
+| Équipe | `team_tasks`, `team_projects` | `useTeamTasks`, `useTeamProjects` | `TeamTasksView` |
 
-## Décision architecturale : Garder les tables séparées
-
-Les tables `team_tasks` et `team_projects` dans Supabase sont **nécessaires** :
-- RLS différente (accès par `team_id` au lieu de `user_id`)
-- Champs spécifiques équipes (`assigned_to`, `created_by`)
-- Pas de migration de données à faire
-
-**L'approche table rase concerne les composants React, pas les tables Supabase.**
+Cela crée de la duplication de code et une UX incohérente.
 
 ---
 
-## Plan d'implémentation
+## Solution Proposée : Unification via Filtrage
 
-### Phase 1 : Supprimer les doublons
-**Fichiers à supprimer :**
-- `src/components/team/TeamProjectCard.tsx`
-- `src/components/team/TeamProjectModal.tsx`
+L'idée est de **garder les vues existantes** (TasksView, ProjectsView) et d'y **intégrer les données d'équipe** via le système de filtrage déjà en place (`ContextPills` + `contextFilter`).
 
-Ces composants ne seront plus utilisés.
-
----
-
-### Phase 2 : Créer un adaptateur de types
-**Nouveau fichier** : `src/types/teamProject.ts`
-
-Créer une interface `UnifiedProject` qui normalise les deux sources :
-
-```typescript
-// Interface commune pour projets perso et équipe
-export interface UnifiedProject {
-  id: string;
-  name: string;
-  description?: string;
-  icon: string;
-  color: string;
-  status: ProjectStatus;
-  targetDate?: Date;
-  progress: number;
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt?: Date;
-  // Contexte
-  teamId?: string;   // Si présent = projet d'équipe
-  userId?: string;   // Si présent = projet personnel
-}
-
-// Adaptateurs
-export function teamProjectToUnified(tp: TeamProject): UnifiedProject;
-export function projectToUnified(p: Project): UnifiedProject;
-```
-
----
-
-### Phase 3 : Créer le hook manquant
-**Nouveau fichier** : `src/hooks/useTeamProjectTasks.ts`
-
-Ce hook est l'équivalent de `useProjectTasks` pour les équipes :
-
-```typescript
-export const useTeamProjectTasks = (teamId: string, projectId: string) => {
-  // Filtre team_tasks par project_id
-  // Fournit getTasksByColumns pour le Kanban
-  // Fournit updateTaskStatus pour le drag & drop
-  
-  return {
-    tasks,
-    loading,
-    getTasksByColumns,
-    updateTaskStatus,
-    reloadTasks
-  };
-};
-```
-
----
-
-### Phase 4 : Étendre ProjectCard
-**Modifier** : `src/components/projects/ProjectCard.tsx`
-
-Accepter `UnifiedProject` au lieu de `Project` :
-
-```typescript
-interface ProjectCardProps {
-  project: UnifiedProject;
-  onClick: () => void;
-  taskCount?: number; // Pour équipes (progression non auto-calculée)
-}
-```
-
-Le hook `useProjectProgress` ne fonctionne que pour les projets perso. Pour les équipes, passer `taskCount` explicitement.
-
----
-
-### Phase 5 : Étendre ProjectModal
-**Modifier** : `src/components/projects/ProjectModal.tsx`
-
-Ajouter une prop `teamId` optionnelle :
-
-```typescript
-interface ProjectModalProps {
-  open: boolean;
-  onClose: () => void;
-  onSave: (data: ProjectFormData) => void;
-  project?: UnifiedProject | null;
-  teamId?: string; // Mode équipe
-}
-```
-
-Le modal reste identique visuellement. La logique de sauvegarde est gérée par le parent.
-
----
-
-### Phase 6 : Créer TeamProjectDetail (nouveau)
-**Nouveau fichier** : `src/components/team/TeamProjectDetail.tsx`
-
-Ce composant est une **copie adaptée** de `ProjectDetail` pour les équipes :
-
-- Utilise `useTeamProjectTasks` au lieu de `useProjectTasks`
-- Utilise `useTeamTasks.createTask` pour ajouter des tâches
-- Affiche les membres assignés sur chaque tâche
-- Permet d'assigner des tâches via dropdown
-
-**Raison du nouveau fichier** : Plutôt que de surcharger `ProjectDetail` avec des conditions `if (teamId)` partout, un composant dédié sera plus maintenable. Les deux partagent le même `KanbanBoard`.
-
----
-
-### Phase 7 : Refondre TeamTasksView
-**Modifier** : `src/components/views/teams/TeamTasksView.tsx`
-
-Remplacer l'implémentation actuelle :
-
-1. Importer les composants généralisés
-2. Ajouter l'état `detailProjectId` (comme `ProjectsView`)
-3. Afficher `TeamProjectDetail` quand un projet est sélectionné
-4. Utiliser `ProjectCard` avec `UnifiedProject`
-5. Utiliser `ProjectModal` avec `teamId`
-
----
-
-## Schéma d'architecture cible
+### Principe clé
 
 ```text
-┌──────────────────────────────────────────────────────────────────┐
-│                        Composants Partagés                        │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│   ProjectCard      ◄── UnifiedProject (perso ou équipe)          │
-│   ProjectModal     ◄── teamId? pour savoir quel hook appeler     │
-│   KanbanBoard      ◄── Inchangé, déjà générique                  │
-│                                                                    │
-├──────────────────────────────────────────────────────────────────┤
-│                        Composants Perso                           │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│   ProjectsView     ──► ProjectCard ──► ProjectDetail              │
-│        │                                    │                     │
-│        └──► useProjects                     └──► useProjectTasks  │
-│                                                                    │
-├──────────────────────────────────────────────────────────────────┤
-│                        Composants Équipe                          │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│   TeamTasksView    ──► ProjectCard ──► TeamProjectDetail          │
-│        │                                    │                     │
-│        └──► useTeamProjects                 └──► useTeamProjectTasks
-│                                                                    │
-└──────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  ContextPills: [Toutes] [Perso] [Pro] [Équipe ▼]       │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  ProjectsView / TasksView                               │
+│  ─────────────────────────────────────────────────────  │
+│  Si contexte = "équipe" → affiche team_projects/tasks   │
+│  Si contexte = "perso/pro/all" → affiche items          │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Fichiers impactés (résumé)
+## Modifications Prévues
 
-| Action | Fichier |
-|--------|---------|
-| Supprimer | `src/components/team/TeamProjectCard.tsx` |
-| Supprimer | `src/components/team/TeamProjectModal.tsx` |
-| Créer | `src/types/teamProject.ts` |
-| Créer | `src/hooks/useTeamProjectTasks.ts` |
-| Créer | `src/components/team/TeamProjectDetail.tsx` |
-| Modifier | `src/components/projects/ProjectCard.tsx` |
-| Modifier | `src/components/projects/ProjectModal.tsx` |
-| Modifier | `src/components/views/teams/TeamTasksView.tsx` |
-| Modifier | `src/components/views/teams/index.ts` |
+### Phase 1 : Hooks unifiés
+
+**1.1 Créer `useUnifiedProjects`**
+- Combine `useProjects` et `useTeamProjects`
+- Retourne des `UnifiedProject[]` (type déjà existant dans `teamProject.ts`)
+- Accepte un paramètre `teamId?: string` pour switcher entre personnel et équipe
+
+**1.2 Modifier `useUnifiedTasks`**
+- Déjà partiellement unifié
+- Ajouter le même pattern : si `teamId` présent → utiliser `team_tasks`
+
+### Phase 2 : Adapter les vues existantes
+
+**2.1 Modifier `ProjectsView`**
+- Utiliser `useUnifiedProjects(currentTeam?.id)` au lieu de `useProjects`
+- Les actions (création, édition, suppression) sont routées dynamiquement :
+  - Si `currentTeam` → appeler les méthodes team
+  - Sinon → appeler les méthodes personnelles
+- Ajouter une option "Projet d'équipe" dans `ProjectModal` si une équipe est sélectionnée
+
+**2.2 Adapter `TasksView` (si nécessaire)**
+- Même logique : afficher tâches d'équipe si contexte équipe sélectionné
+
+### Phase 3 : Améliorer le routage de création
+
+**3.1 Modifier `TaskModal`**
+- Ajouter un champ optionnel "Créer comme tâche d'équipe" (checkbox ou dropdown)
+- Visible seulement si l'utilisateur appartient à des équipes
+- Par défaut coché si contexte équipe actif
+
+**3.2 Modifier `ProjectModal`**
+- Ajouter le même champ "Projet d'équipe" avec sélection de l'équipe
+- Permettre de créer un projet d'équipe depuis n'importe quel contexte
+
+### Phase 4 : Supprimer la duplication
+
+**4.1 Simplifier `TeamTasksView`**
+- Supprimer la logique de liste des projets (déléguée à `ProjectsView`)
+- Garder uniquement ce qui est spécifique aux équipes :
+  - Gestion des membres
+  - Assignation des tâches
+  - Configuration de l'équipe
+
+**4.2 Optionnel : Convertir `TeamTasksView` en vue "Tableau de bord d'équipe"**
+- Résumé de l'activité
+- Membres et leurs tâches assignées
+- Lien vers les projets d'équipe (dans ProjectsView)
 
 ---
 
-## Ordre d'exécution
+## Détail Technique
 
-| Étape | Description | Risque |
-|-------|-------------|--------|
-| 1 | Créer `src/types/teamProject.ts` | Aucun |
-| 2 | Créer `src/hooks/useTeamProjectTasks.ts` | Faible |
-| 3 | Modifier `ProjectCard.tsx` (UnifiedProject) | Faible |
-| 4 | Modifier `ProjectModal.tsx` (teamId optionnel) | Faible |
-| 5 | Créer `TeamProjectDetail.tsx` | Moyen |
-| 6 | Modifier `TeamTasksView.tsx` | Moyen |
-| 7 | Supprimer doublons | Aucun |
-| 8 | Tester de bout en bout | - |
+### 1. Hook `useUnifiedProjects`
+
+Créer `src/hooks/useUnifiedProjects.ts` :
+
+```text
+useUnifiedProjects(teamId?: string)
+├── Si teamId → appeler useTeamProjects(teamId)
+├── Sinon → appeler useProjects()
+└── Retourner: {
+      projects: UnifiedProject[]
+      loading: boolean
+      createProject: (data) => dynamique
+      updateProject: (id, data) => dynamique
+      deleteProject: (id) => dynamique
+    }
+```
+
+### 2. Modification de `ProjectsView`
+
+```text
+ProjectsView
+├── Récupérer currentTeam de useTeamContext()
+├── Utiliser useUnifiedProjects(currentTeam?.id)
+├── Afficher indicateur "Mode équipe" si currentTeam
+├── Actions routées dynamiquement
+└── ProjectModal avec option teamId
+```
+
+### 3. Filtrage dans `ContextPills` (déjà en place)
+
+Le système actuel avec `currentTeam` dans `TeamContext` est conservé. La différence est que les vues principales (TasksView, ProjectsView) **écoutent ce contexte** pour afficher les bonnes données.
+
+---
+
+## Fichiers à Modifier
+
+| Fichier | Action |
+|---------|--------|
+| `src/hooks/useUnifiedProjects.ts` | **Créer** - Hook unifié projets |
+| `src/components/projects/ProjectsView.tsx` | **Modifier** - Utiliser hook unifié |
+| `src/components/projects/ProjectModal.tsx` | **Modifier** - Ajouter sélecteur d'équipe |
+| `src/hooks/useUnifiedTasks.ts` | **Modifier** - Améliorer intégration équipe |
+| `src/components/views/tasks/TasksView.tsx` | **Modifier** - Afficher tâches d'équipe |
+| `src/components/task/TaskModal.tsx` | **Modifier** - Option création équipe |
+| `src/components/views/teams/TeamTasksView.tsx` | **Simplifier** - Supprimer doublons |
 
 ---
 
 ## Avantages de cette approche
 
-1. **Pas de sur-ingénierie** : On ne fusionne pas tout dans un seul composant impossible à maintenir
-2. **Réutilisation maximale** : `ProjectCard`, `ProjectModal`, `KanbanBoard` sont partagés
-3. **Séparation claire** : `ProjectDetail` (perso) vs `TeamProjectDetail` (équipe) - même UX, hooks différents
-4. **Évolutif** : Facile d'ajouter des features spécifiques équipes (mentions, commentaires, etc.)
-5. **Suppression nette** : Les doublons `TeamProjectCard`/`TeamProjectModal` disparaissent
+1. **Réutilisation maximale** : Les composants existants (ProjectCard, TaskItem, modales) sont conservés
+2. **UX cohérente** : L'utilisateur navigue dans les mêmes vues, seul le filtre change
+3. **Pas de migration de données** : Les tables `team_tasks` et `team_projects` restent séparées (RLS différentes)
+4. **Extensible** : Facile d'ajouter d'autres contextes (personnel, pro, équipe A, équipe B...)
 
 ---
 
-## Technical details
+## Estimation
 
-### useTeamProjectTasks implementation
+| Phase | Complexité | Estimation |
+|-------|------------|------------|
+| Phase 1 (hooks) | Moyenne | ~45 min |
+| Phase 2 (vues) | Moyenne | ~45 min |
+| Phase 3 (modales) | Faible | ~30 min |
+| Phase 4 (cleanup) | Faible | ~15 min |
 
-Ce hook filtre les `team_tasks` par `project_id` :
-
-```typescript
-const useTeamProjectTasks = (teamId: string, projectId: string) => {
-  const { tasks: allTasks, ...rest } = useTeamTasks(teamId);
-  
-  const projectTasks = useMemo(() => 
-    allTasks.filter(t => t.project_id === projectId),
-    [allTasks, projectId]
-  );
-  
-  const getTasksByColumns = (columns) => {
-    // Grouper par status (à faire, en cours, terminé)
-    // Basé sur iscompleted et un champ status à ajouter si nécessaire
-  };
-  
-  const updateTaskStatus = async (taskId, newStatus) => {
-    // Appeler updateTask avec le nouveau status
-  };
-  
-  return { tasks: projectTasks, getTasksByColumns, updateTaskStatus, ...rest };
-};
-```
-
-### Schema consideration
-
-La table `team_tasks` n'a pas de champ `status` pour le Kanban. Options :
-1. Utiliser `iscompleted` : false = "À faire", true = "Terminé" (2 colonnes seulement)
-2. Ajouter un champ `status` via migration SQL (recommandé pour 3+ colonnes)
-
-Je recommande de commencer avec l'option 1 (simple) et d'évoluer vers l'option 2 si besoin.
+**Total : ~2h**
