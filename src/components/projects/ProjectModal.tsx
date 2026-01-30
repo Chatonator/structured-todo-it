@@ -5,8 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Project, PROJECT_ICONS, PROJECT_COLORS, PROJECT_STATUS_CONFIG } from '@/types/project';
 import { UnifiedProject } from '@/types/teamProject';
+import { useTeamContext } from '@/contexts/TeamContext';
+import { Users, User } from 'lucide-react';
 
 interface ProjectModalProps {
   open: boolean;
@@ -18,20 +21,25 @@ interface ProjectModalProps {
     color?: string;
     status?: string;
     targetDate?: Date;
+    teamId?: string;
   }) => void;
   project?: Project | UnifiedProject | null;
   initialName?: string;
-  // Mode équipe - change le titre et peut affecter certaines options
+  // Mode équipe - prédéfinit l'équipe cible
   teamId?: string;
 }
 
 export const ProjectModal = ({ open, onClose, onSave, project, initialName, teamId }: ProjectModalProps) => {
+  const { teams, currentTeam } = useTeamContext();
+  
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('📚');
   const [color, setColor] = useState('#a78bfa');
   const [status, setStatus] = useState('planning');
   const [targetDate, setTargetDate] = useState('');
+  // Pour la sélection d'équipe (lors de création depuis le mode personnel)
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   useEffect(() => {
     if (project) {
@@ -41,6 +49,8 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       setColor(project.color);
       setStatus(project.status);
       setTargetDate(project.targetDate ? project.targetDate.toISOString().split('T')[0] : '');
+      // En mode édition, pas de changement d'équipe possible
+      setSelectedTeamId(null);
     } else {
       setName(initialName || '');
       setDescription('');
@@ -48,8 +58,10 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       setColor('#a78bfa');
       setStatus('planning');
       setTargetDate('');
+      // Prédéfinir l'équipe si on est en mode équipe ou si une équipe est passée
+      setSelectedTeamId(teamId || currentTeam?.id || null);
     }
-  }, [project, initialName, open]);
+  }, [project, initialName, open, teamId, currentTeam?.id]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,15 +72,23 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       icon,
       color,
       status,
-      targetDate: targetDate ? new Date(targetDate) : undefined
+      targetDate: targetDate ? new Date(targetDate) : undefined,
+      teamId: selectedTeamId || undefined
     });
     
     onClose();
   };
 
+  // Détermine si c'est un projet d'équipe existant
+  const isExistingTeamProject = project && 'teamId' in project && !!project.teamId;
+  const isTeamMode = !!teamId || isExistingTeamProject;
+  
+  // L'équipe sélectionnée pour l'affichage
+  const targetTeam = selectedTeamId ? teams.find(t => t.id === selectedTeamId) : null;
+
   const modalTitle = project 
     ? 'Modifier le projet' 
-    : teamId 
+    : isTeamMode 
       ? "Nouveau projet d'équipe" 
       : 'Nouveau projet';
 
@@ -76,7 +96,15 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{modalTitle}</DialogTitle>
+          <div className="flex items-center gap-2">
+            <DialogTitle>{modalTitle}</DialogTitle>
+            {isTeamMode && (
+              <Badge variant="secondary" className="gap-1">
+                <Users className="w-3 h-3" />
+                Équipe
+              </Badge>
+            )}
+          </div>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
