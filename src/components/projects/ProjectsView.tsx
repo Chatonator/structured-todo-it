@@ -92,6 +92,30 @@ export const ProjectsView = () => {
     </div>
   );
 
+  // Si un projet est sélectionné, afficher le détail (Kanban)
+  if (detailProject && !isTeamMode) {
+    return (
+      <>
+        <ProjectDetail
+          project={detailProject as any}
+          onBack={() => setDetailProjectId(null)}
+          onEdit={handleEditFromDetail}
+          onDelete={() => setDetailProjectId(null)}
+        />
+        <ProjectModal
+          open={showModal}
+          onClose={() => {
+            setShowModal(false);
+            setSelectedProjectId(null);
+          }}
+          onSave={handleUpdateProject}
+          project={selectedProject}
+          teamId={teamId ?? undefined}
+        />
+      </>
+    );
+  }
+
   return (
     <ViewLayout
       header={{
