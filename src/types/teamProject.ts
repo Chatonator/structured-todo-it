@@ -5,6 +5,7 @@
 
 import { Project, ProjectStatus } from './project';
 import { TeamProject, TeamProjectStatus } from '@/hooks/useTeamProjects';
+import { KanbanColumnConfig } from './item';
 
 /**
  * Interface commune pour projets perso et équipe
@@ -28,6 +29,7 @@ export interface UnifiedProject {
   teamId?: string;   // Si présent = projet d'équipe
   userId?: string;   // Si présent = projet personnel
   createdBy?: string; // Pour les projets d'équipe
+  kanbanColumns?: KanbanColumnConfig[]; // Colonnes Kanban personnalisées
 }
 
 /**
@@ -70,6 +72,7 @@ export function teamProjectToUnified(project: TeamProject): UnifiedProject {
     orderIndex: project.orderIndex,
     teamId: project.teamId,
     createdBy: project.createdBy,
+    kanbanColumns: project.kanbanColumns,
   };
 }
 

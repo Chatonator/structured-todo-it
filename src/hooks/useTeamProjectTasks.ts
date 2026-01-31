@@ -7,12 +7,13 @@
 import { useMemo, useCallback } from 'react';
 import { useTeamTasks, TeamTask } from './useTeamTasks';
 import { KanbanColumnConfig } from '@/types/item';
+import { supabase } from '@/integrations/supabase/client';
 
 // Colonnes par défaut pour le Kanban équipe
 const DEFAULT_COLUMN_IDS = ['todo', 'in-progress', 'done'];
 
-// Statut de tâche pour le Kanban (basé sur iscompleted pour l'instant)
-export type TeamTaskProjectStatus = 'todo' | 'in-progress' | 'done';
+// Statut de tâche pour le Kanban
+export type TeamTaskProjectStatus = 'todo' | 'in-progress' | 'done' | string;
 
 export interface TeamProjectTasksResult {
   tasks: TeamTask[];
@@ -25,6 +26,11 @@ export interface TeamProjectTasksResult {
     done: TeamTask[];
   };
   reloadTasks: () => void;
+}
+
+// Extended TeamTask with project_status field (from DB)
+interface TeamTaskWithProjectStatus {
+  projectStatus?: string;
 }
 
 /**
@@ -51,12 +57,13 @@ export const useTeamProjectTasks = (
 
   /**
    * Déterminer le statut Kanban d'une tâche
-   * Pour l'instant, basé sur isCompleted (2 états: todo/done)
-   * TODO: Ajouter un champ status dans team_tasks pour 3+ colonnes
+   * Utilise project_status si défini, sinon fallback sur isCompleted
    */
-  const getTaskStatus = useCallback((task: TeamTask): TeamTaskProjectStatus => {
+  const getTaskStatus = useCallback((task: TeamTask & TeamTaskWithProjectStatus): TeamTaskProjectStatus => {
+    // Si project_status est défini, l'utiliser
+    if (task.projectStatus) return task.projectStatus;
+    // Fallback sur isCompleted
     if (task.isCompleted) return 'done';
-    // On pourrait utiliser metadata.projectStatus si on l'ajoute
     return 'todo';
   }, []);
 
@@ -103,12 +110,24 @@ export const useTeamProjectTasks = (
     const isCompleted = newStatus === 'done';
     
     try {
-      await toggleComplete(taskId, isCompleted);
+      // Mise à jour directe dans Supabase avec project_status
+      const { error } = await supabase
+        .from('team_tasks')
+        .update({
+          project_status: newStatus,
+          iscompleted: isCompleted,
+          ...(isCompleted ? { lastcompletedat: new Date().toISOString() } : {})
+        })
+        .eq('id', taskId);
+      
+      if (error) throw error;
+      
+      refreshTasks();
       return true;
     } catch {
       return false;
     }
-  }, [toggleComplete]);
+  }, [refreshTasks]);
 
   // Tâches groupées par statut (format legacy pour compatibilité)
   const tasksByStatus = useMemo(() => ({

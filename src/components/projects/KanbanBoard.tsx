@@ -44,6 +44,8 @@ interface KanbanBoardProps {
   onTaskClick: (task: Task) => void;
   onToggleComplete: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
+  // Optional: render additional content for each task (e.g., assignee avatar)
+  renderTaskBadge?: (task: Task) => React.ReactNode;
 }
 
 export const DEFAULT_COLUMNS: KanbanColumn[] = [
@@ -58,7 +60,8 @@ const KanbanBoardComponent = ({
   onStatusChange, 
   onTaskClick,
   onToggleComplete,
-  onDeleteTask
+  onDeleteTask,
+  renderTaskBadge
 }: KanbanBoardProps) => {
   // Get tasks for a column from the dynamic map
   const getTasksForColumn = useCallback((columnId: string): Task[] => {
@@ -152,6 +155,7 @@ const KanbanBoardComponent = ({
                                 {task.estimatedTime}min
                               </div>
                             )}
+                            {renderTaskBadge && renderTaskBadge(task)}
                           </div>
                         </div>
                         <Button
