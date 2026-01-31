@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useUnifiedProjects } from '@/hooks/useUnifiedProjects';
 import { useTeamContext } from '@/contexts/TeamContext';
-import { UnifiedProject, isTeamProject } from '@/types/teamProject';
-import { ProjectCard } from './ProjectCard';
+import { UnifiedProject } from '@/types/teamProject';
 import { ProjectModal } from './ProjectModal';
-import { ProjectDetail } from './ProjectDetail';
-import { TeamProjectDetail } from '@/components/team/TeamProjectDetail';
+import { ProjectDetailView } from './ProjectDetailView';
+import { ProjectGrid } from './ProjectGrid';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +67,18 @@ export const ProjectsView = () => {
     }
   };
 
+  const handleDeleteProject = async () => {
+    if (detailProject) {
+      await deleteProject(detailProject.id);
+      setDetailProjectId(null);
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setSelectedProjectId(null);
+  };
+
   // Titre dynamique selon le mode
   const viewTitle = isTeamMode ? `Projets de ${teamName}` : "Projets";
   const viewSubtitle = isTeamMode 
@@ -79,94 +90,22 @@ export const ProjectsView = () => {
   const completedProjects = getCompletedProjects();
   const archivedProjects = getArchivedProjects();
 
-  // Zone pour créer un nouveau projet
-  const NewProjectZone = () => (
-    <div
-      className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-3
-        transition-all duration-200 min-h-[200px]
-        border-border bg-card hover:border-muted-foreground/50 cursor-pointer"
-      onClick={() => setShowModal(true)}
-    >
-      <FolderPlus className="w-10 h-10 text-muted-foreground" />
-      <div className="text-center">
-        <p className="font-medium">Nouveau projet</p>
-        <p className="text-sm text-muted-foreground">
-          Cliquez pour créer un projet
-        </p>
-      </div>
-    </div>
-  );
-
-  // Handler pour supprimer un projet d'équipe
-  const handleDeleteTeamProject = async () => {
-    if (detailProject && teamId) {
-      await deleteProject(detailProject.id);
-      setDetailProjectId(null);
-    }
-  };
-
-  // Si un projet personnel est sélectionné, afficher le détail (Kanban)
-  if (detailProject && !isTeamMode) {
+  // Si un projet est sélectionné, afficher le détail (Kanban)
+  if (detailProject) {
     return (
-      <>
-        <ProjectDetail
-          project={detailProject as any}
-          onBack={() => setDetailProjectId(null)}
-          onEdit={handleEditFromDetail}
-          onDelete={() => setDetailProjectId(null)}
-        />
-        <ProjectModal
-          open={showModal}
-          onClose={() => {
-            setShowModal(false);
-            setSelectedProjectId(null);
-          }}
-          onSave={handleUpdateProject}
-          project={selectedProject}
-          teamId={teamId ?? undefined}
-        />
-      </>
-    );
-  }
-
-  // Si un projet d'équipe est sélectionné, afficher TeamProjectDetail (Kanban)
-  if (detailProject && isTeamMode && teamId) {
-    return (
-      <>
-        <TeamProjectDetail
-          project={{
-            id: detailProject.id,
-            name: detailProject.name,
-            description: detailProject.description,
-            icon: detailProject.icon,
-            color: detailProject.color,
-            status: detailProject.status,
-            targetDate: detailProject.targetDate,
-            progress: detailProject.progress,
-            createdAt: detailProject.createdAt,
-            updatedAt: detailProject.updatedAt,
-            completedAt: detailProject.completedAt,
-            orderIndex: detailProject.orderIndex,
-            teamId: teamId,
-            createdBy: detailProject.createdBy || '',
-          }}
-          teamId={teamId}
-          teamMembers={teamMembers}
-          onBack={() => setDetailProjectId(null)}
-          onEdit={handleEditFromDetail}
-          onDelete={handleDeleteTeamProject}
-        />
-        <ProjectModal
-          open={showModal}
-          onClose={() => {
-            setShowModal(false);
-            setSelectedProjectId(null);
-          }}
-          onSave={handleUpdateProject}
-          project={selectedProject}
-          teamId={teamId}
-        />
-      </>
+      <ProjectDetailView
+        project={detailProject}
+        isTeamMode={isTeamMode}
+        teamId={teamId}
+        teamMembers={teamMembers}
+        showModal={showModal}
+        selectedProject={selectedProject}
+        onBack={() => setDetailProjectId(null)}
+        onEdit={handleEditFromDetail}
+        onDelete={handleDeleteProject}
+        onModalClose={handleModalClose}
+        onModalSave={handleUpdateProject}
+      />
     );
   }
 
@@ -221,52 +160,34 @@ export const ProjectsView = () => {
         </TabsList>
 
         <TabsContent value="active" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeProjects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onClick={() => handleCardClick(project)}
-              />
-            ))}
-            <NewProjectZone />
-          </div>
+          <ProjectGrid
+            projects={activeProjects}
+            onProjectClick={handleCardClick}
+            showNewProjectZone
+            onNewProjectClick={() => setShowModal(true)}
+          />
         </TabsContent>
 
         <TabsContent value="completed" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {completedProjects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onClick={() => handleCardClick(project)}
-              />
-            ))}
-          </div>
+          <ProjectGrid
+            projects={completedProjects}
+            onProjectClick={handleCardClick}
+          />
         </TabsContent>
 
         {archivedProjects.length > 0 && (
           <TabsContent value="archived" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {archivedProjects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onClick={() => handleCardClick(project)}
-                />
-              ))}
-            </div>
+            <ProjectGrid
+              projects={archivedProjects}
+              onProjectClick={handleCardClick}
+            />
           </TabsContent>
         )}
       </Tabs>
 
-      {/* Modal */}
       <ProjectModal
         open={showModal}
-        onClose={() => {
-          setShowModal(false);
-          setSelectedProjectId(null);
-        }}
+        onClose={handleModalClose}
         onSave={selectedProject ? handleUpdateProject : handleCreateProject}
         project={selectedProject}
         teamId={teamId ?? undefined}
