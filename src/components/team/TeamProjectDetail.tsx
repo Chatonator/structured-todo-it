@@ -9,19 +9,26 @@ import { PROJECT_STATUS_CONFIG } from '@/types/project';
 import { TeamProject } from '@/hooks/useTeamProjects';
 import { useTeamProjectTasks } from '@/hooks/useTeamProjectTasks';
 import { useTeamTasks, TeamTask } from '@/hooks/useTeamTasks';
+import { useTeamProjects } from '@/hooks/useTeamProjects';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
+import { priorityOptions, teamSortOptions, TeamSortOption } from '@/config/taskFilterOptions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { KanbanBoard, DEFAULT_COLUMNS, KanbanColumn } from '@/components/projects/KanbanBoard';
+import { KanbanColumnManager } from '@/components/projects/KanbanColumnManager';
+import TaskModal from '@/components/task/TaskModal';
 import { 
   ArrowLeft, Edit, Plus, Calendar, Target, Trash2, 
   Search, Filter, ArrowUpDown, X, CheckCircle2,
-  Users, UserPlus, User
+  Users, UserPlus, ListPlus, Settings2, Eye, EyeOff
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Task, SubTaskCategory, SUB_CATEGORY_CONFIG } from '@/types/task';
+import { Task } from '@/types/task';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,16 +48,13 @@ interface TeamProjectDetailProps {
   onDelete?: () => void;
 }
 
-type SortOption = 'none' | 'priority-high' | 'priority-low' | 'name' | 'time' | 'assignee';
-type PriorityFilter = SubTaskCategory | 'all' | 'none';
-
 // Helper to get display name
 const getDisplayName = (member: TeamMember): string => {
   return member.profiles?.display_name || 'Membre';
 };
 
 export const TeamProjectDetail = ({ 
-  project, 
+  project: projectProp, 
   teamId,
   teamMembers,
   onBack, 
@@ -62,84 +66,56 @@ export const TeamProjectDetail = ({
     getTasksByColumns, 
     updateTaskStatus, 
     reloadTasks 
-  } = useTeamProjectTasks(teamId, project.id);
+  } = useTeamProjectTasks(teamId, projectProp.id);
   
   const { 
     createTask, 
     deleteTask: removeTask, 
     toggleComplete,
-    assignTask 
+    updateTask
   } = useTeamTasks(teamId);
   
+  const { projects, updateProject } = useTeamProjects(teamId);
+  
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('none');
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
-  const [showAddTaskInput, setShowAddTaskInput] = useState(false);
-  const [newTaskName, setNewTaskName] = useState('');
+  
+  // États
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<TeamTask | null>(null);
+  const [showColumnManager, setShowColumnManager] = useState(false);
+  
+  // Use latest project from hook
+  const project = useMemo(() => 
+    projects.find(p => p.id === projectProp.id) ?? projectProp,
+    [projects, projectProp]
+  );
+  
+  // Colonnes du Kanban (personnalisées ou par défaut)
+  const columns = useMemo(() => 
+    project.kanbanColumns || DEFAULT_COLUMNS,
+    [project.kanbanColumns]
+  );
   
   const statusConfig = PROJECT_STATUS_CONFIG[project.status] || PROJECT_STATUS_CONFIG['planning'];
 
-  // Colonnes du Kanban (pour l'instant les colonnes par défaut)
-  const columns = DEFAULT_COLUMNS;
-
-  // Fonction de filtrage et tri des tâches
-  const filterAndSortTasks = useCallback((tasks: TeamTask[]): TeamTask[] => {
-    let filtered = [...tasks];
-    
-    // Recherche par nom
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(task => 
-        task.name.toLowerCase().includes(query)
-      );
-    }
-    
-    // Filtre par priorité (subcategory)
-    if (priorityFilter !== 'all') {
-      if (priorityFilter === 'none') {
-        filtered = filtered.filter(task => !task.subCategory);
-      } else {
-        filtered = filtered.filter(task => task.subCategory === priorityFilter);
-      }
-    }
-    
-    // Tri
-    if (sortBy !== 'none') {
-      filtered.sort((a, b) => {
-        switch (sortBy) {
-          case 'priority-high': {
-            const getPriority = (task: TeamTask) => {
-              if (!task.subCategory) return 0;
-              return SUB_CATEGORY_CONFIG[task.subCategory]?.priority ?? 0;
-            };
-            return getPriority(b) - getPriority(a);
-          }
-          case 'priority-low': {
-            const getPriority = (task: TeamTask) => {
-              if (!task.subCategory) return 0;
-              return SUB_CATEGORY_CONFIG[task.subCategory]?.priority ?? 0;
-            };
-            const prioA = getPriority(a);
-            const prioB = getPriority(b);
-            if (prioA === 0 && prioB !== 0) return 1;
-            if (prioB === 0 && prioA !== 0) return -1;
-            return prioA - prioB;
-          }
-          case 'name':
-            return a.name.localeCompare(b.name);
-          case 'time':
-            return (b.estimatedTime || 0) - (a.estimatedTime || 0);
-          case 'assignee':
-            return (a.assigned_to || 'zzz').localeCompare(b.assigned_to || 'zzz');
-          default:
-            return 0;
-        }
-      });
-    }
-    
-    return filtered;
-  }, [searchQuery, sortBy, priorityFilter]);
+  // Hook de filtrage partagé
+  const {
+    searchQuery,
+    setSearchQuery,
+    sortBy,
+    setSortBy,
+    priorityFilter,
+    setPriorityFilter,
+    hasActiveFilters,
+    clearFilters,
+    filterAndSortTasks,
+  } = useTaskFilters<TeamTask>({
+    tasks: projectTasks,
+    getTaskName: (t) => t.name,
+    getSubCategory: (t) => t.subCategory,
+    getEstimatedTime: (t) => t.estimatedTime || 0,
+    getAssignedTo: (t) => t.assigned_to,
+  });
 
   // Tâches par colonnes avec filtrage
   const filteredTasksByColumn = useMemo(() => {
@@ -147,7 +123,6 @@ export const TeamProjectDetail = ({
     const result: Record<string, Task[]> = {};
     
     Object.entries(rawTasks).forEach(([columnId, tasks]) => {
-      // Cast TeamTask[] to Task[] (compatible)
       result[columnId] = filterAndSortTasks(tasks) as unknown as Task[];
     });
     
@@ -164,15 +139,7 @@ export const TeamProjectDetail = ({
     return { total, done, progress, assigned };
   }, [projectTasks]);
 
-  // Vérifier si des filtres sont actifs
-  const hasActiveFilters = searchQuery.trim() !== '' || sortBy !== 'none' || priorityFilter !== 'all';
-
-  const clearFilters = useCallback(() => {
-    setSearchQuery('');
-    setSortBy('none');
-    setPriorityFilter('all');
-  }, []);
-
+  // Handlers
   const handleDelete = useCallback(async () => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le projet "${project.name}" ?`)) {
       if (onDelete) {
@@ -181,13 +148,49 @@ export const TeamProjectDetail = ({
     }
   }, [project.name, onDelete]);
 
-  const handleTaskClick = useCallback((task: Task) => {
-    // Pour l'instant, on ne fait rien - on pourrait ouvrir un modal d'édition
+  const handleComplete = useCallback(async () => {
+    if (window.confirm(`Marquer le projet "${project.name}" comme terminé ?`)) {
+      const success = await updateProject(project.id, { status: 'completed' });
+      if (success) {
+        toast({
+          title: "Projet terminé",
+          description: `Le projet "${project.name}" a été marqué comme terminé.`,
+        });
+        if (onDelete) {
+          onDelete(); // Retour à la liste
+        }
+      }
+    }
+  }, [project.id, project.name, updateProject, toast, onDelete]);
+
+  const handleToggleSidebar = useCallback(async () => {
+    // Pour l'instant, on stocke dans les metadata (à implémenter si besoin)
     toast({
-      title: task.name,
-      description: "Édition de tâche d'équipe à venir",
+      title: "Fonctionnalité à venir",
+      description: "L'affichage en sidebar sera disponible prochainement",
     });
   }, [toast]);
+
+  const handleColumnsChange = useCallback(async (newColumns: KanbanColumn[]) => {
+    const success = await updateProject(project.id, { 
+      kanbanColumns: newColumns 
+    });
+    if (success) {
+      reloadTasks();
+      toast({
+        title: "Colonnes mises à jour",
+        description: "La configuration du tableau Kanban a été sauvegardée.",
+      });
+    }
+  }, [project.id, updateProject, reloadTasks, toast]);
+
+  const handleTaskClick = useCallback((task: Task) => {
+    const teamTask = projectTasks.find(t => t.id === task.id);
+    if (teamTask) {
+      setSelectedTask(teamTask);
+      setShowTaskModal(true);
+    }
+  }, [projectTasks]);
 
   const handleToggleComplete = useCallback(async (taskId: string) => {
     const task = projectTasks.find(t => t.id === taskId);
@@ -204,50 +207,55 @@ export const TeamProjectDetail = ({
     });
   }, [removeTask, toast]);
 
-  const handleCreateTask = useCallback(async () => {
-    if (!newTaskName.trim()) return;
-    
-    await createTask({
-      name: newTaskName.trim(),
-      project_id: project.id,
-      category: 'Autres',
-      context: 'Pro',
-      estimatedTime: 30,
-    });
-    
-    setNewTaskName('');
-    setShowAddTaskInput(false);
-    toast({
-      title: "Tâche créée",
-      description: "La tâche a été ajoutée au projet.",
-    });
-  }, [newTaskName, createTask, project.id, toast]);
+  const handleCreateTask = useCallback(() => {
+    setSelectedTask(null);
+    setShowTaskModal(true);
+  }, []);
 
-  const getMemberInitials = (userId: string | null): string => {
+  const handleCloseModal = useCallback(() => {
+    setShowTaskModal(false);
+    setSelectedTask(null);
+    reloadTasks();
+  }, [reloadTasks]);
+
+  const handleAddTask = useCallback(async (taskData: Partial<TeamTask>) => {
+    await createTask({
+      ...taskData,
+      project_id: project.id,
+    });
+    reloadTasks();
+  }, [createTask, project.id, reloadTasks]);
+
+  const handleUpdateTask = useCallback(async (taskId: string, updates: Partial<TeamTask>) => {
+    await updateTask(taskId, updates);
+    reloadTasks();
+  }, [updateTask, reloadTasks]);
+
+  // Helper pour obtenir les initiales d'un membre
+  const getMemberInitials = useCallback((userId: string | null): string => {
     if (!userId) return '?';
     const member = teamMembers.find(m => m.user_id === userId);
     if (!member) return '?';
     const name = getDisplayName(member);
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
+  }, [teamMembers]);
 
-  const priorityOptions: { value: PriorityFilter; label: string }[] = [
-    { value: 'all', label: 'Toutes les priorités' },
-    { value: 'Le plus important', label: '🔴 Le plus important' },
-    { value: 'Important', label: '🟠 Important' },
-    { value: 'Peut attendre', label: '🟡 Peut attendre' },
-    { value: "Si j'ai le temps", label: '🟢 Si j\'ai le temps' },
-    { value: 'none', label: '⚪ Non définie' },
-  ];
-
-  const sortOptions: { value: SortOption; label: string }[] = [
-    { value: 'none', label: 'Aucun tri' },
-    { value: 'priority-high', label: 'Priorité ↓ (haute → basse)' },
-    { value: 'priority-low', label: 'Priorité ↑ (basse → haute)' },
-    { value: 'name', label: 'Nom (A → Z)' },
-    { value: 'time', label: 'Durée (longue → courte)' },
-    { value: 'assignee', label: 'Assignation' },
-  ];
+  // Render assignee avatar for Kanban
+  const renderTaskBadge = useCallback((task: Task) => {
+    const teamTask = task as unknown as TeamTask;
+    if (!teamTask.assigned_to) return null;
+    
+    const member = teamMembers.find(m => m.user_id === teamTask.assigned_to);
+    const displayName = member ? getDisplayName(member) : 'Assigné';
+    
+    return (
+      <Avatar className="h-5 w-5" title={displayName}>
+        <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+          {getMemberInitials(teamTask.assigned_to)}
+        </AvatarFallback>
+      </Avatar>
+    );
+  }, [teamMembers, getMemberInitials]);
 
   return (
     <div className="space-y-6">
@@ -284,6 +292,16 @@ export const TeamProjectDetail = ({
         </div>
 
         <div className="flex gap-2 flex-wrap items-center">
+          {/* Bouton colonnes */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="h-auto py-2"
+            onClick={() => setShowColumnManager(true)}
+          >
+            <Settings2 className="w-4 h-4" />
+          </Button>
+
           <Button variant="outline" onClick={onEdit}>
             <Edit className="w-4 h-4 mr-2" />
             Modifier
@@ -291,12 +309,7 @@ export const TeamProjectDetail = ({
           {project.status !== 'completed' && (
             <Button 
               variant="outline" 
-              onClick={() => {
-                toast({
-                  title: "Terminer le projet",
-                  description: "Fonctionnalité à venir",
-                });
-              }}
+              onClick={handleComplete}
               className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700"
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -306,6 +319,13 @@ export const TeamProjectDetail = ({
           <Button variant="destructive" onClick={handleDelete}>
             <Trash2 className="w-4 h-4 mr-2" />
             Supprimer
+          </Button>
+          <Button 
+            onClick={handleCreateTask}
+            className="bg-project hover:bg-project/90 text-white"
+          >
+            <ListPlus className="w-4 h-4 mr-2" />
+            Ajouter au projet
           </Button>
         </div>
       </div>
@@ -419,10 +439,10 @@ export const TeamProjectDetail = ({
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Trier les tâches</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {sortOptions.map((option) => (
+            {teamSortOptions.map((option) => (
               <DropdownMenuItem
                 key={option.value}
-                onClick={() => setSortBy(option.value)}
+                onClick={() => setSortBy(option.value as TeamSortOption)}
                 className={sortBy === option.value ? 'bg-accent' : ''}
               >
                 {option.label}
@@ -431,15 +451,6 @@ export const TeamProjectDetail = ({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Ajouter une tâche */}
-        <Button 
-          onClick={() => setShowAddTaskInput(true)}
-          className="bg-project hover:bg-project/90"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Ajouter
-        </Button>
-
         {/* Bouton effacer les filtres */}
         {hasActiveFilters && (
           <Button variant="ghost" size="icon" onClick={clearFilters}>
@@ -447,30 +458,6 @@ export const TeamProjectDetail = ({
           </Button>
         )}
       </div>
-
-      {/* Input rapide pour nouvelle tâche */}
-      {showAddTaskInput && (
-        <div className="flex gap-2 p-4 bg-muted/30 rounded-lg border">
-          <Input
-            type="text"
-            placeholder="Nom de la tâche..."
-            value={newTaskName}
-            onChange={(e) => setNewTaskName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreateTask();
-              if (e.key === 'Escape') setShowAddTaskInput(false);
-            }}
-            autoFocus
-            className="flex-1"
-          />
-          <Button onClick={handleCreateTask} disabled={!newTaskName.trim()}>
-            Créer
-          </Button>
-          <Button variant="ghost" onClick={() => setShowAddTaskInput(false)}>
-            Annuler
-          </Button>
-        </div>
-      )}
 
       {/* Indicateur de filtres actifs */}
       {hasActiveFilters && (
@@ -488,7 +475,7 @@ export const TeamProjectDetail = ({
           )}
           {sortBy !== 'none' && (
             <Badge variant="secondary" className="gap-1">
-              Tri: {sortOptions.find(o => o.value === sortBy)?.label}
+              Tri: {teamSortOptions.find(o => o.value === sortBy)?.label}
             </Badge>
           )}
         </div>
@@ -498,11 +485,27 @@ export const TeamProjectDetail = ({
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Tableau Kanban</h2>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="w-4 h-4" />
-            {teamMembers.length} membres
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {teamMembers.length} membre{teamMembers.length > 1 ? 's' : ''}
+            </span>
+            <div className="flex -space-x-2">
+              {teamMembers.slice(0, 5).map(member => (
+                <Avatar key={member.id} className="h-6 w-6 border-2 border-background">
+                  <AvatarFallback className="text-xs">
+                    {getDisplayName(member).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {teamMembers.length > 5 && (
+                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-background">
+                  +{teamMembers.length - 5}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
         <KanbanBoard
           tasksByColumn={filteredTasksByColumn}
           columns={columns}
@@ -510,8 +513,36 @@ export const TeamProjectDetail = ({
           onTaskClick={handleTaskClick}
           onToggleComplete={handleToggleComplete}
           onDeleteTask={handleDeleteTask}
+          renderTaskBadge={renderTaskBadge}
         />
       </div>
+
+      {/* Task Modal */}
+      <TaskModal
+        isOpen={showTaskModal}
+        onClose={handleCloseModal}
+        editingTask={selectedTask ? {
+          ...selectedTask,
+          user_id: '', // Required by Task type but not used for team tasks
+        } as Task : undefined}
+        onAddTask={async (data) => {
+          await handleAddTask(data as Partial<TeamTask>);
+          handleCloseModal();
+        }}
+        onUpdateTask={async (taskId, updates) => {
+          await handleUpdateTask(taskId, updates as Partial<TeamTask>);
+          handleCloseModal();
+        }}
+        projectId={project.id}
+      />
+
+      {/* Column Manager Modal */}
+      <KanbanColumnManager
+        columns={columns}
+        onColumnsChange={handleColumnsChange}
+        isOpen={showColumnManager}
+        onClose={() => setShowColumnManager(false)}
+      />
     </div>
   );
 };

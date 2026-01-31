@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
+import { KanbanColumnConfig } from '@/types/item';
+
 export type TeamProjectStatus = 'planning' | 'in-progress' | 'on-hold' | 'completed' | 'archived';
 
 export interface TeamProject {
@@ -20,6 +22,8 @@ export interface TeamProject {
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
+  kanbanColumns?: KanbanColumnConfig[];
+  showInSidebar?: boolean;
 }
 
 interface TeamProjectRow {
@@ -37,6 +41,7 @@ interface TeamProjectRow {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  kanban_columns: unknown; // JSON from Supabase, will be cast
 }
 
 const mapRowToProject = (row: TeamProjectRow): TeamProject => ({
@@ -54,6 +59,7 @@ const mapRowToProject = (row: TeamProjectRow): TeamProject => ({
   createdAt: new Date(row.created_at),
   updatedAt: new Date(row.updated_at),
   completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+  kanbanColumns: (row.kanban_columns as KanbanColumnConfig[] | null) || undefined,
 });
 
 export const useTeamProjects = (teamId: string | null) => {
@@ -164,6 +170,7 @@ export const useTeamProjects = (teamId: string | null) => {
       }
       if (updates.orderIndex !== undefined) dbUpdates.order_index = updates.orderIndex;
       if (updates.progress !== undefined) dbUpdates.progress = updates.progress;
+      if (updates.kanbanColumns !== undefined) dbUpdates.kanban_columns = updates.kanbanColumns;
 
       const { error } = await supabase
         .from('team_projects')

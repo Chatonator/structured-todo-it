@@ -234,6 +234,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          kanban_columns: Json | null
           name: string
           order_index: number
           progress: number
@@ -250,6 +251,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          kanban_columns?: Json | null
           name: string
           order_index?: number
           progress?: number
@@ -266,6 +268,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          kanban_columns?: Json | null
           name?: string
           order_index?: number
           progress?: number
@@ -302,6 +305,7 @@ export type Database = {
           name: string
           parentid: string | null
           project_id: string | null
+          project_status: string | null
           recurrenceinterval: string | null
           scheduleddate: string | null
           scheduledtime: string | null
@@ -327,6 +331,7 @@ export type Database = {
           name: string
           parentid?: string | null
           project_id?: string | null
+          project_status?: string | null
           recurrenceinterval?: string | null
           scheduleddate?: string | null
           scheduledtime?: string | null
@@ -352,6 +357,7 @@ export type Database = {
           name?: string
           parentid?: string | null
           project_id?: string | null
+          project_status?: string | null
           recurrenceinterval?: string | null
           scheduleddate?: string | null
           scheduledtime?: string | null

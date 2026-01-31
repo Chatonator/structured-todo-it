@@ -4,11 +4,12 @@ import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import type { Task } from '@/types/task';
 
-export interface TeamTask extends Omit<Task, 'user_id'> {
+export interface TeamTask extends Omit<Task, 'user_id' | 'projectStatus'> {
   team_id: string;
   assigned_to: string | null;
   created_by: string;
   project_id: string | null;
+  projectStatus?: string; // Kanban column status (flexible for custom columns)
 }
 
 export const useTeamTasks = (teamId: string | null) => {
@@ -50,6 +51,7 @@ export const useTeamTasks = (teamId: string | null) => {
         subCategory: task.subcategory,
         createdAt: new Date(task.created_at),
         project_id: task.project_id || null,
+        projectStatus: task.project_status || undefined,
       })) as TeamTask[];
 
       setTasks(mappedTasks);
