@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useUnifiedProjects } from '@/hooks/useUnifiedProjects';
+import { useTeamContext } from '@/contexts/TeamContext';
 import { UnifiedProject, isTeamProject } from '@/types/teamProject';
 import { ProjectCard } from './ProjectCard';
 import { ProjectModal } from './ProjectModal';
 import { ProjectDetail } from './ProjectDetail';
+import { TeamProjectDetail } from '@/components/team/TeamProjectDetail';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -19,10 +21,13 @@ export const ProjectsView = () => {
     teamId,
     createProject, 
     updateProject,
+    deleteProject,
     getActiveProjects,
     getCompletedProjects,
     getArchivedProjects
   } = useUnifiedProjects();
+  
+  const { teamMembers } = useTeamContext();
   
   const [showModal, setShowModal] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -92,7 +97,15 @@ export const ProjectsView = () => {
     </div>
   );
 
-  // Si un projet est sélectionné, afficher le détail (Kanban)
+  // Handler pour supprimer un projet d'équipe
+  const handleDeleteTeamProject = async () => {
+    if (detailProject && teamId) {
+      await deleteProject(detailProject.id);
+      setDetailProjectId(null);
+    }
+  };
+
+  // Si un projet personnel est sélectionné, afficher le détail (Kanban)
   if (detailProject && !isTeamMode) {
     return (
       <>
@@ -111,6 +124,47 @@ export const ProjectsView = () => {
           onSave={handleUpdateProject}
           project={selectedProject}
           teamId={teamId ?? undefined}
+        />
+      </>
+    );
+  }
+
+  // Si un projet d'équipe est sélectionné, afficher TeamProjectDetail (Kanban)
+  if (detailProject && isTeamMode && teamId) {
+    return (
+      <>
+        <TeamProjectDetail
+          project={{
+            id: detailProject.id,
+            name: detailProject.name,
+            description: detailProject.description,
+            icon: detailProject.icon,
+            color: detailProject.color,
+            status: detailProject.status,
+            targetDate: detailProject.targetDate,
+            progress: detailProject.progress,
+            createdAt: detailProject.createdAt,
+            updatedAt: detailProject.updatedAt,
+            completedAt: detailProject.completedAt,
+            orderIndex: detailProject.orderIndex,
+            teamId: teamId,
+            createdBy: detailProject.createdBy || '',
+          }}
+          teamId={teamId}
+          teamMembers={teamMembers}
+          onBack={() => setDetailProjectId(null)}
+          onEdit={handleEditFromDetail}
+          onDelete={handleDeleteTeamProject}
+        />
+        <ProjectModal
+          open={showModal}
+          onClose={() => {
+            setShowModal(false);
+            setSelectedProjectId(null);
+          }}
+          onSave={handleUpdateProject}
+          project={selectedProject}
+          teamId={teamId}
         />
       </>
     );
