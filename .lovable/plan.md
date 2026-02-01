@@ -1,6 +1,8 @@
 
 # Timeline 2.0 - Vue de Planification
 
+> **Status: MVP Implémenté (Phases 1-3)** ✅
+
 ## Contexte et Analyse
 
 ### Etat actuel
