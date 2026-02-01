@@ -30,6 +30,7 @@ export interface UnifiedProject {
   userId?: string;   // Si présent = projet personnel
   createdBy?: string; // Pour les projets d'équipe
   kanbanColumns?: KanbanColumnConfig[]; // Colonnes Kanban personnalisées
+  showInSidebar?: boolean; // Affichage dans la sidebar
 }
 
 /**
@@ -73,6 +74,7 @@ export function teamProjectToUnified(project: TeamProject): UnifiedProject {
     teamId: project.teamId,
     createdBy: project.createdBy,
     kanbanColumns: project.kanbanColumns,
+    showInSidebar: project.showInSidebar,
   };
 }
 

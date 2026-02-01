@@ -11,6 +11,7 @@ export interface TaskDraft {
   scheduledTime?: string;
   isRecurring?: boolean;
   recurrenceInterval?: string;
+  assignedTo?: string | null;
 }
 
 export interface ValidationResult {

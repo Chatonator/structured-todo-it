@@ -3,6 +3,8 @@ import { Project, PROJECT_STATUS_CONFIG } from '@/types/project';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects, ProjectWithKanban } from '@/hooks/useProjects';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
+import { priorityOptions, sortOptions, SortOption, PriorityFilter } from '@/config/taskFilterOptions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -35,9 +37,6 @@ interface ProjectDetailProps {
   onDelete?: () => void;
 }
 
-type SortOption = 'none' | 'priority-high' | 'priority-low' | 'name' | 'time';
-type PriorityFilter = SubTaskCategory | 'all' | 'none';
-
 export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }: ProjectDetailProps) => {
   const { getTasksByColumns, updateTaskStatus, reloadTasks, tasksByStatus } = useProjectTasks(projectProp.id);
   const { addTask, updateTask, removeTask } = useTasks();
@@ -45,9 +44,6 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
   const { toast } = useToast();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('none');
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [showColumnManager, setShowColumnManager] = useState(false);
   
   // Utiliser le projet le plus récent depuis le hook useProjects
@@ -65,68 +61,28 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
   
   const statusConfig = PROJECT_STATUS_CONFIG[project.status];
 
-  // Fonction de filtrage et tri des tâches
-  const filterAndSortTasks = useCallback((tasks: Task[]): Task[] => {
-    let filtered = [...tasks];
-    
-    // Recherche par nom
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(task => 
-        task.name.toLowerCase().includes(query)
-      );
-    }
-    
-    // Filtre par priorité
-    if (priorityFilter !== 'all') {
-      if (priorityFilter === 'none') {
-        filtered = filtered.filter(task => !task.subCategory);
-      } else {
-        filtered = filtered.filter(task => task.subCategory === priorityFilter);
-      }
-    }
-    
-    // Tri
-    if (sortBy !== 'none') {
-      filtered.sort((a, b) => {
-        switch (sortBy) {
-          case 'priority-high': {
-            // Priorité: 4 = Le plus important, 3 = Important, 2 = Peut attendre, 1 = Si j'ai le temps, 0 = non défini
-            const getPriority = (task: Task) => {
-              if (!task.subCategory) return 0;
-              return SUB_CATEGORY_CONFIG[task.subCategory]?.priority ?? 0;
-            };
-            const prioA = getPriority(a);
-            const prioB = getPriority(b);
-            // Si même priorité, trier par nom pour consistance
-            if (prioB === prioA) return a.name.localeCompare(b.name);
-            return prioB - prioA;
-          }
-          case 'priority-low': {
-            const getPriority = (task: Task) => {
-              if (!task.subCategory) return 0;
-              return SUB_CATEGORY_CONFIG[task.subCategory]?.priority ?? 0;
-            };
-            const prioA = getPriority(a);
-            const prioB = getPriority(b);
-            // Mettre les tâches sans priorité à la fin
-            if (prioA === 0 && prioB !== 0) return 1;
-            if (prioB === 0 && prioA !== 0) return -1;
-            if (prioA === prioB) return a.name.localeCompare(b.name);
-            return prioA - prioB;
-          }
-          case 'name':
-            return a.name.localeCompare(b.name);
-          case 'time':
-            return (b.estimatedTime || 0) - (a.estimatedTime || 0);
-          default:
-            return 0;
-        }
-      });
-    }
-    
-    return filtered;
-  }, [searchQuery, sortBy, priorityFilter]);
+  // Utiliser le hook partagé de filtrage
+  const allTasks = useMemo(() => 
+    Object.values(getTasksByColumns(columns)).flat(),
+    [columns, getTasksByColumns]
+  );
+
+  const {
+    searchQuery,
+    setSearchQuery,
+    sortBy,
+    setSortBy,
+    priorityFilter,
+    setPriorityFilter,
+    hasActiveFilters,
+    clearFilters,
+    filterAndSortTasks,
+  } = useTaskFilters<Task>({
+    tasks: allTasks,
+    getTaskName: (t) => t.name,
+    getSubCategory: (t) => t.subCategory,
+    getEstimatedTime: (t) => t.estimatedTime || 0,
+  });
 
   // Tâches par colonnes avec filtrage
   const filteredTasksByColumn = useMemo(() => {
@@ -142,23 +98,14 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
 
   // Statistiques calculées dynamiquement depuis les tâches réelles
   const stats = useMemo(() => {
-    const allTasks = Object.values(filteredTasksByColumn).flat();
-    const total = allTasks.length;
+    const tasks = Object.values(filteredTasksByColumn).flat();
+    const total = tasks.length;
     // Count done tasks (from 'done' column or any column with 'done' in its id)
     const done = filteredTasksByColumn['done']?.length || 0;
     const progress = total > 0 ? Math.round((done / total) * 100) : 0;
     
     return { total, done, progress };
   }, [filteredTasksByColumn]);
-
-  // Vérifier si des filtres sont actifs
-  const hasActiveFilters = searchQuery.trim() !== '' || sortBy !== 'none' || priorityFilter !== 'all';
-
-  const clearFilters = useCallback(() => {
-    setSearchQuery('');
-    setSortBy('none');
-    setPriorityFilter('all');
-  }, []);
 
   const handleDelete = useCallback(async () => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le projet "${project.name}" ? Cette action est irréversible.`)) {
@@ -251,23 +198,6 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
     await updateTask(taskId, updates);
     reloadTasks();
   }, [updateTask, reloadTasks]);
-
-  const priorityOptions: { value: PriorityFilter; label: string }[] = [
-    { value: 'all', label: 'Toutes les priorités' },
-    { value: 'Le plus important', label: '🔴 Le plus important' },
-    { value: 'Important', label: '🟠 Important' },
-    { value: 'Peut attendre', label: '🟡 Peut attendre' },
-    { value: "Si j'ai le temps", label: '🟢 Si j\'ai le temps' },
-    { value: 'none', label: '⚪ Non définie' },
-  ];
-
-  const sortOptions: { value: SortOption; label: string }[] = [
-    { value: 'none', label: 'Aucun tri' },
-    { value: 'priority-high', label: 'Priorité ↓ (haute → basse)' },
-    { value: 'priority-low', label: 'Priorité ↑ (basse → haute)' },
-    { value: 'name', label: 'Nom (A → Z)' },
-    { value: 'time', label: 'Durée (longue → courte)' },
-  ];
 
   return (
     <div className="space-y-6">
