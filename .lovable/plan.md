@@ -1,288 +1,179 @@
 
-# Plan : Parité complète Tâches et Projets Équipe vs Personnel
+# Timeline 2.0 - Vue de Planification
 
-## Analyse des écarts identifiés
+## Contexte et Analyse
 
-### 1. TaskModal - Problèmes critiques
+### Etat actuel
+La Timeline actuelle est une vue passive qui affiche les événements planifiés sans permettre de réelle interaction de planification. Le système temporel (`time_events`, `useTimeHub`, `TimeEngine`) est bien en place mais sous-exploité.
 
-| Fonctionnalité | Projets Perso | Équipe | Problème |
-|----------------|---------------|--------|----------|
-| `taskType` prop | ✅ `taskType="project"` | ❌ Non passé | `TeamProjectDetail` ne passe pas `taskType="team"` |
-| Assignation membre | ❌ N/A | ❌ Config existe mais non implémenté | `showAssignment: true` dans config mais aucun champ dans `TaskModal` |
+### Problèmes identifiés
+- Impossible de planifier directement depuis la vue Timeline
+- Les tâches non planifiées sont invisibles dans cette vue
+- Aucune représentation visuelle des créneaux horaires disponibles
+- Pas de drag-and-drop pour organiser sa journée
 
-### 2. TeamProjectDetail - Différences avec ProjectDetail
+## Architecture Proposée
 
-| Fonctionnalité | ProjectDetail | TeamProjectDetail | À corriger |
-|----------------|---------------|-------------------|------------|
-| taskType passé au modal | ✅ `taskType="project"` | ❌ Non passé | Passer `taskType="team"` |
-| Toggle sidebar | ✅ Fonctionnel | ❌ Toast placeholder | Implémenter (champ `showInSidebar` existe déjà dans type) |
-| Bouton Colonnes dans header Kanban | ✅ Dans header section | ❌ Seulement icône dans header principal | Aligner la présentation |
+### Vue d'ensemble
 
-### 3. Nomenclature des priorités - Incohérence
-
-Dans le code actuel, `PrioritySelector` utilise `SUB_CATEGORY_CONFIG` qui affiche :
-- "Le plus important"
-- "Important"
-- "Peut attendre"  
-- "Si j'ai le temps"
-
-C'est **correct** - les projets n'utilisent PAS les catégories type "Cruciales/Envies" mais bien ces priorités. Pas de problème ici.
-
-### 4. ProjectDetail - Refactoring nécessaire
-
-| Élément | Actuel | Cible |
-|---------|--------|-------|
-| Options priorité/tri | Arrays inline (lignes 255-270) | Importer depuis `taskFilterOptions.ts` |
-| Logique filtrage | Inline (lignes 69-129) | Utiliser `useTaskFilters` hook |
-
-### 5. Assignation équipe - Manquante
-
-La config `TASK_TYPE_CONFIGS.team.showAssignment = true` existe mais :
-- Aucun champ `AssignmentSelector` n'existe
-- `TaskModal` ignore cette config
-- Aucune UI pour assigner un membre dans le modal
-
----
-
-## Phase 1 : Corriger TeamProjectDetail
-
-### Fichier : `src/components/team/TeamProjectDetail.tsx`
-
-**Modifications :**
-
-1. **Passer `taskType="team"` au TaskModal** (ligne 521)
-   ```typescript
-   <TaskModal
-     isOpen={showTaskModal}
-     // ... autres props
-     taskType="team"  // AJOUT
-   />
-   ```
-
-2. **Implémenter toggle sidebar** (remplacer toast placeholder)
-   ```typescript
-   const handleToggleSidebar = useCallback(async () => {
-     const newValue = !(project as any).showInSidebar;
-     const success = await updateProject(project.id, { showInSidebar: newValue });
-     if (success) {
-       toast({
-         title: newValue ? "Affiché dans la sidebar" : "Masqué de la sidebar",
-         description: newValue 
-           ? "Les tâches de ce projet apparaissent dans la sidebar"
-           : "Les tâches de ce projet sont masquées de la sidebar",
-       });
-     }
-   }, [project, updateProject, toast]);
-   ```
-
-3. **Ajouter le bouton toggle sidebar dans le header** (après le bouton Settings2)
-   ```tsx
-   <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-card">
-     <Switch
-       id="show-in-sidebar"
-       checked={(project as any).showInSidebar ?? false}
-       onCheckedChange={handleToggleSidebar}
-     />
-     <Label htmlFor="show-in-sidebar" className="text-sm cursor-pointer flex items-center gap-1">
-       {(project as any).showInSidebar ? (
-         <><Eye className="w-4 h-4 text-project" /> Sidebar</>
-       ) : (
-         <><EyeOff className="w-4 h-4 text-muted-foreground" /> Sidebar</>
-       )}
-     </Label>
-   </div>
-   ```
-
----
-
-## Phase 2 : Créer AssignmentSelector
-
-### Nouveau fichier : `src/components/task/fields/AssignmentSelector.tsx`
-
-Composant pour sélectionner un membre d'équipe lors de la création/édition de tâche :
-
-```typescript
-interface AssignmentSelectorProps {
-  value: string | null;
-  onChange: (userId: string | null) => void;
-  members: TeamMember[];
-  label?: string;
-}
+```text
++------------------------------------------------------------------+
+|  TIMELINE 2.0                                                     |
++------------------------------------------------------------------+
+|  [Jour] [Semaine]        < Lun 3 Fév >        [Aujourd'hui]      |
++------------------------------------------------------------------+
+|                                                                   |
+|  +------------------------+  +----------------------------------+ |
+|  | BACKLOG NON PLANIFIÉ   |  | GRILLE HORAIRE                   | |
+|  |------------------------|  |----------------------------------| |
+|  | [Filtre: Toutes]       |  |  08:00 |                        | |
+|  |                        |  |  ------|  Réunion équipe        | |
+|  | ○ Rédiger rapport      |  |  09:00 |  [45min] ████████████  | |
+|  |   1h30 · Crucial       |  |  ------|                        | |
+|  |                        |  |  10:00 |                        | |
+|  | ○ Appeler fournisseur  |  |  ------|  Révision code         | |
+|  |   30min · Régulier     |  |  11:00 |  [1h] ██████████████   | |
+|  |                        |  |  ------|                        | |
+|  | ○ Préparer présentation|  |  12:00 |  ~~~~~ LIBRE ~~~~~     | |
+|  |   2h · Envie           |  |  ------|                        | |
+|  |                        |  |  13:00 |  Déjeuner              | |
+|  +------------------------+  |  ------|                        | |
+|                              +----------------------------------+ |
+|                                                                   |
++------------------------------------------------------------------+
+|  Stats: 4h planifiées · 2h libres · 3 tâches non planifiées      |
++------------------------------------------------------------------+
 ```
 
-Affiche un dropdown avec les membres de l'équipe + option "Non assigné".
+## Plan d'Implémentation
 
----
+### Phase 1 - Grille Horaire Interactive
+Création d'un composant `TimeGrid` avec représentation visuelle des créneaux
 
-## Phase 3 : Étendre TaskModal pour l'assignation
+**Fichiers à créer:**
+- `src/components/timeline/TimeGrid.tsx` - Grille des heures (6h-22h par défaut)
+- `src/components/timeline/TimeSlot.tsx` - Créneau individuel cliquable
+- `src/components/timeline/ScheduledEvent.tsx` - Bloc d'événement planifié
 
-### Fichier : `src/components/task/TaskModal.tsx`
+**Fonctionnalités:**
+- Affichage des heures en colonnes/lignes selon le mode (jour/semaine)
+- Visualisation claire des événements avec durée proportionnelle
+- Indicateurs visuels des créneaux libres vs occupés
+- Ligne "maintenant" qui suit l'heure actuelle
 
-**Modifications :**
+### Phase 2 - Backlog des Tâches Non Planifiées
+Panneau latéral listant les tâches à planifier
 
-1. **Ajouter prop `teamMembers`** pour passer les membres disponibles
-   ```typescript
-   interface TaskModalProps {
-     // ... props existantes
-     teamMembers?: TeamMember[];
-   }
-   ```
+**Fichiers à créer:**
+- `src/components/timeline/UnscheduledTasksPanel.tsx` - Panneau des tâches sans date
+- `src/components/timeline/DraggableTask.tsx` - Carte de tâche draggable
 
-2. **Ajouter champ `assignedTo` dans `TaskDraft`**
-   ```typescript
-   interface TaskDraft {
-     // ... champs existants
-     assignedTo?: string | null;
-   }
-   ```
+**Fonctionnalités:**
+- Liste filtrable (par catégorie, contexte, durée)
+- Affichage du temps estimé et de la priorité
+- Tri par priorité, durée, date de création
+- Compteur des tâches en attente
 
-3. **Afficher `AssignmentSelector` si `config.showAssignment`**
-   ```tsx
-   {config.showAssignment && teamMembers && (
-     <AssignmentSelector
-       value={draft.assignedTo || null}
-       onChange={(userId) => updateTaskDraft(index, 'assignedTo', userId)}
-       members={teamMembers}
-     />
-   )}
-   ```
+### Phase 3 - Drag & Drop avec @dnd-kit
+Interaction de glisser-déposer pour planifier les tâches
 
-4. **Inclure `assigned_to` dans les données envoyées**
-   ```typescript
-   const taskData = {
-     // ... autres champs
-     assigned_to: draft.assignedTo || null,
-   };
-   ```
+**Fichiers à modifier:**
+- `src/components/views/timeline/TimelineView.tsx` - Refonte complète
 
----
+**Fichiers à créer:**
+- `src/components/timeline/DndContext.tsx` - Contexte drag-and-drop
+- `src/hooks/useTimelineScheduling.ts` - Logique de planification
 
-## Phase 4 : Mettre à jour TaskDraft et validation
+**Fonctionnalités:**
+- Drag depuis le backlog vers la grille
+- Snap automatique sur les créneaux de 15min
+- Prévisualisation pendant le drag
+- Détection des conflits en temps réel
+- Feedback visuel (zones de drop valides/invalides)
 
-### Fichier : `src/utils/taskValidationByType.ts`
+### Phase 4 - Interactions Avancées
+Édition in-place et manipulation des événements
 
-1. **Ajouter `assignedTo` dans `TaskDraft`**
-   ```typescript
-   export interface TaskDraft {
-     // ... champs existants
-     assignedTo?: string | null;
-   }
-   ```
+**Fonctionnalités:**
+- Clic sur créneau vide = création rapide d'événement
+- Resize des événements (ajuster la durée)
+- Move des événements (changer l'heure)
+- Double-clic = édition complète
+- Menu contextuel (compléter, dé-planifier, éditer, supprimer)
 
-### Fichier : `src/components/task/fields/index.ts`
+### Phase 5 - Suivi Temporel (Objectif Secondaire)
+Historique et prochaines occurrences
 
-Ajouter l'export :
-```typescript
-export { AssignmentSelector } from './AssignmentSelector';
+**Fichiers à créer:**
+- `src/components/timeline/TaskTimeline.tsx` - Historique d'une tâche
+- `src/components/timeline/RecurringPreview.tsx` - Prochaines occurrences
+
+**Fonctionnalités:**
+- Badge avec date de création sur les tâches
+- Historique des complétions dans le détail d'une tâche
+- Vue des 5 prochaines occurrences pour les tâches récurrentes
+- Mini-calendrier de chaleur pour les récurrences
+
+## Détails Techniques
+
+### Structure des Composants
+
+```text
+TimelineView (refonte)
+├── TimelineHeader
+│   ├── DateNavigation
+│   ├── ViewModeToggle
+│   └── StatsBar
+├── TimelineContent (nouveau layout)
+│   ├── UnscheduledTasksPanel
+│   │   ├── PanelFilters
+│   │   └── DraggableTaskList
+│   └── TimeGrid
+│       ├── TimeGutter (colonne des heures)
+│       ├── DayColumn(s)
+│       │   ├── TimeSlots
+│       │   └── ScheduledEvents
+│       └── CurrentTimeIndicator
+└── TimelineFooter
+    └── SummaryStats
 ```
 
----
+### Hook useTimelineScheduling
 
-## Phase 5 : Passer les membres dans TeamProjectDetail
-
-### Fichier : `src/components/team/TeamProjectDetail.tsx`
-
-Passer `teamMembers` au `TaskModal` :
-```tsx
-<TaskModal
-  isOpen={showTaskModal}
-  onClose={handleCloseModal}
-  editingTask={...}
-  taskType="team"
-  teamMembers={teamMembers}  // AJOUT
-  // ... autres props
-/>
+```text
+useTimelineScheduling()
+├── Données
+│   ├── unscheduledTasks: Task[]
+│   ├── scheduledEvents: TimeEvent[]
+│   └── conflicts: ConflictResult[]
+├── Actions
+│   ├── scheduleTask(taskId, datetime, duration)
+│   ├── rescheduleEvent(eventId, newDatetime)
+│   ├── resizeEvent(eventId, newDuration)
+│   ├── unscheduleEvent(eventId)
+│   └── completeEvent(eventId)
+└── Calculs
+    ├── getFreeSlots(date)
+    ├── checkConflict(datetime, duration)
+    └── getSuggestedSlots(task)
 ```
 
----
+### Intégration avec le Système Existant
 
-## Phase 6 : Refactoriser ProjectDetail
+Le système `time_events` existant est parfaitement adapté. Les modifications principales seront:
 
-### Fichier : `src/components/projects/ProjectDetail.tsx`
+1. **useTasks**: Ajouter un filtre pour les tâches non planifiées (sans `time_event` associé)
+2. **useTimeEventSync**: Utiliser pour créer/mettre à jour les événements lors du drag-drop
+3. **useTimeHub**: Étendre pour inclure les calculs de créneaux libres
 
-**Modifications :**
+## Estimation et Priorités
 
-1. **Importer les options depuis config partagée**
-   ```typescript
-   import { priorityOptions, sortOptions } from '@/config/taskFilterOptions';
-   ```
+| Phase | Composants | Priorité | Complexité |
+|-------|------------|----------|------------|
+| 1 | TimeGrid | Haute | Moyenne |
+| 2 | UnscheduledPanel | Haute | Faible |
+| 3 | Drag & Drop | Haute | Élevée |
+| 4 | Interactions | Moyenne | Moyenne |
+| 5 | Suivi temporel | Basse | Faible |
 
-2. **Supprimer les arrays inline** (lignes 255-270)
-
-3. **Utiliser le hook `useTaskFilters`**
-   ```typescript
-   const {
-     searchQuery,
-     setSearchQuery,
-     sortBy,
-     setSortBy,
-     priorityFilter,
-     setPriorityFilter,
-     hasActiveFilters,
-     clearFilters,
-     filterAndSortTasks,
-   } = useTaskFilters<Task>({
-     tasks: Object.values(getTasksByColumns(columns)).flat(),
-     getTaskName: (t) => t.name,
-     getSubCategory: (t) => t.subCategory,
-     getEstimatedTime: (t) => t.estimatedTime || 0,
-   });
-   ```
-
-4. **Supprimer la logique de filtrage inline** (lignes 69-129)
-
----
-
-## Phase 7 : Mettre à jour useTeamProjects pour showInSidebar
-
-### Fichier : `src/hooks/useTeamProjects.ts`
-
-Ajouter le mapping du champ `showInSidebar` si absent :
-
-```typescript
-// Dans updateProject
-if (updates.showInSidebar !== undefined) {
-  // Stocker dans metadata ou ajouter colonne DB si nécessaire
-  dbUpdates.show_in_sidebar = updates.showInSidebar;
-}
-```
-
-**Note :** La colonne `show_in_sidebar` n'existe pas dans `team_projects`. Options :
-1. Ajouter une migration DB (recommandé)
-2. Ou stocker dans un champ JSON existant si disponible
-
----
-
-## Résumé des fichiers impactés
-
-| Action | Fichier |
-|--------|---------|
-| Créer | `src/components/task/fields/AssignmentSelector.tsx` |
-| Modifier | `src/components/team/TeamProjectDetail.tsx` |
-| Modifier | `src/components/task/TaskModal.tsx` |
-| Modifier | `src/utils/taskValidationByType.ts` |
-| Modifier | `src/components/task/fields/index.ts` |
-| Modifier | `src/components/projects/ProjectDetail.tsx` |
-| (Optionnel) | Migration SQL pour `show_in_sidebar` dans `team_projects` |
-
----
-
-## Ordre d'exécution
-
-| Étape | Description | Complexité |
-|-------|-------------|------------|
-| 1 | Créer `AssignmentSelector.tsx` | Faible |
-| 2 | Mettre à jour `TaskDraft` avec `assignedTo` | Faible |
-| 3 | Étendre `TaskModal` pour assignation | Moyenne |
-| 4 | Corriger `TeamProjectDetail` (taskType + sidebar toggle + members) | Moyenne |
-| 5 | Refactoriser `ProjectDetail` avec `useTaskFilters` | Moyenne |
-| 6 | (Optionnel) Migration DB pour `show_in_sidebar` | Faible |
-
----
-
-## Bénéfices
-
-1. **Parité fonctionnelle** : Les tâches d'équipe auront l'assignation dans le modal
-2. **Moins de code dupliqué** : `ProjectDetail` utilisera les mêmes hooks/configs que `TeamProjectDetail`
-3. **Cohérence UX** : Toggle sidebar identique entre perso et équipe
-4. **Maintenance simplifiée** : Options de tri/filtre centralisées dans `taskFilterOptions.ts`
+Les phases 1-3 constituent le MVP de la planification et répondent à l'objectif principal.
