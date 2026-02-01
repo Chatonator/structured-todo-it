@@ -13,8 +13,10 @@ import {
   PrioritySelector,
   TimeEstimateSelector,
   SchedulingSection,
-  RecurrenceSection
+  RecurrenceSection,
+  AssignmentSelector
 } from '@/components/task/fields';
+import type { TeamMemberOption } from '@/components/task/fields/AssignmentSelector';
 
 import { format } from 'date-fns';
 import { useTimeHub } from '@/hooks/useTimeHub';
@@ -30,6 +32,7 @@ interface TaskModalProps {
   editingTask?: Task;
   projectId?: string;
   taskType?: TaskType;
+  teamMembers?: TeamMemberOption[];
 }
 
 // TaskDraft is imported from @/utils/taskValidationByType
@@ -49,7 +52,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
   parentTask, 
   editingTask,
   projectId,
-  taskType = 'personal'
+  taskType = 'personal',
+  teamMembers
 }) => {
   const config = getTaskTypeConfig(taskType);
   const defaults = getDefaultsForTaskType(taskType);
@@ -60,7 +64,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
     subCategory: defaults.subCategory || '',
     context: parentTask ? parentTask.context : (defaults.context || ''),
     estimatedTime: '',
-    isRecurring: false
+    isRecurring: false,
+    assignedTo: null
   });
 
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([createEmptyDraft()]);
@@ -86,7 +91,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
           scheduledDate: event?.startsAt,
           scheduledTime: event?.startsAt ? format(event.startsAt, 'HH:mm') : undefined,
           isRecurring: !!event?.recurrence,
-          recurrenceInterval: event?.recurrence?.frequency as RecurrenceInterval
+          recurrenceInterval: event?.recurrence?.frequency as RecurrenceInterval,
+          assignedTo: (editingTask as any).assigned_to || null
         }]);
       } else {
         setTaskDrafts([createEmptyDraft()]);
@@ -151,13 +157,18 @@ const TaskModal: React.FC<TaskModalProps> = ({
     if (editingTask && onUpdateTask) {
       const draft = validTasks[0];
       if (draft) {
-        const updates: Partial<Task> & { _scheduleInfo?: ScheduleInfo } = {
+        const updates: Partial<Task> & { _scheduleInfo?: ScheduleInfo; assigned_to?: string | null } = {
           name: draft.name.trim(),
           category: (draft.category || config.defaults.category || 'Quotidien') as TaskCategory,
           subCategory: draft.subCategory as SubTaskCategory || undefined,
           context: (draft.context || config.defaults.context || 'Pro') as TaskContext,
           estimatedTime: Number(draft.estimatedTime),
         };
+        
+        // Assignation pour les tâches d'équipe
+        if (config.showAssignment && draft.assignedTo !== undefined) {
+          updates.assigned_to = draft.assignedTo;
+        }
         
         (updates as any)._scheduleInfo = {
           date: draft.scheduledDate,
@@ -172,7 +183,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
       for (const draft of validTasks) {
         const level = parentTask ? Math.min((parentTask.level + 1), 2) as 0 | 1 | 2 : 0;
         
-        const taskData: Omit<Task, 'id' | 'createdAt'> = {
+        const taskData: Omit<Task, 'id' | 'createdAt'> & { assigned_to?: string | null } = {
           name: draft.name.trim(),
           category: parentTask 
             ? parentTask.category 
@@ -188,6 +199,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
           projectId: projectId,
           projectStatus: projectId ? 'todo' : undefined,
         };
+        
+        // Assignation pour les tâches d'équipe
+        if (config.showAssignment && draft.assignedTo) {
+          taskData.assigned_to = draft.assignedTo;
+        }
         
         (taskData as any)._scheduleInfo = {
           date: draft.scheduledDate,
@@ -329,6 +345,15 @@ const TaskModal: React.FC<TaskModalProps> = ({
                       label="Priorité"
                     />
                   ) : null}
+
+                  {/* Assignation pour les équipes */}
+                  {config.showAssignment && teamMembers && teamMembers.length > 0 && (
+                    <AssignmentSelector
+                      value={draft.assignedTo || null}
+                      onChange={(userId) => updateTaskDraft(index, 'assignedTo', userId)}
+                      members={teamMembers}
+                    />
+                  )}
 
                   {/* Temps estimé */}
                   <TimeEstimateSelector

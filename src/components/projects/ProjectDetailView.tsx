@@ -51,6 +51,8 @@ export const ProjectDetailView = ({
             orderIndex: project.orderIndex,
             teamId: teamId,
             createdBy: project.createdBy || '',
+            kanbanColumns: project.kanbanColumns,
+            showInSidebar: project.showInSidebar ?? false,
           }}
           teamId={teamId}
           teamMembers={teamMembers}

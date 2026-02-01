@@ -238,6 +238,7 @@ export type Database = {
           name: string
           order_index: number
           progress: number
+          show_in_sidebar: boolean | null
           status: string
           target_date: string | null
           team_id: string
@@ -255,6 +256,7 @@ export type Database = {
           name: string
           order_index?: number
           progress?: number
+          show_in_sidebar?: boolean | null
           status?: string
           target_date?: string | null
           team_id: string
@@ -272,6 +274,7 @@ export type Database = {
           name?: string
           order_index?: number
           progress?: number
+          show_in_sidebar?: boolean | null
           status?: string
           target_date?: string | null
           team_id?: string

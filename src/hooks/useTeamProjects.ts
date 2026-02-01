@@ -23,7 +23,7 @@ export interface TeamProject {
   updatedAt: Date;
   completedAt?: Date;
   kanbanColumns?: KanbanColumnConfig[];
-  showInSidebar?: boolean;
+  showInSidebar: boolean;
 }
 
 interface TeamProjectRow {
@@ -42,6 +42,7 @@ interface TeamProjectRow {
   updated_at: string;
   completed_at: string | null;
   kanban_columns: unknown; // JSON from Supabase, will be cast
+  show_in_sidebar: boolean;
 }
 
 const mapRowToProject = (row: TeamProjectRow): TeamProject => ({
@@ -60,6 +61,7 @@ const mapRowToProject = (row: TeamProjectRow): TeamProject => ({
   updatedAt: new Date(row.updated_at),
   completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
   kanbanColumns: (row.kanban_columns as KanbanColumnConfig[] | null) || undefined,
+  showInSidebar: row.show_in_sidebar ?? false,
 });
 
 export const useTeamProjects = (teamId: string | null) => {
@@ -171,6 +173,7 @@ export const useTeamProjects = (teamId: string | null) => {
       if (updates.orderIndex !== undefined) dbUpdates.order_index = updates.orderIndex;
       if (updates.progress !== undefined) dbUpdates.progress = updates.progress;
       if (updates.kanbanColumns !== undefined) dbUpdates.kanban_columns = updates.kanbanColumns;
+      if (updates.showInSidebar !== undefined) dbUpdates.show_in_sidebar = updates.showInSidebar;
 
       const { error } = await supabase
         .from('team_projects')

@@ -164,12 +164,17 @@ export const TeamProjectDetail = ({
   }, [project.id, project.name, updateProject, toast, onDelete]);
 
   const handleToggleSidebar = useCallback(async () => {
-    // Pour l'instant, on stocke dans les metadata (à implémenter si besoin)
-    toast({
-      title: "Fonctionnalité à venir",
-      description: "L'affichage en sidebar sera disponible prochainement",
-    });
-  }, [toast]);
+    const newValue = !project.showInSidebar;
+    const success = await updateProject(project.id, { showInSidebar: newValue });
+    if (success) {
+      toast({
+        title: newValue ? "Affiché dans la sidebar" : "Masqué de la sidebar",
+        description: newValue 
+          ? "Les tâches de ce projet apparaissent dans la sidebar"
+          : "Les tâches de ce projet sont masquées de la sidebar",
+      });
+    }
+  }, [project, updateProject, toast]);
 
   const handleColumnsChange = useCallback(async (newColumns: KanbanColumn[]) => {
     const success = await updateProject(project.id, { 
@@ -292,6 +297,22 @@ export const TeamProjectDetail = ({
         </div>
 
         <div className="flex gap-2 flex-wrap items-center">
+          {/* Toggle sidebar visibility */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-card">
+            <Switch
+              id="show-in-sidebar"
+              checked={project.showInSidebar ?? false}
+              onCheckedChange={handleToggleSidebar}
+            />
+            <Label htmlFor="show-in-sidebar" className="text-sm cursor-pointer flex items-center gap-1">
+              {project.showInSidebar ? (
+                <><Eye className="w-4 h-4 text-project" /> Sidebar</>
+              ) : (
+                <><EyeOff className="w-4 h-4 text-muted-foreground" /> Sidebar</>
+              )}
+            </Label>
+          </div>
+
           {/* Bouton colonnes */}
           <Button 
             variant="outline" 
@@ -534,6 +555,11 @@ export const TeamProjectDetail = ({
           handleCloseModal();
         }}
         projectId={project.id}
+        taskType="team"
+        teamMembers={teamMembers.map(m => ({
+          user_id: m.user_id,
+          display_name: m.profiles?.display_name || undefined
+        }))}
       />
 
       {/* Column Manager Modal */}
