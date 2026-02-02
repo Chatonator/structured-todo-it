@@ -6,6 +6,26 @@
 // Type of temporal event
 export type TimeEventType = 'task' | 'habit' | 'challenge' | 'reminder' | 'external';
 
+// Time blocks for day planning
+export type TimeBlock = 'morning' | 'afternoon' | 'evening';
+
+// Time block configuration
+export const TIME_BLOCKS = {
+  morning: { label: 'Matin', icon: '🌅', startHour: 6, endHour: 12 },
+  afternoon: { label: 'Après-midi', icon: '☀️', startHour: 12, endHour: 18 },
+  evening: { label: 'Soir', icon: '🌙', startHour: 18, endHour: 22 }
+} as const;
+
+// Day planning configuration
+export interface DayPlanningConfig {
+  id: string;
+  userId: string;
+  date: Date;
+  quotaMinutes: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Standardized recurrence frequencies
 export type RecurrenceFrequency = 
   | 'once'           // One-time event
@@ -54,6 +74,9 @@ export interface TimeEvent {
   // Status
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled' | 'missed';
   completedAt?: Date;
+  
+  // Block-based planning
+  timeBlock?: TimeBlock;
   
   // Tracking
   createdAt: Date;
@@ -110,6 +133,7 @@ export interface TimeEventRow {
   priority: number | null;
   status: string;
   completed_at: string | null;
+  time_block: string | null;
   created_at: string;
   updated_at: string;
 }

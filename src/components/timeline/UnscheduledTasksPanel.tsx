@@ -10,29 +10,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Clock, ListTodo, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Clock, ListTodo, ChevronDown, ChevronUp, Folder, User, Users } from 'lucide-react';
 import { Task, TaskCategory } from '@/types/task';
 import { DraggableTask } from './DraggableTask';
 import { formatDuration } from '@/lib/formatters';
+import { Project } from '@/types/project';
 
 interface UnscheduledTasksPanelProps {
   tasks: Task[];
+  projects?: Project[];
   onTaskClick?: (task: Task) => void;
   className?: string;
 }
 
 type SortOption = 'priority' | 'duration' | 'name' | 'created';
-type FilterCategory = 'all' | TaskCategory;
+type SourceFilter = 'all' | 'free-tasks' | 'project' | 'team';
 
 export const UnscheduledTasksPanel: React.FC<UnscheduledTasksPanelProps> = ({
   tasks,
+  projects = [],
   onTaskClick,
   className
 }) => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('priority');
-  const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Extract unique project IDs from tasks
+  const projectsWithTasks = useMemo(() => {
+    const projectIds = new Set(tasks.filter(t => t.projectId).map(t => t.projectId!));
+    return projects.filter(p => projectIds.has(p.id));
+  }, [tasks, projects]);
 
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
@@ -44,9 +54,21 @@ export const UnscheduledTasksPanel: React.FC<UnscheduledTasksPanelProps> = ({
       result = result.filter(t => t.name.toLowerCase().includes(searchLower));
     }
 
-    // Filter by category
-    if (filterCategory !== 'all') {
-      result = result.filter(t => t.category === filterCategory);
+    // Filter by source
+    switch (sourceFilter) {
+      case 'free-tasks':
+        result = result.filter(t => !t.projectId && !(t as any).teamId);
+        break;
+      case 'project':
+        if (selectedProjectId) {
+          result = result.filter(t => t.projectId === selectedProjectId);
+        } else {
+          result = result.filter(t => t.projectId && !(t as any).teamId);
+        }
+        break;
+      case 'team':
+        result = result.filter(t => (t as any).teamId);
+        break;
     }
 
     // Sort
@@ -75,7 +97,7 @@ export const UnscheduledTasksPanel: React.FC<UnscheduledTasksPanelProps> = ({
     });
 
     return result;
-  }, [tasks, search, sortBy, filterCategory]);
+  }, [tasks, search, sortBy, sourceFilter, selectedProjectId]);
 
   // Calculate total time
   const totalTime = useMemo(() => 
@@ -83,10 +105,23 @@ export const UnscheduledTasksPanel: React.FC<UnscheduledTasksPanelProps> = ({
     [filteredTasks]
   );
 
+  // Source filter label
+  const getSourceLabel = () => {
+    switch (sourceFilter) {
+      case 'all': return 'Toutes';
+      case 'free-tasks': return 'Tâches libres';
+      case 'project': return selectedProjectId 
+        ? projects.find(p => p.id === selectedProjectId)?.name || 'Projet'
+        : 'Projets';
+      case 'team': return 'Équipe';
+      default: return 'Toutes';
+    }
+  };
+
   return (
     <div className={cn(
       "flex flex-col bg-card border rounded-lg overflow-hidden transition-all",
-      isCollapsed ? "w-12" : "w-72",
+      isCollapsed ? "w-12" : "w-80",
       className
     )}>
       {/* Header */}
@@ -128,30 +163,86 @@ export const UnscheduledTasksPanel: React.FC<UnscheduledTasksPanelProps> = ({
             </div>
             
             <div className="flex gap-2">
-              <Select value={filterCategory} onValueChange={(v) => setFilterCategory(v as FilterCategory)}>
+              {/* Source filter */}
+              <Select 
+                value={sourceFilter} 
+                onValueChange={(v) => {
+                  setSourceFilter(v as SourceFilter);
+                  if (v !== 'project') setSelectedProjectId(null);
+                }}
+              >
                 <SelectTrigger className="h-7 text-xs flex-1">
-                  <SelectValue placeholder="Catégorie" />
+                  <SelectValue>
+                    <span className="flex items-center gap-1">
+                      {sourceFilter === 'all' && <ListTodo className="w-3 h-3" />}
+                      {sourceFilter === 'free-tasks' && <User className="w-3 h-3" />}
+                      {sourceFilter === 'project' && <Folder className="w-3 h-3" />}
+                      {sourceFilter === 'team' && <Users className="w-3 h-3" />}
+                      {getSourceLabel()}
+                    </span>
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
-                  <SelectItem value="Obligation">Cruciales</SelectItem>
-                  <SelectItem value="Quotidien">Régulières</SelectItem>
-                  <SelectItem value="Envie">Envies</SelectItem>
-                  <SelectItem value="Autres">Optionnelles</SelectItem>
+                  <SelectItem value="all">
+                    <span className="flex items-center gap-2">
+                      <ListTodo className="w-3 h-3" /> Toutes
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="free-tasks">
+                    <span className="flex items-center gap-2">
+                      <User className="w-3 h-3" /> Tâches libres
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="project">
+                    <span className="flex items-center gap-2">
+                      <Folder className="w-3 h-3" /> Projets
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="team">
+                    <span className="flex items-center gap-2">
+                      <Users className="w-3 h-3" /> Équipe
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                <SelectTrigger className="h-7 text-xs flex-1">
-                  <SelectValue placeholder="Tri" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="priority">Priorité</SelectItem>
-                  <SelectItem value="duration">Durée</SelectItem>
-                  <SelectItem value="name">Nom</SelectItem>
-                  <SelectItem value="created">Récent</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Project sub-filter */}
+              {sourceFilter === 'project' && projectsWithTasks.length > 0 && (
+                <Select 
+                  value={selectedProjectId || 'all'} 
+                  onValueChange={(v) => setSelectedProjectId(v === 'all' ? null : v)}
+                >
+                  <SelectTrigger className="h-7 text-xs flex-1">
+                    <SelectValue placeholder="Projet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les projets</SelectItem>
+                    {projectsWithTasks.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span className="flex items-center gap-1">
+                          <span>{p.icon || '📁'}</span>
+                          <span className="truncate">{p.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Sort */}
+              {sourceFilter !== 'project' || !projectsWithTasks.length && (
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                  <SelectTrigger className="h-7 text-xs flex-1">
+                    <SelectValue placeholder="Tri" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="priority">Priorité</SelectItem>
+                    <SelectItem value="duration">Durée</SelectItem>
+                    <SelectItem value="name">Nom</SelectItem>
+                    <SelectItem value="created">Récent</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 
@@ -161,13 +252,18 @@ export const UnscheduledTasksPanel: React.FC<UnscheduledTasksPanelProps> = ({
               {filteredTasks.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <ListTodo className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-xs">Aucune tâche à planifier</p>
+                  <p className="text-xs">
+                    {search ? 'Aucune tâche trouvée' : 'Aucune tâche à planifier'}
+                  </p>
                 </div>
               ) : (
                 filteredTasks.map(task => (
                   <DraggableTask
                     key={task.id}
                     task={task}
+                    projectName={task.projectId 
+                      ? projects.find(p => p.id === task.projectId)?.name 
+                      : undefined}
                     onClick={() => onTaskClick?.(task)}
                   />
                 ))
