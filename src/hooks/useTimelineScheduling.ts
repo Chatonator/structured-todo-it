@@ -11,19 +11,21 @@ import { useTimeEventSync } from '@/hooks/useTimeEventSync';
 import { Task } from '@/types/task';
 import { TimeEvent, DateRange } from '@/lib/time/types';
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ScheduleTaskParams {
   taskId: string;
   date: Date;
   hour: number;
   minute: number;
+  duration?: number;
 }
 
 export const useTimelineScheduling = (dateRange: DateRange) => {
   const { user } = useAuth();
   const { tasks, updateTask } = useTasks();
   const { events, loadEvents, checkConflicts, completeEvent } = useTimeHub(dateRange);
-  const { syncTaskEventWithSchedule, deleteEntityEvent } = useTimeEventSync();
+  const { syncTaskEventWithSchedule, deleteEntityEvent, updateEventStatus } = useTimeEventSync();
 
   // Get unscheduled tasks (tasks without a time_event)
   const unscheduledTasks = useMemo(() => {
@@ -53,7 +55,8 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     taskId,
     date,
     hour,
-    minute
+    minute,
+    duration
   }: ScheduleTaskParams): Promise<boolean> => {
     if (!user) return false;
 
@@ -67,8 +70,13 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
       // Create the time string
       const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
       
+      // Use provided duration or task's estimated time
+      const taskWithDuration = duration 
+        ? { ...task, duration: duration, estimatedTime: duration }
+        : task;
+      
       // Sync with time_events
-      const success = await syncTaskEventWithSchedule(task, {
+      const success = await syncTaskEventWithSchedule(taskWithDuration, {
         date,
         time,
         isRecurring: false
@@ -76,7 +84,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
 
       if (success) {
         await loadEvents();
-        logger.debug('Task scheduled', { taskId, date, time });
+        logger.debug('Task scheduled', { taskId, date, time, duration: taskWithDuration.duration || taskWithDuration.estimatedTime });
       }
 
       return success;
@@ -111,13 +119,55 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
           taskId: task.id,
           date,
           hour,
-          minute
+          minute,
+          duration: event.duration // Preserve current duration
         });
       }
     }
 
     return false;
   }, [user, events, tasks, scheduleTask]);
+
+  /**
+   * Resize an event (change duration)
+   */
+  const resizeEvent = useCallback(async (
+    eventId: string,
+    newDuration: number
+  ): Promise<boolean> => {
+    if (!user) return false;
+
+    const event = events.find(e => e.id === eventId);
+    if (!event) {
+      logger.warn('Event not found for resizing', { eventId });
+      return false;
+    }
+
+    try {
+      // Calculate new end time
+      const newEndsAt = new Date(event.startsAt.getTime() + newDuration * 60 * 1000);
+
+      // Update the event in database
+      const { error } = await supabase
+        .from('time_events')
+        .update({
+          duration: newDuration,
+          ends_at: newEndsAt.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      await loadEvents();
+      logger.debug('Event resized', { eventId, newDuration });
+      return true;
+    } catch (error: any) {
+      logger.error('Failed to resize event', { error: error.message, eventId });
+      return false;
+    }
+  }, [user, events, loadEvents]);
 
   /**
    * Unschedule an event (remove from timeline)
@@ -150,12 +200,31 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
    * Complete an event
    */
   const handleCompleteEvent = useCallback(async (eventId: string): Promise<boolean> => {
-    const success = await completeEvent(eventId);
+    const event = events.find(e => e.id === eventId);
+    if (!event) return false;
+
+    // Toggle completion status
+    const newStatus = event.status === 'completed' ? 'scheduled' : 'completed';
+    
+    const success = await updateEventStatus(
+      event.entityType as 'task' | 'habit' | 'challenge',
+      event.entityId,
+      newStatus
+    );
+    
     if (success) {
+      // Also update the task's completion status
+      if (event.entityType === 'task') {
+        const task = tasks.find(t => t.id === event.entityId);
+        if (task) {
+          await updateTask(task.id, { isCompleted: newStatus === 'completed' });
+        }
+      }
       await loadEvents();
     }
+    
     return success;
-  }, [completeEvent, loadEvents]);
+  }, [events, tasks, updateEventStatus, updateTask, loadEvents]);
 
   /**
    * Check if a time slot has conflicts
@@ -212,6 +281,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     // Actions
     scheduleTask,
     rescheduleEvent,
+    resizeEvent,
     unscheduleEvent,
     completeEvent: handleCompleteEvent,
     

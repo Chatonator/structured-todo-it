@@ -4,7 +4,7 @@ import { format, isSameDay, startOfDay, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { TimeEvent } from '@/lib/time/types';
 import { TimeSlot } from './TimeSlot';
-import { ScheduledEvent } from './ScheduledEvent';
+import { ResizableEvent } from './ResizableEvent';
 import { CurrentTimeIndicator } from './CurrentTimeIndicator';
 
 interface TimeGridProps {
@@ -12,6 +12,10 @@ interface TimeGridProps {
   viewMode: 'day' | 'week';
   events: TimeEvent[];
   onCompleteEvent?: (eventId: string) => void;
+  onUnscheduleEvent?: (eventId: string) => void;
+  onEditEvent?: (event: TimeEvent) => void;
+  onDeleteEvent?: (eventId: string) => void;
+  onResizeEvent?: (eventId: string, newDuration: number) => void;
   onEventClick?: (event: TimeEvent) => void;
   onSlotClick?: (date: Date, hour: number, minute: number) => void;
   className?: string;
@@ -27,6 +31,10 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
   viewMode,
   events,
   onCompleteEvent,
+  onUnscheduleEvent,
+  onEditEvent,
+  onDeleteEvent,
+  onResizeEvent,
   onEventClick,
   onSlotClick,
   className
@@ -154,16 +162,21 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                   </div>
                 ))}
 
-                {/* Scheduled events */}
+                {/* Scheduled events with resize support */}
                 {dayEvents.map(event => {
                   const { topOffset, height } = getEventStyle(event);
                   return (
-                    <ScheduledEvent
+                    <ResizableEvent
                       key={event.id}
                       event={event}
                       topOffset={topOffset}
                       height={height}
+                      pixelsPerMinute={PIXELS_PER_MINUTE}
                       onComplete={() => onCompleteEvent?.(event.id)}
+                      onUnschedule={() => onUnscheduleEvent?.(event.id)}
+                      onEdit={() => onEditEvent?.(event)}
+                      onDelete={() => onDeleteEvent?.(event.id)}
+                      onResize={onResizeEvent}
                       onClick={() => onEventClick?.(event)}
                     />
                   );
