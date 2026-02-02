@@ -9,9 +9,10 @@ import { useTasks } from '@/hooks/useTasks';
 import { useTimeHub } from '@/hooks/useTimeHub';
 import { useTimeEventSync } from '@/hooks/useTimeEventSync';
 import { Task } from '@/types/task';
-import { TimeEvent, DateRange } from '@/lib/time/types';
+import { TimeEvent, DateRange, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { format, isPast, isToday, startOfDay } from 'date-fns';
 
 interface ScheduleTaskParams {
   taskId: string;
@@ -20,6 +21,18 @@ interface ScheduleTaskParams {
   minute: number;
   duration?: number;
 }
+
+interface ScheduleTaskToBlockParams {
+  taskId: string;
+  date: Date;
+  block: TimeBlock;
+  duration?: number;
+}
+
+// Get middle hour of a time block
+const getBlockStartHour = (block: TimeBlock): number => {
+  return TIME_BLOCKS[block].startHour;
+};
 
 export const useTimelineScheduling = (dateRange: DateRange) => {
   const { user } = useAuth();
@@ -42,14 +55,25 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     );
   }, [tasks, events]);
 
-  // Get scheduled events for the date range
+  // Get scheduled events for the date range (non-cancelled)
   const scheduledEvents = useMemo(() => 
     events.filter(e => e.status !== 'cancelled'),
     [events]
   );
 
+  // Get overdue events (past, not completed)
+  const overdueEvents = useMemo(() => {
+    const now = new Date();
+    return events.filter(e => 
+      isPast(e.startsAt) && 
+      !isToday(e.startsAt) &&
+      e.status !== 'completed' && 
+      e.status !== 'cancelled'
+    );
+  }, [events]);
+
   /**
-   * Schedule a task at a specific time
+   * Schedule a task at a specific time (legacy - for precise time slots)
    */
   const scheduleTask = useCallback(async ({
     taskId,
@@ -95,6 +119,58 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
   }, [user, tasks, syncTaskEventWithSchedule, loadEvents]);
 
   /**
+   * Schedule a task to a time block (new block-based scheduling)
+   */
+  const scheduleTaskToBlock = useCallback(async ({
+    taskId,
+    date,
+    block,
+    duration
+  }: ScheduleTaskToBlockParams): Promise<boolean> => {
+    if (!user) return false;
+
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+      logger.warn('Task not found for scheduling', { taskId });
+      return false;
+    }
+
+    try {
+      const hour = getBlockStartHour(block);
+      const time = `${String(hour).padStart(2, '0')}:00`;
+      
+      const taskWithDuration = duration 
+        ? { ...task, duration: duration, estimatedTime: duration }
+        : task;
+      
+      // Sync with time_events
+      const success = await syncTaskEventWithSchedule(taskWithDuration, {
+        date,
+        time,
+        isRecurring: false
+      });
+
+      if (success) {
+        // Update the time_block field
+        await supabase
+          .from('time_events')
+          .update({ time_block: block })
+          .eq('entity_type', 'task')
+          .eq('entity_id', taskId)
+          .eq('user_id', user.id);
+
+        await loadEvents();
+        logger.debug('Task scheduled to block', { taskId, date: format(date, 'yyyy-MM-dd'), block });
+      }
+
+      return success;
+    } catch (error: any) {
+      logger.error('Failed to schedule task to block', { error: error.message, taskId });
+      return false;
+    }
+  }, [user, tasks, syncTaskEventWithSchedule, loadEvents]);
+
+  /**
    * Reschedule an existing event to a new time
    */
   const rescheduleEvent = useCallback(async (
@@ -127,6 +203,50 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
 
     return false;
   }, [user, events, tasks, scheduleTask]);
+
+  /**
+   * Reschedule an existing event to a new block
+   */
+  const rescheduleEventToBlock = useCallback(async (
+    eventId: string,
+    date: Date,
+    block: TimeBlock
+  ): Promise<boolean> => {
+    if (!user) return false;
+
+    const event = events.find(e => e.id === eventId);
+    if (!event) {
+      logger.warn('Event not found for rescheduling', { eventId });
+      return false;
+    }
+
+    try {
+      const hour = getBlockStartHour(block);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const startsAt = new Date(`${dateStr}T${String(hour).padStart(2, '0')}:00:00`);
+      const endsAt = new Date(startsAt.getTime() + event.duration * 60 * 1000);
+
+      const { error } = await supabase
+        .from('time_events')
+        .update({
+          starts_at: startsAt.toISOString(),
+          ends_at: endsAt.toISOString(),
+          time_block: block,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      await loadEvents();
+      logger.debug('Event rescheduled to block', { eventId, date: dateStr, block });
+      return true;
+    } catch (error: any) {
+      logger.error('Failed to reschedule event to block', { error: error.message, eventId });
+      return false;
+    }
+  }, [user, events, loadEvents]);
 
   /**
    * Resize an event (change duration)
@@ -277,11 +397,18 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     // Data
     unscheduledTasks,
     scheduledEvents,
+    overdueEvents,
     
-    // Actions
+    // Actions - legacy
     scheduleTask,
     rescheduleEvent,
     resizeEvent,
+    
+    // Actions - block-based
+    scheduleTaskToBlock,
+    rescheduleEventToBlock,
+    
+    // Common actions
     unscheduleEvent,
     completeEvent: handleCompleteEvent,
     

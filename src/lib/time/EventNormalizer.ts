@@ -4,7 +4,7 @@
  * Les tâches sont synchronisées via useTimeEventSync qui gère la planification séparément
  */
 
-import { TimeEvent, TimeEventRow, RecurrenceConfig, RecurrenceFrequency } from './types';
+import { TimeEvent, TimeEventRow, RecurrenceConfig, RecurrenceFrequency, TimeBlock } from './types';
 import { Task, RecurrenceInterval } from '@/types/task';
 import { Habit } from '@/types/habit';
 import { CATEGORY_CONFIG } from '@/types/task';
@@ -57,6 +57,7 @@ export class EventNormalizer {
       priority: row.priority || undefined,
       status: row.status as TimeEvent['status'],
       completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+      timeBlock: row.time_block as TimeBlock | undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
     };
@@ -82,7 +83,8 @@ export class EventNormalizer {
       color: event.color || null,
       priority: event.priority || null,
       status: event.status,
-      completed_at: event.completedAt?.toISOString() || null
+      completed_at: event.completedAt?.toISOString() || null,
+      time_block: event.timeBlock || null
     };
   }
 

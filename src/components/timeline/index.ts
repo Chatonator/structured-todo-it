@@ -8,3 +8,8 @@ export { UnscheduledTasksPanel } from './UnscheduledTasksPanel';
 export { EventContextMenu } from './EventContextMenu';
 export { TemporalBadge } from './TemporalBadge';
 export { RecurringPreview } from './RecurringPreview';
+export { DayPlanningCard } from './DayPlanningCard';
+export { TimeBlockDropZone } from './TimeBlockDropZone';
+export { ScheduledEventCard } from './ScheduledEventCard';
+export { QuotaSelector } from './QuotaSelector';
+export { OverdueTasksAlert } from './OverdueTasksAlert';

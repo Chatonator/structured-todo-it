@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo, useEffect } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -23,18 +23,21 @@ import {
   CalendarDays,
   Plus
 } from 'lucide-react';
-import { format, addDays, startOfDay, endOfDay } from 'date-fns';
+import { format, addDays, startOfDay, endOfDay, isPast, isToday, startOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { 
-  TimeGrid, 
   UnscheduledTasksPanel, 
   DraggableTask,
-  RecurringPreview
+  RecurringPreview,
+  DayPlanningCard,
+  OverdueTasksAlert
 } from '@/components/timeline';
 import { useTimelineScheduling } from '@/hooks/useTimelineScheduling';
+import { useDayPlanning } from '@/hooks/useDayPlanning';
+import { useProjects } from '@/hooks/useProjects';
 import { Task } from '@/types/task';
-import { TimeEvent } from '@/lib/time/types';
+import { TimeEvent, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
 import { formatDuration } from '@/lib/formatters';
 import TaskModal from '@/components/task/TaskModal';
 
@@ -52,23 +55,49 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
   // Modal states
   const [selectedEvent, setSelectedEvent] = useState<TimeEvent | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [quickAddSlot, setQuickAddSlot] = useState<{ date: Date; hour: number; minute: number } | null>(null);
 
   // Calculate date range based on view mode
-  const dateRange = viewMode === 'day'
-    ? { start: startOfDay(selectedDate), end: endOfDay(selectedDate) }
-    : { start: startOfDay(selectedDate), end: endOfDay(addDays(selectedDate, 6)) };
+  const dateRange = useMemo(() => {
+    if (viewMode === 'day') {
+      return { start: startOfDay(selectedDate), end: endOfDay(selectedDate) };
+    }
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    return { start: startOfDay(weekStart), end: endOfDay(addDays(weekStart, 6)) };
+  }, [selectedDate, viewMode]);
+
+  // Generate days array
+  const days = useMemo(() => {
+    if (viewMode === 'day') {
+      return [startOfDay(selectedDate)];
+    }
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  }, [selectedDate, viewMode]);
 
   const {
     unscheduledTasks,
     scheduledEvents,
-    scheduleTask,
-    rescheduleEvent,
-    resizeEvent,
+    overdueEvents,
+    scheduleTaskToBlock,
+    rescheduleEventToBlock,
     unscheduleEvent,
     completeEvent,
-    getTaskById
+    getTaskById,
+    reload
   } = useTimelineScheduling(dateRange);
+
+  const { 
+    getQuotaForDate, 
+    setQuotaForDate, 
+    loadConfigs 
+  } = useDayPlanning();
+
+  const { projects } = useProjects();
+
+  // Load planning configs when date range changes
+  useEffect(() => {
+    loadConfigs(dateRange.start, dateRange.end);
+  }, [dateRange, loadConfigs]);
 
   // DnD sensors
   const sensors = useSensors(
@@ -113,29 +142,41 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
     const activeData = active.data.current;
     const overData = over.data.current;
 
-    // Check if dropped on a time slot
-    if (overData?.type === 'time-slot') {
-      const { date, hour, minute } = overData;
+    // Check if dropped on a time block
+    if (overData?.type === 'time-block') {
+      const block = overData.block as TimeBlock;
+      const date = new Date(overData.date);
 
       if (activeData?.type === 'unscheduled-task') {
-        // Schedule unscheduled task
+        // Schedule unscheduled task to block
         const task = activeData.task as Task;
-        await scheduleTask({
+        await scheduleTaskToBlock({
           taskId: task.id,
           date,
-          hour,
-          minute,
+          block,
           duration: task.duration || task.estimatedTime || 30
         });
       } else if (activeData?.type === 'scheduled-event') {
-        // Reschedule existing event
+        // Reschedule existing event to new block
         const evt = activeData.event as TimeEvent;
-        await rescheduleEvent(evt.id, date, hour, minute);
+        await rescheduleEventToBlock(evt.id, date, block);
       }
     }
-  }, [scheduleTask, rescheduleEvent]);
+  }, [scheduleTaskToBlock, rescheduleEventToBlock]);
 
   // Event handlers
+  const handleDropTask = useCallback(async (taskId: string, block: TimeBlock, date: Date) => {
+    const task = getTaskById(taskId);
+    if (task) {
+      await scheduleTaskToBlock({
+        taskId,
+        date,
+        block,
+        duration: task.duration || task.estimatedTime || 30
+      });
+    }
+  }, [getTaskById, scheduleTaskToBlock]);
+
   const handleCompleteEvent = useCallback(async (eventId: string) => {
     await completeEvent(eventId);
   }, [completeEvent]);
@@ -144,35 +185,52 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
     await unscheduleEvent(eventId);
   }, [unscheduleEvent]);
 
-  const handleResizeEvent = useCallback(async (eventId: string, newDuration: number) => {
-    await resizeEvent(eventId, newDuration);
-  }, [resizeEvent]);
-
   const handleEventClick = useCallback((event: TimeEvent) => {
     setSelectedEvent(event);
-  }, []);
-
-  const handleSlotClick = useCallback((date: Date, hour: number, minute: number) => {
-    setQuickAddSlot({ date, hour, minute });
-    setIsTaskModalOpen(true);
   }, []);
 
   const handleCloseModal = useCallback(() => {
     setSelectedEvent(null);
     setIsTaskModalOpen(false);
-    setQuickAddSlot(null);
   }, []);
+
+  const handleQuotaChange = useCallback(async (date: Date, minutes: number) => {
+    await setQuotaForDate(date, minutes);
+  }, [setQuotaForDate]);
+
+  const handleRescheduleOverdue = useCallback(async (eventId: string) => {
+    // Move to today in morning block
+    await rescheduleEventToBlock(eventId, new Date(), 'morning');
+  }, [rescheduleEventToBlock]);
+
+  const handleCancelOverdue = useCallback(async (eventId: string) => {
+    await unscheduleEvent(eventId);
+  }, [unscheduleEvent]);
+
+  // Group events by day
+  const eventsByDay = useMemo(() => {
+    const grouped = new Map<string, TimeEvent[]>();
+    days.forEach(day => {
+      const dayKey = format(day, 'yyyy-MM-dd');
+      const dayEvents = scheduledEvents.filter(e => 
+        format(e.startsAt, 'yyyy-MM-dd') === dayKey
+      );
+      grouped.set(dayKey, dayEvents);
+    });
+    return grouped;
+  }, [scheduledEvents, days]);
 
   // Stats calculation
   const totalScheduledTime = scheduledEvents.reduce((sum, e) => sum + e.duration, 0);
   const completedEvents = scheduledEvents.filter(e => e.status === 'completed').length;
   const totalUnscheduledTime = unscheduledTasks.reduce((sum, t) => sum + t.estimatedTime, 0);
+  const totalQuota = days.reduce((sum, d) => sum + getQuotaForDate(d), 0);
 
   const stats = [
     {
       id: 'scheduled',
       label: 'Planifié',
-      value: formatDuration(totalScheduledTime),
+      value: `${formatDuration(totalScheduledTime)} / ${formatDuration(totalQuota)}`,
       icon: <Clock className="w-4 h-4" />
     },
     {
@@ -211,6 +269,15 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
         <div className="space-y-4 pb-20 md:pb-6">
           <ViewStats stats={stats} columns={3} />
 
+          {/* Overdue tasks alert */}
+          {overdueEvents.length > 0 && (
+            <OverdueTasksAlert
+              events={overdueEvents}
+              onReschedule={handleRescheduleOverdue}
+              onCancel={handleCancelOverdue}
+            />
+          )}
+
           {/* Navigation */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
@@ -247,29 +314,55 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
             </div>
           </div>
 
-          {/* Main content: Backlog + Grid */}
-          <div className="flex gap-4 h-[calc(100vh-300px)] min-h-[500px]">
+          {/* Main content: Backlog + Planning cards */}
+          <div className="flex gap-4">
             {/* Unscheduled tasks panel */}
             <UnscheduledTasksPanel
               tasks={unscheduledTasks}
+              projects={projects}
               onTaskClick={(task) => {
-                // Could open task modal
                 console.log('Task clicked', task);
               }}
             />
 
-            {/* Time grid with all interactions */}
-            <TimeGrid
-              selectedDate={selectedDate}
-              viewMode={viewMode}
-              events={scheduledEvents}
-              onCompleteEvent={handleCompleteEvent}
-              onUnscheduleEvent={handleUnscheduleEvent}
-              onResizeEvent={handleResizeEvent}
-              onEventClick={handleEventClick}
-              onSlotClick={handleSlotClick}
-              className="flex-1"
-            />
+            {/* Day view: single DayPlanningCard */}
+            {viewMode === 'day' && (
+              <div className="flex-1">
+                <DayPlanningCard
+                  date={selectedDate}
+                  quota={getQuotaForDate(selectedDate)}
+                  events={eventsByDay.get(format(selectedDate, 'yyyy-MM-dd')) || []}
+                  onDropTask={handleDropTask}
+                  onRemoveTask={handleUnscheduleEvent}
+                  onCompleteEvent={handleCompleteEvent}
+                  onEventClick={handleEventClick}
+                  onQuotaChange={(mins) => handleQuotaChange(selectedDate, mins)}
+                />
+              </div>
+            )}
+
+            {/* Week view: 7 DayPlanningCards */}
+            {viewMode === 'week' && (
+              <div className="flex-1 grid grid-cols-7 gap-2">
+                {days.map(day => {
+                  const dayKey = format(day, 'yyyy-MM-dd');
+                  return (
+                    <DayPlanningCard
+                      key={dayKey}
+                      date={day}
+                      quota={getQuotaForDate(day)}
+                      events={eventsByDay.get(dayKey) || []}
+                      onDropTask={handleDropTask}
+                      onRemoveTask={handleUnscheduleEvent}
+                      onCompleteEvent={handleCompleteEvent}
+                      onEventClick={handleEventClick}
+                      onQuotaChange={(mins) => handleQuotaChange(day, mins)}
+                      compact
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Selected event details panel */}
@@ -287,12 +380,17 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    {format(selectedEvent.startsAt, 'HH:mm')} - {selectedEvent.endsAt && format(selectedEvent.endsAt, 'HH:mm')}
+                    {formatDuration(selectedEvent.duration)}
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
                     {format(selectedEvent.startsAt, 'PPP', { locale: fr })}
                   </div>
+                  {selectedEvent.timeBlock && (
+                    <span className="text-xs">
+                      {TIME_BLOCKS[selectedEvent.timeBlock].icon} {TIME_BLOCKS[selectedEvent.timeBlock].label}
+                    </span>
+                  )}
                 </div>
 
                 {/* Temporal tracking info */}
@@ -340,8 +438,8 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
               <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                 <div className="text-center">
                   <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                  <p className="text-sm font-medium">Glissez vos tâches sur la grille horaire</p>
-                  <p className="text-xs mt-1">pour planifier votre journée</p>
+                  <p className="text-sm font-medium">Glissez vos tâches dans les blocs horaires</p>
+                  <p className="text-xs mt-1">Matin • Après-midi • Soir</p>
                 </div>
               </CardContent>
             </Card>
@@ -353,8 +451,8 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
               <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
                 <div className="text-center">
                   <Plus className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                  <p className="text-sm font-medium">Cliquez sur un créneau pour créer une tâche</p>
-                  <p className="text-xs mt-1">ou ajoutez des tâches depuis la vue Tâches</p>
+                  <p className="text-sm font-medium">Aucune tâche à planifier</p>
+                  <p className="text-xs mt-1">Ajoutez des tâches depuis la vue Tâches</p>
                 </div>
               </CardContent>
             </Card>

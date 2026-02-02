@@ -110,6 +110,33 @@ export type Database = {
         }
         Relationships: []
       }
+      day_planning_config: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          quota_minutes: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          quota_minutes?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          quota_minutes?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       items: {
         Row: {
           category: string
@@ -436,6 +463,7 @@ export type Database = {
           recurrence: Json | null
           starts_at: string
           status: string
+          time_block: string | null
           timezone: string | null
           title: string
           updated_at: string | null
@@ -456,6 +484,7 @@ export type Database = {
           recurrence?: Json | null
           starts_at: string
           status?: string
+          time_block?: string | null
           timezone?: string | null
           title: string
           updated_at?: string | null
@@ -476,6 +505,7 @@ export type Database = {
           recurrence?: Json | null
           starts_at?: string
           status?: string
+          time_block?: string | null
           timezone?: string | null
           title?: string
           updated_at?: string | null
