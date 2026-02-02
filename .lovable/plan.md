@@ -1,181 +1,405 @@
 
-# Timeline 2.0 - Vue de Planification
+# Plan : Refonte de la Vue Timeline
 
-> **Status: MVP Implémenté (Phases 1-3)** ✅
+## Problèmes Identifiés
 
-## Contexte et Analyse
+### Bug 1 : Planification toujours au jour actuel
+**Cause** : Dans `useTimelineScheduling.ts`, la fonction `scheduleTask` reçoit correctement la date du slot mais le `syncTaskEventWithSchedule` utilise `scheduleInfo.date!.toISOString().split('T')[0]` qui devrait fonctionner. Le problème vient probablement de la date passée par le TimeSlot qui n'est pas correctement propagée.
 
-### Etat actuel
-La Timeline actuelle est une vue passive qui affiche les événements planifiés sans permettre de réelle interaction de planification. Le système temporel (`time_events`, `useTimeHub`, `TimeEngine`) est bien en place mais sous-exploité.
+**Analyse du flux** :
+1. `TimeSlot` → `handleDragEnd` → reçoit `overData.date` 
+2. Mais `TimeSlot` passe `date={day}` où `day` est calculé depuis `selectedDate`
+3. Le problème : `day` est bien une Date mais quand elle est passée via `droppable.data`, elle peut perdre son type
 
-### Problèmes identifiés
-- Impossible de planifier directement depuis la vue Timeline
-- Les tâches non planifiées sont invisibles dans cette vue
-- Aucune représentation visuelle des créneaux horaires disponibles
-- Pas de drag-and-drop pour organiser sa journée
+### Bug 2 : Projets et tâches mélangés sans identification
+**Cause** : Le panneau `UnscheduledTasksPanel` affiche toutes les tâches sans distinction de leur origine (projet, tâche libre, équipe).
+
+### Bug 3 : Tâches planifiées dépassées = "perdues"
+**Cause** : `EventRegistry.fetchEvents` filtre par date range, donc les événements passés ne sont pas affichés. Une tâche planifiée hier mais non validée disparaît de la vue.
+
+### Bug 4 : Vue semaine ne fonctionne pas
+**Cause** : La `TimeGrid` génère correctement les jours mais le `eventsByDay` ne reçoit que les événements de la date range courante. Si la vue semaine est sélectionnée, les événements devraient s'afficher sur plusieurs colonnes.
+
+### Bug 5 : Créneaux horaires vs Blocs temporels
+**Demande** : Remplacer la grille horaire précise par 3 blocs (Matin/Après-midi/Soir) avec un quota d'heures par jour.
+
+---
 
 ## Architecture Proposée
 
-### Vue d'ensemble
+### Nouveau Modèle de Données
 
 ```text
-+------------------------------------------------------------------+
-|  TIMELINE 2.0                                                     |
-+------------------------------------------------------------------+
-|  [Jour] [Semaine]        < Lun 3 Fév >        [Aujourd'hui]      |
-+------------------------------------------------------------------+
-|                                                                   |
-|  +------------------------+  +----------------------------------+ |
-|  | BACKLOG NON PLANIFIÉ   |  | GRILLE HORAIRE                   | |
-|  |------------------------|  |----------------------------------| |
-|  | [Filtre: Toutes]       |  |  08:00 |                        | |
-|  |                        |  |  ------|  Réunion équipe        | |
-|  | ○ Rédiger rapport      |  |  09:00 |  [45min] ████████████  | |
-|  |   1h30 · Crucial       |  |  ------|                        | |
-|  |                        |  |  10:00 |                        | |
-|  | ○ Appeler fournisseur  |  |  ------|  Révision code         | |
-|  |   30min · Régulier     |  |  11:00 |  [1h] ██████████████   | |
-|  |                        |  |  ------|                        | |
-|  | ○ Préparer présentation|  |  12:00 |  ~~~~~ LIBRE ~~~~~     | |
-|  |   2h · Envie           |  |  ------|                        | |
-|  |                        |  |  13:00 |  Déjeuner              | |
-|  +------------------------+  |  ------|                        | |
-|                              +----------------------------------+ |
-|                                                                   |
-+------------------------------------------------------------------+
-|  Stats: 4h planifiées · 2h libres · 3 tâches non planifiées      |
-+------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────────┐
+│                    PLANNING JOURNALIER                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Lundi 3 février          Quota: 4h / 4h ✓                   │
+│   ┌─────────────────────────────────────────────────────────┐  │
+│   │ 🌅 MATIN (6h-12h)                                       │  │
+│   │   • Tâche A (30min) - Projet X                          │  │
+│   │   • Tâche B (1h) - Perso                                │  │
+│   └─────────────────────────────────────────────────────────┘  │
+│   ┌─────────────────────────────────────────────────────────┐  │
+│   │ ☀️ APRÈS-MIDI (12h-18h)                                 │  │
+│   │   • Tâche C (1h30) - Équipe Y                           │  │
+│   └─────────────────────────────────────────────────────────┘  │
+│   ┌─────────────────────────────────────────────────────────┐  │
+│   │ 🌙 SOIR (18h-22h)                                       │  │
+│   │   • Tâche D (1h) - Perso                                │  │
+│   └─────────────────────────────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+---
 
 ## Plan d'Implémentation
 
-### Phase 1 - Grille Horaire Interactive
-Création d'un composant `TimeGrid` avec représentation visuelle des créneaux
+### Phase 1 : Corriger le bug de date lors du drag-drop
 
-**Fichiers à créer:**
-- `src/components/timeline/TimeGrid.tsx` - Grille des heures (6h-22h par défaut)
-- `src/components/timeline/TimeSlot.tsx` - Créneau individuel cliquable
-- `src/components/timeline/ScheduledEvent.tsx` - Bloc d'événement planifié
+**Fichier** : `src/components/timeline/TimeSlot.tsx`
 
-**Fonctionnalités:**
-- Affichage des heures en colonnes/lignes selon le mode (jour/semaine)
-- Visualisation claire des événements avec durée proportionnelle
-- Indicateurs visuels des créneaux libres vs occupés
-- Ligne "maintenant" qui suit l'heure actuelle
+Le TimeSlot passe `date` dans `droppable.data` mais les objets Date peuvent être sérialisés en string. Correction :
 
-### Phase 2 - Backlog des Tâches Non Planifiées
-Panneau latéral listant les tâches à planifier
+```typescript
+// Avant
+data: {
+  type: 'time-slot',
+  date,        // Date object - peut devenir string
+  hour,
+  minute
+}
 
-**Fichiers à créer:**
-- `src/components/timeline/UnscheduledTasksPanel.tsx` - Panneau des tâches sans date
-- `src/components/timeline/DraggableTask.tsx` - Carte de tâche draggable
-
-**Fonctionnalités:**
-- Liste filtrable (par catégorie, contexte, durée)
-- Affichage du temps estimé et de la priorité
-- Tri par priorité, durée, date de création
-- Compteur des tâches en attente
-
-### Phase 3 - Drag & Drop avec @dnd-kit
-Interaction de glisser-déposer pour planifier les tâches
-
-**Fichiers à modifier:**
-- `src/components/views/timeline/TimelineView.tsx` - Refonte complète
-
-**Fichiers à créer:**
-- `src/components/timeline/DndContext.tsx` - Contexte drag-and-drop
-- `src/hooks/useTimelineScheduling.ts` - Logique de planification
-
-**Fonctionnalités:**
-- Drag depuis le backlog vers la grille
-- Snap automatique sur les créneaux de 15min
-- Prévisualisation pendant le drag
-- Détection des conflits en temps réel
-- Feedback visuel (zones de drop valides/invalides)
-
-### Phase 4 - Interactions Avancées
-Édition in-place et manipulation des événements
-
-**Fonctionnalités:**
-- Clic sur créneau vide = création rapide d'événement
-- Resize des événements (ajuster la durée)
-- Move des événements (changer l'heure)
-- Double-clic = édition complète
-- Menu contextuel (compléter, dé-planifier, éditer, supprimer)
-
-### Phase 5 - Suivi Temporel (Objectif Secondaire)
-Historique et prochaines occurrences
-
-**Fichiers à créer:**
-- `src/components/timeline/TaskTimeline.tsx` - Historique d'une tâche
-- `src/components/timeline/RecurringPreview.tsx` - Prochaines occurrences
-
-**Fonctionnalités:**
-- Badge avec date de création sur les tâches
-- Historique des complétions dans le détail d'une tâche
-- Vue des 5 prochaines occurrences pour les tâches récurrentes
-- Mini-calendrier de chaleur pour les récurrences
-
-## Détails Techniques
-
-### Structure des Composants
-
-```text
-TimelineView (refonte)
-├── TimelineHeader
-│   ├── DateNavigation
-│   ├── ViewModeToggle
-│   └── StatsBar
-├── TimelineContent (nouveau layout)
-│   ├── UnscheduledTasksPanel
-│   │   ├── PanelFilters
-│   │   └── DraggableTaskList
-│   └── TimeGrid
-│       ├── TimeGutter (colonne des heures)
-│       ├── DayColumn(s)
-│       │   ├── TimeSlots
-│       │   └── ScheduledEvents
-│       └── CurrentTimeIndicator
-└── TimelineFooter
-    └── SummaryStats
+// Après
+data: {
+  type: 'time-slot',
+  date: date.toISOString(),  // Explicitement string ISO
+  hour,
+  minute
+}
 ```
 
-### Hook useTimelineScheduling
+**Fichier** : `src/components/views/timeline/TimelineView.tsx`
 
-```text
-useTimelineScheduling()
-├── Données
-│   ├── unscheduledTasks: Task[]
-│   ├── scheduledEvents: TimeEvent[]
-│   └── conflicts: ConflictResult[]
-├── Actions
-│   ├── scheduleTask(taskId, datetime, duration)
-│   ├── rescheduleEvent(eventId, newDatetime)
-│   ├── resizeEvent(eventId, newDuration)
-│   ├── unscheduleEvent(eventId)
-│   └── completeEvent(eventId)
-└── Calculs
-    ├── getFreeSlots(date)
-    ├── checkConflict(datetime, duration)
-    └── getSuggestedSlots(task)
+```typescript
+// Dans handleDragEnd, reconvertir en Date
+if (overData?.type === 'time-slot') {
+  const date = new Date(overData.date); // S'assurer que c'est une Date
+  const { hour, minute } = overData;
+  // ...
+}
 ```
 
-### Intégration avec le Système Existant
+---
 
-Le système `time_events` existant est parfaitement adapté. Les modifications principales seront:
+### Phase 2 : Ajouter des sélecteurs de source dans le panneau de tâches
 
-1. **useTasks**: Ajouter un filtre pour les tâches non planifiées (sans `time_event` associé)
-2. **useTimeEventSync**: Utiliser pour créer/mettre à jour les événements lors du drag-drop
-3. **useTimeHub**: Étendre pour inclure les calculs de créneaux libres
+**Fichier** : `src/components/timeline/UnscheduledTasksPanel.tsx`
 
-## Estimation et Priorités
+Ajouter un filtre par source :
+- Toutes
+- Tâches libres (sans projectId)
+- Par projet (liste des projets)
+- Équipe (si applicable)
 
-| Phase | Composants | Priorité | Complexité |
-|-------|------------|----------|------------|
-| 1 | TimeGrid | Haute | Moyenne |
-| 2 | UnscheduledPanel | Haute | Faible |
-| 3 | Drag & Drop | Haute | Élevée |
-| 4 | Interactions | Moyenne | Moyenne |
-| 5 | Suivi temporel | Basse | Faible |
+```typescript
+type SourceFilter = 'all' | 'free-tasks' | 'project' | 'team';
 
-Les phases 1-3 constituent le MVP de la planification et répondent à l'objectif principal.
+// Nouveau state
+const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+// Afficher un badge d'origine sur chaque tâche
+```
+
+**Fichier** : `src/components/timeline/DraggableTask.tsx`
+
+Ajouter l'affichage de l'origine :
+```tsx
+{/* Source badge */}
+{task.projectId && (
+  <span className="text-[10px] bg-project/10 text-project px-1 rounded">
+    📁 {projectName}
+  </span>
+)}
+{!task.projectId && (
+  <span className="text-[10px] bg-muted text-muted-foreground px-1 rounded">
+    📋 Tâche
+  </span>
+)}
+```
+
+---
+
+### Phase 3 : Gérer les tâches planifiées dépassées
+
+**Nouveau composant** : `src/components/timeline/OverdueTasksAlert.tsx`
+
+Affiche une alerte si des tâches planifiées sont dépassées et non validées.
+
+**Fichier** : `src/hooks/useTimelineScheduling.ts`
+
+Ajouter une requête pour les événements passés non complétés :
+
+```typescript
+const overdueEvents = useMemo(() => {
+  const now = new Date();
+  return events.filter(e => 
+    e.startsAt < now && 
+    e.status !== 'completed' && 
+    e.status !== 'cancelled'
+  );
+}, [events]);
+```
+
+**Fichier** : `src/lib/time/EventRegistry.ts`
+
+Ajouter une méthode pour récupérer les événements dépassés :
+
+```typescript
+static async fetchOverdueEvents(userId: string): Promise<TimeEvent[]> {
+  const now = new Date();
+  const { data, error } = await supabase
+    .from('time_events')
+    .select('*')
+    .eq('user_id', userId)
+    .lt('starts_at', now.toISOString())
+    .in('status', ['scheduled', 'in-progress'])
+    .neq('status', 'completed');
+  // ...
+}
+```
+
+---
+
+### Phase 4 : Implémenter les blocs temporels (Matin/Après-midi/Soir)
+
+**Nouveau type** : `src/lib/time/types.ts`
+
+```typescript
+export type TimeBlock = 'morning' | 'afternoon' | 'evening';
+
+export interface DayPlanningConfig {
+  date: Date;
+  quotaMinutes: number;  // Quota d'heures pour la journée
+  blocks: {
+    morning: boolean;    // Activé ou non
+    afternoon: boolean;
+    evening: boolean;
+  };
+}
+
+export const TIME_BLOCKS = {
+  morning: { label: 'Matin', icon: '🌅', startHour: 6, endHour: 12 },
+  afternoon: { label: 'Après-midi', icon: '☀️', startHour: 12, endHour: 18 },
+  evening: { label: 'Soir', icon: '🌙', startHour: 18, endHour: 22 }
+} as const;
+```
+
+**Nouveau composant** : `src/components/timeline/DayPlanningCard.tsx`
+
+Carte pour une journée avec :
+- Header : Date + Quota (ex: "3h / 4h")
+- 3 sections droppables : Matin, Après-midi, Soir
+- Barre de progression du quota
+- Possibilité de déplacer les tâches entre blocs
+
+```typescript
+interface DayPlanningCardProps {
+  date: Date;
+  quota: number;  // en minutes
+  events: TimeEvent[];
+  onDropTask: (taskId: string, block: TimeBlock) => void;
+  onRemoveTask: (eventId: string) => void;
+}
+```
+
+**Nouveau composant** : `src/components/timeline/TimeBlockDropZone.tsx`
+
+Zone droppable pour un bloc horaire :
+
+```typescript
+interface TimeBlockDropZoneProps {
+  block: TimeBlock;
+  date: Date;
+  events: TimeEvent[];
+  isOver: boolean;
+  isFull: boolean;  // Quota dépassé
+}
+```
+
+**Nouveau composant** : `src/components/timeline/QuotaSelector.tsx`
+
+Sélecteur de quota journalier :
+
+```typescript
+// Heures disponibles : 0, 1h, 2h, 3h, 4h, 5h, 6h, 8h
+const QUOTA_OPTIONS = [0, 60, 120, 180, 240, 300, 360, 480];
+```
+
+---
+
+### Phase 5 : Stocker les quotas journaliers
+
+**Migration DB** : Nouvelle table `day_planning_config`
+
+```sql
+CREATE TABLE public.day_planning_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  date DATE NOT NULL,
+  quota_minutes INTEGER NOT NULL DEFAULT 240,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, date)
+);
+```
+
+**Nouveau hook** : `src/hooks/useDayPlanning.ts`
+
+```typescript
+export const useDayPlanning = () => {
+  const getQuotaForDate = (date: Date) => { ... };
+  const setQuotaForDate = (date: Date, minutes: number) => { ... };
+  const getDefaultWeeklyQuotas = () => { ... };
+};
+```
+
+---
+
+### Phase 6 : Modifier le modèle TimeEvent pour les blocs
+
+**Fichier** : `src/lib/time/types.ts`
+
+Ajouter un champ optionnel pour le bloc :
+
+```typescript
+export interface TimeEvent {
+  // ... champs existants
+  timeBlock?: TimeBlock;  // morning | afternoon | evening
+}
+```
+
+**Migration DB** :
+
+```sql
+ALTER TABLE public.time_events 
+ADD COLUMN time_block TEXT DEFAULT NULL;
+```
+
+---
+
+### Phase 7 : Refonte de TimelineView
+
+**Fichier** : `src/components/views/timeline/TimelineView.tsx`
+
+Nouvelle structure :
+
+```tsx
+<ViewLayout>
+  {/* Stats */}
+  <ViewStats stats={stats} />
+  
+  {/* Navigation */}
+  <DateNavigation 
+    date={selectedDate}
+    viewMode={viewMode}
+    onPrevious={...}
+    onNext={...}
+    onToday={...}
+  />
+  
+  {/* Alerte tâches dépassées */}
+  {overdueEvents.length > 0 && (
+    <OverdueTasksAlert 
+      events={overdueEvents}
+      onReschedule={...}
+      onCancel={...}
+    />
+  )}
+  
+  {/* Contenu principal */}
+  <div className="flex gap-4">
+    {/* Panneau gauche : Tâches à planifier */}
+    <UnscheduledTasksPanel 
+      tasks={unscheduledTasks}
+      sourceFilter={sourceFilter}
+      onSourceFilterChange={...}
+    />
+    
+    {/* Vue jour : DayPlanningCard unique */}
+    {viewMode === 'day' && (
+      <DayPlanningCard
+        date={selectedDate}
+        quota={dayQuota}
+        events={dayEvents}
+        onQuotaChange={...}
+      />
+    )}
+    
+    {/* Vue semaine : 7 DayPlanningCard */}
+    {viewMode === 'week' && (
+      <div className="grid grid-cols-7 gap-2">
+        {weekDays.map(day => (
+          <DayPlanningCard
+            key={day.toISOString()}
+            date={day}
+            quota={getQuota(day)}
+            events={getEventsForDay(day)}
+            compact
+          />
+        ))}
+      </div>
+    )}
+  </div>
+</ViewLayout>
+```
+
+---
+
+## Résumé des Fichiers
+
+| Action | Fichier |
+|--------|---------|
+| Modifier | `src/components/timeline/TimeSlot.tsx` (fix date serialization) |
+| Modifier | `src/components/views/timeline/TimelineView.tsx` (refonte complète) |
+| Modifier | `src/components/timeline/UnscheduledTasksPanel.tsx` (filtres source) |
+| Modifier | `src/components/timeline/DraggableTask.tsx` (badges origine) |
+| Modifier | `src/hooks/useTimelineScheduling.ts` (overdueEvents + blocks) |
+| Modifier | `src/lib/time/EventRegistry.ts` (fetchOverdueEvents) |
+| Modifier | `src/lib/time/types.ts` (TimeBlock, TIME_BLOCKS) |
+| Créer | `src/components/timeline/DayPlanningCard.tsx` |
+| Créer | `src/components/timeline/TimeBlockDropZone.tsx` |
+| Créer | `src/components/timeline/QuotaSelector.tsx` |
+| Créer | `src/components/timeline/OverdueTasksAlert.tsx` |
+| Créer | `src/hooks/useDayPlanning.ts` |
+| Migration | Ajouter `time_block` à `time_events` |
+| Migration | Créer table `day_planning_config` |
+
+---
+
+## Ordre d'Exécution
+
+| Étape | Description | Priorité |
+|-------|-------------|----------|
+| 1 | Fix bug date drag-drop | Critique |
+| 2 | Ajouter filtres source dans panneau | Haute |
+| 3 | Gérer tâches dépassées (overdue) | Haute |
+| 4 | Migrations DB (time_block + day_planning_config) | Moyenne |
+| 5 | Créer composants blocs (DayPlanningCard, TimeBlockDropZone) | Moyenne |
+| 6 | Créer QuotaSelector et hook useDayPlanning | Moyenne |
+| 7 | Refonte TimelineView avec nouvelle architecture | Moyenne |
+| 8 | Adapter vue semaine | Basse |
+| 9 | Tests et ajustements | Basse |
+
+---
+
+## Bénéfices
+
+1. **Bug fix date** : Les tâches seront planifiées au bon jour
+2. **Clarté** : Identification claire de l'origine de chaque tâche (projet, libre, équipe)
+3. **Pas de perte** : Les tâches dépassées sont visibles et facilement replanifiables
+4. **Flexibilité** : Le système de quotas permet de planifier sans contrainte horaire précise
+5. **Vue semaine fonctionnelle** : Navigation et affichage correct sur 7 jours
+6. **UX simplifiée** : 3 blocs au lieu de créneaux de 15 minutes = moins de décisions à prendre
