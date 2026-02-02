@@ -13,3 +13,7 @@ export { TimeBlockDropZone } from './TimeBlockDropZone';
 export { ScheduledEventCard } from './ScheduledEventCard';
 export { QuotaSelector } from './QuotaSelector';
 export { OverdueTasksAlert } from './OverdueTasksAlert';
+
+// New components
+export * from './panels';
+export * from './planning';
