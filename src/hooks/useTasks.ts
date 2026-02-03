@@ -6,29 +6,9 @@ import { useCallback, useMemo } from 'react';
 import { useItems } from './useItems';
 import { useGamification } from './useGamification';
 import { useTimeEventSync } from './useTimeEventSync';
-import { Task, TaskCategory, TaskContext } from '@/types/task';
-import { Item, ItemMetadata } from '@/types/item';
-
-// Convert Item to Task for backward compatibility
-function itemToTask(item: Item): Task {
-  const meta = item.metadata || {};
-  return {
-    id: item.id,
-    name: item.name,
-    category: (meta.category as TaskCategory) || 'Autres',
-    subCategory: meta.subCategory as Task['subCategory'],
-    context: (meta.context as TaskContext) || 'Perso',
-    estimatedTime: (meta.estimatedTime as number) || 30,
-    duration: meta.duration as number | undefined,
-    level: (meta.level as Task['level']) || 0,
-    parentId: item.parentId || undefined,
-    isCompleted: item.isCompleted,
-    isExpanded: (meta.isExpanded as boolean) ?? true,
-    createdAt: item.createdAt,
-    projectId: meta.projectId as string | undefined,
-    projectStatus: meta.projectStatus as Task['projectStatus'],
-  };
-}
+import { Task } from '@/types/task';
+import { ItemMetadata } from '@/types/item';
+import { itemToTask } from '@/utils/itemConverters';
 
 // Convert Task to Item metadata
 function taskToItemMetadata(task: Partial<Task>): Partial<ItemMetadata> {
