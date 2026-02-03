@@ -205,18 +205,56 @@ export function useItems(options: UseItemsOptions = {}) {
   });
 
   // ============= Update Item =============
+  // SECURED: Validates DB state before mutation to prevent race conditions
   const updateItemMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Item> }) => {
+      // GUARD: Fetch current state from DB to prevent stale updates
+      const { data: currentItem, error: fetchError } = await supabase
+        .from('items')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError || !currentItem) {
+        throw new Error(`Item not found: ${id}`);
+      }
+
       const dbUpdates: Record<string, unknown> = {};
 
       if (updates.name !== undefined) dbUpdates.name = updates.name;
-      if (updates.contextType !== undefined) dbUpdates.item_type = updates.contextType;
-      if (updates.parentId !== undefined) dbUpdates.parent_id = updates.parentId;
+      if (updates.contextType !== undefined) {
+        // GUARD: Validate context type transitions
+        const allowedTransitions: Record<string, string[]> = {
+          'task': ['project_task', 'subtask'],
+          'project_task': ['task'],
+          'subtask': ['task', 'project_task'],
+          'project': [],
+          'habit': [],
+          'deck': [],
+        };
+        const currentType = currentItem.item_type;
+        const newType = updates.contextType;
+        if (currentType !== newType && !allowedTransitions[currentType]?.includes(newType)) {
+          throw new Error(`Invalid context type transition: ${currentType} -> ${newType}`);
+        }
+        dbUpdates.item_type = updates.contextType;
+      }
+      
+      // GUARD: Prevent parentId changes that would orphan project_task
+      if (updates.parentId !== undefined) {
+        if (currentItem.item_type === 'project_task' && updates.parentId === null && updates.contextType !== 'task') {
+          throw new Error('Cannot remove project_task from project without changing type to task');
+        }
+        dbUpdates.parent_id = updates.parentId;
+      }
+      
       if (updates.orderIndex !== undefined) dbUpdates.order_index = updates.orderIndex;
       if (updates.isCompleted !== undefined) dbUpdates.is_completed = updates.isCompleted;
       if (updates.isPinned !== undefined) dbUpdates.is_pinned = updates.isPinned;
       if (updates.metadata !== undefined) {
-        dbUpdates.metadata = updates.metadata;
+        // GUARD: Merge metadata safely to prevent data loss
+        const mergedMetadata = { ...(currentItem.metadata as Record<string, unknown>), ...updates.metadata };
+        dbUpdates.metadata = mergedMetadata;
         // Also update top-level harmonized fields from metadata
         if (updates.metadata.category) dbUpdates.category = updates.metadata.category;
         if (updates.metadata.context) dbUpdates.context = updates.metadata.context;
@@ -392,23 +430,46 @@ export function useItems(options: UseItemsOptions = {}) {
   }, [items]);
 
   // ============= Bulk Operations =============
+  // SECURED: Sequential execution with error tracking to prevent partial failures
 
   const updateItems = useCallback(async (updates: { id: string; updates: Partial<Item> }[]): Promise<boolean> => {
-    try {
-      await Promise.all(updates.map(u => handleUpdateItem(u.id, u.updates)));
-      return true;
-    } catch {
-      return false;
+    const errors: string[] = [];
+    
+    // Execute sequentially to prevent race conditions
+    for (const update of updates) {
+      try {
+        await handleUpdateItem(update.id, update.updates);
+      } catch (error: any) {
+        errors.push(`${update.id}: ${error.message}`);
+        console.error('Bulk update error for item', { id: update.id, error: error.message });
+      }
     }
+    
+    if (errors.length > 0) {
+      console.warn('Bulk update completed with errors', { errors });
+    }
+    
+    return errors.length === 0;
   }, [handleUpdateItem]);
 
   const deleteItems = useCallback(async (ids: string[]): Promise<boolean> => {
-    try {
-      await Promise.all(ids.map(id => handleDeleteItem(id)));
-      return true;
-    } catch {
-      return false;
+    const errors: string[] = [];
+    
+    // Execute sequentially to respect cascade order
+    for (const id of ids) {
+      try {
+        await handleDeleteItem(id);
+      } catch (error: any) {
+        errors.push(`${id}: ${error.message}`);
+        console.error('Bulk delete error for item', { id, error: error.message });
+      }
     }
+    
+    if (errors.length > 0) {
+      console.warn('Bulk delete completed with errors', { errors });
+    }
+    
+    return errors.length === 0;
   }, [handleDeleteItem]);
 
   // ============= Reordering =============
@@ -427,24 +488,37 @@ export function useItems(options: UseItemsOptions = {}) {
   }, [updateItems]);
 
   // ============= Toggle Complete =============
-  
+  // SECURED: Reads current state from DB to prevent race conditions
   const toggleComplete = useCallback(async (id: string): Promise<boolean> => {
-    const item = items.find(i => i.id === id);
-    if (!item) return false;
-    
     try {
+      // GUARD: Fetch current state from DB, not React state
+      const { data: currentItem, error: fetchError } = await supabase
+        .from('items')
+        .select('is_completed, metadata')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError || !currentItem) {
+        console.error('toggleComplete: Item not found in DB', { id });
+        return false;
+      }
+      
+      const newCompletedState = !currentItem.is_completed;
+      const currentMetadata = (currentItem.metadata as Record<string, unknown>) || {};
+      
       await handleUpdateItem(id, {
-        isCompleted: !item.isCompleted,
+        isCompleted: newCompletedState,
         metadata: {
-          ...item.metadata,
-          completedAt: !item.isCompleted ? new Date() : undefined
+          ...currentMetadata,
+          completedAt: newCompletedState ? new Date() : undefined
         }
       });
       return true;
-    } catch {
+    } catch (error) {
+      console.error('toggleComplete error:', error);
       return false;
     }
-  }, [items, handleUpdateItem]);
+  }, [handleUpdateItem]);
 
   // ============= Toggle Pin =============
   

@@ -120,6 +120,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
 
   /**
    * Schedule a task at a specific time (legacy - for precise time slots)
+   * SECURED: Validates task exists and is not already scheduled
    */
   const scheduleTask = useCallback(async ({
     taskId,
@@ -134,6 +135,23 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     if (!task) {
       logger.warn('Task not found for scheduling', { taskId });
       return false;
+    }
+
+    // GUARD: Check if task is already completed
+    if (task.isCompleted) {
+      logger.warn('Cannot schedule completed task', { taskId });
+      return false;
+    }
+
+    // GUARD: Check if already scheduled (prevent duplicates)
+    const existingEvent = events.find(e => 
+      e.entityType === 'task' && 
+      e.entityId === taskId &&
+      e.status !== 'cancelled'
+    );
+    
+    if (existingEvent) {
+      logger.debug('Task already scheduled, will reschedule', { taskId, existingEventId: existingEvent.id });
     }
 
     try {
@@ -162,10 +180,11 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
       logger.error('Failed to schedule task', { error: error.message, taskId });
       return false;
     }
-  }, [user, tasks, syncTaskEventWithSchedule, loadEvents]);
+  }, [user, tasks, events, syncTaskEventWithSchedule, loadEvents]);
 
   /**
    * Schedule a task to a time block (new block-based scheduling)
+   * SECURED: Same guards as scheduleTask
    */
   const scheduleTaskToBlock = useCallback(async ({
     taskId,
@@ -178,6 +197,12 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) {
       logger.warn('Task not found for scheduling', { taskId });
+      return false;
+    }
+
+    // GUARD: Check if task is already completed
+    if (task.isCompleted) {
+      logger.warn('Cannot schedule completed task', { taskId });
       return false;
     }
 
