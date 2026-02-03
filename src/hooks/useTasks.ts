@@ -76,7 +76,7 @@ export const useTasks = () => {
     [tasks]
   );
 
-  // Add task
+  // Add task - SECURED: Validates no duplicate exists
   const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     // For project tasks, use projectId as parentId (project tasks are children of projects)
     const isProjectTask = !!taskData.projectId;
@@ -90,13 +90,29 @@ export const useTasks = () => {
       ? taskData.projectId 
       : (taskData.parentId || null);
     
+    // GUARD: Check for potential duplicate (same name, same parent)
+    const existingTask = items.find(i => 
+      i.name === taskData.name && 
+      i.parentId === parentId &&
+      !i.isCompleted
+    );
+    
+    if (existingTask) {
+      console.warn('addTask: Duplicate task detected, skipping creation', { 
+        name: taskData.name, 
+        parentId,
+        existingId: existingTask.id 
+      });
+      return existingTask; // Return existing instead of creating duplicate
+    }
+    
     await createItem({
       name: taskData.name,
       contextType,
       parentId,
       metadata: taskToItemMetadata(taskData),
     });
-  }, [createItem]);
+  }, [createItem, items]);
 
   // Remove task
   const removeTask = useCallback(async (taskId: string) => {
@@ -140,10 +156,27 @@ export const useTasks = () => {
     await togglePin(taskId);
   }, [togglePin]);
 
-  // Update task
+  // Update task - SECURED: Validates item exists and prevents orphaning
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
     const item = items.find(i => i.id === taskId);
-    if (!item) return;
+    if (!item) {
+      console.error('updateTask: Item not found', { taskId });
+      return;
+    }
+
+    // GUARD: Prevent removing projectId from project_task without type change
+    if (item.contextType === 'project_task' && updates.projectId === null) {
+      console.warn('updateTask: Preventing orphaning of project_task', { taskId });
+      // Force type change to 'task' when removing from project
+      await updateItem(taskId, {
+        name: updates.name ?? item.name,
+        isCompleted: updates.isCompleted ?? item.isCompleted,
+        parentId: null,
+        contextType: 'task',
+        metadata: { ...item.metadata, ...taskToItemMetadata(updates), projectId: undefined, projectStatus: undefined },
+      });
+      return;
+    }
 
     const newMetadata = { ...item.metadata, ...taskToItemMetadata(updates) };
     

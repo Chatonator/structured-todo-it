@@ -30,13 +30,26 @@ export const useProjectTasks = (projectId: string | null) => {
   // Convert to tasks
   const tasks = useMemo(() => projectItems.map(itemToTask), [projectItems]);
 
-  // Update task status (kanban) - supports custom column IDs
+  // Update task status (kanban) - SECURED: Validates item exists and parent matches
   const updateTaskStatus = useCallback(async (
     taskId: string,
     newStatus: string
   ): Promise<boolean> => {
     const item = projectItems.find(i => i.id === taskId);
-    if (!item) return false;
+    if (!item) {
+      console.error('updateTaskStatus: Item not found', { taskId, projectId });
+      return false;
+    }
+
+    // GUARD: Verify task still belongs to this project
+    if (item.parentId !== projectId) {
+      console.error('updateTaskStatus: Task no longer belongs to project', { 
+        taskId, 
+        expectedProject: projectId, 
+        actualProject: item.parentId 
+      });
+      return false;
+    }
 
     // Consider task completed if status is 'done' (default) or any custom "done-like" column
     // For custom columns, we keep isCompleted logic simple: only 'done' marks it complete
@@ -48,10 +61,11 @@ export const useProjectTasks = (projectId: string | null) => {
         metadata: { ...item.metadata, projectStatus: newStatus }
       });
       return true;
-    } catch {
+    } catch (error) {
+      console.error('updateTaskStatus error:', error);
       return false;
     }
-  }, [projectItems, updateItem]);
+  }, [projectItems, projectId, updateItem]);
 
   // Tasks grouped by status for Kanban board (supports dynamic columns)
   const getTasksByColumns = useCallback((columns?: KanbanColumnConfig[]): Record<string, Task[]> => {
