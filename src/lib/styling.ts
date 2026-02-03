@@ -274,3 +274,73 @@ export function getRoleLabel(role: TeamRole): string {
   };
   return labels[role] ?? role;
 }
+
+// ===== TASK SOURCE (pour Timeline) =====
+
+export type TaskSourceType = 'free' | 'project' | 'team';
+
+export interface TaskSourceInfo {
+  type: TaskSourceType;
+  label: string;
+  icon: string;
+  colorClass: string;
+}
+
+/**
+ * Détermine la source d'une tâche et retourne les infos d'affichage
+ */
+export function getTaskSource(
+  task: { projectId?: string; teamId?: string },
+  projectName?: string
+): TaskSourceInfo {
+  if ((task as any).teamId) {
+    return {
+      type: 'team',
+      label: 'Équipe',
+      icon: '👥',
+      colorClass: 'bg-primary/10 text-primary'
+    };
+  }
+  
+  if (task.projectId) {
+    return {
+      type: 'project',
+      label: projectName || 'Projet',
+      icon: '📁',
+      colorClass: 'bg-project/10 text-project'
+    };
+  }
+  
+  return {
+    type: 'free',
+    label: 'Perso',
+    icon: '📋',
+    colorClass: 'bg-muted text-muted-foreground'
+  };
+}
+
+/**
+ * Retourne une version courte du label de priorité (pour badges compacts)
+ */
+export function getPriorityShortLabel(priority: SubTaskCategory | undefined): string {
+  switch (priority) {
+    case 'Le plus important': return '!!!';
+    case 'Important': return '!!';
+    case 'Peut attendre': return '!';
+    case "Si j'ai le temps": return '○';
+    default: return '';
+  }
+}
+
+/**
+ * Retourne la classe de couleur de fond pour un indicateur de catégorie (barre verticale)
+ */
+export function getCategoryIndicatorColor(category: TaskCategory): string {
+  switch (category) {
+    case 'Obligation': return 'bg-category-obligation';
+    case 'Quotidien': return 'bg-category-quotidien';
+    case 'Envie': return 'bg-category-envie';
+    case 'Autres': return 'bg-category-autres';
+    default: return 'bg-muted';
+  }
+}

@@ -330,13 +330,17 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
 
           {/* Main content: TaskDeckPanel + Planning views */}
           <div className="flex gap-4">
-            {/* Task deck panel (replaces UnscheduledTasksPanel) */}
+            {/* Task deck panel with scheduled events toggle */}
             <TaskDeckPanel
               tasks={unscheduledTasks}
+              scheduledEvents={scheduledEvents}
               projects={projects}
               onTaskClick={(task) => {
                 console.log('Task clicked', task);
               }}
+              onEventClick={handleEventClick}
+              onUnscheduleEvent={handleUnscheduleEvent}
+              onCompleteEvent={handleCompleteEvent}
             />
 
             {/* Planning area */}

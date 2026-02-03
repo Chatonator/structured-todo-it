@@ -4,13 +4,11 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { supabase } from '@/integrations/supabase/client';
 import { DayPlanningConfig } from '@/lib/time/types';
 import { logger } from '@/lib/logger';
 import { format, startOfWeek, addDays } from 'date-fns';
-
-// Default quota: 4 hours
-const DEFAULT_QUOTA_MINUTES = 240;
 
 interface DayPlanningRow {
   id: string;
@@ -23,8 +21,12 @@ interface DayPlanningRow {
 
 export const useDayPlanning = () => {
   const { user } = useAuth();
+  const { preferences } = useUserPreferences();
   const [configs, setConfigs] = useState<Map<string, DayPlanningConfig>>(new Map());
   const [loading, setLoading] = useState(false);
+
+  // Use user preference as default, fallback to 240 (4h)
+  const defaultQuota = preferences.timelineDefaultQuota || 240;
 
   // Load configs for a date range
   const loadConfigs = useCallback(async (startDate: Date, endDate: Date) => {
@@ -66,7 +68,7 @@ export const useDayPlanning = () => {
   const getQuotaForDate = useCallback((date: Date): number => {
     const dateKey = format(date, 'yyyy-MM-dd');
     const config = configs.get(dateKey);
-    return config?.quotaMinutes ?? DEFAULT_QUOTA_MINUTES;
+    return config?.quotaMinutes ?? defaultQuota;
   }, [configs]);
 
   // Set quota for a specific date
@@ -156,6 +158,6 @@ export const useDayPlanning = () => {
     getWeeklyQuotas,
     getTotalQuota,
     loadConfigs,
-    DEFAULT_QUOTA_MINUTES
+    defaultQuota
   };
 };

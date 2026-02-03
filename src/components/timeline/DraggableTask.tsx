@@ -60,7 +60,7 @@ export const DraggableTask: React.FC<DraggableTaskProps> = ({
         </button>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{task.name}</p>
+          <p className="text-sm font-medium line-clamp-2 leading-tight">{task.name}</p>
           
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             {/* Source badge - NEW */}

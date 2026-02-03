@@ -8,7 +8,8 @@ import {
   Heart, 
   Award, 
   Focus, 
-  RotateCcw 
+  RotateCcw,
+  CalendarDays
 } from 'lucide-react';
 
 export type SettingsSection = 
@@ -18,7 +19,8 @@ export type SettingsSection =
   | 'interface' 
   | 'habits' 
   | 'gamification' 
-  | 'focus' 
+  | 'focus'
+  | 'timeline'
   | 'reset';
 
 interface SettingsSidebarProps {
@@ -31,6 +33,7 @@ const sections = [
   { id: 'notifications' as const, label: 'Notifications', icon: Bell },
   { id: 'account' as const, label: 'Compte & Sécurité', icon: User },
   { id: 'interface' as const, label: 'Interface', icon: Layout },
+  { id: 'timeline' as const, label: 'Timeline', icon: CalendarDays },
   { id: 'habits' as const, label: 'Habitudes', icon: Heart },
   { id: 'gamification' as const, label: 'Gamification', icon: Award },
   { id: 'focus' as const, label: 'Mode Focus', icon: Focus },
