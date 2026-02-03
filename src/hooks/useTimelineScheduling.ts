@@ -1,9 +1,10 @@
 /**
  * useTimelineScheduling - Hook for scheduling tasks in the timeline
  * Handles drag-drop scheduling, event management, and conflict detection
+ * Includes automatic cleanup of overdue events
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTasks } from '@/hooks/useTasks';
 import { useTimeHub } from '@/hooks/useTimeHub';
@@ -39,8 +40,12 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
   const { tasks, updateTask } = useTasks();
   const { events, loadEvents, checkConflicts, completeEvent } = useTimeHub(dateRange);
   const { syncTaskEventWithSchedule, deleteEntityEvent, updateEventStatus } = useTimeEventSync();
+  
+  // Track if cleanup has been run to avoid duplicate calls
+  const cleanupRunRef = useRef(false);
 
   // Get unscheduled tasks (tasks without a time_event)
+  // Includes both regular tasks AND project tasks (level 0)
   const unscheduledTasks = useMemo(() => {
     const scheduledTaskIds = new Set(
       events
@@ -48,10 +53,12 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
         .map(e => e.entityId)
     );
     
+    // Filter: not completed, not scheduled, main tasks only (level 0)
+    // We now include project tasks as they can also be scheduled
     return tasks.filter(t => 
       !t.isCompleted && 
       !scheduledTaskIds.has(t.id) &&
-      t.level === 0 // Only main tasks
+      t.level === 0 // Only main tasks (project or personal)
     );
   }, [tasks, events]);
 
@@ -61,16 +68,55 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     [events]
   );
 
-  // Get overdue events (past, not completed)
+  // Get overdue events (past, not completed, not cancelled)
   const overdueEvents = useMemo(() => {
-    const now = new Date();
     return events.filter(e => 
       isPast(e.startsAt) && 
       !isToday(e.startsAt) &&
       e.status !== 'completed' && 
-      e.status !== 'cancelled'
+      e.status !== 'cancelled' &&
+      e.entityType === 'task' // Only tasks, not habits
     );
   }, [events]);
+
+  /**
+   * Cleanup overdue events - automatically unschedule past tasks
+   * This makes them reappear in the "To Schedule" panel
+   */
+  const cleanupOverdueEvents = useCallback(async () => {
+    if (!user || overdueEvents.length === 0) return;
+    
+    logger.debug('Cleaning up overdue events', { count: overdueEvents.length });
+    
+    for (const event of overdueEvents) {
+      try {
+        // Delete the time_event - task will reappear as unscheduled
+        await deleteEntityEvent('task', event.entityId);
+        logger.debug('Auto-unscheduled overdue task', { 
+          taskId: event.entityId,
+          taskTitle: event.title,
+          originalDate: format(event.startsAt, 'yyyy-MM-dd')
+        });
+      } catch (error: any) {
+        logger.warn('Failed to cleanup overdue event', { 
+          eventId: event.id, 
+          error: error.message 
+        });
+      }
+    }
+    
+    // Reload events after cleanup
+    await loadEvents();
+  }, [user, overdueEvents, deleteEntityEvent, loadEvents]);
+
+  // Run cleanup on mount and when overdueEvents change
+  useEffect(() => {
+    // Only run once per component lifecycle and when there are overdue events
+    if (overdueEvents.length > 0 && !cleanupRunRef.current) {
+      cleanupRunRef.current = true;
+      cleanupOverdueEvents();
+    }
+  }, [overdueEvents.length, cleanupOverdueEvents]);
 
   /**
    * Schedule a task at a specific time (legacy - for precise time slots)

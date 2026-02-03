@@ -8,6 +8,7 @@ import { useGamification } from './useGamification';
 import { useToast } from './use-toast';
 import { Project, ProjectStatus } from '@/types/project';
 import { Item, ItemMetadata, KanbanColumnConfig } from '@/types/item';
+import { supabase } from '@/integrations/supabase/client';
 
 // Extended Project type with kanban columns
 export interface ProjectWithKanban extends Project {
@@ -212,16 +213,36 @@ export const useProjects = () => {
   }, [projects, items, updateItem, toast, rewardProjectCompletion]);
 
   // Assign task to project (preserves existing metadata like subCategory)
+  // SECURED: Validates DB state before mutation to prevent duplications
   const assignTaskToProject = useCallback(async (
     taskId: string,
     projectId: string | null,
     existingMetadata?: Record<string, unknown>
   ) => {
     try {
+      // GUARD: Check current state in DB to prevent redundant mutations
+      const { data: currentItem, error: fetchError } = await supabase
+        .from('items')
+        .select('parent_id, item_type, metadata')
+        .eq('id', taskId)
+        .single();
+      
+      if (fetchError) {
+        console.error('Failed to fetch task state:', fetchError);
+        return false;
+      }
+      
+      // Skip if already in the target project (or already not in a project)
+      if (currentItem?.parent_id === projectId) {
+        console.log('Task already in target project, skipping mutation');
+        return true;
+      }
+      
       // Merge existing metadata with new project-specific fields
       const mergedMetadata: Partial<ItemMetadata> = {
         ...existingMetadata,
-        projectId: projectId || undefined,
+        // Clear projectId from metadata for project_task (parentId is the source of truth)
+        projectId: projectId ? undefined : undefined,
         projectStatus: projectId ? 'todo' as const : undefined,
       };
       
@@ -232,6 +253,7 @@ export const useProjects = () => {
       });
       return true;
     } catch (error: any) {
+      console.error('assignTaskToProject error:', error);
       return false;
     }
   }, [updateItem]);
