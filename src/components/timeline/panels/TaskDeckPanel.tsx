@@ -3,38 +3,103 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ListTodo, ChevronLeft, ChevronRight, User, Folder, Users, Clock } from 'lucide-react';
-import { Task } from '@/types/task';
+import { Search, ListTodo, ChevronLeft, ChevronRight, User, Folder, Users, Clock, Calendar } from 'lucide-react';
+import { Task, SubTaskCategory } from '@/types/task';
 import { Project } from '@/types/project';
+import { TimeEvent } from '@/lib/time/types';
 import { TaskDeck, TaskDeckData } from './TaskDeck';
+import { ScheduledEventsList } from './ScheduledEventsList';
+import { TimelineFilters, TimelineTaskFilters } from './TimelineFilters';
 import { formatDuration } from '@/lib/formatters';
+import { getPriorityLevel } from '@/lib/styling';
 
 interface TaskDeckPanelProps {
   tasks: Task[];
+  scheduledEvents?: TimeEvent[];
   projects?: Project[];
   onTaskClick?: (task: Task) => void;
+  onEventClick?: (event: TimeEvent) => void;
+  onUnscheduleEvent?: (eventId: string) => void;
+  onCompleteEvent?: (eventId: string) => void;
   className?: string;
 }
 
+type ShowMode = 'unscheduled' | 'scheduled';
+
 /**
  * Panneau latéral avec tâches groupées en decks
- * Remplace UnscheduledTasksPanel avec une meilleure organisation
+ * Inclut toggle pour voir les tâches à planifier / déjà planifiées
+ * Système de filtres avancés
  */
 export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
   tasks,
+  scheduledEvents = [],
   projects = [],
   onTaskClick,
+  onEventClick,
+  onUnscheduleEvent,
+  onCompleteEvent,
   className
 }) => {
   const [search, setSearch] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showMode, setShowMode] = useState<ShowMode>('unscheduled');
+  const [filters, setFilters] = useState<TimelineTaskFilters>({
+    categories: [],
+    contexts: [],
+    priorities: [],
+    sources: []
+  });
 
-  // Filtrer par recherche
+  // Build project name map
+  const projectNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    projects.forEach(p => map.set(p.id, p.name));
+    return map;
+  }, [projects]);
+
+  // Filtrer par recherche et filtres avancés
   const filteredTasks = useMemo(() => {
-    if (!search) return tasks;
-    const searchLower = search.toLowerCase();
-    return tasks.filter(t => t.name.toLowerCase().includes(searchLower));
-  }, [tasks, search]);
+    let result = [...tasks];
+
+    // Recherche
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(t => t.name.toLowerCase().includes(searchLower));
+    }
+
+    // Catégories
+    if (filters.categories.length > 0) {
+      result = result.filter(t => filters.categories.includes(t.category));
+    }
+
+    // Contextes
+    if (filters.contexts.length > 0) {
+      result = result.filter(t => filters.contexts.includes(t.context));
+    }
+
+    // Priorités
+    if (filters.priorities.length > 0) {
+      result = result.filter(t => t.subCategory && filters.priorities.includes(t.subCategory));
+    }
+
+    // Sources
+    if (filters.sources.length > 0) {
+      result = result.filter(t => {
+        const isTeam = !!(t as any).teamId;
+        const isProject = !!t.projectId && !isTeam;
+        const isFree = !t.projectId && !isTeam;
+        
+        return (
+          (filters.sources.includes('free') && isFree) ||
+          (filters.sources.includes('project') && isProject) ||
+          (filters.sources.includes('team') && isTeam)
+        );
+      });
+    }
+
+    return result;
+  }, [tasks, search, filters]);
 
   // Créer les decks
   const decks = useMemo((): TaskDeckData[] => {
@@ -57,6 +122,10 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
       }
     });
 
+    const sortByPriority = (a: Task, b: Task) => {
+      return getPriorityLevel(b.subCategory) - getPriorityLevel(a.subCategory);
+    };
+
     const result: TaskDeckData[] = [];
 
     // Deck tâches libres
@@ -66,15 +135,7 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
         name: 'Tâches libres',
         icon: <User className="w-4 h-4" />,
         color: 'bg-muted/30',
-        tasks: freeTasks.sort((a, b) => {
-          const priorityMap: Record<string, number> = {
-            'Le plus important': 4,
-            'Important': 3,
-            'Peut attendre': 2,
-            "Si j'ai le temps": 1
-          };
-          return (priorityMap[b.subCategory || ''] || 0) - (priorityMap[a.subCategory || ''] || 0);
-        }),
+        tasks: freeTasks.sort(sortByPriority),
         totalTime: freeTasks.reduce((sum, t) => sum + t.estimatedTime, 0)
       });
     }
@@ -87,15 +148,7 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
         name: project?.name || 'Projet',
         icon: <span className="text-sm">{project?.icon || '📁'}</span>,
         color: 'bg-project/10',
-        tasks: projectTasks.sort((a, b) => {
-          const priorityMap: Record<string, number> = {
-            'Le plus important': 4,
-            'Important': 3,
-            'Peut attendre': 2,
-            "Si j'ai le temps": 1
-          };
-          return (priorityMap[b.subCategory || ''] || 0) - (priorityMap[a.subCategory || ''] || 0);
-        }),
+        tasks: projectTasks.sort(sortByPriority),
         totalTime: projectTasks.reduce((sum, t) => sum + t.estimatedTime, 0)
       });
     });
@@ -107,15 +160,7 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
         name: 'Équipe',
         icon: <Users className="w-4 h-4" />,
         color: 'bg-primary/10',
-        tasks: teamTasks.sort((a, b) => {
-          const priorityMap: Record<string, number> = {
-            'Le plus important': 4,
-            'Important': 3,
-            'Peut attendre': 2,
-            "Si j'ai le temps": 1
-          };
-          return (priorityMap[b.subCategory || ''] || 0) - (priorityMap[a.subCategory || ''] || 0);
-        }),
+        tasks: teamTasks.sort(sortByPriority),
         totalTime: teamTasks.reduce((sum, t) => sum + t.estimatedTime, 0)
       });
     }
@@ -126,11 +171,16 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
   // Stats globales
   const totalTasks = filteredTasks.length;
   const totalTime = filteredTasks.reduce((sum, t) => sum + t.estimatedTime, 0);
+  const hasActiveFilters = 
+    filters.categories.length > 0 || 
+    filters.contexts.length > 0 || 
+    filters.priorities.length > 0 || 
+    filters.sources.length > 0;
 
   return (
     <div className={cn(
       "flex flex-col bg-card border rounded-xl overflow-hidden transition-all duration-200",
-      isCollapsed ? "w-12" : "w-72",
+      isCollapsed ? "w-12" : "w-80",
       className
     )}>
       {/* Header */}
@@ -153,13 +203,27 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
 
         {!isCollapsed && (
           <>
-            <div className="flex items-center gap-2 flex-1">
-              <ListTodo className="w-4 h-4 text-primary" />
-              <span className="font-semibold text-sm">À planifier</span>
+            {/* Toggle À planifier / Planifiées */}
+            <div className="flex gap-0.5 bg-muted/40 rounded-md p-0.5 flex-1">
+              <Button
+                variant={showMode === 'unscheduled' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-6 text-xs flex-1"
+                onClick={() => setShowMode('unscheduled')}
+              >
+                <ListTodo className="w-3 h-3 mr-1" />
+                À faire ({tasks.length})
+              </Button>
+              <Button
+                variant={showMode === 'scheduled' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-6 text-xs flex-1"
+                onClick={() => setShowMode('scheduled')}
+              >
+                <Calendar className="w-3 h-3 mr-1" />
+                Planifiées ({scheduledEvents.length})
+              </Button>
             </div>
-            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
-              {totalTasks}
-            </span>
           </>
         )}
       </div>
@@ -167,8 +231,8 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
       {/* Content */}
       {!isCollapsed ? (
         <>
-          {/* Search */}
-          <div className="p-2 border-b">
+          {/* Search & Filters */}
+          <div className="p-2 space-y-2 border-b">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
@@ -178,55 +242,96 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
                 className="h-8 pl-8 text-sm"
               />
             </div>
+            
+            {showMode === 'unscheduled' && (
+              <TimelineFilters 
+                filters={filters} 
+                onFiltersChange={setFilters} 
+              />
+            )}
           </div>
 
-          {/* Decks list */}
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
-              {decks.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <ListTodo className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium">Aucune tâche</p>
-                  <p className="text-xs mt-1">
-                    {search ? 'Essayez une autre recherche' : 'Toutes vos tâches sont planifiées !'}
-                  </p>
+          {/* Liste selon le mode */}
+          {showMode === 'unscheduled' ? (
+            <>
+              {/* Decks list */}
+              <ScrollArea className="flex-1">
+                <div className="p-2 space-y-1">
+                  {decks.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <ListTodo className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm font-medium">Aucune tâche</p>
+                      <p className="text-xs mt-1">
+                        {search || hasActiveFilters 
+                          ? 'Essayez de modifier vos filtres' 
+                          : 'Toutes vos tâches sont planifiées !'
+                        }
+                      </p>
+                    </div>
+                  ) : (
+                    decks.map(deck => (
+                      <TaskDeck
+                        key={deck.id}
+                        deck={deck}
+                        onTaskClick={onTaskClick}
+                        defaultOpen={deck.tasks.length <= 5}
+                        projectNameMap={projectNameMap}
+                      />
+                    ))
+                  )}
                 </div>
-              ) : (
-                decks.map(deck => (
-                  <TaskDeck
-                    key={deck.id}
-                    deck={deck}
-                    onTaskClick={onTaskClick}
-                    defaultOpen={deck.tasks.length <= 5}
-                  />
-                ))
-              )}
-            </div>
-          </ScrollArea>
+              </ScrollArea>
 
-          {/* Footer stats */}
-          <div className="p-3 border-t bg-muted/10">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">
-                {totalTasks} tâche{totalTasks !== 1 ? 's' : ''}
-              </span>
-              <div className="flex items-center gap-1.5 font-medium">
-                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>{formatDuration(totalTime)}</span>
+              {/* Footer stats */}
+              <div className="p-3 border-t bg-muted/10">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {totalTasks} tâche{totalTasks !== 1 ? 's' : ''}
+                    {hasActiveFilters && <span className="text-primary ml-1">(filtrées)</span>}
+                  </span>
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>{formatDuration(totalTime)}</span>
+                  </div>
+                </div>
               </div>
+            </>
+          ) : (
+            /* Scheduled events list */
+            <div className="flex-1 p-2">
+              <ScheduledEventsList
+                events={scheduledEvents}
+                onEventClick={onEventClick}
+                onUnschedule={onUnscheduleEvent}
+                onComplete={onCompleteEvent}
+              />
             </div>
-          </div>
+          )}
         </>
       ) : (
         /* Collapsed state */
         <div className="flex-1 flex flex-col items-center justify-center py-4 gap-3">
-          <ListTodo className="w-5 h-5 text-muted-foreground" />
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-sm font-bold">{totalTasks}</span>
-            <span className="text-[10px] text-muted-foreground [writing-mode:vertical-lr]">
-              tâches
-            </span>
-          </div>
+          {showMode === 'unscheduled' ? (
+            <>
+              <ListTodo className="w-5 h-5 text-muted-foreground" />
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-sm font-bold">{tasks.length}</span>
+                <span className="text-[10px] text-muted-foreground [writing-mode:vertical-lr]">
+                  à faire
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <Calendar className="w-5 h-5 text-muted-foreground" />
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-sm font-bold">{scheduledEvents.length}</span>
+                <span className="text-[10px] text-muted-foreground [writing-mode:vertical-lr]">
+                  planifiées
+                </span>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

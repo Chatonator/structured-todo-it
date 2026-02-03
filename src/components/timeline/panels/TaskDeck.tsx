@@ -19,6 +19,7 @@ interface TaskDeckProps {
   deck: TaskDeckData;
   onTaskClick?: (task: Task) => void;
   defaultOpen?: boolean;
+  projectNameMap?: Map<string, string>;
 }
 
 /**
@@ -28,7 +29,8 @@ interface TaskDeckProps {
 export const TaskDeck: React.FC<TaskDeckProps> = ({
   deck,
   onTaskClick,
-  defaultOpen = true
+  defaultOpen = true,
+  projectNameMap
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -78,6 +80,7 @@ export const TaskDeck: React.FC<TaskDeckProps> = ({
             <TaskDeckItem
               key={task.id}
               task={task}
+              projectName={task.projectId ? projectNameMap?.get(task.projectId) : undefined}
               onClick={() => onTaskClick?.(task)}
             />
           ))}

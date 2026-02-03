@@ -60,6 +60,9 @@ export interface UserPreferences {
   focusHideNotifications: boolean;
   focusHideGamification: boolean;
   focusHideOtherViews: boolean;
+
+  // Timeline
+  timelineDefaultQuota: number; // en minutes (défaut: 240 = 4h)
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -119,4 +122,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   focusHideNotifications: true,
   focusHideGamification: true,
   focusHideOtherViews: false,
+
+  // Timeline
+  timelineDefaultQuota: 240,
 };

@@ -14,6 +14,7 @@ import { InterfaceSettings } from './sections/InterfaceSettings';
 import { HabitsSettings } from './sections/HabitsSettings';
 import { GamificationSettings } from './sections/GamificationSettings';
 import { FocusModeSettings } from './sections/FocusModeSettings';
+import { TimelineSettings } from './sections/TimelineSettings';
 import { ResetSettings } from './sections/ResetSettings';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -35,6 +36,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         return <AccountSettings />;
       case 'interface':
         return <InterfaceSettings />;
+      case 'timeline':
+        return <TimelineSettings />;
       case 'habits':
         return <HabitsSettings />;
       case 'gamification':
