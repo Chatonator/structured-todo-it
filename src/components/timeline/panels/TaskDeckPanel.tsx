@@ -47,8 +47,7 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
   const [filters, setFilters] = useState<TimelineTaskFilters>({
     categories: [],
     contexts: [],
-    priorities: [],
-    sources: []
+    priorities: []
   });
 
   // Build project name map
@@ -81,21 +80,6 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
     // Priorités
     if (filters.priorities.length > 0) {
       result = result.filter(t => t.subCategory && filters.priorities.includes(t.subCategory));
-    }
-
-    // Sources
-    if (filters.sources.length > 0) {
-      result = result.filter(t => {
-        const isTeam = !!(t as any).teamId;
-        const isProject = !!t.projectId && !isTeam;
-        const isFree = !t.projectId && !isTeam;
-        
-        return (
-          (filters.sources.includes('free') && isFree) ||
-          (filters.sources.includes('project') && isProject) ||
-          (filters.sources.includes('team') && isTeam)
-        );
-      });
     }
 
     return result;
@@ -174,8 +158,7 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
   const hasActiveFilters = 
     filters.categories.length > 0 || 
     filters.contexts.length > 0 || 
-    filters.priorities.length > 0 || 
-    filters.sources.length > 0;
+    filters.priorities.length > 0;
 
   return (
     <div className={cn(
@@ -297,15 +280,17 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
               </div>
             </>
           ) : (
-            /* Scheduled events list */
-            <div className="flex-1 p-2">
-              <ScheduledEventsList
-                events={scheduledEvents}
-                onEventClick={onEventClick}
-                onUnschedule={onUnscheduleEvent}
-                onComplete={onCompleteEvent}
-              />
-            </div>
+            /* Scheduled events list with scroll */
+            <ScrollArea className="flex-1">
+              <div className="p-2">
+                <ScheduledEventsList
+                  events={scheduledEvents}
+                  onEventClick={onEventClick}
+                  onUnschedule={onUnscheduleEvent}
+                  onComplete={onCompleteEvent}
+                />
+              </div>
+            </ScrollArea>
           )}
         </>
       ) : (
