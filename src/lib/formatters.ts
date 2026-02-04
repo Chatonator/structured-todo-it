@@ -3,7 +3,7 @@
  * Utilisés par toutes les vues pour assurer une cohérence
  */
 
-import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, differenceInDays, differenceInWeeks, differenceInMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 /**
@@ -103,4 +103,48 @@ export function formatDurationLong(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+}
+
+/**
+ * Formate l'ancienneté d'une tâche de façon compacte
+ * @param date - Date de création
+ * @returns String comme "3j", "2sem", "1mois", "Aujourd'hui"
+ */
+export function formatAge(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  
+  if (isToday(d)) return "Aujourd'hui";
+  
+  const days = differenceInDays(now, d);
+  const weeks = differenceInWeeks(now, d);
+  const months = differenceInMonths(now, d);
+  
+  if (days < 7) return `${days}j`;
+  if (weeks < 4) return `${weeks}sem`;
+  if (months < 12) return `${months}mois`;
+  return `${Math.floor(months / 12)}an${Math.floor(months / 12) > 1 ? 's' : ''}`;
+}
+
+/**
+ * Formate l'ancienneté en version longue
+ * @param date - Date de création
+ * @returns String comme "3 jours", "2 semaines", "1 mois"
+ */
+export function formatAgeLong(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  
+  if (isToday(d)) return "Aujourd'hui";
+  if (isYesterday(d)) return "Hier";
+  
+  const days = differenceInDays(now, d);
+  const weeks = differenceInWeeks(now, d);
+  const months = differenceInMonths(now, d);
+  
+  if (days < 7) return `${days} jour${days > 1 ? 's' : ''}`;
+  if (weeks < 4) return `${weeks} semaine${weeks > 1 ? 's' : ''}`;
+  if (months < 12) return `${months} mois`;
+  const years = Math.floor(months / 12);
+  return `${years} an${years > 1 ? 's' : ''}`;
 }
