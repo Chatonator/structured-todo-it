@@ -59,9 +59,9 @@ export const ScheduledEventCard: React.FC<ScheduledEventCardProps> = ({
       onClick={onClick}
       {...attributes}
     >
-      {/* Category indicator bar */}
+      {/* Category indicator bar - plus épaisse */}
       <div className={cn(
-        "w-1 self-stretch rounded-full shrink-0",
+        "w-1.5 self-stretch rounded-full shrink-0",
         isCompleted ? "bg-muted" : categoryColor
       )} />
 
@@ -106,18 +106,6 @@ export const ScheduledEventCard: React.FC<ScheduledEventCardProps> = ({
             <Clock className="w-2.5 h-2.5" />
             {formatDuration(event.duration)}
           </span>
-          
-          {/* Source indicator */}
-          {isProjectTask && (
-            <span className="flex items-center gap-0.5 text-project">
-              <Folder className="w-2.5 h-2.5" />
-            </span>
-          )}
-          {isTeamTask && (
-            <span className="flex items-center gap-0.5 text-primary">
-              <Users className="w-2.5 h-2.5" />
-            </span>
-          )}
         </div>
       </div>
 

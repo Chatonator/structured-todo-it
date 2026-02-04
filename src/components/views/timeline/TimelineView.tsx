@@ -351,6 +351,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
                   date={selectedDate}
                   events={eventsByDay.get(format(selectedDate, 'yyyy-MM-dd')) || []}
                   quota={getQuotaForDate(selectedDate)}
+                  onQuotaChange={(minutes) => setQuotaForDate(selectedDate, minutes)}
                   onCompleteEvent={handleCompleteEvent}
                   onRemoveEvent={handleUnscheduleEvent}
                   onEventClick={handleEventClick}

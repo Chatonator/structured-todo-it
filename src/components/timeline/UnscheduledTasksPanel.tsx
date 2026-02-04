@@ -261,9 +261,6 @@ export const UnscheduledTasksPanel: React.FC<UnscheduledTasksPanelProps> = ({
                   <DraggableTask
                     key={task.id}
                     task={task}
-                    projectName={task.projectId 
-                      ? projects.find(p => p.id === task.projectId)?.name 
-                      : undefined}
                     onClick={() => onTaskClick?.(task)}
                   />
                 ))
