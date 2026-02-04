@@ -29,7 +29,7 @@ const Auth = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate('/');
+        navigate(import.meta.env.BASE_URL || '/');
       }
     };
     
@@ -42,7 +42,7 @@ const Auth = () => {
           title: "Email confirmé !",
           description: "Votre compte a été activé avec succès.",
         });
-        window.location.href = '/';
+        window.location.href = import.meta.env.BASE_URL || '/';
       }
     });
 
@@ -104,7 +104,7 @@ const Auth = () => {
         });
         
         // Force page reload for clean state
-        window.location.href = '/';
+        window.location.href = import.meta.env.BASE_URL || '/';
       }
     } catch (error: any) {
       setError('An unexpected error occurred. Please try again.');
@@ -136,7 +136,7 @@ const Auth = () => {
         // Continue even if this fails
       }
 
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -166,7 +166,7 @@ const Auth = () => {
             title: "Compte créé !",
             description: "Bienvenue sur To-Do-iT !",
           });
-          window.location.href = '/';
+          window.location.href = import.meta.env.BASE_URL || '/';
         } else {
           // Email confirmation required
           setConfirmationEmail(email);
@@ -214,7 +214,7 @@ const Auth = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL || '/'}auth`,
       });
 
       if (error) {

@@ -74,11 +74,11 @@ export const useAuth = () => {
       }
 
       // Force page reload for clean state
-      window.location.href = '/auth';
+      window.location.href = `${import.meta.env.BASE_URL}auth`;
     } catch (error) {
       logger.error('Error during sign out', { error });
       // Force redirect even if sign out fails
-      window.location.href = '/auth';
+      window.location.href = `${import.meta.env.BASE_URL}auth`;
     }
   };
 
