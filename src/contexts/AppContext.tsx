@@ -52,13 +52,12 @@ export interface AppProviderProps {
 // Configuration de la navigation
 const allNavigationItems: NavigationItem[] = [
   { key: 'home', title: 'Home', icon: '🏠' },
-  { key: 'tasks', title: 'Tâches', icon: '📝' },
+  { key: 'observatory', title: 'Observatoire', icon: '🔭' },
   { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
   { key: 'timeline', title: 'Timeline', icon: '⏱️' },
   { key: 'projects', title: 'Projets', icon: '💼' },
   { key: 'habits', title: 'Habitudes', icon: '💪' },
   { key: 'rewards', title: 'Récompenses', icon: '🏆' },
-  { key: 'completed', title: 'Terminées', icon: '✅' }
 ];
 
 export const AppProvider: React.FC<AppProviderProps> = ({ 

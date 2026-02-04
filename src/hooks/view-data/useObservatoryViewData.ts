@@ -52,6 +52,15 @@ export interface EnrichedTask extends Task {
   projectName?: string;
 }
 
+export interface TaskGroup {
+  id: string;
+  name: string;
+  tasks: EnrichedTask[];
+  totalTime: number;
+  completedCount: number;
+  subGroups?: TaskGroup[];
+}
+
 export interface InsightsData {
   zombieTasks: EnrichedTask[];
   velocityThisWeek: number;
@@ -280,6 +289,67 @@ export const useObservatoryViewData = () => {
     });
   }, [searchedTasks, sortField, sortDirection]);
 
+  // Group tasks by project and category
+  const groupedTasks = useMemo((): TaskGroup[] => {
+    const projectGroups = new Map<string, EnrichedTask[]>();
+    
+    // Group by project
+    sortedTasks.forEach(task => {
+      const projectKey = task.projectId || 'no-project';
+      if (!projectGroups.has(projectKey)) {
+        projectGroups.set(projectKey, []);
+      }
+      projectGroups.get(projectKey)!.push(task);
+    });
+
+    // Convert to TaskGroup structure with category subgroups
+    const groups: TaskGroup[] = [];
+    const categories: TaskCategory[] = ['Obligation', 'Quotidien', 'Envie', 'Autres'];
+
+    // Sort projects: with-project first, then no-project
+    const sortedProjectKeys = Array.from(projectGroups.keys()).sort((a, b) => {
+      if (a === 'no-project') return 1;
+      if (b === 'no-project') return -1;
+      const nameA = projectLookup.get(a) || '';
+      const nameB = projectLookup.get(b) || '';
+      return nameA.localeCompare(nameB);
+    });
+
+    for (const projectKey of sortedProjectKeys) {
+      const tasks = projectGroups.get(projectKey)!;
+      const projectName = projectKey === 'no-project' 
+        ? 'Sans projet' 
+        : projectLookup.get(projectKey) || 'Projet inconnu';
+
+      // Create category subgroups
+      const subGroups: TaskGroup[] = categories
+        .map(category => {
+          const categoryTasks = tasks.filter(t => t.category === category);
+          if (categoryTasks.length === 0) return null;
+          
+          return {
+            id: `${projectKey}-${category}`,
+            name: category as string,
+            tasks: categoryTasks,
+            totalTime: categoryTasks.reduce((sum, t) => sum + t.estimatedTime, 0),
+            completedCount: categoryTasks.filter(t => t.isCompleted).length,
+          } as TaskGroup;
+        })
+        .filter((g): g is TaskGroup => g !== null);
+
+      groups.push({
+        id: projectKey,
+        name: projectName,
+        tasks,
+        totalTime: tasks.reduce((sum, t) => sum + t.estimatedTime, 0),
+        completedCount: tasks.filter(t => t.isCompleted).length,
+        subGroups,
+      });
+    }
+
+    return groups;
+  }, [sortedTasks, projectLookup]);
+
   // Recent activity (simulated from task data)
   const recentActivity = useMemo((): ActivityItem[] => {
     // Generate activity from task creation dates
@@ -337,6 +407,7 @@ export const useObservatoryViewData = () => {
   return {
     data: {
       tasks: sortedTasks,
+      groupedTasks,
       insights,
       charts,
       recentActivity,
