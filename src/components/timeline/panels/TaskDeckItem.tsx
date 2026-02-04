@@ -60,8 +60,8 @@ export const TaskDeckItem: React.FC<TaskDeckItemProps> = ({
       onClick={onClick}
       {...attributes}
     >
-      {/* Barre catégorie */}
-      <div className={cn("w-1 self-stretch rounded-full shrink-0", categoryColor)} />
+      {/* Barre catégorie plus épaisse */}
+      <div className={cn("w-1.5 self-stretch rounded-full shrink-0", categoryColor)} />
 
       {/* Drag handle - visible on hover */}
       <button
@@ -76,23 +76,15 @@ export const TaskDeckItem: React.FC<TaskDeckItemProps> = ({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium leading-tight line-clamp-2">{task.name}</p>
         
-        {/* Badges */}
+        {/* Badges minimalistes */}
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-          {/* Badge priorité coloré */}
+          {/* Badge priorité coloré - seulement symbole */}
           {priorityConfig && (
             <span className={cn(
               "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
               priorityBadgeClasses
             )}>
-              {priorityLabel} {task.subCategory}
-            </span>
-          )}
-
-          {/* Projet si applicable */}
-          {task.projectId && projectName && (
-            <span className="flex items-center gap-0.5 text-[10px] bg-project/10 text-project px-1.5 py-0.5 rounded-full">
-              <Folder className="w-2.5 h-2.5" />
-              <span className="truncate max-w-[60px]">{projectName}</span>
+              {priorityLabel}
             </span>
           )}
 
@@ -102,7 +94,7 @@ export const TaskDeckItem: React.FC<TaskDeckItemProps> = ({
             {formatDuration(task.estimatedTime)}
           </span>
 
-          {/* Contexte emoji */}
+          {/* Contexte emoji seulement */}
           <span className="text-[10px]">
             {getContextIcon(task.context)}
           </span>

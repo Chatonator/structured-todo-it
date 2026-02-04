@@ -88,15 +88,19 @@ export default {
         },
 
         // ===== COULEURS PRIORITÉS =====
+        // Rouge = Le plus important (Crucial)
+        // Jaune = Important (Régulières)
+        // Vert = Peut attendre (Envies)
+        // Bleu = Si j'ai le temps (Optionnel)
         priority: {
-          highest: '#dc2626',
-          high: '#f59e0b',
-          medium: '#eab308',
-          low: '#16a34a',
+          highest: '#dc2626',       // Rouge
+          high: '#eab308',          // Jaune
+          medium: '#16a34a',        // Vert
+          low: '#3b82f6',           // Bleu
           'highest-light': '#fef2f2',
-          'high-light': '#fffbeb',
-          'medium-light': '#fefce8',
-          'low-light': '#f0fdf4'
+          'high-light': '#fefce8',
+          'medium-light': '#f0fdf4',
+          'low-light': '#eff6ff'
         },
 
         // ===== COULEURS CONTEXTES =====

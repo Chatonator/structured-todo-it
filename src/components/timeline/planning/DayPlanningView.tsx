@@ -7,11 +7,13 @@ import { TimeBlockRow } from './TimeBlockRow';
 import { Progress } from '@/components/ui/progress';
 import { formatDuration } from '@/lib/formatters';
 import { CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { QuotaSelector } from '@/components/timeline/QuotaSelector';
 
 interface DayPlanningViewProps {
   date: Date;
   events: TimeEvent[];
   quota: number;
+  onQuotaChange?: (minutes: number) => void;
   onCompleteEvent?: (eventId: string) => void;
   onRemoveEvent?: (eventId: string) => void;
   onEventClick?: (event: TimeEvent) => void;
@@ -25,6 +27,7 @@ export const DayPlanningView: React.FC<DayPlanningViewProps> = ({
   date,
   events,
   quota,
+  onQuotaChange,
   onCompleteEvent,
   onRemoveEvent,
   onEventClick
@@ -89,12 +92,19 @@ export const DayPlanningView: React.FC<DayPlanningViewProps> = ({
                 <Clock className="w-3.5 h-3.5" />
                 Planifié
               </span>
-              <span className={cn(
-                "font-medium",
-                isOverQuota ? "text-system-warning" : "text-foreground"
-              )}>
-                {formatDuration(totalScheduled)} / {formatDuration(quota)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "font-medium",
+                  isOverQuota ? "text-system-warning" : "text-foreground"
+                )}>
+                  {formatDuration(totalScheduled)} /
+                </span>
+                {onQuotaChange ? (
+                  <QuotaSelector value={quota} onChange={onQuotaChange} />
+                ) : (
+                  <span className="font-medium">{formatDuration(quota)}</span>
+                )}
+              </div>
             </div>
             <Progress 
               value={progressPercent} 
