@@ -5,8 +5,8 @@
 export { HomeView } from './home';
 export { HomeHabitsSection } from './home';
 
-// Tasks
-export { TasksView, CompletedTasksView } from './tasks';
+// Observatory (replaces legacy Tasks & Completed views)
+export { ObservatoryView } from './observatory';
 
 // Eisenhower
 export { EisenhowerView } from './eisenhower';

@@ -1,13 +1,12 @@
 import { lazy, ComponentType } from 'react';
 import { 
   Home, 
-  CheckSquare, 
+  Telescope, 
   Calendar, 
   FolderKanban, 
   Target, 
   Award,
   Grid3X3,
-  CheckCircle,
   Users,
 } from 'lucide-react';
 
@@ -34,8 +33,7 @@ export interface ViewConfig {
 
 // Lazy load all views - using new organized structure
 const HomeView = lazy(() => import('@/components/views/home/HomeView'));
-const TasksView = lazy(() => import('@/components/views/tasks/TasksView'));
-const CompletedTasksView = lazy(() => import('@/components/views/tasks/CompletedTasksView'));
+const ObservatoryView = lazy(() => import('@/components/views/observatory/ObservatoryView'));
 const TimelineView = lazy(() => import('@/components/views/timeline/TimelineView'));
 const ProjectsView = lazy(() => import('@/components/views/projects/ProjectsView'));
 const HabitsView = lazy(() => import('@/components/views/habits/HabitsView'));
@@ -55,15 +53,15 @@ export const viewRegistry: Record<string, ViewConfig> = {
     group: 'main',
     loadingVariant: 'cards',
   },
-  tasks: {
-    id: 'tasks',
-    title: 'Tâches',
-    subtitle: 'Gérer vos tâches quotidiennes',
-    icon: CheckSquare,
-    component: TasksView,
+  observatory: {
+    id: 'observatory',
+    title: 'Observatoire',
+    subtitle: 'Analysez vos patterns de productivité',
+    icon: Telescope,
+    component: ObservatoryView,
     order: 2,
     group: 'main',
-    loadingVariant: 'list',
+    loadingVariant: 'cards',
   },
   timeline: {
     id: 'timeline',
@@ -115,23 +113,13 @@ export const viewRegistry: Record<string, ViewConfig> = {
     group: 'productivity',
     loadingVariant: 'grid',
   },
-  completed: {
-    id: 'completed',
-    title: 'Tâches terminées',
-    subtitle: 'Historique des tâches complétées',
-    icon: CheckCircle,
-    component: CompletedTasksView,
-    order: 8,
-    group: 'other',
-    loadingVariant: 'list',
-  },
   team: {
     id: 'team',
     title: 'Équipe',
     subtitle: 'Tâches partagées avec votre équipe',
     icon: Users,
     component: TeamTasksView,
-    order: 9,
+    order: 8,
     group: 'team',
     loadingVariant: 'list',
   },
