@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
@@ -105,7 +105,7 @@ const App = () => (
           <TeamProvider>
             <TooltipProvider>
               <Toaster />
-              <BrowserRouter>
+              <HashRouter>
                 <Routes>
                   <Route 
                     path="/" 
@@ -133,7 +133,7 @@ const App = () => (
                   />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
+              </HashRouter>
             </TooltipProvider>
           </TeamProvider>
         </ThemeProvider>

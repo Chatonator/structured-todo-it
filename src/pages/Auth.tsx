@@ -136,7 +136,7 @@ const Auth = () => {
         // Continue even if this fails
       }
 
-      const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`;
+      const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL}#/`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -214,7 +214,7 @@ const Auth = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL || '/'}auth`,
+        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}#/auth`,
       });
 
       if (error) {

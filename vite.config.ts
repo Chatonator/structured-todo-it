@@ -4,8 +4,8 @@ import path from 'path'
 import { componentTagger } from 'lovable-tagger'
 
 export default defineConfig(({ mode }) => ({
-  // Use /structured-todo-it/ for GitHub Pages, / for other deployments
-  base: process.env.GITHUB_PAGES === 'true' ? '/structured-todo-it/' : '/',
+  // Use subdirectory for production (GitHub Pages), / for development
+  base: mode === 'production' ? '/structured-todo-it/' : '/',
   server: {
     host: '::',
     port: 8080,
