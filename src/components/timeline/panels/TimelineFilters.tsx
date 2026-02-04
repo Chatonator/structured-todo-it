@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Filter, X, User, Folder, Users, AlertCircle } from 'lucide-react';
+import { Filter, X, AlertCircle } from 'lucide-react';
 import { TaskCategory, TaskContext, SubTaskCategory, CATEGORY_CONFIG, SUB_CATEGORY_CONFIG } from '@/types/task';
 import { getCategoryClasses, getPriorityClasses, getContextIcon } from '@/lib/styling';
 
@@ -14,7 +14,6 @@ export interface TimelineTaskFilters {
   categories: TaskCategory[];
   contexts: TaskContext[];
   priorities: SubTaskCategory[];
-  sources: ('free' | 'project' | 'team')[];
 }
 
 interface TimelineFiltersProps {
@@ -26,11 +25,6 @@ interface TimelineFiltersProps {
 const CATEGORIES: TaskCategory[] = ['Obligation', 'Quotidien', 'Envie', 'Autres'];
 const CONTEXTS: TaskContext[] = ['Pro', 'Perso'];
 const PRIORITIES: SubTaskCategory[] = ['Le plus important', 'Important', 'Peut attendre', "Si j'ai le temps"];
-const SOURCES = [
-  { id: 'free' as const, label: 'Tâches libres', icon: User },
-  { id: 'project' as const, label: 'Projets', icon: Folder },
-  { id: 'team' as const, label: 'Équipe', icon: Users }
-];
 
 /**
  * Composant de filtres pour le panneau de tâches Timeline
@@ -43,8 +37,7 @@ export const TimelineFilters: React.FC<TimelineFiltersProps> = ({
   const activeFiltersCount = 
     filters.categories.length + 
     filters.contexts.length + 
-    filters.priorities.length + 
-    filters.sources.length;
+    filters.priorities.length;
 
   const toggleCategory = (category: TaskCategory) => {
     const newCategories = filters.categories.includes(category)
@@ -67,19 +60,12 @@ export const TimelineFilters: React.FC<TimelineFiltersProps> = ({
     onFiltersChange({ ...filters, priorities: newPriorities });
   };
 
-  const toggleSource = (source: 'free' | 'project' | 'team') => {
-    const newSources = filters.sources.includes(source)
-      ? filters.sources.filter(s => s !== source)
-      : [...filters.sources, source];
-    onFiltersChange({ ...filters, sources: newSources });
-  };
 
   const clearFilters = () => {
     onFiltersChange({
       categories: [],
       contexts: [],
-      priorities: [],
-      sources: []
+      priorities: []
     });
   };
 
@@ -120,30 +106,6 @@ export const TimelineFilters: React.FC<TimelineFiltersProps> = ({
               )}
             </div>
 
-            {/* Sources */}
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Source</Label>
-              <div className="flex flex-wrap gap-1">
-                {SOURCES.map(source => {
-                  const Icon = source.icon;
-                  const isActive = filters.sources.includes(source.id);
-                  return (
-                    <Button
-                      key={source.id}
-                      variant={isActive ? "secondary" : "outline"}
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => toggleSource(source.id)}
-                    >
-                      <Icon className="w-3 h-3 mr-1" />
-                      {source.label}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <Separator />
 
             {/* Priorités */}
             <div className="space-y-2">
@@ -230,22 +192,6 @@ export const TimelineFilters: React.FC<TimelineFiltersProps> = ({
       {/* Quick filter badges */}
       {activeFiltersCount > 0 && (
         <div className="flex items-center gap-1 flex-wrap">
-          {filters.sources.map(source => {
-            const sourceConfig = SOURCES.find(s => s.id === source);
-            const Icon = sourceConfig?.icon || User;
-            return (
-              <Badge 
-                key={source} 
-                variant="secondary" 
-                className="h-5 text-[10px] px-1.5 cursor-pointer hover:bg-destructive/10"
-                onClick={() => toggleSource(source)}
-              >
-                <Icon className="w-2.5 h-2.5 mr-0.5" />
-                {sourceConfig?.label}
-                <X className="w-2.5 h-2.5 ml-0.5" />
-              </Badge>
-            );
-          })}
           {filters.priorities.slice(0, 2).map(priority => (
             <Badge 
               key={priority} 
