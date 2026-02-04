@@ -73,12 +73,12 @@ export const useAuth = () => {
         logger.warn('Sign out failed, but continuing with cleanup', { error: err });
       }
 
-      // Force page reload for clean state
-      window.location.href = `${import.meta.env.BASE_URL}auth`;
+      // Force page reload for clean state - use hash routing
+      window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}#/auth`;
     } catch (error) {
       logger.error('Error during sign out', { error });
       // Force redirect even if sign out fails
-      window.location.href = `${import.meta.env.BASE_URL}auth`;
+      window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}#/auth`;
     }
   };
 
