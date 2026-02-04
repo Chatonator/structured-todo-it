@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MoreHorizontal, Home, ListTodo, Grid3X3, Calendar, FolderKanban, Repeat, Trophy, CheckCircle } from 'lucide-react';
+import { MoreHorizontal, Home, Telescope, Grid3X3, Calendar, FolderKanban, Repeat, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,13 +24,12 @@ interface ViewNavigationProps {
 // Map des icônes par clé de vue
 const iconMap: Record<string, React.ElementType> = {
   home: Home,
-  tasks: ListTodo,
+  observatory: Telescope,
   eisenhower: Grid3X3,
   timeline: Calendar,
   projects: FolderKanban,
   habits: Repeat,
   rewards: Trophy,
-  completed: CheckCircle,
 };
 
 const ViewNavigation: React.FC<ViewNavigationProps> = ({
@@ -64,7 +63,7 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
   const overflowItems = navigationItems.slice(visibleCount);
 
   const renderNavButton = (item: NavigationItem, inDropdown = false) => {
-    const Icon = iconMap[item.key] || ListTodo;
+    const Icon = iconMap[item.key] || Telescope;
     const isActive = currentView === item.key;
 
     if (inDropdown) {

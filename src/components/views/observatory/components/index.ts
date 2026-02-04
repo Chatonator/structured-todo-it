@@ -7,3 +7,4 @@ export { CategoryDonut } from './CategoryDonut';
 export { TasksTable } from './TasksTable';
 export { TaskTableRow } from './TaskTableRow';
 export { ActivityTimeline } from './ActivityTimeline';
+export { TaskFolders } from './TaskFolders';

@@ -50,6 +50,7 @@ interface TasksTableProps {
   onComplete: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onRestore: (taskId: string) => void;
+  hideTabBar?: boolean;
 }
 
 const SortableHeader: React.FC<{
@@ -98,6 +99,7 @@ export const TasksTable: React.FC<TasksTableProps> = ({
   onComplete,
   onDelete,
   onRestore,
+  hideTabBar = false,
 }) => {
   const hasSelection = selectedTasks.size > 0;
   const allSelected = tasks.length > 0 && selectedTasks.size === tasks.length;
@@ -131,21 +133,23 @@ export const TasksTable: React.FC<TasksTableProps> = ({
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as TabFilter)} className="mt-3">
-          <TabsList className="h-8">
-            {tabConfig.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="text-xs px-3 gap-1.5">
-                <tab.icon className="w-3.5 h-3.5" />
-                {tab.label}
-                {tab.count !== null && (
-                  <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
-                    {tab.count}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        {!hideTabBar && (
+          <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as TabFilter)} className="mt-3">
+            <TabsList className="h-8">
+              {tabConfig.map(tab => (
+                <TabsTrigger key={tab.value} value={tab.value} className="text-xs px-3 gap-1.5">
+                  <tab.icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                  {tab.count !== null && (
+                    <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+                      {tab.count}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        )}
 
         {/* Bulk actions */}
         {hasSelection && (
@@ -161,7 +165,7 @@ export const TasksTable: React.FC<TasksTableProps> = ({
               <Button 
                 size="sm" 
                 variant="ghost" 
-                className="h-7 text-xs text-green-600"
+                className="h-7 text-xs text-primary"
                 onClick={() => selectedTasks.forEach(id => onComplete(id))}
               >
                 <Check className="w-3 h-3 mr-1" />
