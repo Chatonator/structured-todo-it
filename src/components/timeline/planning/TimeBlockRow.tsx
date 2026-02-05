@@ -59,7 +59,7 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
   }, [events]);
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+     <div className="grid grid-cols-3 gap-4 h-full">
       {(['morning', 'afternoon', 'evening'] as TimeBlock[]).map(block => (
         <TimeBlockColumn
           key={block}
@@ -115,7 +115,7 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col rounded-xl border-2 border-dashed transition-all min-h-[200px]",
+         "flex flex-col rounded-xl border-2 border-dashed transition-all h-full min-h-[200px]",
         isOver && !disabled && "border-primary bg-primary/5",
         disabled ? "bg-muted/20 border-muted" : "border-border hover:border-muted-foreground/40"
       )}
@@ -139,7 +139,7 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
       </div>
 
       {/* Events list */}
-      <div className="flex-1 p-3 space-y-2">
+       <div className="flex-1 p-3 space-y-2 overflow-y-auto">
         {events.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-sm text-muted-foreground/50 text-center">
