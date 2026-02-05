@@ -116,6 +116,7 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
       ref={setNodeRef}
       className={cn(
         "flex flex-col rounded-xl border-2 border-dashed transition-all min-h-[200px]",
+        "h-[300px]",
         isOver && !disabled && "border-primary bg-primary/5",
         disabled ? "bg-muted/20 border-muted" : "border-border hover:border-muted-foreground/40"
       )}

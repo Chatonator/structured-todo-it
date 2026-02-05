@@ -163,7 +163,7 @@ export const TaskDeckPanel: React.FC<TaskDeckPanelProps> = ({
   return (
     <div className={cn(
       "flex flex-col bg-card border rounded-xl overflow-hidden transition-all duration-200",
-      "h-[calc(100vh-320px)] min-h-[400px]",
+      "h-[calc(100vh-200px)] min-h-[600px]",
       isCollapsed ? "w-12" : "w-80",
       className
     )}>
