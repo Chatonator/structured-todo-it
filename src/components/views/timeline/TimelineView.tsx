@@ -435,30 +435,6 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
             </Card>
           )}
 
-          {/* Empty state hints */}
-          {unscheduledTasks.length > 0 && scheduledEvents.length === 0 && (
-            <Card className="border-dashed">
-              <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
-                <div className="text-center">
-                  <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                  <p className="text-sm font-medium">Glissez vos tâches dans les blocs horaires</p>
-                  <p className="text-xs mt-1">Matin • Après-midi • Soir</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {unscheduledTasks.length === 0 && scheduledEvents.length === 0 && (
-            <Card className="border-dashed">
-              <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
-                <div className="text-center">
-                  <Plus className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                  <p className="text-sm font-medium">Aucune tâche à planifier</p>
-                  <p className="text-xs mt-1">Ajoutez des tâches depuis la vue Tâches</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Drag overlay */}
