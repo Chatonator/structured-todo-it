@@ -280,8 +280,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="space-y-4 pb-20 md:pb-6">
-          <ViewStats stats={stats} columns={3} />
+         <div className="flex flex-col gap-4 pb-20 md:pb-6 h-full">
 
           {/* Overdue tasks alert */}
           {overdueEvents.length > 0 && (
@@ -329,7 +328,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
           </div>
 
           {/* Main content: TaskDeckPanel + Planning views */}
-          <div className="flex gap-4">
+           <div className="flex gap-4 flex-1 min-h-0">
             {/* Task deck panel with scheduled events toggle */}
             <TaskDeckPanel
               tasks={unscheduledTasks}
