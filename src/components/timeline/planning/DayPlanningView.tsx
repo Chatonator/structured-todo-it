@@ -47,7 +47,7 @@ export const DayPlanningView: React.FC<DayPlanningViewProps> = ({
   const isComplete = completedCount === events.length && events.length > 0;
 
   return (
-    <div className="space-y-6">
+     <div className="flex flex-col gap-6 h-full">
       {/* Day header with stats */}
       <div className={cn(
         "p-4 rounded-xl border-2",
@@ -135,13 +135,15 @@ export const DayPlanningView: React.FC<DayPlanningViewProps> = ({
       </div>
 
       {/* Time blocks row */}
-      <TimeBlockRow
-        date={date}
-        events={events}
-        onCompleteEvent={onCompleteEvent}
-        onRemoveEvent={onRemoveEvent}
-        onEventClick={onEventClick}
-      />
+       <div className="flex-1 min-h-0">
+         <TimeBlockRow
+           date={date}
+           events={events}
+           onCompleteEvent={onCompleteEvent}
+           onRemoveEvent={onRemoveEvent}
+           onEventClick={onEventClick}
+         />
+       </div>
     </div>
   );
 };
