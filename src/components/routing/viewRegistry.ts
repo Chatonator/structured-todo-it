@@ -6,7 +6,7 @@ import {
   FolderKanban, 
   Target, 
   Award,
-  Grid3X3,
+  Wrench,
   Users,
 } from 'lucide-react';
 
@@ -38,7 +38,7 @@ const TimelineView = lazy(() => import('@/components/views/timeline/TimelineView
 const ProjectsView = lazy(() => import('@/components/views/projects/ProjectsView'));
 const HabitsView = lazy(() => import('@/components/views/habits/HabitsView'));
 const RewardsView = lazy(() => import('@/components/views/rewards/RewardsView'));
-const EisenhowerView = lazy(() => import('@/components/views/eisenhower/EisenhowerView'));
+const ToolboxView = lazy(() => import('@/components/views/toolbox/ToolboxView'));
 const TeamTasksView = lazy(() => import('@/components/views/teams/TeamTasksView'));
 
 // View Registry - Single source of truth for all views
@@ -103,12 +103,12 @@ export const viewRegistry: Record<string, ViewConfig> = {
     group: 'tracking',
     loadingVariant: 'cards',
   },
-  eisenhower: {
-    id: 'eisenhower',
-    title: 'Matrice Eisenhower',
-    subtitle: 'Prioriser par importance et urgence',
-    icon: Grid3X3,
-    component: EisenhowerView,
+  toolbox: {
+    id: 'toolbox',
+    title: 'Boîte à outils',
+    subtitle: 'Méthodes de productivité',
+    icon: Wrench,
+    component: ToolboxView,
     order: 7,
     group: 'productivity',
     loadingVariant: 'grid',

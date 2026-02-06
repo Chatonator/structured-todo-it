@@ -8,8 +8,8 @@ export { HomeHabitsSection } from './home';
 // Observatory (replaces legacy Tasks & Completed views)
 export { ObservatoryView } from './observatory';
 
-// Eisenhower
-export { EisenhowerView } from './eisenhower';
+// Toolbox (replaces legacy Eisenhower view)
+export { ToolboxView } from './toolbox';
 
 // Timeline
 export { TimelineView } from './timeline';
