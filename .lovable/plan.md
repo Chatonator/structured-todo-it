@@ -1,188 +1,85 @@
 
-# Plan de Correction : Bug de Création de Projets (et Decks)
+## Diagnostic (piste alternative / contournement)
+Le comportement “je clique sur *Nouveau projet* / *Créer un projet* et absolument rien ne se passe” quand la liste de projets est vide ne vient probablement pas du backend ni de Supabase.
 
-## Problème Identifié
+La cause est dans l’UI :
 
-Les fonctions de conversion `projectToItemMetadata` et `deckToItemMetadata` retournent des propriétés explicitement `undefined` qui écrasent les valeurs par défaut lors de la fusion des métadonnées dans `useItems.createItem`.
+- Dans `src/components/projects/ProjectsView.tsx`, on utilise `ViewLayout` avec :
+  ```ts
+  state={loading ? 'loading' : projects.length === 0 ? 'empty' : 'success'}
+  ```
+- Or `ViewLayout` (voir `src/components/layout/view/ViewLayout.tsx`) fait ceci en état `empty` :
+  - il **n’affiche pas `children`**
+  - il remplace le contenu par `<ViewEmptyState ... />`
 
-### Démonstration du Bug
+Conséquence :
+- `ProjectModal` est rendu **dans `children`** de `ViewLayout`.
+- Donc **quand `projects.length === 0`**, `ProjectModal` n’est pas monté dans le DOM.
+- Tu peux bien faire `setShowModal(true)` via les boutons, mais il n’y a **aucune modale à afficher**, donc “rien ne se passe”.
 
-```typescript
-// useProjects.ts - projectToItemMetadata
-function projectToItemMetadata(project: Partial<ProjectWithKanban>): Partial<ItemMetadata> {
-  return {
-    color: project.color,    // undefined si non fourni
-    status: project.status,  // undefined si non fourni
-    // ...
-  };
-}
+C’est exactement le même pattern qui a déjà été corrigé dans `HabitsView` (ils ont un commentaire “Modals must be OUTSIDE ViewLayout…” et mettent `DeckManagement` en dehors du `ViewLayout`).
 
-// Dans useItems.ts - createItemMutation
-const defaultMeta = getDefaultMetadata('project'); 
-// → { color: '#a78bfa', status: 'planning' }
-
-const mergedMetadata = { ...defaultMeta, ...data.metadata };
-// → Si data.metadata = { color: undefined, status: undefined, ... }
-// → mergedMetadata = { color: undefined, status: undefined } ← BUG!
-
-const missingFields = getMissingRequiredFields('project', mergedMetadata);
-// → ['color', 'status'] car undefined est considéré comme manquant
-// → throw Error("Missing required fields: color, status")
-```
-
-### Pourquoi ça fonctionne parfois
-
-Quand `createProject` est appelé avec des valeurs explicites :
-```typescript
-await createProject('Mon projet', undefined, '📚', '#a78bfa');
-// icon = '📚', color = '#a78bfa' sont fournis → pas de undefined
-```
-
-Mais si quelque chose passe mal (ex: modale fermée avant soumission complète, appel avec des paramètres manquants), les `undefined` écrasent les defaults.
+## Objectif
+Permettre l’ouverture de la modale “Créer un projet” même quand la vue est en état vide.
 
 ---
 
-## Solution
+## Changements proposés (solution simple et robuste)
+### 1) Déplacer `ProjectModal` en dehors de `ViewLayout` (comme HabitsView)
+**Fichier :** `src/components/projects/ProjectsView.tsx`
 
-Nettoyer les propriétés `undefined` à **deux niveaux** pour une robustesse maximale :
+- Envelopper le rendu dans un fragment `<>...</>`
+- Garder `ViewLayout` pour afficher l’empty state
+- Rendre `<ProjectModal ... />` **après** `</ViewLayout>` (donc toujours monté, même quand `state="empty"`)
 
-### 1. Dans `projectToItemMetadata` (useProjects.ts)
+Résultat attendu :
+- Bouton du header “Nouveau projet” fonctionne en vue vide
+- Bouton “Créer un projet” de l’empty state fonctionne aussi
+- Le flux en mode non-vide ne change pas
 
-Ne retourner que les propriétés définies :
+### 2) (Optionnel mais recommandé) Corriger `onOpenChange` dans `ProjectModal`
+**Fichier :** `src/components/projects/ProjectModal.tsx`
 
-```typescript
-function projectToItemMetadata(project: Partial<ProjectWithKanban>): Partial<ItemMetadata> {
-  const metadata: Partial<ItemMetadata> = {
-    // Champs harmonisés obligatoires
-    category: 'Projet' as any,
-    context: 'Perso' as any,
-    estimatedTime: 60,
-  };
-  
-  // Champs requis pour project - toujours avec valeur par défaut
-  metadata.color = project.color || '#a78bfa';
-  metadata.status = project.status || 'planning';
-  
-  // Champs optionnels - seulement si définis
-  if (project.description !== undefined) metadata.description = project.description;
-  if (project.icon !== undefined) metadata.icon = project.icon;
-  if (project.targetDate !== undefined) metadata.targetDate = project.targetDate;
-  if (project.progress !== undefined) metadata.progress = project.progress;
-  if (project.completedAt !== undefined) metadata.completedAt = project.completedAt;
-  if (project.showInSidebar !== undefined) metadata.showInSidebar = project.showInSidebar;
-  if (project.kanbanColumns !== undefined) metadata.kanbanColumns = project.kanbanColumns;
-  
-  return metadata;
-}
+Aujourd’hui :
+```tsx
+<Dialog open={open} onOpenChange={onClose}>
 ```
 
-### 2. Dans `deckToItemMetadata` (useDecks.ts)
-
-Même logique :
-
-```typescript
-function deckToItemMetadata(deck: Partial<Deck>): Partial<ItemMetadata> {
-  const metadata: Partial<ItemMetadata> = {
-    // Champs harmonisés
-    category: deck.category || 'Quotidien',
-    context: deck.context || 'Perso',
-    estimatedTime: deck.estimatedTime || 30,
-  };
-  
-  // Champs requis pour deck - toujours avec valeur par défaut
-  metadata.color = deck.color || '#ec4899';
-  metadata.isDefault = deck.isDefault ?? false;
-  
-  // Champs optionnels - seulement si définis
-  if (deck.description !== undefined) metadata.description = deck.description;
-  if (deck.icon !== undefined) metadata.icon = deck.icon;
-  
-  return metadata;
-}
+Radix appelle `onOpenChange(boolean)` ; passer directement `onClose` marche souvent “par chance”, mais ce n’est pas la signature attendue.
+On sécurise :
+```tsx
+<Dialog
+  open={open}
+  onOpenChange={(nextOpen) => {
+    if (!nextOpen) onClose();
+  }}
+>
 ```
 
-### 3. Dans `createItemMutation` (useItems.ts)
-
-Ajouter un filtre de sécurité pour nettoyer les `undefined` restants :
-
-```typescript
-const createItemMutation = useMutation({
-  mutationFn: async (data: CreateItemData) => {
-    // ...
-    
-    const defaultMeta = getDefaultMetadata(data.contextType);
-    
-    // Nettoyer les undefined des métadonnées fournies
-    const cleanMetadata = data.metadata 
-      ? Object.fromEntries(
-          Object.entries(data.metadata).filter(([_, v]) => v !== undefined)
-        )
-      : {};
-    
-    const mergedMetadata = { ...defaultMeta, ...cleanMetadata };
-    
-    // ... reste du code
-  }
-});
-```
+But : éviter tout comportement bizarre (fermeture inattendue, double-trigger, etc.).
 
 ---
 
-## Fichiers à Modifier
-
-| Fichier | Modification |
-|---------|--------------|
-| `src/hooks/useProjects.ts` | Refactorer `projectToItemMetadata` pour filtrer les undefined |
-| `src/hooks/useDecks.ts` | Refactorer `deckToItemMetadata` pour filtrer les undefined |
-| `src/hooks/useItems.ts` | Ajouter un filtre de sécurité dans `createItemMutation` |
-
----
-
-## Diagramme de Flux Corrigé
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  AVANT (BUGUÉ)                                              │
-├─────────────────────────────────────────────────────────────┤
-│  projectToItemMetadata({ name: 'X' })                       │
-│  → { color: undefined, status: undefined, ... }             │
-│                                                             │
-│  mergedMetadata = { ...defaults, ...metadata }              │
-│  → { color: undefined, status: undefined }                  │
-│                                                             │
-│  getMissingRequiredFields → ['color', 'status']             │
-│  → throw Error ❌                                           │
-└─────────────────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│  APRÈS (CORRIGÉ)                                            │
-├─────────────────────────────────────────────────────────────┤
-│  projectToItemMetadata({ name: 'X' })                       │
-│  → { color: '#a78bfa', status: 'planning', ... }            │
-│                                                             │
-│  cleanMetadata = filtrer undefined                          │
-│  mergedMetadata = { ...defaults, ...cleanMetadata }         │
-│  → { color: '#a78bfa', status: 'planning' }                 │
-│                                                             │
-│  getMissingRequiredFields → []                              │
-│  → Création réussie ✅                                      │
-└─────────────────────────────────────────────────────────────┘
-```
+## Plan de test (end-to-end)
+1. Supprimer tous les projets (tu l’as déjà fait).
+2. Aller dans **Projets**.
+3. Cliquer sur **Nouveau projet** (bouton en haut à droite) :
+   - La modale doit s’ouvrir.
+4. Cliquer sur **Créer un projet** (bouton de l’empty state) :
+   - La modale doit s’ouvrir.
+5. Remplir un nom + valider :
+   - Un projet doit apparaître immédiatement dans la grille/onglet “Actifs”.
+6. Re-tester la création quand il y a déjà au moins 1 projet (vérifier que rien n’a régressé).
 
 ---
 
-## Avantages de Cette Approche
-
-1. **Double protection** : Les conversions métier ET le hook central sont sécurisés
-2. **Rétrocompatibilité** : Aucun changement d'API pour les appelants
-3. **Robustesse** : Fonctionne même avec des données incomplètes
-4. **Maintenabilité** : Logique claire et prévisible
+## Bonus (si tu veux un vrai “contournement” en plus)
+Si tu veux une solution “impossible à casser” même si une modale re-bug :
+- Ajouter dans l’empty state un mini formulaire inline (champ “Nom du projet” + bouton “Créer”) qui appelle directement `createProject(...)`.
+Mais je ne le ferai que si la modale continue à poser problème après le fix ci-dessus, car le déplacement de la modale est le correctif racine le plus propre.
 
 ---
 
-## Impact Attendu
-
-- Les nouveaux utilisateurs pourront créer leur premier projet/deck
-- Les utilisateurs existants ne verront aucune différence
-- Les appels avec des paramètres partiels fonctionneront correctement
-- Les erreurs "Missing required fields" seront éliminées
+## Fichiers impactés
+- `src/components/projects/ProjectsView.tsx` (obligatoire)
+- `src/components/projects/ProjectModal.tsx` (optionnel mais recommandé)
