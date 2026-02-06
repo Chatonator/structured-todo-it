@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MoreHorizontal, Home, Telescope, Grid3X3, Calendar, FolderKanban, Repeat, Trophy } from 'lucide-react';
+import { MoreHorizontal, Home, Telescope, Wrench, Calendar, FolderKanban, Repeat, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -25,7 +25,7 @@ interface ViewNavigationProps {
 const iconMap: Record<string, React.ElementType> = {
   home: Home,
   observatory: Telescope,
-  eisenhower: Grid3X3,
+  toolbox: Wrench,
   timeline: Calendar,
   projects: FolderKanban,
   habits: Repeat,

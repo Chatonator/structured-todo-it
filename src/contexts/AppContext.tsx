@@ -53,7 +53,7 @@ export interface AppProviderProps {
 const allNavigationItems: NavigationItem[] = [
   { key: 'home', title: 'Home', icon: '🏠' },
   { key: 'observatory', title: 'Observatoire', icon: '🔭' },
-  { key: 'eisenhower', title: 'Eisenhower', icon: '🧭' },
+  { key: 'toolbox', title: 'Boîte à outils', icon: '🧰' },
   { key: 'timeline', title: 'Timeline', icon: '⏱️' },
   { key: 'projects', title: 'Projets', icon: '💼' },
   { key: 'habits', title: 'Habitudes', icon: '💪' },

@@ -9,6 +9,7 @@ export { useProjectsViewData, type ProjectsViewDataReturn } from './useProjectsV
 export { useHomeViewData, type HomeViewDataReturn } from './useHomeViewData';
 export { useEisenhowerViewData, type EisenhowerViewDataReturn, type EisenhowerQuadrant, QUADRANT_CONFIGS } from './useEisenhowerViewData';
 export { useTimelineViewData, type TimelineViewDataReturn, type ViewMode } from './useTimelineViewData';
+export { useRule135Tool, type Rule135ToolReturn, type TaskSlot, type Rule135Selection } from '@/components/views/toolbox/tools/rule135/useRule135Tool';
 export { useRewardsViewData, type RewardsViewDataReturn } from './useRewardsViewData';
 
 // Observatory View (remplace TasksView et CompletedTasksView)
