@@ -93,7 +93,7 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       : 'Nouveau projet';
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <div className="flex items-center gap-2">
