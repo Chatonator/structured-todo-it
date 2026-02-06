@@ -28,17 +28,24 @@ function itemToDeck(item: Item): Deck {
   };
 }
 
-// Convert Deck to Item metadata
+// Convert Deck to Item metadata - only includes defined properties to avoid undefined overwriting defaults
 function deckToItemMetadata(deck: Partial<Deck>): Partial<ItemMetadata> {
-  return {
+  const metadata: Partial<ItemMetadata> = {
+    // Required harmonized fields - always with defaults
     category: deck.category || 'Quotidien',
     context: deck.context || 'Perso',
     estimatedTime: deck.estimatedTime || 30,
-    description: deck.description,
-    color: deck.color,
-    icon: deck.icon,
-    isDefault: deck.isDefault,
   };
+  
+  // Required deck fields - always with defaults
+  metadata.color = deck.color || '#ec4899';
+  metadata.isDefault = deck.isDefault ?? false;
+  
+  // Optional fields - only include if defined
+  if (deck.description !== undefined) metadata.description = deck.description;
+  if (deck.icon !== undefined) metadata.icon = deck.icon;
+  
+  return metadata;
 }
 
 export const useDecks = () => {

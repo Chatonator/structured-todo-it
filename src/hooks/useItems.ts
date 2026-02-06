@@ -155,7 +155,15 @@ export function useItems(options: UseItemsOptions = {}) {
       if (!itemUserId) throw new Error('User not authenticated');
 
       const defaultMeta = getDefaultMetadata(data.contextType);
-      const mergedMetadata = { ...defaultMeta, ...data.metadata };
+      
+      // Clean undefined values from provided metadata to prevent them from overwriting defaults
+      const cleanMetadata = data.metadata 
+        ? Object.fromEntries(
+            Object.entries(data.metadata).filter(([_, v]) => v !== undefined)
+          )
+        : {};
+      
+      const mergedMetadata = { ...defaultMeta, ...cleanMetadata };
 
       // Check required fields
       const missingFields = getMissingRequiredFields(data.contextType, mergedMetadata);
