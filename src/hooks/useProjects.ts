@@ -38,23 +38,29 @@ function itemToProject(item: Item): ProjectWithKanban {
   };
 }
 
-// Convert Project to Item metadata
+// Convert Project to Item metadata - only includes defined properties to avoid undefined overwriting defaults
 function projectToItemMetadata(project: Partial<ProjectWithKanban>): Partial<ItemMetadata> {
-  return {
-    description: project.description,
-    icon: project.icon,
-    color: project.color,
-    status: project.status,
-    targetDate: project.targetDate,
-    progress: project.progress,
-    completedAt: project.completedAt,
-    showInSidebar: project.showInSidebar,
-    kanbanColumns: project.kanbanColumns,
-    // Required harmonized fields
+  const metadata: Partial<ItemMetadata> = {
+    // Required harmonized fields - always with defaults
     category: 'Projet' as any,
     context: 'Perso' as any,
     estimatedTime: 60,
   };
+  
+  // Required project fields - always with defaults
+  metadata.color = project.color || '#a78bfa';
+  metadata.status = project.status || 'planning';
+  
+  // Optional fields - only include if defined
+  if (project.description !== undefined) metadata.description = project.description;
+  if (project.icon !== undefined) metadata.icon = project.icon;
+  if (project.targetDate !== undefined) metadata.targetDate = project.targetDate;
+  if (project.progress !== undefined) metadata.progress = project.progress;
+  if (project.completedAt !== undefined) metadata.completedAt = project.completedAt;
+  if (project.showInSidebar !== undefined) metadata.showInSidebar = project.showInSidebar;
+  if (project.kanbanColumns !== undefined) metadata.kanbanColumns = project.kanbanColumns;
+  
+  return metadata;
 }
 
 export const useProjects = () => {
