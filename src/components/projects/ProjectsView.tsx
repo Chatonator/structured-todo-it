@@ -110,81 +110,84 @@ export const ProjectsView = () => {
   }
 
   return (
-    <ViewLayout
-      header={{
-        title: viewTitle,
-        subtitle: viewSubtitle,
-        icon: isTeamMode ? <Users className="w-5 h-5" /> : <Briefcase className="w-5 h-5" />,
-        actions: (
-          <div className="flex items-center gap-2">
-            {isTeamMode && (
-              <Badge variant="secondary" className="gap-1">
-                <Users className="w-3 h-3" />
-                Équipe
-              </Badge>
-            )}
-            <Button onClick={() => setShowModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              {isTeamMode ? "Nouveau projet d'équipe" : "Nouveau projet"}
-            </Button>
-          </div>
-        )
-      }}
-      state={loading ? 'loading' : projects.length === 0 ? 'empty' : 'success'}
-      loadingProps={{ variant: 'cards' }}
-      emptyProps={{
-        title: isTeamMode ? "Aucun projet d'équipe" : "Aucun projet",
-        description: isTeamMode 
-          ? "Créez le premier projet pour votre équipe"
-          : "Créez votre premier projet pour organiser vos tâches",
-        icon: <FolderPlus className="w-12 h-12" />,
-        action: {
-          label: isTeamMode ? "Créer un projet d'équipe" : "Créer un projet",
-          onClick: () => setShowModal(true)
-        }
-      }}
-    >
-      <Tabs defaultValue="active" className="w-full">
-        <TabsList>
-          <TabsTrigger value="active">
-            Actifs ({activeProjects.length})
-          </TabsTrigger>
-          <TabsTrigger value="completed">
-            Terminés ({completedProjects.length})
-          </TabsTrigger>
-          {archivedProjects.length > 0 && (
-            <TabsTrigger value="archived">
-              Archivés ({archivedProjects.length})
+    <>
+      <ViewLayout
+        header={{
+          title: viewTitle,
+          subtitle: viewSubtitle,
+          icon: isTeamMode ? <Users className="w-5 h-5" /> : <Briefcase className="w-5 h-5" />,
+          actions: (
+            <div className="flex items-center gap-2">
+              {isTeamMode && (
+                <Badge variant="secondary" className="gap-1">
+                  <Users className="w-3 h-3" />
+                  Équipe
+                </Badge>
+              )}
+              <Button onClick={() => setShowModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                {isTeamMode ? "Nouveau projet d'équipe" : "Nouveau projet"}
+              </Button>
+            </div>
+          )
+        }}
+        state={loading ? 'loading' : projects.length === 0 ? 'empty' : 'success'}
+        loadingProps={{ variant: 'cards' }}
+        emptyProps={{
+          title: isTeamMode ? "Aucun projet d'équipe" : "Aucun projet",
+          description: isTeamMode 
+            ? "Créez le premier projet pour votre équipe"
+            : "Créez votre premier projet pour organiser vos tâches",
+          icon: <FolderPlus className="w-12 h-12" />,
+          action: {
+            label: isTeamMode ? "Créer un projet d'équipe" : "Créer un projet",
+            onClick: () => setShowModal(true)
+          }
+        }}
+      >
+        <Tabs defaultValue="active" className="w-full">
+          <TabsList>
+            <TabsTrigger value="active">
+              Actifs ({activeProjects.length})
             </TabsTrigger>
-          )}
-        </TabsList>
+            <TabsTrigger value="completed">
+              Terminés ({completedProjects.length})
+            </TabsTrigger>
+            {archivedProjects.length > 0 && (
+              <TabsTrigger value="archived">
+                Archivés ({archivedProjects.length})
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-        <TabsContent value="active" className="mt-6">
-          <ProjectGrid
-            projects={activeProjects}
-            onProjectClick={handleCardClick}
-            showNewProjectZone
-            onNewProjectClick={() => setShowModal(true)}
-          />
-        </TabsContent>
-
-        <TabsContent value="completed" className="mt-6">
-          <ProjectGrid
-            projects={completedProjects}
-            onProjectClick={handleCardClick}
-          />
-        </TabsContent>
-
-        {archivedProjects.length > 0 && (
-          <TabsContent value="archived" className="mt-6">
+          <TabsContent value="active" className="mt-6">
             <ProjectGrid
-              projects={archivedProjects}
+              projects={activeProjects}
+              onProjectClick={handleCardClick}
+              showNewProjectZone
+              onNewProjectClick={() => setShowModal(true)}
+            />
+          </TabsContent>
+
+          <TabsContent value="completed" className="mt-6">
+            <ProjectGrid
+              projects={completedProjects}
               onProjectClick={handleCardClick}
             />
           </TabsContent>
-        )}
-      </Tabs>
 
+          {archivedProjects.length > 0 && (
+            <TabsContent value="archived" className="mt-6">
+              <ProjectGrid
+                projects={archivedProjects}
+                onProjectClick={handleCardClick}
+              />
+            </TabsContent>
+          )}
+        </Tabs>
+      </ViewLayout>
+
+      {/* Modals must be OUTSIDE ViewLayout to remain mounted even in empty state */}
       <ProjectModal
         open={showModal}
         onClose={handleModalClose}
@@ -192,7 +195,7 @@ export const ProjectsView = () => {
         project={selectedProject}
         teamId={teamId ?? undefined}
       />
-    </ViewLayout>
+    </>
   );
 };
 
