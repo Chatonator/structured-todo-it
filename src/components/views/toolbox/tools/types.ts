@@ -13,14 +13,21 @@ export interface ToolProps {
 export interface ToolDefinition {
   id: string;
   name: string;
-  description: string;
+  description: string; // Short, for the card
   icon: LucideIcon;
-  color: string; // Tailwind color class (e.g., 'bg-blue-500')
+  color: string; // Tailwind color class (e.g., 'text-blue-500')
   bgColor: string; // Background for card (e.g., 'bg-blue-500/10')
   category: ToolCategory;
   component: ComponentType<ToolProps>;
   isNew?: boolean;
   isBeta?: boolean;
+  
+  // Extended metadata for detail view
+  longDescription?: string;
+  benefits?: string[];
+  origin?: string;
+  tips?: string[];
+  learnMoreUrl?: string;
 }
 
 // Category metadata for display

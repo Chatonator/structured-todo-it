@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,14 +8,37 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { X, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ToolDefinition } from '../tools/types';
+import ToolDetailView from './ToolDetailView';
+
+// localStorage key for tracking launched tools
+const LAUNCHED_TOOLS_KEY = 'toolbox_launched_tools';
+
+function getLaunchedTools(): string[] {
+  try {
+    const stored = localStorage.getItem(LAUNCHED_TOOLS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function markToolLaunched(toolId: string): void {
+  const current = getLaunchedTools();
+  if (!current.includes(toolId)) {
+    localStorage.setItem(LAUNCHED_TOOLS_KEY, JSON.stringify([...current, toolId]));
+  }
+}
+
+export type ToolModalMode = 'detail' | 'tool';
 
 interface ToolModalProps {
   tool: ToolDefinition | null;
   open: boolean;
   onClose: () => void;
+  initialMode?: ToolModalMode;
 }
 
 const ToolLoadingFallback: React.FC = () => (
@@ -30,11 +53,41 @@ const ToolLoadingFallback: React.FC = () => (
   </div>
 );
 
-const ToolModal: React.FC<ToolModalProps> = ({ tool, open, onClose }) => {
+const ToolModal: React.FC<ToolModalProps> = ({ 
+  tool, 
+  open, 
+  onClose, 
+  initialMode = 'detail' 
+}) => {
+  const [mode, setMode] = useState<ToolModalMode>(initialMode);
+
+  // Reset mode when tool changes or modal opens
+  useEffect(() => {
+    if (open && tool) {
+      setMode(initialMode);
+    }
+  }, [open, tool?.id, initialMode]);
+
+  const handleLaunch = useCallback(() => {
+    if (tool) {
+      markToolLaunched(tool.id);
+      setMode('tool');
+    }
+  }, [tool]);
+
+  const handleBack = useCallback(() => {
+    if (mode === 'tool') {
+      setMode('detail');
+    } else {
+      onClose();
+    }
+  }, [mode, onClose]);
+
   if (!tool) return null;
 
   const Icon = tool.icon;
   const ToolComponent = tool.component;
+  const isToolMode = mode === 'tool';
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -53,7 +106,7 @@ const ToolModal: React.FC<ToolModalProps> = ({ tool, open, onClose }) => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={onClose}
+              onClick={handleBack}
               className="shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -71,18 +124,31 @@ const ToolModal: React.FC<ToolModalProps> = ({ tool, open, onClose }) => {
                 {tool.name}
               </DialogTitle>
               <p className="text-sm text-muted-foreground truncate">
-                {tool.description}
+                {isToolMode ? 'En cours d\'utilisation' : tool.description}
               </p>
             </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </Button>
           </div>
         </DialogHeader>
 
         {/* Content */}
         <ScrollArea className="flex-1">
-          <div className="p-6">
-            <Suspense fallback={<ToolLoadingFallback />}>
-              <ToolComponent onClose={onClose} />
-            </Suspense>
+          <div className={cn("p-6", !isToolMode && "p-0")}>
+            {isToolMode ? (
+              <Suspense fallback={<ToolLoadingFallback />}>
+                <ToolComponent onClose={onClose} />
+              </Suspense>
+            ) : (
+              <ToolDetailView tool={tool} onLaunch={handleLaunch} />
+            )}
           </div>
         </ScrollArea>
       </DialogContent>
@@ -91,3 +157,4 @@ const ToolModal: React.FC<ToolModalProps> = ({ tool, open, onClose }) => {
 };
 
 export default ToolModal;
+export { getLaunchedTools, markToolLaunched };

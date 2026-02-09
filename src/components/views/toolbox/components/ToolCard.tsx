@@ -1,15 +1,28 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ToolDefinition } from '../tools/types';
 
 interface ToolCardProps {
   tool: ToolDefinition;
   onClick: () => void;
+  onQuickLaunch?: () => void;
+  hasBeenLaunched?: boolean;
 }
 
-const ToolCard: React.FC<ToolCardProps> = ({ tool, onClick }) => {
+const ToolCard: React.FC<ToolCardProps> = ({ 
+  tool, 
+  onClick, 
+  onQuickLaunch,
+  hasBeenLaunched = false 
+}) => {
   const Icon = tool.icon;
+
+  const handleQuickLaunch = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onQuickLaunch?.();
+  };
 
   return (
     <button
@@ -35,6 +48,23 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool, onClick }) => {
             </Badge>
           )}
         </div>
+      )}
+
+      {/* Quick launch button - only shown if tool has been launched before */}
+      {hasBeenLaunched && onQuickLaunch && (
+        <button
+          onClick={handleQuickLaunch}
+          className={cn(
+            "absolute top-2 right-2 w-7 h-7 rounded-full",
+            "bg-primary/10 hover:bg-primary/20",
+            "flex items-center justify-center",
+            "opacity-0 group-hover:opacity-100 transition-opacity",
+            "focus:outline-none focus:ring-2 focus:ring-primary/50"
+          )}
+          title="Lancer directement"
+        >
+          <Play className="w-3.5 h-3.5 text-primary" />
+        </button>
       )}
 
       {/* Icon */}
