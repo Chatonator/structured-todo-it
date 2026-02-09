@@ -4,12 +4,12 @@ import { Plus, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { useDecks } from '@/hooks/useDecks';
 import { useHabits } from '@/hooks/useHabits';
 import { useHabitStats } from '@/hooks/useHabitStats';
-import DeckSelector from './DeckSelector';
+import HabitDeckTabs from './HabitDeckTabs';
+import HabitGrid from './HabitGrid';
 import TodayProgress from './TodayProgress';
 import HabitStatsCard from './HabitStatsCard';
 import HabitTrendsChart from './HabitTrendsChart';
 import HabitCalendarHeatmap from './HabitCalendarHeatmap';
-import HabitItem from './HabitItem';
 import HabitModal from './HabitModal';
 import DeckManagement from './DeckManagement';
 import { Habit } from '@/types/habit';
@@ -69,8 +69,6 @@ const HabitsView = () => {
     }
   } : undefined;
 
-  const selectedDeck = decks.find(d => d.id === selectedDeckId);
-
   // Handler for creating deck that auto-selects it
   const handleCreateDeck = async (deck: Omit<typeof decks[0], 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
     const newDeckId = await createDeck(deck);
@@ -91,28 +89,25 @@ const HabitsView = () => {
           actions: viewState === 'success' && selectedDeckId ? (
             <Button
               onClick={() => setIsHabitModalOpen(true)}
-              size="sm"
               className="bg-habit hover:bg-habit-dark"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Ajouter
+              Nouvelle habitude
             </Button>
           ) : undefined
         }}
         state={viewState}
-        loadingProps={{ variant: 'list' }}
+        loadingProps={{ variant: 'cards' }}
         emptyProps={emptyStateConfig}
       >
-        <div className="max-w-4xl mx-auto space-y-4 pb-20 md:pb-6">
-          {/* Sélecteur de deck */}
-          <div>
-            <DeckSelector
-              decks={decks}
-              selectedDeckId={selectedDeckId}
-              onSelectDeck={setSelectedDeckId}
-              onManageDecks={() => setIsDeckManagementOpen(true)}
-            />
-          </div>
+        <div className="space-y-6 pb-20 md:pb-6">
+          {/* Navigation par tabs entre les decks - style similaire aux projets */}
+          <HabitDeckTabs
+            decks={decks}
+            selectedDeckId={selectedDeckId}
+            onSelectDeck={setSelectedDeckId}
+            onManageDecks={() => setIsDeckManagementOpen(true)}
+          />
 
           {selectedDeckId && (
             <>
@@ -123,45 +118,39 @@ const HabitsView = () => {
                 totalCount={todayHabits.length}
               />
 
-              {/* Liste des habitudes */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {selectedDeck?.name || 'Mes habitudes'}
-                  </h2>
+              {/* Grille des habitudes - style deck/projet */}
+              {habitsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-48 bg-muted/50 rounded-lg animate-pulse" />
+                  ))}
                 </div>
-
-                {habitsLoading ? (
-                  <p className="text-center text-muted-foreground py-8">Chargement des habitudes...</p>
-                ) : habits.length === 0 ? (
-                  <div className="text-center py-8 bg-card rounded-lg border border-border">
-                    <p className="text-muted-foreground mb-4">Aucune habitude dans ce deck</p>
-                    <Button
-                      onClick={() => setIsHabitModalOpen(true)}
-                      variant="outline"
-                      className="border-habit text-habit hover:bg-habit/10"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Créer ma première habitude
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {habits.map(habit => (
-                      <HabitItem
-                        key={habit.id}
-                        habit={habit}
-                        isCompleted={isCompletedToday(habit.id)}
-                        streak={streaks[habit.id]}
-                        isApplicableToday={isHabitApplicableToday(habit)}
-                        onToggle={() => toggleCompletion(habit.id)}
-                        onEdit={() => handleEditHabit(habit)}
-                        onDelete={() => handleDeleteHabit(habit.id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+              ) : habits.length === 0 ? (
+                <div className="text-center py-12 bg-card rounded-lg border border-border">
+                  <Heart className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p className="text-muted-foreground mb-4">Aucune habitude dans ce deck</p>
+                  <Button
+                    onClick={() => setIsHabitModalOpen(true)}
+                    variant="outline"
+                    className="border-habit text-habit hover:bg-habit/10"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Créer ma première habitude
+                  </Button>
+                </div>
+              ) : (
+                <HabitGrid
+                  habits={habits}
+                  streaks={streaks}
+                  isCompletedToday={isCompletedToday}
+                  isHabitApplicableToday={isHabitApplicableToday}
+                  onToggle={(habitId) => toggleCompletion(habitId)}
+                  onEdit={handleEditHabit}
+                  onDelete={handleDeleteHabit}
+                  showNewHabitZone
+                  onNewHabitClick={() => setIsHabitModalOpen(true)}
+                />
+              )}
 
               {/* Section Statistiques - Collapsible */}
               {!habitStats.loading && habitStats.totalHabits > 0 && (
