@@ -1,234 +1,242 @@
 
-# Boite a Outils 2.0 - Catalogue d'Applications de Productivite
+# Page de Description d'Outil avec Lancement Rapide
 
-## Vision
+## Le Probleme UX
 
-Transformer la vue Eisenhower actuelle en un veritable catalogue d'outils de productivite. Chaque outil est presente sous forme de carte compacte avec icone. L'utilisateur clique sur un outil pour l'ouvrir dans un modal plein ecran.
+Comment offrir une page descriptive (comme un app store) sans ajouter de friction pour les utilisateurs experimentes ? Les solutions classiques :
+1. **Toujours afficher la description** - Frustrant pour les habitues
+2. **Case "Ne plus afficher"** - Fonctionnel mais inelegant
+3. **Double-clic vs simple clic** - Pas intuitif
 
-## Architecture Proposee
+## Solution Proposee : Modal a Deux Zones
+
+Une approche hybride inspiree du "progressive disclosure" : le modal s'ouvre avec **deux zones distinctes** permettant de lire OU de lancer directement.
 
 ```text
-src/components/views/toolbox/
-  ├── index.ts                      # Exports
-  ├── ToolboxView.tsx               # Vue catalogue principale
-  ├── components/
-  │   ├── ToolCatalog.tsx           # Grille des outils
-  │   ├── ToolCard.tsx              # Carte d'un outil (icone + nom + description)
-  │   └── ToolModal.tsx             # Modal plein ecran pour afficher un outil
-  └── tools/
-      ├── index.ts                  # Registry des outils
-      ├── types.ts                  # Types communs aux outils
-      ├── eisenhower/
-      │   ├── EisenhowerTool.tsx    # Matrice migree
-      │   └── useEisenhowerTool.ts  # Hook dedie
-      └── rule135/
-          ├── Rule135Tool.tsx       # Methode 1-3-5
-          └── useRule135Tool.ts     # Hook dedie
++--------------------------------------------------+
+| [<] Matrice Eisenhower                    [X]    |
++--------------------------------------------------+
+|                                                  |
+|  +--------------------------------------------+  |
+|  |                                            |  |
+|  |   [ICONE GRANDE]                          |  |
+|  |                                            |  |
+|  |   Prioriser par importance et urgence     |  |
+|  |                                            |  |
+|  |   -------------------------------------   |  |
+|  |                                            |  |
+|  |   Cette methode vous aide a...            |  |
+|  |   - Identifier ce qui compte vraiment     |  |
+|  |   - Eviter les taches "urgentes" inutiles |  |
+|  |   - Deleguer ou eliminer le superflu      |  |
+|  |                                            |  |
+|  |   [Lancer l'outil]     [En savoir plus v] |  |
+|  |                                            |  |
+|  +--------------------------------------------+  |
+|                                                  |
++--------------------------------------------------+
 ```
 
-## Composants Cles
+**Comportement :**
+- **Premier clic sur une carte** : Ouvre ce modal "page produit"
+- **Bouton "Lancer l'outil"** : Bascule vers l'interface de l'outil
+- **"En savoir plus"** : Accordeon avec historique, conseils, etc.
+- **Preference sauvegardee** : Si l'utilisateur a deja utilise l'outil, on lui propose d'aller directement (option optionnelle)
 
-### 1. Systeme de Registry d'Outils
+## Architecture des Modifications
 
-Chaque outil est declare dans un registre central avec ses metadonnees :
+### 1. Enrichir les Metadonnees d'Outil
+
+Fichier : `src/components/views/toolbox/tools/types.ts`
+
+Ajouter des champs pour la page descriptive :
+- `longDescription` : Texte explicatif detaille
+- `benefits` : Liste des avantages (bullet points)
+- `origin` : Origine historique (optionnel)
+- `tips` : Conseils d'utilisation (optionnel)
+- `learnMoreUrl` : Lien externe (optionnel)
 
 ```text
 interface ToolDefinition {
+  // Existants...
   id: string;
   name: string;
-  description: string;
-  icon: LucideIcon;
-  color: string;
-  category: 'prioritization' | 'time-management' | 'planning' | 'focus';
-  component: ComponentType<ToolProps>;
-  isNew?: boolean;
-  isBeta?: boolean;
+  description: string; // Court, pour la carte
+  
+  // Nouveaux
+  longDescription?: string; // Paragraphe explicatif
+  benefits?: string[]; // Liste des avantages
+  origin?: string; // "Cree par Dwight D. Eisenhower..."
+  tips?: string[]; // Conseils d'utilisation
+  learnMoreUrl?: string; // Lien Wikipedia/article
 }
 ```
 
-Cela permet d'ajouter facilement de nouveaux outils a l'avenir (Pomodoro, 2 minutes, etc.).
+### 2. Nouveau Composant : ToolDetailView
 
-### 2. ToolCard - Carte Compacte
+Fichier : `src/components/views/toolbox/components/ToolDetailView.tsx`
 
-Style app store mobile :
-- Icone coloree sur fond pastel (64x64px)
-- Nom de l'outil en gras
-- Description courte (1 ligne)
-- Badge "Nouveau" ou "Beta" optionnel
-- Effet hover avec elevation
+La "page produit" de l'outil avec :
+- Grande icone centree
+- Description longue
+- Liste des benefices avec checkmarks
+- Section pliable "Origine et histoire"
+- Section pliable "Conseils d'utilisation"
+- Bouton principal "Lancer l'outil"
+- Lien secondaire "En savoir plus" (externe)
+
+### 3. Modifier le Flow du Modal
+
+Fichier : `src/components/views/toolbox/components/ToolModal.tsx`
+
+Ajouter un etat interne pour gerer deux modes :
+- `mode: 'detail' | 'tool'`
+- Par defaut : `'detail'` (page produit)
+- Bouton "Lancer" : bascule vers `'tool'`
+- Bouton retour dans le header : revient a `'detail'` (ou ferme si deja en detail)
+
+### 4. Option "Lancement Direct" (Progressive)
+
+Pour les utilisateurs avances :
+- Stocker dans localStorage les outils deja lances : `toolbox_launched: ['eisenhower', 'rule135']`
+- Afficher un bouton secondaire sur la carte : "Lancer" (icone play)
+- Clic sur ce bouton = ouvre directement en mode `'tool'`
+- Clic sur le reste de la carte = ouvre en mode `'detail'`
 
 ```text
 +------------------------+
-|   [Icon]               |
-|   Eisenhower          |
-|   Prioriser par       |
+|   [Icon]        [>]    |  <-- Bouton play pour lancement direct
+|   Eisenhower           |
+|   Prioriser par        |
 |   importance/urgence   |
 +------------------------+
 ```
-
-### 3. ToolModal - Modal Plein Ecran
-
-- Header fixe avec titre de l'outil + bouton fermer (X)
-- Corps scrollable avec l'outil en question
-- Animation d'ouverture fluide (scale + fade)
-- Gestion du clavier (Echap pour fermer)
-
-### 4. Outil 1 : Matrice Eisenhower (Migration)
-
-Migration du code existant dans `EisenhowerView.tsx` vers `tools/eisenhower/EisenhowerTool.tsx` :
-- Conservation de la logique des 4 quadrants
-- Adaptation au contexte modal (pas de ViewLayout)
-- Reutilisation du hook `useEisenhowerViewData`
-
-### 5. Outil 2 : Methode 1-3-5 (Nouveau)
-
-Interface permettant de planifier sa journee avec :
-- 1 tache prioritaire "Big" (la plus importante)
-- 3 taches moyennes "Medium"
-- 5 petites taches "Small"
-
-Fonctionnalites :
-- Selection de taches existantes ou creation rapide
-- Indicateur de temps total estime
-- Validation visuelle quand une tache est completee
-- Sauvegarde de la planification quotidienne
-
-```text
-+------------------------------------------+
-| Ma journee 1-3-5                          |
-+------------------------------------------+
-| BIG (1 tache cruciale)                   |
-|   [ ] Finaliser rapport client    2h     |
-+------------------------------------------+
-| MEDIUM (3 taches importantes)            |
-|   [ ] Reunion equipe              1h     |
-|   [ ] Review PR                   30min  |
-|   [+] Ajouter une tache...               |
-+------------------------------------------+
-| SMALL (5 petites taches)                 |
-|   [ ] Emails                      15min  |
-|   [ ] Tri bureau                  10min  |
-|   [+] Ajouter une tache...               |
-+------------------------------------------+
-| Total: 3h55  |  Progres: 0/9             |
-+------------------------------------------+
-```
-
-## Hook de Donnees
-
-### useToolboxViewData
-
-Hook central qui fournit :
-- Liste des outils disponibles
-- Outil actuellement ouvert
-- Actions : openTool, closeTool
-- Statistiques d'utilisation (optionnel)
-
-### useRule135Tool
-
-Hook specifique pour la methode 1-3-5 :
-- Taches selectionnees par categorie (big, medium, small)
-- Actions : addTask, removeTask, toggleComplete
-- Calcul du temps total
-- Sauvegarde/chargement de la planification du jour
-
-## Modifications du Routing
-
-### viewRegistry.ts
-
-```text
-// Avant
-eisenhower: {
-  id: 'eisenhower',
-  title: 'Matrice Eisenhower',
-  ...
-}
-
-// Apres
-toolbox: {
-  id: 'toolbox',
-  title: 'Boite a outils',
-  subtitle: 'Methodes de productivite',
-  icon: Wrench,
-  component: ToolboxView,
-  order: 7,
-  group: 'productivity',
-  loadingVariant: 'grid',
-}
-```
-
-### AppContext.tsx
-
-```text
-// Mettre a jour la navigation
-{ key: 'toolbox', title: 'Boite a outils', icon: 'wrench' }
-```
-
-### ViewNavigation.tsx
-
-```text
-// Ajouter l'icone
-toolbox: Wrench
-```
-
-## Fichiers a Creer
-
-| Fichier | Description |
-|---------|-------------|
-| `src/components/views/toolbox/index.ts` | Exports |
-| `src/components/views/toolbox/ToolboxView.tsx` | Vue principale |
-| `src/components/views/toolbox/components/ToolCatalog.tsx` | Grille des outils |
-| `src/components/views/toolbox/components/ToolCard.tsx` | Carte outil |
-| `src/components/views/toolbox/components/ToolModal.tsx` | Modal plein ecran |
-| `src/components/views/toolbox/tools/types.ts` | Types des outils |
-| `src/components/views/toolbox/tools/index.ts` | Registry |
-| `src/components/views/toolbox/tools/eisenhower/EisenhowerTool.tsx` | Matrice migree |
-| `src/components/views/toolbox/tools/rule135/Rule135Tool.tsx` | Methode 1-3-5 |
-| `src/components/views/toolbox/tools/rule135/useRule135Tool.ts` | Hook 1-3-5 |
-| `src/hooks/view-data/useToolboxViewData.ts` | Hook donnees vue |
 
 ## Fichiers a Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/components/routing/viewRegistry.ts` | Remplacer eisenhower par toolbox |
-| `src/contexts/AppContext.tsx` | Mettre a jour navigation |
-| `src/components/layout/ViewNavigation.tsx` | Ajouter icone toolbox |
-| `src/hooks/view-data/index.ts` | Exporter nouveaux hooks |
-| `src/components/views/index.ts` | Exporter ToolboxView |
+| `src/components/views/toolbox/tools/types.ts` | Ajouter champs longDescription, benefits, origin, tips |
+| `src/components/views/toolbox/tools/index.ts` | Enrichir les definitions avec les nouvelles metadonnees |
+| `src/components/views/toolbox/components/ToolCard.tsx` | Ajouter bouton "lancement rapide" conditionnel |
+| `src/components/views/toolbox/components/ToolModal.tsx` | Gerer mode detail/tool |
+| `src/components/views/toolbox/components/ToolDetailView.tsx` | **Creer** - Page produit de l'outil |
+| `src/components/views/toolbox/ToolboxView.tsx` | Passer le mode d'ouverture au modal |
 
-## Fichiers a Supprimer (apres migration)
+## Fichiers a Creer
 
-| Fichier | Raison |
-|---------|--------|
-| `src/components/views/eisenhower/EisenhowerView.tsx` | Remplace par ToolboxView + EisenhowerTool |
-| `src/components/views/eisenhower/index.ts` | Plus necessaire |
+| Fichier | Description |
+|---------|-------------|
+| `src/components/views/toolbox/components/ToolDetailView.tsx` | Vue "page produit" d'un outil |
+
+## Contenu Descriptif des Outils
+
+### Matrice Eisenhower
+
+```text
+longDescription: "La matrice Eisenhower est un outil de prise de decision 
+qui vous aide a organiser vos taches selon deux axes : l'urgence et 
+l'importance. En classant vos taches dans quatre quadrants, vous identifiez 
+rapidement ce qui merite votre attention immediate, ce qui peut etre 
+planifie, delegue ou simplement elimine."
+
+benefits:
+  - "Clarifier vos priorites en quelques minutes"
+  - "Reduire le stress lie aux taches urgentes non importantes"
+  - "Identifier les taches a deleguer ou eliminer"
+  - "Vous concentrer sur ce qui compte vraiment"
+
+origin: "Attribuee a Dwight D. Eisenhower, 34e president des Etats-Unis, 
+qui aurait declare : 'Ce qui est important est rarement urgent et ce qui 
+est urgent est rarement important.'"
+
+tips:
+  - "Commencez par les taches du quadrant 'Important + Non Urgent'"
+  - "Limitez le temps passe sur les taches 'Urgent + Non Important'"
+  - "Revisez votre matrice chaque matin"
+```
+
+### Methode 1-3-5
+
+```text
+longDescription: "La methode 1-3-5 est une technique de planification 
+quotidienne simple mais efficace. Chaque jour, vous choisissez 1 tache 
+majeure, 3 taches moyennes et 5 petites taches. Ce cadre vous aide a 
+definir des attentes realistes et a ressentir un sentiment 
+d'accomplissement en fin de journee."
+
+benefits:
+  - "Eviter la surcharge de travail quotidienne"
+  - "Equilibrer les taches lourdes et legeres"
+  - "Terminer chaque journee avec un sentiment de progres"
+  - "Structure claire sans rigidite excessive"
+
+origin: "Popularisee par The Muse, cette methode s'inspire des principes 
+de la 'liste de priorites limitees' pour eviter l'epuisement."
+
+tips:
+  - "Choisissez votre tache 'Big' en premier chaque matin"
+  - "Les petites taches peuvent servir de pauses entre les moyennes"
+  - "Si vous ne finissez pas tout, ce n'est pas grave - l'important est d'avoir avance sur le 'Big'"
+```
+
+## Flow Utilisateur
+
+```text
+Premiere utilisation :
+  Carte -> Clic -> Modal (Detail) -> "Lancer" -> Interface outil
+
+Utilisateur habitue :
+  Carte -> Clic bouton [>] -> Modal (Interface outil directement)
+  OU
+  Carte -> Clic zone carte -> Modal (Detail) -> "Lancer" -> Interface
+```
 
 ## Details Techniques
 
-### Animation du Modal
+### Gestion du State Modal
 
-Utilisation de Radix Dialog avec animations CSS :
-- Entree : scale 0.95 -> 1, opacity 0 -> 1 (200ms)
-- Sortie : inverse (150ms)
-- Backdrop : blur + opacity
+```text
+const [modalState, setModalState] = useState<{
+  toolId: string | null;
+  mode: 'detail' | 'tool';
+}>({ toolId: null, mode: 'detail' });
 
-### Persistence 1-3-5
+// Ouvrir en mode detail
+const openToolDetail = (toolId: string) => 
+  setModalState({ toolId, mode: 'detail' });
 
-Les selections de taches pour la methode 1-3-5 seront stockees :
-- En local (localStorage) pour le prototype
-- Possibilite future de synchroniser avec time_events
+// Ouvrir directement l'outil
+const openToolDirect = (toolId: string) => 
+  setModalState({ toolId, mode: 'tool' });
 
-### Responsive
+// Lancer depuis le detail
+const launchTool = () => 
+  setModalState(prev => ({ ...prev, mode: 'tool' }));
+```
 
-- Desktop : grille 3-4 colonnes
-- Tablet : grille 2 colonnes
-- Mobile : grille 2 colonnes (cartes plus petites)
+### Persistence des Outils Lances
+
+```text
+const LAUNCHED_TOOLS_KEY = 'toolbox_launched_tools';
+
+function getlaunchedTools(): string[] {
+  const stored = localStorage.getItem(LAUNCHED_TOOLS_KEY);
+  return stored ? JSON.parse(stored) : [];
+}
+
+function markToolLaunched(toolId: string): void {
+  const current = getlaunchedTools();
+  if (!current.includes(toolId)) {
+    localStorage.setItem(LAUNCHED_TOOLS_KEY, JSON.stringify([...current, toolId]));
+  }
+}
+```
 
 ## Benefices
 
-1. **Extensibilite** : Ajouter un nouvel outil = creer un composant + l'enregistrer
-2. **Separation** : Chaque outil est autonome dans son dossier
-3. **UX** : Modal plein ecran offre une experience immersive
-4. **Performance** : Lazy loading des outils via le registry
-5. **Coherence** : Toutes les methodes de productivite au meme endroit
+1. **Decouverte** : Les nouveaux utilisateurs comprennent l'outil avant de l'utiliser
+2. **Efficacite** : Les habitues peuvent lancer directement via le bouton rapide
+3. **Flexibilite** : On peut toujours revenir a la description depuis l'outil
+4. **Extensibilite** : Facile d'ajouter du contenu (videos, exemples) plus tard
+5. **Coherence** : UX similaire aux app stores que tout le monde connait
