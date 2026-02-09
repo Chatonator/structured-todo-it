@@ -6,14 +6,28 @@ import ToolCard from './ToolCard';
 interface ToolCatalogProps {
   tools: ToolDefinition[];
   onSelectTool: (toolId: string) => void;
+  onQuickLaunch?: (toolId: string) => void;
+  launchedTools?: string[];
   groupByCategory?: boolean;
 }
 
 const ToolCatalog: React.FC<ToolCatalogProps> = ({ 
   tools, 
   onSelectTool,
+  onQuickLaunch,
+  launchedTools = [],
   groupByCategory = false 
 }) => {
+  const renderToolCard = (tool: ToolDefinition) => (
+    <ToolCard
+      key={tool.id}
+      tool={tool}
+      onClick={() => onSelectTool(tool.id)}
+      onQuickLaunch={onQuickLaunch ? () => onQuickLaunch(tool.id) : undefined}
+      hasBeenLaunched={launchedTools.includes(tool.id)}
+    />
+  );
+
   if (groupByCategory) {
     // Group tools by category
     const groupedTools = TOOL_CATEGORIES.map(category => ({
@@ -30,13 +44,7 @@ const ToolCatalog: React.FC<ToolCatalogProps> = ({
               <p className="text-sm text-muted-foreground">{group.description}</p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {group.tools.map(tool => (
-                <ToolCard
-                  key={tool.id}
-                  tool={tool}
-                  onClick={() => onSelectTool(tool.id)}
-                />
-              ))}
+              {group.tools.map(renderToolCard)}
             </div>
           </div>
         ))}
@@ -47,13 +55,7 @@ const ToolCatalog: React.FC<ToolCatalogProps> = ({
   // Simple grid without grouping
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      {tools.map(tool => (
-        <ToolCard
-          key={tool.id}
-          tool={tool}
-          onClick={() => onSelectTool(tool.id)}
-        />
-      ))}
+      {tools.map(renderToolCard)}
     </div>
   );
 };

@@ -1,25 +1,48 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ViewLayout } from '@/components/layout/view';
 import { Wrench } from 'lucide-react';
 import { toolRegistry, getToolById } from './tools';
 import ToolCatalog from './components/ToolCatalog';
-import ToolModal from './components/ToolModal';
+import ToolModal, { ToolModalMode, getLaunchedTools } from './components/ToolModal';
 
 interface ToolboxViewProps {
   className?: string;
 }
 
 const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
-  const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
-  
-  const selectedTool = selectedToolId ? getToolById(selectedToolId) : null;
+  const [modalState, setModalState] = useState<{
+    toolId: string | null;
+    mode: ToolModalMode;
+  }>({ toolId: null, mode: 'detail' });
 
+  const [launchedTools, setLaunchedTools] = useState<string[]>([]);
+
+  // Load launched tools from localStorage on mount
+  useEffect(() => {
+    setLaunchedTools(getLaunchedTools());
+  }, []);
+
+  // Refresh launched tools when modal closes
+  useEffect(() => {
+    if (modalState.toolId === null) {
+      setLaunchedTools(getLaunchedTools());
+    }
+  }, [modalState.toolId]);
+  
+  const selectedTool = modalState.toolId ? getToolById(modalState.toolId) : null;
+
+  // Open in detail mode (default click on card)
   const handleSelectTool = useCallback((toolId: string) => {
-    setSelectedToolId(toolId);
+    setModalState({ toolId, mode: 'detail' });
+  }, []);
+
+  // Open directly in tool mode (quick launch)
+  const handleQuickLaunch = useCallback((toolId: string) => {
+    setModalState({ toolId, mode: 'tool' });
   }, []);
 
   const handleCloseTool = useCallback(() => {
-    setSelectedToolId(null);
+    setModalState({ toolId: null, mode: 'detail' });
   }, []);
 
   return (
@@ -52,14 +75,17 @@ const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
         <ToolCatalog
           tools={toolRegistry}
           onSelectTool={handleSelectTool}
+          onQuickLaunch={handleQuickLaunch}
+          launchedTools={launchedTools}
           groupByCategory={toolRegistry.length > 4}
         />
 
         {/* Tool modal */}
         <ToolModal
           tool={selectedTool}
-          open={selectedToolId !== null}
+          open={modalState.toolId !== null}
           onClose={handleCloseTool}
+          initialMode={modalState.mode}
         />
       </div>
     </ViewLayout>
