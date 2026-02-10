@@ -1,242 +1,88 @@
 
-# Page de Description d'Outil avec Lancement Rapide
 
-## Le Probleme UX
+# Factorisation de l'Application
 
-Comment offrir une page descriptive (comme un app store) sans ajouter de friction pour les utilisateurs experimentes ? Les solutions classiques :
-1. **Toujours afficher la description** - Frustrant pour les habitues
-2. **Case "Ne plus afficher"** - Fonctionnel mais inelegant
-3. **Double-clic vs simple clic** - Pas intuitif
+## Problemes Identifies
 
-## Solution Proposee : Modal a Deux Zones
+### 1. Duplication des vues : deux emplacements pour les memes composants
+Actuellement, les vues existent a deux endroits :
+- `src/components/habits/HabitsView.tsx` (composant reel)
+- `src/components/views/habits/HabitsView.tsx` (simple re-export)
 
-Une approche hybride inspiree du "progressive disclosure" : le modal s'ouvre avec **deux zones distinctes** permettant de lire OU de lancer directement.
+Meme probleme pour `projects/` et `rewards/`. Certaines vues (Observatory, Toolbox, Home, Teams, Timeline) sont deja correctement placees dans `src/components/views/`, tandis que d'autres restent dans des dossiers "legacy" avec un fichier de re-export qui ajoute de la confusion.
 
-```text
-+--------------------------------------------------+
-| [<] Matrice Eisenhower                    [X]    |
-+--------------------------------------------------+
-|                                                  |
-|  +--------------------------------------------+  |
-|  |                                            |  |
-|  |   [ICONE GRANDE]                          |  |
-|  |                                            |  |
-|  |   Prioriser par importance et urgence     |  |
-|  |                                            |  |
-|  |   -------------------------------------   |  |
-|  |                                            |  |
-|  |   Cette methode vous aide a...            |  |
-|  |   - Identifier ce qui compte vraiment     |  |
-|  |   - Eviter les taches "urgentes" inutiles |  |
-|  |   - Deleguer ou eliminer le superflu      |  |
-|  |                                            |  |
-|  |   [Lancer l'outil]     [En savoir plus v] |  |
-|  |                                            |  |
-|  +--------------------------------------------+  |
-|                                                  |
-+--------------------------------------------------+
-```
+### 2. Duplication RewardsView
+Il existe deux fichiers `RewardsView.tsx` :
+- `src/components/rewards/RewardsView.tsx` : version legacy utilisant `useGamification` directement
+- `src/components/views/rewards/RewardsView.tsx` : version refactorisee utilisant `useRewardsViewData`
 
-**Comportement :**
-- **Premier clic sur une carte** : Ouvre ce modal "page produit"
-- **Bouton "Lancer l'outil"** : Bascule vers l'interface de l'outil
-- **"En savoir plus"** : Accordeon avec historique, conseils, etc.
-- **Preference sauvegardee** : Si l'utilisateur a deja utilise l'outil, on lui propose d'aller directement (option optionnelle)
+Les deux coexistent, et le `viewRegistry` charge la version de `views/rewards/`.
 
-## Architecture des Modifications
+### 3. Hook mort : useEisenhowerViewData exporte depuis index mais lie a l'ancien systeme
+Le hook `useEisenhowerViewData` est encore exporte depuis `view-data/index.ts` mais n'est plus utilise que par `EisenhowerTool.tsx` dans la toolbox. Il devrait etre deplace dans le dossier de l'outil ou renomme pour plus de clarte.
 
-### 1. Enrichir les Metadonnees d'Outil
+### 4. Re-export inutile de useRule135Tool dans view-data/index.ts
+Le hook `useRule135Tool` est exporte depuis `view-data/index.ts` alors qu'il appartient exclusivement a l'outil 1-3-5 de la toolbox. Ce n'est pas un hook de vue, c'est un hook d'outil.
 
-Fichier : `src/components/views/toolbox/tools/types.ts`
+### 5. Composants legacy orphelins
+Les dossiers `src/components/rewards/` et `src/components/projects/` contiennent les composants originaux. Apres consolidation, les vues principales (`RewardsView`, `ProjectsView`) devraient vivre dans `src/components/views/`. Les sous-composants specifiques (ProjectGrid, ProjectCard, etc.) peuvent rester dans leur dossier ou etre deplaces.
 
-Ajouter des champs pour la page descriptive :
-- `longDescription` : Texte explicatif detaille
-- `benefits` : Liste des avantages (bullet points)
-- `origin` : Origine historique (optionnel)
-- `tips` : Conseils d'utilisation (optionnel)
-- `learnMoreUrl` : Lien externe (optionnel)
+## Plan de Factorisation
 
-```text
-interface ToolDefinition {
-  // Existants...
-  id: string;
-  name: string;
-  description: string; // Court, pour la carte
-  
-  // Nouveaux
-  longDescription?: string; // Paragraphe explicatif
-  benefits?: string[]; // Liste des avantages
-  origin?: string; // "Cree par Dwight D. Eisenhower..."
-  tips?: string[]; // Conseils d'utilisation
-  learnMoreUrl?: string; // Lien Wikipedia/article
-}
-```
+### Etape 1 : Consolider les vues Habits
 
-### 2. Nouveau Composant : ToolDetailView
+**Deplacer** le contenu de `src/components/habits/HabitsView.tsx` vers `src/components/views/habits/HabitsView.tsx` (remplacer le re-export par le vrai composant).
 
-Fichier : `src/components/views/toolbox/components/ToolDetailView.tsx`
+Mettre a jour les imports dans `viewRegistry.ts` et `src/components/views/index.ts` (deja corrects car ils pointent vers `views/habits/`).
 
-La "page produit" de l'outil avec :
-- Grande icone centree
-- Description longue
-- Liste des benefices avec checkmarks
-- Section pliable "Origine et histoire"
-- Section pliable "Conseils d'utilisation"
-- Bouton principal "Lancer l'outil"
-- Lien secondaire "En savoir plus" (externe)
+L'ancien `src/components/habits/HabitsView.tsx` devient un re-export inverse temporaire pour ne pas casser les eventuels imports directs.
 
-### 3. Modifier le Flow du Modal
+### Etape 2 : Consolider la vue Projects
 
-Fichier : `src/components/views/toolbox/components/ToolModal.tsx`
+**Deplacer** le contenu de `src/components/projects/ProjectsView.tsx` vers `src/components/views/projects/ProjectsView.tsx`.
 
-Ajouter un etat interne pour gerer deux modes :
-- `mode: 'detail' | 'tool'`
-- Par defaut : `'detail'` (page produit)
-- Bouton "Lancer" : bascule vers `'tool'`
-- Bouton retour dans le header : revient a `'detail'` (ou ferme si deja en detail)
+L'ancien fichier devient un re-export inverse.
 
-### 4. Option "Lancement Direct" (Progressive)
+### Etape 3 : Nettoyer la vue Rewards
 
-Pour les utilisateurs avances :
-- Stocker dans localStorage les outils deja lances : `toolbox_launched: ['eisenhower', 'rule135']`
-- Afficher un bouton secondaire sur la carte : "Lancer" (icone play)
-- Clic sur ce bouton = ouvre directement en mode `'tool'`
-- Clic sur le reste de la carte = ouvre en mode `'detail'`
+**Supprimer** `src/components/rewards/RewardsView.tsx` (version legacy, non referencee).
 
-```text
-+------------------------+
-|   [Icon]        [>]    |  <-- Bouton play pour lancement direct
-|   Eisenhower           |
-|   Prioriser par        |
-|   importance/urgence   |
-+------------------------+
-```
+La version dans `src/components/views/rewards/RewardsView.tsx` est deja la bonne et la seule utilisee.
 
-## Fichiers a Modifier
+### Etape 4 : Reorganiser les hooks de la toolbox
 
-| Fichier | Modification |
-|---------|--------------|
-| `src/components/views/toolbox/tools/types.ts` | Ajouter champs longDescription, benefits, origin, tips |
-| `src/components/views/toolbox/tools/index.ts` | Enrichir les definitions avec les nouvelles metadonnees |
-| `src/components/views/toolbox/components/ToolCard.tsx` | Ajouter bouton "lancement rapide" conditionnel |
-| `src/components/views/toolbox/components/ToolModal.tsx` | Gerer mode detail/tool |
-| `src/components/views/toolbox/components/ToolDetailView.tsx` | **Creer** - Page produit de l'outil |
-| `src/components/views/toolbox/ToolboxView.tsx` | Passer le mode d'ouverture au modal |
+**Retirer** de `src/hooks/view-data/index.ts` :
+- `useRule135Tool` (re-export inutile - les consommateurs importent deja directement depuis le dossier de l'outil)
+- Renommer l'export `useEisenhowerViewData` en ajoutant un commentaire clarifiant qu'il sert la toolbox
 
-## Fichiers a Creer
+### Etape 5 : Nettoyer les index d'exports
 
-| Fichier | Description |
-|---------|-------------|
-| `src/components/views/toolbox/components/ToolDetailView.tsx` | Vue "page produit" d'un outil |
-
-## Contenu Descriptif des Outils
-
-### Matrice Eisenhower
-
-```text
-longDescription: "La matrice Eisenhower est un outil de prise de decision 
-qui vous aide a organiser vos taches selon deux axes : l'urgence et 
-l'importance. En classant vos taches dans quatre quadrants, vous identifiez 
-rapidement ce qui merite votre attention immediate, ce qui peut etre 
-planifie, delegue ou simplement elimine."
-
-benefits:
-  - "Clarifier vos priorites en quelques minutes"
-  - "Reduire le stress lie aux taches urgentes non importantes"
-  - "Identifier les taches a deleguer ou eliminer"
-  - "Vous concentrer sur ce qui compte vraiment"
-
-origin: "Attribuee a Dwight D. Eisenhower, 34e president des Etats-Unis, 
-qui aurait declare : 'Ce qui est important est rarement urgent et ce qui 
-est urgent est rarement important.'"
-
-tips:
-  - "Commencez par les taches du quadrant 'Important + Non Urgent'"
-  - "Limitez le temps passe sur les taches 'Urgent + Non Important'"
-  - "Revisez votre matrice chaque matin"
-```
-
-### Methode 1-3-5
-
-```text
-longDescription: "La methode 1-3-5 est une technique de planification 
-quotidienne simple mais efficace. Chaque jour, vous choisissez 1 tache 
-majeure, 3 taches moyennes et 5 petites taches. Ce cadre vous aide a 
-definir des attentes realistes et a ressentir un sentiment 
-d'accomplissement en fin de journee."
-
-benefits:
-  - "Eviter la surcharge de travail quotidienne"
-  - "Equilibrer les taches lourdes et legeres"
-  - "Terminer chaque journee avec un sentiment de progres"
-  - "Structure claire sans rigidite excessive"
-
-origin: "Popularisee par The Muse, cette methode s'inspire des principes 
-de la 'liste de priorites limitees' pour eviter l'epuisement."
-
-tips:
-  - "Choisissez votre tache 'Big' en premier chaque matin"
-  - "Les petites taches peuvent servir de pauses entre les moyennes"
-  - "Si vous ne finissez pas tout, ce n'est pas grave - l'important est d'avoir avance sur le 'Big'"
-```
-
-## Flow Utilisateur
-
-```text
-Premiere utilisation :
-  Carte -> Clic -> Modal (Detail) -> "Lancer" -> Interface outil
-
-Utilisateur habitue :
-  Carte -> Clic bouton [>] -> Modal (Interface outil directement)
-  OU
-  Carte -> Clic zone carte -> Modal (Detail) -> "Lancer" -> Interface
-```
+Mettre a jour `src/components/views/index.ts` pour retirer les commentaires "re-export from original location" devenus obsoletes apres les etapes 1-3.
 
 ## Details Techniques
 
-### Gestion du State Modal
+### Fichiers a modifier
 
-```text
-const [modalState, setModalState] = useState<{
-  toolId: string | null;
-  mode: 'detail' | 'tool';
-}>({ toolId: null, mode: 'detail' });
+| Fichier | Action |
+|---------|--------|
+| `src/components/views/habits/HabitsView.tsx` | Remplacer le re-export par le vrai composant (copie depuis `components/habits/`) |
+| `src/components/habits/HabitsView.tsx` | Transformer en re-export vers `views/habits/` |
+| `src/components/views/projects/ProjectsView.tsx` | Remplacer le re-export par le vrai composant (copie depuis `components/projects/`) |
+| `src/components/projects/ProjectsView.tsx` | Transformer en re-export vers `views/projects/` |
+| `src/components/rewards/RewardsView.tsx` | Supprimer (version legacy non utilisee) |
+| `src/hooks/view-data/index.ts` | Retirer le re-export de `useRule135Tool` |
+| `src/components/views/index.ts` | Nettoyer les commentaires TODO |
 
-// Ouvrir en mode detail
-const openToolDetail = (toolId: string) => 
-  setModalState({ toolId, mode: 'detail' });
+### Fichiers NON impactes
 
-// Ouvrir directement l'outil
-const openToolDirect = (toolId: string) => 
-  setModalState({ toolId, mode: 'tool' });
+Les sous-composants (`HabitGrid`, `HabitDeckCard`, `ProjectGrid`, `ProjectCard`, etc.) restent dans `src/components/habits/` et `src/components/projects/` car ils ne sont pas des vues -- ce sont des composants de feature. Seul le composant racine de vue (`*View.tsx`) est deplace.
 
-// Lancer depuis le detail
-const launchTool = () => 
-  setModalState(prev => ({ ...prev, mode: 'tool' }));
-```
+## Resultat Attendu
 
-### Persistence des Outils Lances
+Apres cette factorisation :
+- Chaque vue a un seul emplacement canonique dans `src/components/views/{feature}/`
+- Les hooks de vue sont dans `src/hooks/view-data/`
+- Les hooks specifiques aux outils restent dans `src/components/views/toolbox/tools/`
+- Les re-exports "legacy" pointent vers la nouvelle source (et non l'inverse)
+- Zero duplication de code
 
-```text
-const LAUNCHED_TOOLS_KEY = 'toolbox_launched_tools';
-
-function getlaunchedTools(): string[] {
-  const stored = localStorage.getItem(LAUNCHED_TOOLS_KEY);
-  return stored ? JSON.parse(stored) : [];
-}
-
-function markToolLaunched(toolId: string): void {
-  const current = getlaunchedTools();
-  if (!current.includes(toolId)) {
-    localStorage.setItem(LAUNCHED_TOOLS_KEY, JSON.stringify([...current, toolId]));
-  }
-}
-```
-
-## Benefices
-
-1. **Decouverte** : Les nouveaux utilisateurs comprennent l'outil avant de l'utiliser
-2. **Efficacite** : Les habitues peuvent lancer directement via le bouton rapide
-3. **Flexibilite** : On peut toujours revenir a la description depuis l'outil
-4. **Extensibilite** : Facile d'ajouter du contenu (videos, exemples) plus tard
-5. **Coherence** : UX similaire aux app stores que tout le monde connait
