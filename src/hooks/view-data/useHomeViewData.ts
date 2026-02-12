@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { useViewDataContext } from '@/contexts/ViewDataContext';
-import { Task } from '@/types/task';
 
 /**
  * Hook spécialisé pour les données de la HomeView
- * Retourne les données préparées spécifiquement pour le dashboard
+ * Retourne toutes les données nécessaires au dashboard
  */
 export const useHomeViewData = () => {
   const viewData = useViewDataContext();
@@ -21,7 +20,7 @@ export const useHomeViewData = () => {
     [viewData.pinnedTasks]
   );
 
-  // Tâches pinnées (résolution des IDs en Task[])
+  // Tâches pinnées
   const pinnedTasks = useMemo(() => 
     activeTasks.filter(t => pinnedTaskIds.has(t.id)),
     [activeTasks, pinnedTaskIds]
@@ -30,12 +29,10 @@ export const useHomeViewData = () => {
   // Top 5 tâches prioritaires
   const topPriorityTasks = useMemo(() => {
     const pinnedActive = pinnedTasks.slice(0, 3);
-    
     const others = activeTasks
       .filter(t => !t.parentId && !pinnedTaskIds.has(t.id))
       .sort((a, b) => a.estimatedTime - b.estimatedTime)
       .slice(0, 5 - pinnedActive.length);
-    
     return [...pinnedActive, ...others];
   }, [activeTasks, pinnedTasks, pinnedTaskIds]);
 
@@ -60,7 +57,11 @@ export const useHomeViewData = () => {
       activeProject,
       todayHabits: viewData.todayHabits,
       projects: viewData.projects,
-      stats
+      stats,
+      // Habits data consolidated here
+      habitCompletions: viewData.habitCompletions,
+      habitStreaks: viewData.habitStreaks,
+      habitsLoading: viewData.habitsLoading,
     },
     state: {
       loading: !viewData.tasks,
@@ -69,7 +70,8 @@ export const useHomeViewData = () => {
     actions: {
       toggleTaskCompletion: viewData.toggleTaskCompletion,
       toggleHabitCompletion: viewData.toggleHabitCompletion,
-      addTask: viewData.addTask
+      addTask: viewData.addTask,
+      calculateTotalTime: viewData.calculateTotalTime,
     }
   };
 };

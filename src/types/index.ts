@@ -15,3 +15,6 @@ export * from './gamification';
 
 // User preferences
 export * from './preferences';
+
+// Widget / Dashboard
+export * from './widget';
