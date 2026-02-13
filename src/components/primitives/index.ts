@@ -6,6 +6,3 @@ export * from './badges';
 
 // Cards
 export * from './cards';
-
-// Lists
-export * from './lists';
