@@ -1,5 +1,5 @@
 import React from 'react';
-import { useEisenhowerViewData, QUADRANT_CONFIGS, EisenhowerQuadrant } from '@/hooks/view-data';
+import { useEisenhowerViewData, QUADRANT_CONFIGS, EisenhowerQuadrant } from './useEisenhowerViewData';
 import { TaskCard } from '@/components/primitives/cards';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

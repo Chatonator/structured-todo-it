@@ -7,7 +7,7 @@ export { useProjectsViewData, type ProjectsViewDataReturn } from './useProjectsV
 
 // Hooks de vue spécialisés
 export { useHomeViewData, type HomeViewDataReturn } from './useHomeViewData';
-export { useEisenhowerViewData, type EisenhowerViewDataReturn, type EisenhowerQuadrant, QUADRANT_CONFIGS } from './useEisenhowerViewData';
+
 export { useTimelineViewData, type TimelineViewDataReturn, type ViewMode } from './useTimelineViewData';
 export { useRewardsViewData, type RewardsViewDataReturn } from './useRewardsViewData';
 
