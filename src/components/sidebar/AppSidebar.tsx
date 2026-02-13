@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import {
   Sidebar,
@@ -13,153 +13,51 @@ import {
 import { ListTodo, CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import SidebarQuickAdd from './SidebarQuickAdd';
-import SidebarSearchFilter, { TaskFilters, defaultFilters } from './SidebarSearchFilter';
-import SidebarSortSelector, { SortConfig, defaultSortConfig, CATEGORY_SORT_ORDER } from './SidebarSortSelector';
-import SidebarTaskItem from './SidebarTaskItem';
+import SidebarSearchFilter from './SidebarSearchFilter';
+import SidebarSortSelector from './SidebarSortSelector';
+import SidebarTaskRenderer from './SidebarTaskRenderer';
 import { SidebarHabitsSection } from './SidebarHabitsSection';
 import { SidebarProjectsSection } from './SidebarProjectsSection';
 import { SidebarTeamTasksSection } from './SidebarTeamTasksSection';
 import TaskModal from '@/components/task/TaskModal';
-import { useProjects } from '@/hooks/useProjects';
 import { useSidebarContext } from '@/contexts/SidebarContext';
+import { useSidebarFilters, useSidebarProjectActions } from './hooks';
 import { cn } from '@/lib/utils';
 
-/**
- * AppSidebar - Utilise SidebarContext pour toutes ses données
- * Plus aucun prop nécessaire !
- */
 const AppSidebar: React.FC = () => {
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === 'collapsed';
-  const { assignTaskToProject, createProjectFromTask } = useProjects();
 
-  // Récupérer toutes les données depuis le contexte
   const {
-    tasks,
-    mainTasks,
-    pinnedTasks,
-    recurringTaskIds,
-    taskSchedules,
-    onRemoveTask,
-    onToggleExpansion,
-    onToggleCompletion,
-    onTogglePinTask,
-    onAddTask,
-    onUpdateTask,
-    onSetRecurring,
-    onRemoveRecurring,
-    onScheduleTask,
-    getSubTasks,
-    calculateTotalTime,
-    canHaveSubTasks,
-    selectedTasks,
-    onToggleSelection,
-    sidebarShowHabits,
-    sidebarShowProjects,
-    sidebarShowTeamTasks,
-    todayHabits,
-    habitCompletions,
-    habitStreaks,
-    onToggleHabit,
-    projects,
-    projectTasks,
-    sidebarProjects,
-    sidebarProjectTasks,
-    onToggleProjectTask,
-    teamTasks,
-    onToggleTeamTask
+    tasks, mainTasks, pinnedTasks, recurringTaskIds, taskSchedules,
+    onRemoveTask, onToggleExpansion, onToggleCompletion, onTogglePinTask,
+    onAddTask, onUpdateTask, onSetRecurring, onRemoveRecurring, onScheduleTask,
+    getSubTasks, calculateTotalTime, canHaveSubTasks,
+    selectedTasks, onToggleSelection,
+    sidebarShowHabits, sidebarShowTeamTasks,
+    todayHabits, habitCompletions, habitStreaks, onToggleHabit,
+    sidebarProjectTasks, onToggleProjectTask,
+    teamTasks, onToggleTeamTask
   } = useSidebarContext();
 
-  // États modaux
+  // Extracted hooks
+  const activeTasks = mainTasks.filter(task => !task.isCompleted && !task.projectId);
+  const { searchQuery, setSearchQuery, filters, setFilters, sortConfig, setSortConfig, sortedTasks } =
+    useSidebarFilters(activeTasks, pinnedTasks, recurringTaskIds);
+  const { handleAssignToProject, handleCreateProjectFromTask } =
+    useSidebarProjectActions(tasks, getSubTasks);
+
+  // Modal state
   const [isSubTaskModalOpen, setIsSubTaskModalOpen] = useState(false);
   const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // États recherche, filtres et tri
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
-  const [sortConfig, setSortConfig] = useState<SortConfig>(defaultSortConfig);
-
-  // Tâches actives (exclure celles assignées à un projet)
-  const activeTasks = mainTasks.filter(task => !task.isCompleted && !task.projectId);
-
-  // Filtrage et recherche des tâches
-  const filteredTasks = useMemo(() => {
-    let result = activeTasks;
-
-    // Recherche par nom
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(task => task.name.toLowerCase().includes(query));
-    }
-
-    // Filtre par catégorie
-    if (filters.categories.length > 0) {
-      result = result.filter(task => filters.categories.includes(task.category));
-    }
-
-    // Filtre par contexte
-    if (filters.contexts.length > 0) {
-      result = result.filter(task => filters.contexts.includes(task.context));
-    }
-
-    // Filtre épinglées uniquement
-    if (filters.showPinned) {
-      result = result.filter(task => pinnedTasks.includes(task.id));
-    }
-
-    // Filtre récurrentes uniquement
-    if (filters.showRecurring) {
-      result = result.filter(task => recurringTaskIds.includes(task.id));
-    }
-
-    return result;
-  }, [activeTasks, searchQuery, filters, pinnedTasks, recurringTaskIds]);
-
-  // Tri des tâches
-  const sortedTasks = useMemo(() => {
-    const sorted = [...filteredTasks].sort((a, b) => {
-      // Les tâches épinglées restent toujours en tête
-      const aPinned = pinnedTasks.includes(a.id);
-      const bPinned = pinnedTasks.includes(b.id);
-      if (aPinned !== bPinned) return aPinned ? -1 : 1;
-
-      // Tri selon le champ sélectionné
-      let comparison = 0;
-      switch (sortConfig.field) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name, 'fr');
-          break;
-        case 'category':
-          const orderA = CATEGORY_SORT_ORDER[a.category] ?? 99;
-          const orderB = CATEGORY_SORT_ORDER[b.category] ?? 99;
-          comparison = orderA - orderB;
-          break;
-        case 'estimatedTime':
-          comparison = a.estimatedTime - b.estimatedTime;
-          break;
-        case 'createdAt':
-        default:
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          comparison = dateA - dateB;
-          break;
-      }
-
-      return sortConfig.direction === 'asc' ? comparison : -comparison;
-    });
-
-    return sorted;
-  }, [filteredTasks, pinnedTasks, sortConfig]);
-
-  // Gestion de la création de sous-tâches
   const handleCreateSubTask = (parentTask: Task) => {
     setSelectedParentTask(parentTask);
     setIsSubTaskModalOpen(true);
   };
 
-  // Gestion de l'édition de tâche
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setIsEditModalOpen(true);
@@ -170,95 +68,9 @@ const AppSidebar: React.FC = () => {
     setIsEditModalOpen(false);
   };
 
-  // Assigner une tâche à un projet (avec sous-tâches si niveau 0)
-  const handleAssignToProject = async (taskId: string, projectId: string): Promise<boolean> => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return false;
-
-    const success = await assignTaskToProject(taskId, projectId);
-    
-    if (success && task.level === 0) {
-      const assignSubtasksRecursively = async (parentId: string) => {
-        const subTasks = getSubTasks(parentId);
-        for (const subTask of subTasks) {
-          await assignTaskToProject(subTask.id, projectId);
-          await assignSubtasksRecursively(subTask.id);
-        }
-      };
-      await assignSubtasksRecursively(taskId);
-    }
-    
-    return success;
-  };
-
-  // Créer un projet à partir d'une tâche (avec ses sous-tâches)
-  const handleCreateProjectFromTask = async (task: Task, subTasks: Task[]) => {
-    await createProjectFromTask(
-      task.id,
-      task.name,
-      subTasks.map(st => ({
-        id: st.id,
-        name: st.name,
-        metadata: {
-          category: st.category,
-          subCategory: st.subCategory,
-          context: st.context,
-          estimatedTime: st.estimatedTime,
-          duration: st.duration,
-        }
-      })),
-      { description: `Projet créé à partir de la tâche "${task.name}"` }
-    );
-  };
-
-  // Rendu récursif d'une tâche avec ses sous-tâches
-  const renderTask = (task: Task, level: number = 0): React.ReactNode => {
-    const subTasks = getSubTasks(task.id).filter(t => !t.isCompleted);
-    const totalTime = calculateTotalTime(task);
-    const isSelected = selectedTasks.includes(task.id);
-    const isPinned = pinnedTasks.includes(task.id);
-    const isRecurring = recurringTaskIds.includes(task.id);
-    const schedule = taskSchedules[task.id];
-
-    return (
-      <div key={task.id} style={{ marginLeft: level > 0 ? `${level * 8}px` : 0 }}>
-        <SidebarTaskItem
-          task={task}
-          subTasks={subTasks}
-          totalTime={totalTime}
-          isSelected={isSelected}
-          isPinned={isPinned}
-          isRecurring={isRecurring}
-          scheduledDate={schedule?.date}
-          scheduledTime={schedule?.time}
-          canHaveSubTasks={canHaveSubTasks(task)}
-          onToggleSelection={onToggleSelection}
-          onToggleExpansion={onToggleExpansion}
-          onToggleCompletion={onToggleCompletion}
-          onTogglePinTask={onTogglePinTask}
-          onRemoveTask={onRemoveTask}
-          onCreateSubTask={handleCreateSubTask}
-          onEditTask={handleEditTask}
-          onAssignToProject={handleAssignToProject}
-          onCreateProjectFromTask={handleCreateProjectFromTask}
-          onSetRecurring={onSetRecurring}
-          onRemoveRecurring={onRemoveRecurring}
-          onScheduleTask={onScheduleTask}
-        />
-
-        {/* Sous-tâches */}
-        {subTasks.length > 0 && task.isExpanded && (
-          <div className="mt-0.5">
-            {subTasks.map(subTask => renderTask(subTask, level + 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <>
-      {/* Bouton fixé au milieu du viewport - toujours visible */}
+      {/* Toggle button */}
       <button
         onClick={toggleSidebar}
         className={cn(
@@ -272,16 +84,10 @@ const AppSidebar: React.FC = () => {
         )}
         aria-label={isCollapsed ? "Déplier" : "Replier"}
       >
-        {isCollapsed ? (
-          <ChevronRight className="w-3 h-3" />
-        ) : (
-          <ChevronLeft className="w-3 h-3" />
-        )}
+        {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
       </button>
 
-      {/* Sidebar - utilise offcanvas pour disparaître complètement */}
       <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
-        {/* Header avec logo */}
         <SidebarHeader className="border-b border-sidebar-border p-2">
           <div className="flex items-center gap-2 w-full">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
@@ -292,12 +98,8 @@ const AppSidebar: React.FC = () => {
         </SidebarHeader>
 
         <SidebarContent className="custom-scrollbar">
-          {/* Quick Add + Recherche + Filtres + Tri en mode compact */}
           <div className="px-2 py-2 space-y-2 border-b border-sidebar-border">
-            {/* Ligne 1: Bouton nouvelle tâche */}
             <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={false} />
-            
-            {/* Ligne 2: Recherche + Tri + Filtre */}
             <div className="flex items-center gap-1">
               <SidebarSearchFilter
                 searchQuery={searchQuery}
@@ -305,14 +107,10 @@ const AppSidebar: React.FC = () => {
                 filters={filters}
                 onFiltersChange={setFilters}
               />
-              <SidebarSortSelector
-                sortConfig={sortConfig}
-                onSortChange={setSortConfig}
-              />
+              <SidebarSortSelector sortConfig={sortConfig} onSortChange={setSortConfig} />
             </div>
           </div>
 
-          {/* Sections optionnelles */}
           {sidebarShowHabits && todayHabits.length > 0 && onToggleHabit && (
             <SidebarHabitsSection
               habits={todayHabits}
@@ -322,28 +120,22 @@ const AppSidebar: React.FC = () => {
             />
           )}
 
-          {/* Section Projets - s'affiche si des projets ont showInSidebar activé */}
           {sidebarProjectTasks.length > 0 && onToggleProjectTask && (
-            <SidebarProjectsSection 
-              projectTasks={sidebarProjectTasks} 
+            <SidebarProjectsSection
+              projectTasks={sidebarProjectTasks}
               onToggleComplete={onToggleProjectTask}
             />
           )}
 
           {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (
-            <SidebarTeamTasksSection
-              tasks={teamTasks}
-              onToggleComplete={onToggleTeamTask}
-            />
+            <SidebarTeamTasksSection tasks={teamTasks} onToggleComplete={onToggleTeamTask} />
           )}
 
-          {/* Section Tâches Actives */}
           <SidebarGroup>
             <SidebarGroupLabel className="flex items-center gap-2">
               <CheckSquare className="w-4 h-4" />
               <span>Tâches</span>
             </SidebarGroupLabel>
-            
             <SidebarGroupContent>
               <SidebarMenu>
                 {sortedTasks.length === 0 ? (
@@ -354,7 +146,31 @@ const AppSidebar: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-0">
-                    {sortedTasks.map(task => renderTask(task))}
+                    {sortedTasks.map(task => (
+                      <SidebarTaskRenderer
+                        key={task.id}
+                        task={task}
+                        getSubTasks={getSubTasks}
+                        calculateTotalTime={calculateTotalTime}
+                        canHaveSubTasks={canHaveSubTasks}
+                        selectedTasks={selectedTasks}
+                        pinnedTasks={pinnedTasks}
+                        recurringTaskIds={recurringTaskIds}
+                        taskSchedules={taskSchedules}
+                        onToggleSelection={onToggleSelection}
+                        onToggleExpansion={onToggleExpansion}
+                        onToggleCompletion={onToggleCompletion}
+                        onTogglePinTask={onTogglePinTask}
+                        onRemoveTask={onRemoveTask}
+                        onCreateSubTask={handleCreateSubTask}
+                        onEditTask={handleEditTask}
+                        onAssignToProject={handleAssignToProject}
+                        onCreateProjectFromTask={handleCreateProjectFromTask}
+                        onSetRecurring={onSetRecurring}
+                        onRemoveRecurring={onRemoveRecurring}
+                        onScheduleTask={onScheduleTask}
+                      />
+                    ))}
                   </div>
                 )}
               </SidebarMenu>
@@ -363,14 +179,10 @@ const AppSidebar: React.FC = () => {
         </SidebarContent>
       </Sidebar>
 
-      {/* Modale pour sous-tâches */}
       {selectedParentTask && (
         <TaskModal
           isOpen={isSubTaskModalOpen}
-          onClose={() => {
-            setIsSubTaskModalOpen(false);
-            setSelectedParentTask(null);
-          }}
+          onClose={() => { setIsSubTaskModalOpen(false); setSelectedParentTask(null); }}
           onAddTask={(taskData) => {
             onAddTask({
               ...taskData,
@@ -384,7 +196,6 @@ const AppSidebar: React.FC = () => {
         />
       )}
 
-      {/* Modale d'édition */}
       {isEditModalOpen && (
         <TaskModal
           key={editingTask?.id}

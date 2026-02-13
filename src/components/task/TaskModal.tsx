@@ -6,16 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task, TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from '@/types/task';
 import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
 import { TaskDraft, isTaskDraftValid, getDefaultsForTaskType } from '@/utils/taskValidationByType';
-import {
-  NameField,
-  ContextSelector,
-  CategorySelector,
-  PrioritySelector,
-  TimeEstimateSelector,
-  SchedulingSection,
-  RecurrenceSection,
-  AssignmentSelector
-} from '@/components/task/fields';
+import TaskDraftForm from './TaskDraftForm';
 import type { TeamMemberOption } from '@/components/task/fields/AssignmentSelector';
 
 import { format } from 'date-fns';
@@ -35,8 +26,6 @@ interface TaskModalProps {
   teamMembers?: TeamMemberOption[];
 }
 
-// TaskDraft is imported from @/utils/taskValidationByType
-
 interface ScheduleInfo {
   date?: Date;
   time?: string;
@@ -45,27 +34,17 @@ interface ScheduleInfo {
 }
 
 const TaskModal: React.FC<TaskModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onAddTask, 
-  onUpdateTask, 
-  parentTask, 
-  editingTask,
-  projectId,
-  taskType = 'personal',
-  teamMembers
+  isOpen, onClose, onAddTask, onUpdateTask, 
+  parentTask, editingTask, projectId, taskType = 'personal', teamMembers
 }) => {
   const config = getTaskTypeConfig(taskType);
   const defaults = getDefaultsForTaskType(taskType);
   
   const createEmptyDraft = (): TaskDraft => ({
-    name: '',
-    category: parentTask ? parentTask.category : (defaults.category || ''),
+    name: '', category: parentTask ? parentTask.category : (defaults.category || ''),
     subCategory: defaults.subCategory || '',
     context: parentTask ? parentTask.context : (defaults.context || ''),
-    estimatedTime: '',
-    isRecurring: false,
-    assignedTo: null
+    estimatedTime: '', isRecurring: false, assignedTo: null
   });
 
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([createEmptyDraft()]);
@@ -75,21 +54,16 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const { checkConflicts } = useTimeHub();
   const { getEntityEvent } = useTimeEventSync();
 
-  // Charger les données du time_event existant pour l'édition
   useEffect(() => {
     const loadExistingEvent = async () => {
       if (editingTask) {
         const event = await getEntityEvent('task', editingTask.id);
         setExistingTimeEvent(event);
-        
         setTaskDrafts([{
-          name: editingTask.name,
-          category: editingTask.category,
-          subCategory: editingTask.subCategory || '',
-          context: editingTask.context,
+          name: editingTask.name, category: editingTask.category,
+          subCategory: editingTask.subCategory || '', context: editingTask.context,
           estimatedTime: editingTask.estimatedTime,
-          scheduledDate: event?.startsAt,
-          scheduledTime: event?.startsAt ? format(event.startsAt, 'HH:mm') : undefined,
+          scheduledDate: event?.startsAt, scheduledTime: event?.startsAt ? format(event.startsAt, 'HH:mm') : undefined,
           isRecurring: !!event?.recurrence,
           recurrenceInterval: event?.recurrence?.frequency as RecurrenceInterval,
           assignedTo: (editingTask as any).assigned_to || null
@@ -98,27 +72,14 @@ const TaskModal: React.FC<TaskModalProps> = ({
         setTaskDrafts([createEmptyDraft()]);
       }
     };
-
-    if (isOpen) {
-      loadExistingEvent();
-    }
+    if (isOpen) loadExistingEvent();
   }, [isOpen, editingTask, getEntityEvent, taskType]);
 
-  const resetModal = () => {
-    setTaskDrafts([createEmptyDraft()]);
-    setSchedulingError('');
-    setExistingTimeEvent(null);
-  };
-
-  const handleClose = () => {
-    resetModal();
-    onClose();
-  };
+  const resetModal = () => { setTaskDrafts([createEmptyDraft()]); setSchedulingError(''); setExistingTimeEvent(null); };
+  const handleClose = () => { resetModal(); onClose(); };
 
   const addNewTaskDraft = () => {
-    if (!editingTask && config.showMultipleTasks) {
-      setTaskDrafts([...taskDrafts, createEmptyDraft()]);
-    }
+    if (!editingTask && config.showMultipleTasks) setTaskDrafts([...taskDrafts, createEmptyDraft()]);
   };
 
   const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number | Date | boolean | undefined) => {
@@ -129,286 +90,112 @@ const TaskModal: React.FC<TaskModalProps> = ({
     if ((field === 'scheduledDate' || field === 'scheduledTime') && updated[index].scheduledDate && updated[index].scheduledTime) {
       setSchedulingError('');
     } else if ((field === 'scheduledDate' || field === 'scheduledTime') && (updated[index].scheduledDate || updated[index].scheduledTime)) {
-      if (!updated[index].scheduledDate || !updated[index].scheduledTime) {
-        setSchedulingError('Date + heure obligatoires pour la planification');
-      }
+      if (!updated[index].scheduledDate || !updated[index].scheduledTime) setSchedulingError('Date + heure obligatoires pour la planification');
     }
   };
 
   const removeTaskDraft = (index: number) => {
-    if (taskDrafts.length > 1 && !editingTask) {
-      setTaskDrafts(taskDrafts.filter((_, i) => i !== index));
-    }
+    if (taskDrafts.length > 1 && !editingTask) setTaskDrafts(taskDrafts.filter((_, i) => i !== index));
   };
 
   const handleFinish = async () => {
-    const hasIncompleteScheduling = taskDrafts.some(draft => 
-      (draft.scheduledDate && !draft.scheduledTime) || (!draft.scheduledDate && draft.scheduledTime)
-    );
-    
-    if (hasIncompleteScheduling) {
-      setSchedulingError('Date + heure obligatoires pour la planification');
-      return;
-    }
+    const hasIncomplete = taskDrafts.some(d => (d.scheduledDate && !d.scheduledTime) || (!d.scheduledDate && d.scheduledTime));
+    if (hasIncomplete) { setSchedulingError('Date + heure obligatoires pour la planification'); return; }
 
     const isSubTask = !!parentTask;
-    const validTasks = taskDrafts.filter(draft => isTaskDraftValid(draft, taskType, isSubTask));
+    const validTasks = taskDrafts.filter(d => isTaskDraftValid(d, taskType, isSubTask));
     
     if (editingTask && onUpdateTask) {
       const draft = validTasks[0];
       if (draft) {
         const updates: Partial<Task> & { _scheduleInfo?: ScheduleInfo; assigned_to?: string | null } = {
-          name: draft.name.trim(),
-          category: (draft.category || config.defaults.category || 'Quotidien') as TaskCategory,
+          name: draft.name.trim(), category: (draft.category || config.defaults.category || 'Quotidien') as TaskCategory,
           subCategory: draft.subCategory as SubTaskCategory || undefined,
           context: (draft.context || config.defaults.context || 'Pro') as TaskContext,
           estimatedTime: Number(draft.estimatedTime),
         };
-        
-        // Assignation pour les tâches d'équipe
-        if (config.showAssignment && draft.assignedTo !== undefined) {
-          updates.assigned_to = draft.assignedTo;
-        }
-        
-        (updates as any)._scheduleInfo = {
-          date: draft.scheduledDate,
-          time: draft.scheduledTime,
-          isRecurring: draft.isRecurring,
-          recurrenceInterval: draft.recurrenceInterval
-        } as ScheduleInfo;
-        
+        if (config.showAssignment && draft.assignedTo !== undefined) updates.assigned_to = draft.assignedTo;
+        (updates as any)._scheduleInfo = { date: draft.scheduledDate, time: draft.scheduledTime, isRecurring: draft.isRecurring, recurrenceInterval: draft.recurrenceInterval };
         onUpdateTask(editingTask.id, updates);
       }
     } else if (onAddTask) {
       for (const draft of validTasks) {
         const level = parentTask ? Math.min((parentTask.level + 1), 2) as 0 | 1 | 2 : 0;
-        
         const taskData: Omit<Task, 'id' | 'createdAt'> & { assigned_to?: string | null } = {
           name: draft.name.trim(),
-          category: parentTask 
-            ? parentTask.category 
-            : (draft.category || config.defaults.category || 'Quotidien') as TaskCategory,
-          // Toujours inclure subCategory si elle est définie (pour sous-tâches ET tâches projet)
+          category: parentTask ? parentTask.category : (draft.category || config.defaults.category || 'Quotidien') as TaskCategory,
           subCategory: draft.subCategory ? draft.subCategory as SubTaskCategory : undefined,
           context: (draft.context || config.defaults.context || 'Pro') as TaskContext,
-          estimatedTime: Number(draft.estimatedTime),
-          parentId: parentTask?.id,
-          level,
-          isExpanded: true,
-          isCompleted: false,
-          projectId: projectId,
-          projectStatus: projectId ? 'todo' : undefined,
+          estimatedTime: Number(draft.estimatedTime), parentId: parentTask?.id, level,
+          isExpanded: true, isCompleted: false, projectId, projectStatus: projectId ? 'todo' : undefined,
         };
-        
-        // Assignation pour les tâches d'équipe
-        if (config.showAssignment && draft.assignedTo) {
-          taskData.assigned_to = draft.assignedTo;
-        }
-        
-        (taskData as any)._scheduleInfo = {
-          date: draft.scheduledDate,
-          time: draft.scheduledTime,
-          isRecurring: draft.isRecurring,
-          recurrenceInterval: draft.recurrenceInterval
-        } as ScheduleInfo;
-        
+        if (config.showAssignment && draft.assignedTo) taskData.assigned_to = draft.assignedTo;
+        (taskData as any)._scheduleInfo = { date: draft.scheduledDate, time: draft.scheduledTime, isRecurring: draft.isRecurring, recurrenceInterval: draft.recurrenceInterval };
         onAddTask(taskData);
       }
     }
-
     handleClose();
   };
 
   const isSubTask = !!parentTask;
-  const allTasksValid = taskDrafts.length > 0 && taskDrafts.every(draft => isTaskDraftValid(draft, taskType, isSubTask));
-  const validTasksCount = taskDrafts.filter(draft => isTaskDraftValid(draft, taskType, isSubTask)).length;
+  const allValid = taskDrafts.length > 0 && taskDrafts.every(d => isTaskDraftValid(d, taskType, isSubTask));
+  const validCount = taskDrafts.filter(d => isTaskDraftValid(d, taskType, isSubTask)).length;
   const showLimitWarning = parentTask && taskDrafts.length > 3;
-  const canSubmit = allTasksValid && !schedulingError;
-
+  const canSubmit = allValid && !schedulingError;
   const shouldUseGrid = taskDrafts.length >= 2 && !editingTask && config.showMultipleTasks;
   const gridCols = taskDrafts.length >= 4 ? 'grid-cols-2' : 'grid-cols-1 lg:grid-cols-2';
 
-  // Titre dynamique
   const getTitle = () => {
-    if (editingTask) {
-      return `Modifier "${editingTask.name}"`;
-    }
-    if (parentTask) {
-      return `Créer des sous-tâches pour "${parentTask.name}"`;
-    }
+    if (editingTask) return `Modifier "${editingTask.name}"`;
+    if (parentTask) return `Créer des sous-tâches pour "${parentTask.name}"`;
     return config.labels.title;
   };
 
-  // Bouton de validation dynamique
   const getSubmitLabel = () => {
-    if (editingTask) {
-      return 'Enregistrer les modifications';
-    }
-    if (validTasksCount > 1) {
-      return config.labels.submitMultipleButton(validTasksCount);
-    }
+    if (editingTask) return 'Enregistrer les modifications';
+    if (validCount > 1) return config.labels.submitMultipleButton(validCount);
     return config.labels.submitButton;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className={`
-        w-full max-w-4xl max-h-[85vh] overflow-y-auto
-        sm:max-w-md md:max-w-2xl lg:max-w-4xl
-        ${shouldUseGrid ? 'lg:min-w-[800px]' : ''}
-      `}>
-        <DialogHeader>
-          <DialogTitle>{getTitle()}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className={`w-full max-w-4xl max-h-[85vh] overflow-y-auto sm:max-w-md md:max-w-2xl lg:max-w-4xl ${shouldUseGrid ? 'lg:min-w-[800px]' : ''}`}>
+        <DialogHeader><DialogTitle>{getTitle()}</DialogTitle></DialogHeader>
 
         <div className="space-y-4">
           {showLimitWarning && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Vous avez dépassé la limite recommandée de 3 sous-tâches. Cela peut nuire à la lisibilité.
-              </AlertDescription>
-            </Alert>
+            <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>Vous avez dépassé la limite recommandée de 3 sous-tâches.</AlertDescription></Alert>
           )}
-
           {schedulingError && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{schedulingError}</AlertDescription>
-            </Alert>
+            <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>{schedulingError}</AlertDescription></Alert>
           )}
 
           <div className={shouldUseGrid ? `grid ${gridCols} gap-3 md:gap-4` : 'space-y-3 md:space-y-4'}>
-            {taskDrafts.map((draft, index) => {
-              const isValid = isTaskDraftValid(draft, taskType, isSubTask);
-              
-              return (
-                <div 
-                  key={index} 
-                  className={`p-3 md:p-4 border rounded-lg space-y-3 md:space-y-4 ${
-                    !isValid ? 'border-destructive bg-destructive/10' : 'bg-card border-border'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">
-                      {editingTask ? config.labels.editTitle : `Tâche ${index + 1}`}
-                    </span>
-                    {taskDrafts.length > 1 && !editingTask && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeTaskDraft(index)}
-                        className="h-6 w-6 p-0 text-destructive"
-                      >
-                        ×
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Nom de la tâche */}
-                  <NameField
-                    value={draft.name}
-                    onChange={(value) => updateTaskDraft(index, 'name', value)}
-                    hasError={!draft.name.trim()}
-                  />
-
-                  {/* Contexte Pro/Perso - conditionnel */}
-                  {config.showContextSelector && (
-                    <ContextSelector
-                      value={draft.context}
-                      onChange={(value) => updateTaskDraft(index, 'context', value)}
-                      hasError={!draft.context}
-                      required={config.requiredFields.includes('context')}
-                    />
-                  )}
-
-                  {/* Catégories ou Priorité selon le contexte */}
-                  {parentTask ? (
-                    // Sous-tâche : toujours montrer le sélecteur de priorité (requis)
-                    <PrioritySelector
-                      value={draft.subCategory}
-                      onChange={(value) => updateTaskDraft(index, 'subCategory', value)}
-                      hasError={!draft.subCategory}
-                    />
-                  ) : config.showCategorySelector ? (
-                    // Tâche principale avec catégories (personnel)
-                    <CategorySelector
-                      value={draft.category}
-                      onChange={(value) => updateTaskDraft(index, 'category', value)}
-                    />
-                  ) : config.showPrioritySelector ? (
-                    // Projet/équipe : montrer priorité au lieu de catégories
-                    <PrioritySelector
-                      value={draft.subCategory}
-                      onChange={(value) => updateTaskDraft(index, 'subCategory', value)}
-                      label="Priorité"
-                    />
-                  ) : null}
-
-                  {/* Assignation pour les équipes */}
-                  {config.showAssignment && teamMembers && teamMembers.length > 0 && (
-                    <AssignmentSelector
-                      value={draft.assignedTo || null}
-                      onChange={(userId) => updateTaskDraft(index, 'assignedTo', userId)}
-                      members={teamMembers}
-                    />
-                  )}
-
-                  {/* Temps estimé */}
-                  <TimeEstimateSelector
-                    value={draft.estimatedTime}
-                    onChange={(value) => updateTaskDraft(index, 'estimatedTime', value)}
-                    hasError={!draft.estimatedTime}
-                  />
-
-                  {/* Planification - conditionnel */}
-                  {config.showScheduling && (
-                    <SchedulingSection
-                      scheduledDate={draft.scheduledDate}
-                      scheduledTime={draft.scheduledTime}
-                      onDateChange={(date) => updateTaskDraft(index, 'scheduledDate', date)}
-                      onTimeChange={(time) => updateTaskDraft(index, 'scheduledTime', time)}
-                    />
-                  )}
-
-                  {/* Récurrence - conditionnel */}
-                  {config.showRecurrence && (
-                    <RecurrenceSection
-                      isRecurring={draft.isRecurring || false}
-                      recurrenceInterval={draft.recurrenceInterval as RecurrenceInterval | undefined}
-                      onRecurringChange={(value) => updateTaskDraft(index, 'isRecurring', value)}
-                      onIntervalChange={(value) => updateTaskDraft(index, 'recurrenceInterval', value)}
-                      index={index}
-                    />
-                  )}
-                </div>
-              );
-            })}
+            {taskDrafts.map((draft, index) => (
+              <TaskDraftForm
+                key={index}
+                draft={draft}
+                index={index}
+                taskType={taskType}
+                isSubTask={isSubTask}
+                isEditing={!!editingTask}
+                canRemove={taskDrafts.length > 1 && !editingTask}
+                parentTask={parentTask}
+                teamMembers={teamMembers}
+                onUpdate={updateTaskDraft}
+                onRemove={removeTaskDraft}
+              />
+            ))}
           </div>
 
-          {/* Bouton pour ajouter une autre tâche */}
           {!editingTask && config.showMultipleTasks && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addNewTaskDraft}
-              className="w-full border-dashed"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter une autre tâche
+            <Button type="button" variant="outline" onClick={addNewTaskDraft} className="w-full border-dashed">
+              <Plus className="w-4 h-4 mr-2" />Ajouter une autre tâche
             </Button>
           )}
 
-          {/* Bouton de validation */}
-          <Button
-            type="button"
-            onClick={handleFinish}
-            disabled={!canSubmit}
-            className="w-full"
-          >
-            <Check className="w-4 h-4 mr-2" />
-            {getSubmitLabel()}
+          <Button type="button" onClick={handleFinish} disabled={!canSubmit} className="w-full">
+            <Check className="w-4 h-4 mr-2" />{getSubmitLabel()}
           </Button>
         </div>
       </DialogContent>
