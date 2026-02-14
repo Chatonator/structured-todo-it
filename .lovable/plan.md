@@ -1,39 +1,26 @@
 
 
-# Factorisation de l'Application
+# Correcteur orthographique français
 
-## Résumé des changements effectués
+## Approche
 
-### Session 1 : Nettoyage du code mort
-- ✅ Supprimé `src/hooks/useAppState.ts` (hook jamais importé)
-- ✅ Supprimé `src/hooks/useViewState.ts` (hook jamais importé)
-- ✅ Supprimé `src/components/habits/HabitsView.tsx` (re-export orphelin)
-- ✅ Supprimé `src/components/projects/ProjectsView.tsx` (re-export orphelin)
-- ✅ Supprimé 6 hooks spécialisés inutilisés dans `useItems.ts` (`useTaskItems`, `useSubtaskItems`, `useProjectItems`, `useProjectTaskItems`, `useHabitItems`, `useDeckItems`)
+Bonne nouvelle : les navigateurs modernes (Chrome, Firefox, Safari, Edge) intègrent déjà un correcteur orthographique natif qui supporte le français. Il suffit d'activer les bons attributs HTML sur les champs de saisie.
 
-### Session 2 : Factorisation structurelle
-- ✅ Supprimé `src/components/views/index.ts` (barrel export jamais importé)
-- ✅ Supprimé `src/components/primitives/lists/` (composants `ItemList` et `TaskList` jamais utilisés)
-- ✅ Déplacé `useEisenhowerViewData` de `hooks/view-data/` vers `components/views/toolbox/tools/eisenhower/` (hook spécifique à l'outil, pas un hook de vue)
-- ✅ Nettoyé l'export de `HomeHabitsSection` du barrel `home/index.ts` (utilisé uniquement localement via import relatif)
-- ✅ Nettoyé `hooks/view-data/index.ts` (retiré l'export d'Eisenhower)
+Aucun module supplémentaire n'est nécessaire. On va simplement ajouter `spellcheck` et `lang="fr"` aux composants `Input` et `Textarea` utilisés partout dans l'application. Ainsi, tous les champs texte (titre de tâche, description de projet, etc.) bénéficieront automatiquement de la correction orthographique française avec soulignement rouge et suggestions au clic droit.
 
-## Architecture actuelle
+## Modifications
 
-### Vues
-Chaque vue a un seul emplacement canonique dans `src/components/views/{feature}/` :
-- `home/` - HomeView avec widgets
-- `observatory/` - ObservatoryView (analyse de productivité)
-- `timeline/` - TimelineView
-- `projects/` - ProjectsView (utilise `useUnifiedProjects`)
-- `habits/` - HabitsView
-- `rewards/` - RewardsView (utilise `useRewardsViewData`)
-- `teams/` - TeamTasksView
-- `toolbox/` - ToolboxView avec outils (Eisenhower, Rule 1-3-5)
+### 1. Composant `Input` (`src/components/ui/input.tsx`)
+- Ajouter `lang="fr"` et `spellCheck={true}` par défaut sur l'élément `<input>`.
 
-### Hooks de données
-- `hooks/view-data/` : hooks de données pour les vues (tasks, habits, projects, recurring, home, timeline, rewards, observatory)
-- Les hooks d'outils restent dans leur dossier d'outil (`toolbox/tools/eisenhower/`, `toolbox/tools/rule135/`)
+### 2. Composant `Textarea` (`src/components/ui/textarea.tsx`)
+- Ajouter `lang="fr"` et `spellCheck={true}` par défaut sur l'élément `<textarea>`.
 
-### Registre de vues
-`src/components/routing/viewRegistry.ts` est la source de vérité unique pour le chargement lazy des vues.
+### 3. Balise `<html>` (`index.html`)
+- Ajouter `lang="fr"` sur la balise `<html>` pour indiquer globalement que l'application est en français.
+
+## Remarques
+- Le correcteur utilise le dictionnaire français du navigateur de l'utilisateur, donc rien a telecharger.
+- Les mots mal orthographiés seront soulignés en rouge, et un clic droit proposera des corrections.
+- Si un champ specifique ne doit pas avoir de correction (ex: un champ de code), on pourra toujours passer `spellCheck={false}` ponctuellement.
+
