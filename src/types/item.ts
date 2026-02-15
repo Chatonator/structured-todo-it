@@ -8,7 +8,7 @@
 // - metadata (JSONB for type-specific fields)
 // - created_at, updated_at
 
-import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval, CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS, CATEGORY_DISPLAY_NAMES, getCategoryDisplayName } from './task';
+import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval, CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS, CATEGORY_DISPLAY_NAMES, getCategoryDisplayName, EisenhowerFlags, EisenhowerQuadrant, getQuadrant, categoryFromEisenhower, eisenhowerFromCategory, QUADRANT_LABELS } from './task';
 import { ProjectStatus, TaskProjectStatus } from './project';
 import { HabitFrequency, UnlockCondition, ChallengeEndAction } from './habit';
 
@@ -16,6 +16,8 @@ import { HabitFrequency, UnlockCondition, ChallengeEndAction } from './habit';
 export type ItemCategory = TaskCategory;
 export type ItemContext = TaskContext;
 export { CATEGORY_CONFIG, CONTEXT_CONFIG, TIME_OPTIONS, CATEGORY_DISPLAY_NAMES, getCategoryDisplayName };
+export type { EisenhowerFlags, EisenhowerQuadrant };
+export { getQuadrant, categoryFromEisenhower, eisenhowerFromCategory, QUADRANT_LABELS };
 
 // ============= Item Types (maps to item_type column) =============
 export type ItemContextType = 
@@ -47,8 +49,12 @@ export interface Item {
 // All possible metadata fields across all context types
 // Fields are optional because each context uses different subsets
 export interface ItemMetadata {
+  // === Eisenhower flags (source of truth for category) ===
+  isImportant?: boolean;
+  isUrgent?: boolean;
+  
   // === Task-specific ===
-  category?: TaskCategory;
+  category?: TaskCategory;  // Derived from isImportant/isUrgent, kept for compatibility
   subCategory?: SubTaskCategory;
   context?: TaskContext;
   estimatedTime?: number;

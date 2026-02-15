@@ -46,5 +46,7 @@ export function itemToTask(item: Item): Task {
     createdAt: item.createdAt,
     projectId,
     projectStatus,
+    isImportant: meta.isImportant as boolean | undefined,
+    isUrgent: meta.isUrgent as boolean | undefined,
   };
 }
