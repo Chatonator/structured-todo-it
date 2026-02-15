@@ -3,6 +3,55 @@ export type SubTaskCategory = 'Le plus important' | 'Important' | 'Peut attendre
 export type TaskContext = 'Pro' | 'Perso';
 export type RecurrenceInterval = 'daily' | 'weekly' | 'bi-monthly' | 'monthly';
 
+// ============= Eisenhower System =============
+// The new primary classification: two independent boolean flags
+export interface EisenhowerFlags {
+  isImportant: boolean;
+  isUrgent: boolean;
+}
+
+export type EisenhowerQuadrant = 'urgent-important' | 'important-not-urgent' | 'urgent-not-important' | 'not-urgent-not-important';
+
+/**
+ * Derive quadrant from boolean flags
+ */
+export function getQuadrant(flags: EisenhowerFlags): EisenhowerQuadrant {
+  if (flags.isImportant && flags.isUrgent) return 'urgent-important';
+  if (flags.isImportant && !flags.isUrgent) return 'important-not-urgent';
+  if (!flags.isImportant && flags.isUrgent) return 'urgent-not-important';
+  return 'not-urgent-not-important';
+}
+
+/**
+ * Derive the legacy TaskCategory from Eisenhower flags.
+ * This keeps the entire existing UI working without changes.
+ */
+export function categoryFromEisenhower(flags: EisenhowerFlags): TaskCategory {
+  if (flags.isImportant && flags.isUrgent) return 'Obligation';
+  if (!flags.isImportant && flags.isUrgent) return 'Quotidien';
+  if (flags.isImportant && !flags.isUrgent) return 'Envie';
+  return 'Autres';
+}
+
+/**
+ * Derive Eisenhower flags from a legacy TaskCategory
+ */
+export function eisenhowerFromCategory(category: TaskCategory): EisenhowerFlags {
+  switch (category) {
+    case 'Obligation': return { isImportant: true, isUrgent: true };
+    case 'Quotidien': return { isImportant: false, isUrgent: true };
+    case 'Envie': return { isImportant: true, isUrgent: false };
+    case 'Autres': return { isImportant: false, isUrgent: false };
+  }
+}
+
+export const QUADRANT_LABELS: Record<EisenhowerQuadrant, string> = {
+  'urgent-important': 'Cruciales',
+  'important-not-urgent': 'Envies',
+  'urgent-not-important': 'Régulières',
+  'not-urgent-not-important': 'Optionnelles',
+};
+
 export interface Task {
   id: string;
   name: string;
@@ -18,6 +67,9 @@ export interface Task {
   duration?: number;
   projectId?: string;
   projectStatus?: 'todo' | 'in-progress' | 'done';
+  // Eisenhower flags (source of truth for category)
+  isImportant?: boolean;
+  isUrgent?: boolean;
   // Note: Les champs temporels (scheduledDate, scheduledTime, startTime, isRecurring, recurrenceInterval, lastCompletedAt)
   // sont désormais gérés exclusivement via time_events
 }

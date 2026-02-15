@@ -4,7 +4,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Item, ItemContextType, createItem as createItemHelper, ItemMetadata } from '@/types/item';
+import { Item, ItemContextType, createItem as createItemHelper, ItemMetadata, categoryFromEisenhower, eisenhowerFromCategory } from '@/types/item';
+import { TaskCategory } from '@/types/task';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
@@ -29,6 +30,8 @@ interface ItemRow {
   order_index: number;
   is_completed: boolean;
   is_pinned: boolean;
+  is_important: boolean;
+  is_urgent: boolean;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -36,6 +39,12 @@ interface ItemRow {
 
 // Transform database row to Item type
 function rowToItem(row: ItemRow): Item {
+  // Derive category from the Eisenhower columns (source of truth)
+  const derivedCategory = categoryFromEisenhower({
+    isImportant: row.is_important,
+    isUrgent: row.is_urgent,
+  });
+  
   return {
     id: row.id,
     userId: row.user_id,
@@ -44,9 +53,11 @@ function rowToItem(row: ItemRow): Item {
     parentId: row.parent_id,
     metadata: {
       ...row.metadata,
-      category: row.category,
+      category: derivedCategory,
       context: row.context,
       estimatedTime: row.estimatedTime,
+      isImportant: row.is_important,
+      isUrgent: row.is_urgent,
     } as ItemMetadata,
     orderIndex: row.order_index,
     isCompleted: row.is_completed,
@@ -59,17 +70,25 @@ function rowToItem(row: ItemRow): Item {
 // Transform Item to database row format
 function itemToRow(item: Partial<Item> & { name: string; contextType: ItemContextType; userId: string }): Partial<ItemRow> {
   const metadata = item.metadata || {};
+  // Derive Eisenhower flags from metadata or category
+  const eisenhower = (metadata.isImportant !== undefined && metadata.isUrgent !== undefined)
+    ? { isImportant: !!metadata.isImportant, isUrgent: !!metadata.isUrgent }
+    : eisenhowerFromCategory((metadata.category as TaskCategory) || 'Autres');
+  const derivedCategory = categoryFromEisenhower(eisenhower);
+  
   return {
     user_id: item.userId,
     name: item.name,
     item_type: item.contextType,
-    category: (metadata.category as string) || 'Autres',
+    category: derivedCategory,
     context: (metadata.context as string) || 'Perso',
     estimatedTime: (metadata.estimatedTime as number) || 30,
     parent_id: item.parentId || null,
     order_index: item.orderIndex || 0,
     is_completed: item.isCompleted || false,
     is_pinned: item.isPinned || false,
+    is_important: eisenhower.isImportant,
+    is_urgent: eisenhower.isUrgent,
     metadata: metadata,
   };
 }
@@ -176,17 +195,25 @@ export function useItems(options: UseItemsOptions = {}) {
         i.parentId === (data.parentId ?? null)
       ).length;
 
+      // Derive Eisenhower flags for DB columns
+      const eisenhowerCreate = (mergedMetadata.isImportant !== undefined && mergedMetadata.isUrgent !== undefined)
+        ? { isImportant: !!mergedMetadata.isImportant, isUrgent: !!mergedMetadata.isUrgent }
+        : eisenhowerFromCategory((mergedMetadata.category as TaskCategory) || 'Autres');
+      const derivedCategoryCreate = categoryFromEisenhower(eisenhowerCreate);
+
       const insertData = {
         user_id: itemUserId,
         name: data.name,
         item_type: data.contextType,
-        category: (mergedMetadata.category as string) || 'Autres',
+        category: derivedCategoryCreate,
         context: (mergedMetadata.context as string) || 'Perso',
         estimatedTime: (mergedMetadata.estimatedTime as number) || 30,
         parent_id: data.parentId ?? null,
         order_index: orderIndex,
         is_completed: false,
         is_pinned: false,
+        is_important: eisenhowerCreate.isImportant,
+        is_urgent: eisenhowerCreate.isUrgent,
         metadata: mergedMetadata as Json,
       };
 
@@ -263,8 +290,20 @@ export function useItems(options: UseItemsOptions = {}) {
         // GUARD: Merge metadata safely to prevent data loss
         const mergedMetadata = { ...(currentItem.metadata as Record<string, unknown>), ...updates.metadata };
         dbUpdates.metadata = mergedMetadata;
-        // Also update top-level harmonized fields from metadata
-        if (updates.metadata.category) dbUpdates.category = updates.metadata.category;
+        // Sync Eisenhower flags if category or flags changed
+        if (updates.metadata.isImportant !== undefined || updates.metadata.isUrgent !== undefined) {
+          const newImportant = updates.metadata.isImportant ?? (currentItem as any).is_important ?? false;
+          const newUrgent = updates.metadata.isUrgent ?? (currentItem as any).is_urgent ?? false;
+          dbUpdates.is_important = newImportant;
+          dbUpdates.is_urgent = newUrgent;
+          dbUpdates.category = categoryFromEisenhower({ isImportant: !!newImportant, isUrgent: !!newUrgent });
+        } else if (updates.metadata.category) {
+          const eisFlags = eisenhowerFromCategory(updates.metadata.category as TaskCategory);
+          dbUpdates.is_important = eisFlags.isImportant;
+          dbUpdates.is_urgent = eisFlags.isUrgent;
+          dbUpdates.category = updates.metadata.category;
+        }
+        // Also update other top-level harmonized fields from metadata
         if (updates.metadata.context) dbUpdates.context = updates.metadata.context;
         if (updates.metadata.estimatedTime) dbUpdates.estimatedTime = updates.metadata.estimatedTime;
       }
@@ -336,16 +375,22 @@ export function useItems(options: UseItemsOptions = {}) {
         throw new Error(result.error || 'Transformation failed');
       }
 
-      // Update main item
+      // Update main item - sync Eisenhower columns
+      const transformEis = (result.item.metadata.isImportant !== undefined && result.item.metadata.isUrgent !== undefined)
+        ? { isImportant: !!result.item.metadata.isImportant, isUrgent: !!result.item.metadata.isUrgent }
+        : eisenhowerFromCategory((result.item.metadata.category as TaskCategory) || 'Autres');
+      
       await supabase
         .from('items')
         .update({
           item_type: result.item.contextType,
           metadata: result.item.metadata as Json,
           parent_id: result.item.parentId,
-          category: (result.item.metadata.category as string) || 'Autres',
+          category: categoryFromEisenhower(transformEis),
           context: (result.item.metadata.context as string) || 'Perso',
           estimatedTime: (result.item.metadata.estimatedTime as number) || 30,
+          is_important: transformEis.isImportant,
+          is_urgent: transformEis.isUrgent,
         } as never)
         .eq('id', id);
 
