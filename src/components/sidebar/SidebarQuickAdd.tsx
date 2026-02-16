@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { TaskCategory, TaskContext } from '@/types/task';
 import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
-import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import { validateTask, sanitizeTask } from '@/utils/taskValidation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
   const [context, setContext] = useState<TaskContext>('Perso');
-  const [category, setCategory] = useState<TaskCategory>('Obligation');
+  const [category, setCategory] = useState<TaskCategory>('Autres');
   const [estimatedTime, setEstimatedTime] = useState<string>('30');
 
   const handleSubmit = () => {
@@ -141,27 +141,35 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
               </Select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="flex gap-1.5">
               {(() => {
                 const flags = eisenhowerFromCategory(category);
                 return (
                   <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-foreground">Important</span>
-                      <Switch
-                        checked={flags.isImportant}
-                        onCheckedChange={() => setCategory(categoryFromEisenhower({ ...flags, isImportant: !flags.isImportant }))}
-                        className="h-4 w-7 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-foreground">Urgent</span>
-                      <Switch
-                        checked={flags.isUrgent}
-                        onCheckedChange={() => setCategory(categoryFromEisenhower({ ...flags, isUrgent: !flags.isUrgent }))}
-                        className="h-4 w-7 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCategory(categoryFromEisenhower({ ...flags, isImportant: !flags.isImportant }))}
+                      className={cn(
+                        'flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-medium rounded-md transition-all duration-200 cursor-pointer',
+                        flags.isImportant
+                          ? 'bg-category-envie/15 text-category-envie'
+                          : 'text-muted-foreground bg-background hover:bg-accent/50'
+                      )}
+                    >
+                      <span>⭐</span> Important
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCategory(categoryFromEisenhower({ ...flags, isUrgent: !flags.isUrgent }))}
+                      className={cn(
+                        'flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-medium rounded-md transition-all duration-200 cursor-pointer',
+                        flags.isUrgent
+                          ? 'bg-category-quotidien/15 text-category-quotidien'
+                          : 'text-muted-foreground bg-background hover:bg-accent/50'
+                      )}
+                    >
+                      <span>⚡</span> Urgent
+                    </button>
                   </>
                 );
               })()}

@@ -4,8 +4,8 @@ import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { validateTask, sanitizeTask } from '@/utils/taskValidation';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,7 +17,7 @@ const QuickAddTask: React.FC<QuickAddTaskProps> = ({ onAddTask }) => {
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [context, setContext] = useState<TaskContext>('Perso');
-  const [category, setCategory] = useState<TaskCategory>('Obligation');
+  const [category, setCategory] = useState<TaskCategory>('Autres');
   const [estimatedTime, setEstimatedTime] = useState<string>('30');
 
   const handleSubmit = () => {
@@ -107,21 +107,31 @@ const QuickAddTask: React.FC<QuickAddTaskProps> = ({ onAddTask }) => {
       {(() => {
         const flags = eisenhowerFromCategory(category);
         return (
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-foreground">Important</span>
-              <Switch
-                checked={flags.isImportant}
-                onCheckedChange={() => setCategory(categoryFromEisenhower({ ...flags, isImportant: !flags.isImportant }))}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-foreground">Urgent</span>
-              <Switch
-                checked={flags.isUrgent}
-                onCheckedChange={() => setCategory(categoryFromEisenhower({ ...flags, isUrgent: !flags.isUrgent }))}
-              />
-            </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setCategory(categoryFromEisenhower({ ...flags, isImportant: !flags.isImportant }))}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer border',
+                flags.isImportant
+                  ? 'bg-category-envie/15 text-category-envie border-category-envie/30'
+                  : 'text-muted-foreground bg-background border-border hover:bg-accent/50'
+              )}
+            >
+              <span>⭐</span> Important
+            </button>
+            <button
+              type="button"
+              onClick={() => setCategory(categoryFromEisenhower({ ...flags, isUrgent: !flags.isUrgent }))}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer border',
+                flags.isUrgent
+                  ? 'bg-category-quotidien/15 text-category-quotidien border-category-quotidien/30'
+                  : 'text-muted-foreground bg-background border-border hover:bg-accent/50'
+              )}
+            >
+              <span>⚡</span> Urgent
+            </button>
           </div>
         );
       })()}
