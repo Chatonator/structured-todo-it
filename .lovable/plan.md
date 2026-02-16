@@ -1,26 +1,54 @@
 
+# Surcouche visuelle Eisenhower : deux switchs Important / Urgent
 
-# Correcteur orthographique français
+## Principe
 
-## Approche
+On ne touche pas au coeur du systeme (categories Obligation/Quotidien/Envie/Autres). On remplace uniquement l'UI de selection par deux toggles qui, en coulisses, appellent le meme `onChange(category)` avec la categorie correspondante.
 
-Bonne nouvelle : les navigateurs modernes (Chrome, Firefox, Safari, Edge) intègrent déjà un correcteur orthographique natif qui supporte le français. Il suffit d'activer les bons attributs HTML sur les champs de saisie.
+Le mapping est deja code dans `src/types/task.ts` :
+- Important ON + Urgent ON = Obligation
+- Important OFF + Urgent ON = Quotidien  
+- Important ON + Urgent OFF = Envie
+- Important OFF + Urgent OFF = Autres
 
-Aucun module supplémentaire n'est nécessaire. On va simplement ajouter `spellcheck` et `lang="fr"` aux composants `Input` et `Textarea` utilisés partout dans l'application. Ainsi, tous les champs texte (titre de tâche, description de projet, etc.) bénéficieront automatiquement de la correction orthographique française avec soulignement rouge et suggestions au clic droit.
+## Fichiers modifies
 
-## Modifications
+### 1. Nouveau composant : `src/components/common/EisenhowerSelector.tsx`
+- Deux switchs (composant Switch de Radix deja installe) : "Important" et "Urgent"
+- Recoit `value: ItemCategory | ''` et `onChange: (value: ItemCategory) => void` -- meme interface que `CategorySelector`
+- En interne, derive les booleens via `eisenhowerFromCategory(value)`, puis au toggle, recalcule la categorie via `categoryFromEisenhower(flags)` et appelle `onChange`
+- Affiche un petit badge colore sous les switchs montrant le quadrant resultant (ex: "Cruciales" en rouge)
+- Drop-in replacement : aucun changement necessaire dans les parents
 
-### 1. Composant `Input` (`src/components/ui/input.tsx`)
-- Ajouter `lang="fr"` et `spellCheck={true}` par défaut sur l'élément `<input>`.
+### 2. Mise a jour : `src/components/common/CategorySelector.tsx`
+- Remplacer le contenu par le nouveau `EisenhowerSelector` (ou simplement rediriger vers lui)
+- Ainsi, `TaskDraftForm` et tout composant qui importe `CategorySelector` obtient automatiquement la nouvelle UI sans aucun changement
 
-### 2. Composant `Textarea` (`src/components/ui/textarea.tsx`)
-- Ajouter `lang="fr"` et `spellCheck={true}` par défaut sur l'élément `<textarea>`.
+### 3. Mise a jour : `src/components/sidebar/SidebarQuickAdd.tsx`
+- Remplacer le `<Select>` de categorie (lignes 142-172) par les deux switchs Important/Urgent
+- Meme logique : on stocke toujours `category` en state, mais on le modifie via les toggles
 
-### 3. Balise `<html>` (`index.html`)
-- Ajouter `lang="fr"` sur la balise `<html>` pour indiquer globalement que l'application est en français.
+### 4. Mise a jour : `src/components/common/index.ts`
+- Ajouter l'export de `EisenhowerSelector`
 
-## Remarques
-- Le correcteur utilise le dictionnaire français du navigateur de l'utilisateur, donc rien a telecharger.
-- Les mots mal orthographiés seront soulignés en rouge, et un clic droit proposera des corrections.
-- Si un champ specifique ne doit pas avoir de correction (ex: un champ de code), on pourra toujours passer `spellCheck={false}` ponctuellement.
+## Ce qui ne change PAS
+- Aucun hook modifie
+- Aucun filtre modifie
+- Aucune logique metier modifiee
+- Les couleurs, badges, et tout le reste continuent de fonctionner sur les categories existantes
+- La base de donnees n'est pas impactee (les colonnes `is_important`/`is_urgent` existent deja mais ne sont pas utilisees ici -- on passe toujours par `category`)
 
+## Details techniques
+
+Le composant `EisenhowerSelector` ressemblera a :
+
+```text
++-----------------------------------------+
+|  Important  [===OFF===]  [====ON====]   |
+|  Urgent     [===OFF===]  [====ON====]   |
++-----------------------------------------+
+|  -> Badge colore : "Cruciales"          |
++-----------------------------------------+
+```
+
+Chaque switch utilise le composant `Switch` de `@radix-ui/react-switch` deja present dans `src/components/ui/switch.tsx`. Le badge utilise `CategoryBadge` existant pour afficher le resultat.
