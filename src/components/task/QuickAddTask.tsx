@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { TaskCategory, TaskContext, getCategoryDisplayName } from '@/types/task';
-import { validateTask, sanitizeTask } from '@/utils/taskValidation';
+import { TaskCategory, TaskContext } from '@/types/task';
+import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Plus } from 'lucide-react';
+import { validateTask, sanitizeTask } from '@/utils/taskValidation';
 import { useToast } from '@/hooks/use-toast';
 
 interface QuickAddTaskProps {
@@ -102,17 +104,27 @@ const QuickAddTask: React.FC<QuickAddTaskProps> = ({ onAddTask }) => {
         </Select>
       </div>
 
-      <Select value={category} onValueChange={(value) => setCategory(value as TaskCategory)}>
-        <SelectTrigger className="text-xs h-8">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="Obligation">{getCategoryDisplayName('Obligation')}</SelectItem>
-          <SelectItem value="Quotidien">{getCategoryDisplayName('Quotidien')}</SelectItem>
-          <SelectItem value="Envie">{getCategoryDisplayName('Envie')}</SelectItem>
-          <SelectItem value="Autres">{getCategoryDisplayName('Autres')}</SelectItem>
-        </SelectContent>
-      </Select>
+      {(() => {
+        const flags = eisenhowerFromCategory(category);
+        return (
+          <div className="flex gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-foreground">Important</span>
+              <Switch
+                checked={flags.isImportant}
+                onCheckedChange={() => setCategory(categoryFromEisenhower({ ...flags, isImportant: !flags.isImportant }))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-foreground">Urgent</span>
+              <Switch
+                checked={flags.isUrgent}
+                onCheckedChange={() => setCategory(categoryFromEisenhower({ ...flags, isUrgent: !flags.isUrgent }))}
+              />
+            </div>
+          </div>
+        );
+      })()}
 
       <Button 
         onClick={handleSubmit}

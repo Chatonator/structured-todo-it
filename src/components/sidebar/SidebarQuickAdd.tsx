@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import { TaskCategory, TaskContext, getCategoryDisplayName } from '@/types/task';
+import { TaskCategory, TaskContext } from '@/types/task';
+import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
+import { Switch } from '@/components/ui/switch';
 import { validateTask, sanitizeTask } from '@/utils/taskValidation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -139,37 +141,31 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
               </Select>
             </div>
 
-            <Select value={category} onValueChange={(value) => setCategory(value as TaskCategory)}>
-              <SelectTrigger className="text-[10px] h-6 bg-background">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Obligation">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-category-obligation" />
-                    {getCategoryDisplayName('Obligation')}
-                  </span>
-                </SelectItem>
-                <SelectItem value="Quotidien">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-category-quotidien" />
-                    {getCategoryDisplayName('Quotidien')}
-                  </span>
-                </SelectItem>
-                <SelectItem value="Envie">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-category-envie" />
-                    {getCategoryDisplayName('Envie')}
-                  </span>
-                </SelectItem>
-                <SelectItem value="Autres">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-category-autres" />
-                    {getCategoryDisplayName('Autres')}
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              {(() => {
+                const flags = eisenhowerFromCategory(category);
+                return (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-medium text-foreground">Important</span>
+                      <Switch
+                        checked={flags.isImportant}
+                        onCheckedChange={() => setCategory(categoryFromEisenhower({ ...flags, isImportant: !flags.isImportant }))}
+                        className="h-4 w-7 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-medium text-foreground">Urgent</span>
+                      <Switch
+                        checked={flags.isUrgent}
+                        onCheckedChange={() => setCategory(categoryFromEisenhower({ ...flags, isUrgent: !flags.isUrgent }))}
+                        className="h-4 w-7 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
+                      />
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
 
             <Button 
               onClick={handleSubmit}
