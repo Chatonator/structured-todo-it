@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { XpTransaction } from '@/types/gamification';
+import { XpTransaction, TransactionMetadata } from '@/types/gamification';
 import { Activity, TrendingUp } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
@@ -36,7 +36,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
           pointsGained: t.points_gained,
           description: t.description,
           metadata: t.metadata,
-          createdAt: new Date(t.created_at)
+          createdAt: new Date(t.created_at),
         }));
 
         setTransactions(formatted);
@@ -62,10 +62,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
     switch (sourceType) {
       case 'task': return '✅';
       case 'habit': return '💪';
-      case 'challenge': return '🎯';
       case 'streak_bonus': return '🔥';
-      case 'project_created': return '📁';
-      case 'project_completed': return '🎯';
       default: return '📊';
     }
   };
@@ -83,10 +80,25 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
     return `Il y a ${days}j`;
   };
 
+  const getFormulaDetail = (meta: TransactionMetadata | null) => {
+    if (!meta?.formula) return null;
+    const parts = [];
+    if (meta.bonusType !== 'none') {
+      const labels: Record<string, string> = {
+        'anti-zombie': '🧟 Anti-zombie',
+        'planning-long': '📅 Planifié >48h',
+        'planning-short': '📅 Planifié',
+      };
+      parts.push(labels[meta.bonusType] || meta.bonusType);
+    }
+    if (meta.capped) parts.push('⛔ Plafonné');
+    return parts.length > 0 ? parts.join(' · ') : null;
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-4">
-        <Activity className="w-5 h-5 text-reward" />
+        <Activity className="w-5 h-5 text-primary" />
         <h3 className="text-lg font-semibold">Activité récente</h3>
       </div>
 
@@ -94,31 +106,37 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
         <div className="text-center py-8">
           <TrendingUp className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground">Aucune activité récente</p>
-          <p className="text-sm text-muted-foreground mt-1">Complétez des tâches pour gagner de l'XP !</p>
+          <p className="text-sm text-muted-foreground mt-1">Complétez des tâches pour gagner des points !</p>
         </div>
       )}
 
-      {transactions.map(transaction => (
-        <Card key={transaction.id} className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">{getSourceIcon(transaction.sourceType)}</div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{transaction.description || 'Activité'}</p>
-              <p className="text-xs text-muted-foreground mt-1">{formatDate(transaction.createdAt)}</p>
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-semibold text-reward-dark">
-                +{transaction.xpGained} XP
+      {transactions.map(transaction => {
+        const meta = transaction.metadata as TransactionMetadata | null;
+        const detail = getFormulaDetail(meta);
+
+        return (
+          <Card key={transaction.id} className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">{getSourceIcon(transaction.sourceType)}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{transaction.description || 'Activité'}</p>
+                <p className="text-xs text-muted-foreground mt-1">{formatDate(transaction.createdAt)}</p>
+                {detail && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{detail}</p>
+                )}
+                {meta?.formula && (
+                  <p className="text-xs text-muted-foreground/70 mt-0.5 font-mono">{meta.formula}</p>
+                )}
               </div>
-              {transaction.pointsGained > 0 && (
-                <div className="text-xs text-purple-600">
-                  +{transaction.pointsGained} pts
+              <div className="text-right shrink-0">
+                <div className={`text-sm font-semibold ${transaction.xpGained > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {transaction.xpGained > 0 ? `+${transaction.xpGained}` : '0'} pts
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
     </div>
   );
 };

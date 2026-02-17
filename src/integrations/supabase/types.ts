@@ -295,6 +295,7 @@ export type Database = {
           name: string
           order_index: number
           parent_id: string | null
+          postpone_count: number
           updated_at: string | null
           user_id: string
         }
@@ -313,6 +314,7 @@ export type Database = {
           name: string
           order_index?: number
           parent_id?: string | null
+          postpone_count?: number
           updated_at?: string | null
           user_id: string
         }
@@ -331,6 +333,7 @@ export type Database = {
           name?: string
           order_index?: number
           parent_id?: string | null
+          postpone_count?: number
           updated_at?: string | null
           user_id?: string
         }

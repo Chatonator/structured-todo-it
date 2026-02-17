@@ -2,7 +2,6 @@ import React from 'react';
 import { useRewardsViewData } from '@/hooks/view-data';
 import ProgressOverview from '@/components/rewards/ProgressOverview';
 import RecentActivity from '@/components/rewards/RecentActivity';
-import LevelUpAnimation from '@/components/rewards/LevelUpAnimation';
 import { ViewLayout } from '@/components/layout/view';
 import { Trophy } from 'lucide-react';
 
@@ -25,11 +24,11 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
       className={className}
     >
       <div className="space-y-6 pb-20 md:pb-6">
-        {data.levelUpAnimation && <LevelUpAnimation level={data.progressStats.level} />}
-
         <ProgressOverview 
           progress={data.progress}
-          progressPercentage={data.progressStats.progressPercent}
+          weeklySummary={data.weeklySummary}
+          streakInfo={data.streakInfo}
+          dailyMicroCount={data.dailyMicroCount}
         />
 
         <RecentActivity userId={data.userId || ''} />

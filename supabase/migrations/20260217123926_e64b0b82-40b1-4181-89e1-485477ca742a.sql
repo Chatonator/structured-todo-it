@@ -1,0 +1,1 @@
+ALTER TABLE public.items ADD COLUMN postpone_count integer NOT NULL DEFAULT 0;
