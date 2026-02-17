@@ -4,7 +4,6 @@
 
 import { useCallback, useMemo } from 'react';
 import { useItems } from './useItems';
-import { useGamification } from './useGamification';
 import { useToast } from './use-toast';
 import { Project, ProjectStatus } from '@/types/project';
 import { Item, ItemMetadata, KanbanColumnConfig } from '@/types/item';
@@ -74,7 +73,6 @@ export const useProjects = () => {
   } = useItems({ contextTypes: ['project'] });
   
   const { toast } = useToast();
-  const { rewardProjectCreation, rewardProjectCompletion } = useGamification();
 
   // Convert items to projects
   const projects = useMemo(() => items.map(itemToProject), [items]);
@@ -110,8 +108,6 @@ export const useProjects = () => {
         description: `${name} a été créé avec succès`,
       });
 
-      await rewardProjectCreation(name);
-
       return itemToProject(newItem);
     } catch (error: any) {
       toast({
@@ -121,7 +117,7 @@ export const useProjects = () => {
       });
       return null;
     }
-  }, [createItem, projects.length, toast, rewardProjectCreation]);
+  }, [createItem, projects.length, toast]);
 
   // Update project
   const updateProject = useCallback(async (
@@ -206,17 +202,11 @@ export const useProjects = () => {
         description: "Félicitations pour avoir terminé ce projet",
       });
 
-      // Count project tasks for gamification
-      const projectTasks = items.filter(i => 
-        i.contextType === 'project_task' && i.parentId === projectId
-      );
-      await rewardProjectCompletion(projectId, project.name, projectTasks.length);
-
       return true;
     } catch (error: any) {
       return false;
     }
-  }, [projects, items, updateItem, toast, rewardProjectCompletion]);
+  }, [projects, items, updateItem, toast]);
 
   // Assign task to project (preserves existing metadata like subCategory)
   // SECURED: Validates DB state before mutation to prevent duplications

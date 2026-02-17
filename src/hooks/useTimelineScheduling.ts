@@ -258,8 +258,24 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
       return false;
     }
 
-    // If it's a task event, use the task scheduling flow
+    // Increment postpone_count for task events
     if (event.entityType === 'task') {
+      try {
+        const { data: item } = await supabase
+          .from('items')
+          .select('postpone_count')
+          .eq('id', event.entityId)
+          .single();
+        if (item) {
+          await supabase
+            .from('items')
+            .update({ postpone_count: (item.postpone_count ?? 0) + 1 })
+            .eq('id', event.entityId);
+        }
+      } catch (e: any) {
+        logger.warn('Failed to increment postpone_count', { error: e.message });
+      }
+
       const task = tasks.find(t => t.id === event.entityId);
       if (task) {
         return await scheduleTask({
@@ -267,7 +283,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
           date,
           hour,
           minute,
-          duration: event.duration // Preserve current duration
+          duration: event.duration,
         });
       }
     }
@@ -289,6 +305,25 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     if (!event) {
       logger.warn('Event not found for rescheduling', { eventId });
       return false;
+    }
+
+    // Increment postpone_count for task events
+    if (event.entityType === 'task') {
+      try {
+        const { data: item } = await supabase
+          .from('items')
+          .select('postpone_count')
+          .eq('id', event.entityId)
+          .single();
+        if (item) {
+          await supabase
+            .from('items')
+            .update({ postpone_count: (item.postpone_count ?? 0) + 1 })
+            .eq('id', event.entityId);
+        }
+      } catch (e: any) {
+        logger.warn('Failed to increment postpone_count', { error: e.message });
+      }
     }
 
     try {
