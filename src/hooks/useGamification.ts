@@ -274,13 +274,13 @@ export const useGamification = () => {
       if (finalPoints > 0) {
         toast({
           title: `+${finalPoints} pts`,
-          description: result.formula,
+          description: `Tâche complétée !`,
           duration: 3000,
         });
       } else if (capped) {
         toast({
-          title: '0 pts (plafond micro-tâches)',
-          description: `Limite de 5 micro-tâches/jour atteinte`,
+          title: '0 pts',
+          description: `Plafond micro-tâches atteint pour aujourd'hui`,
           duration: 3000,
         });
       }
