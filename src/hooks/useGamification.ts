@@ -30,6 +30,7 @@ export const useGamification = () => {
     currentHabitStreak: data.current_habit_streak ?? 0,
     longestHabitStreak: data.longest_habit_streak ?? 0,
     lastActivityDate: data.last_activity_date ?? '',
+    lastStreakQualifiedDate: data.last_streak_qualified_date ?? null,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
   });
@@ -107,6 +108,20 @@ export const useGamification = () => {
     if (!user || !progress) return;
 
     try {
+      // 0. Idempotence guard — check if already rewarded
+      const { data: existingTx } = await supabase
+        .from('xp_transactions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('source_type', 'task')
+        .eq('source_id', task.id)
+        .limit(1);
+
+      if (existingTx && existingTx.length > 0) {
+        logger.debug('Task already rewarded, skipping', { taskId: task.id });
+        return;
+      }
+
       // 1. Extract task data
       const durationMinutes = task.estimatedTime || 30;
       const isImportant = task.isImportant ?? (task.category === 'Obligation' || task.category === 'Envie');
@@ -120,21 +135,24 @@ export const useGamification = () => {
         .single();
       const postponeCount = itemData?.postpone_count ?? 0;
 
-      // 3. Get scheduled date from time_events (if exists)
-      let scheduledAt: string | null = null;
+      // 3. Get planning lead hours from time_events (starts_at - created_at)
+      let planningLeadHours: number | null = null;
       const { data: eventData } = await supabase
         .from('time_events')
-        .select('created_at')
+        .select('created_at, starts_at')
         .eq('entity_type', 'task')
         .eq('entity_id', task.id)
         .eq('user_id', user.id)
         .order('created_at', { ascending: true })
         .limit(1);
-      if (eventData && eventData.length > 0) {
-        scheduledAt = eventData[0].created_at;
+      if (eventData && eventData.length > 0 && eventData[0].created_at && eventData[0].starts_at) {
+        const createdAt = new Date(eventData[0].created_at);
+        const startsAt = new Date(eventData[0].starts_at);
+        const diffMs = startsAt.getTime() - createdAt.getTime();
+        if (diffMs > 0) {
+          planningLeadHours = diffMs / (1000 * 60 * 60);
+        }
       }
-
-      const completedAt = new Date();
 
       // 4. Compute points
       const result = computeTaskPoints({
@@ -142,8 +160,7 @@ export const useGamification = () => {
         isImportant,
         isUrgent,
         postponeCount,
-        scheduledAt,
-        completedAt,
+        planningLeadHours,
       });
 
       // 5. Check micro-task cap
@@ -157,14 +174,18 @@ export const useGamification = () => {
         }
       }
 
-      // 6. Build metadata
+      // 6. Build metadata (coherent formula when capped)
+      const cappedFormula = capped
+        ? `${result.formula} → capée (0 pts)`
+        : result.formula;
+
       const metadata: TransactionMetadata = {
         base: result.base,
         quadrantKey: result.quadrantKey,
         quadrantCoeff: result.quadrantCoeff,
         bonusType: result.bonusType,
         bonusValue: result.bonusValue,
-        formula: result.formula,
+        formula: cappedFormula,
         isMicroTask: result.isMicroTask,
         capped,
         durationMinutes,
@@ -173,8 +194,8 @@ export const useGamification = () => {
         postponeCount,
       };
 
-      // 7. Record transaction
-      await supabase
+      // 7. Record transaction (unique index prevents duplicates at DB level too)
+      const { error: insertError } = await supabase
         .from('xp_transactions')
         .insert([{
           user_id: user.id,
@@ -186,58 +207,70 @@ export const useGamification = () => {
           metadata: metadata as any,
         }]);
 
+      if (insertError) {
+        // Unique constraint violation = already rewarded
+        if (insertError.code === '23505') {
+          logger.debug('Duplicate transaction blocked by DB', { taskId: task.id });
+          return;
+        }
+        throw insertError;
+      }
+
       // 8. Update total points and tasks_completed
       const newTotalXp = (progress.totalXp ?? 0) + finalPoints;
 
-      // 9. Streak logic
+      // 9. Streak logic using last_streak_qualified_date
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const importantMinutes = await getImportantMinutesToday();
       const streakQualified = checkStreakDay(importantMinutes);
 
-      let newStreak = progress.currentTaskStreak;
-      let newLongest = progress.longestTaskStreak;
+      // Fetch current last_streak_qualified_date from DB
+      const { data: progressData } = await supabase
+        .from('user_progress')
+        .select('last_streak_qualified_date, current_task_streak, longest_task_streak')
+        .eq('user_id', user.id)
+        .single();
 
-      if (progress.lastActivityDate !== todayStr) {
-        // First completion today
+      let newStreak = progressData?.current_task_streak ?? progress.currentTaskStreak;
+      let newLongest = progressData?.longest_task_streak ?? progress.longestTaskStreak;
+      const lastQualifiedDate = progressData?.last_streak_qualified_date as string | null;
+      let updateQualifiedDate = false;
+
+      if (streakQualified && lastQualifiedDate !== todayStr) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
 
-        if (streakQualified) {
-          if (progress.lastActivityDate === yesterdayStr) {
-            newStreak = progress.currentTaskStreak + 1;
-          } else if (!progress.lastActivityDate || progress.lastActivityDate < yesterdayStr) {
-            newStreak = 1;
-          }
+        if (lastQualifiedDate === yesterdayStr) {
+          newStreak = newStreak + 1;
         } else {
-          // Day not qualified yet — don't break streak if we haven't missed a day
-          if (progress.lastActivityDate && progress.lastActivityDate < format(yesterday, 'yyyy-MM-dd')) {
-            newStreak = 0;
-          }
+          newStreak = 1;
         }
         newLongest = Math.max(newLongest, newStreak);
-      } else if (streakQualified && progress.currentTaskStreak === 0) {
-        // Already activity today but streak was 0 — now qualified
-        newStreak = 1;
-        newLongest = Math.max(newLongest, 1);
+        updateQualifiedDate = true;
       }
 
       // 10. Update user_progress
+      const updatePayload: any = {
+        total_xp: newTotalXp,
+        current_points: newTotalXp,
+        tasks_completed: progress.tasksCompleted + 1,
+        current_task_streak: newStreak,
+        longest_task_streak: newLongest,
+        last_activity_date: todayStr,
+      };
+      if (updateQualifiedDate) {
+        updatePayload.last_streak_qualified_date = todayStr;
+      }
+
       await supabase
         .from('user_progress')
-        .update({
-          total_xp: newTotalXp,
-          current_points: newTotalXp,
-          tasks_completed: progress.tasksCompleted + 1,
-          current_task_streak: newStreak,
-          longest_task_streak: newLongest,
-          last_activity_date: todayStr,
-        })
+        .update(updatePayload)
         .eq('user_id', user.id);
 
       await loadProgress();
 
-      // Show toast for significant points
+      // Show toast
       if (finalPoints > 0) {
         toast({
           title: `+${finalPoints} pts`,
