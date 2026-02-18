@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewLayout, ViewContent } from '@/components/layout/view';
 import { useObservatoryViewData } from '@/hooks/view-data/useObservatoryViewData';
 import { 
@@ -10,15 +10,36 @@ import {
   ActivityTimeline,
   TaskFolders
 } from './components';
-import { Telescope, LayoutGrid, FolderTree } from 'lucide-react';
+import { Telescope, LayoutGrid, FolderTree, TrendingUp } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useGamification } from '@/hooks/useGamification';
+import type { WeeklySummary } from '@/lib/rewards';
 
 type ViewMode = 'folders' | 'table';
+
+function BarRow({ label, pct, color }: { label: string; pct: number; color: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-xs text-muted-foreground w-36 shrink-0">{label}</span>
+      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: color }} />
+      </div>
+      <span className="text-xs font-medium w-10 text-right">{Math.round(pct)}%</span>
+    </div>
+  );
+}
 
 const ObservatoryView: React.FC = () => {
   const { data, state, actions } = useObservatoryViewData();
   const [viewMode, setViewMode] = useState<ViewMode>('folders');
+  const { getWeeklySummary } = useGamification();
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
+
+  useEffect(() => {
+    getWeeklySummary().then(setWeeklySummary);
+  }, [getWeeklySummary]);
 
   // Determine view state
   const viewState = state.loading 
@@ -49,6 +70,28 @@ const ObservatoryView: React.FC = () => {
             onFilterChange={actions.setActiveTab}
           />
         </section>
+
+        {/* Section 1.5: Weekly Summary */}
+        {weeklySummary && weeklySummary.totalMinutes > 0 && (
+          <section>
+            <Card>
+              <CardHeader className="pb-3 pt-4 px-4">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  Résumé hebdomadaire
+                  <span className="ml-auto text-xs font-normal text-muted-foreground">
+                    Score d'alignement : {weeklySummary.alignmentScore}%
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 pt-0 space-y-2">
+                <BarRow label="Important non-urgent" pct={weeklySummary.pctImportantNotUrgent} color="hsl(var(--primary))" />
+                <BarRow label="Urgent" pct={weeklySummary.pctUrgent} color="hsl(var(--destructive))" />
+                <BarRow label="Maintenance" pct={weeklySummary.pctMaintenance} color="hsl(var(--muted-foreground))" />
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         {/* Section 2: Visualizations */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
