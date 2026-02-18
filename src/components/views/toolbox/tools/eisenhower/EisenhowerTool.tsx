@@ -10,14 +10,14 @@ import { ToolProps } from '../types';
 
 const QUADRANT_ICONS: Record<EisenhowerQuadrant, React.ReactNode> = {
   'urgent-important': <AlertTriangle className="w-4 h-4" />,
-  'not-urgent-important': <Clock className="w-4 h-4" />,
+  'important-not-urgent': <Clock className="w-4 h-4" />,
   'urgent-not-important': <Zap className="w-4 h-4" />,
   'not-urgent-not-important': <Trash2 className="w-4 h-4" />
 };
 
 const QUADRANT_COLORS: Record<EisenhowerQuadrant, { bg: string; border: string }> = {
   'urgent-important': { bg: 'bg-system-error', border: 'border-system-error' },
-  'not-urgent-important': { bg: 'bg-system-warning', border: 'border-system-warning' },
+  'important-not-urgent': { bg: 'bg-system-warning', border: 'border-system-warning' },
   'urgent-not-important': { bg: 'bg-system-info', border: 'border-system-info' },
   'not-urgent-not-important': { bg: 'bg-muted-foreground', border: 'border-muted' }
 };
@@ -27,7 +27,7 @@ const EisenhowerTool: React.FC<ToolProps> = () => {
 
   const quadrantOrder: EisenhowerQuadrant[] = [
     'urgent-important',
-    'not-urgent-important',
+    'important-not-urgent',
     'urgent-not-important',
     'not-urgent-not-important'
   ];

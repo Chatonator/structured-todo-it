@@ -798,6 +798,7 @@ export type Database = {
           habits_completed: number | null
           id: string
           last_activity_date: string | null
+          last_streak_qualified_date: string | null
           lifetime_points: number | null
           longest_habit_streak: number | null
           longest_task_streak: number | null
@@ -818,6 +819,7 @@ export type Database = {
           habits_completed?: number | null
           id?: string
           last_activity_date?: string | null
+          last_streak_qualified_date?: string | null
           lifetime_points?: number | null
           longest_habit_streak?: number | null
           longest_task_streak?: number | null
@@ -838,6 +840,7 @@ export type Database = {
           habits_completed?: number | null
           id?: string
           last_activity_date?: string | null
+          last_streak_qualified_date?: string | null
           lifetime_points?: number | null
           longest_habit_streak?: number | null
           longest_task_streak?: number | null

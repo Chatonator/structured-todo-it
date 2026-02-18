@@ -4,7 +4,7 @@ import { UserProgress } from '@/types/gamification';
 import type { WeeklySummary } from '@/lib/rewards';
 import type { DailyStreakInfo } from '@/types/gamification';
 import { Trophy, Flame, Target, BarChart3 } from 'lucide-react';
-import { MICRO_TASK_DAILY_CAP } from '@/lib/rewards/constants';
+import { MICRO_TASK_DAILY_CAP, STREAK_MIN_IMPORTANT_MINUTES } from '@/lib/rewards/constants';
 
 interface ProgressOverviewProps {
   progress: UserProgress | null;
@@ -52,7 +52,7 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
             <div className="text-xs text-muted-foreground">
               {streakInfo.streakQualifiedToday 
                 ? '✅ Objectif atteint aujourd\'hui' 
-                : `⏳ ${Math.max(0, 30 - streakInfo.importantMinutesToday)} min importantes restantes`
+                : `⏳ ${Math.max(0, STREAK_MIN_IMPORTANT_MINUTES - streakInfo.importantMinutesToday)} min importantes restantes`
               }
             </div>
           )}

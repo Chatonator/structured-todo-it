@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useViewDataContext } from '@/contexts/ViewDataContext';
 import { Task, TaskCategory, SubTaskCategory } from '@/types/task';
 
-export type EisenhowerQuadrant = 'urgent-important' | 'not-urgent-important' | 'urgent-not-important' | 'not-urgent-not-important';
+export type EisenhowerQuadrant = 'urgent-important' | 'important-not-urgent' | 'urgent-not-important' | 'not-urgent-not-important';
 
 interface QuadrantConfig {
   title: string;
@@ -11,7 +11,7 @@ interface QuadrantConfig {
   borderColor: string;
 }
 
-// Configuration des quadrants
+// Quadrant configs aligned with engine.ts keys
 export const QUADRANT_CONFIGS: Record<EisenhowerQuadrant, QuadrantConfig> = {
   'urgent-important': {
     title: 'Urgent & Important',
@@ -19,7 +19,7 @@ export const QUADRANT_CONFIGS: Record<EisenhowerQuadrant, QuadrantConfig> = {
     color: 'bg-system-error/10',
     borderColor: 'border-system-error'
   },
-  'not-urgent-important': {
+  'important-not-urgent': {
     title: 'Important',
     description: 'À planifier',
     color: 'bg-system-warning/10',
@@ -39,11 +39,11 @@ export const QUADRANT_CONFIGS: Record<EisenhowerQuadrant, QuadrantConfig> = {
   }
 };
 
-// Mapping catégorie -> quadrant
+// Corrected mapping: Quotidien=Urgent only, Envie=Important only
 const CATEGORY_TO_QUADRANT: Record<TaskCategory, EisenhowerQuadrant> = {
   'Obligation': 'urgent-important',
-  'Quotidien': 'not-urgent-important',
-  'Envie': 'urgent-not-important',
+  'Quotidien': 'urgent-not-important',
+  'Envie': 'important-not-urgent',
   'Autres': 'not-urgent-not-important'
 };
 
@@ -71,7 +71,7 @@ export const useEisenhowerViewData = () => {
   const quadrants = useMemo(() => {
     const result: Record<EisenhowerQuadrant, Task[]> = {
       'urgent-important': [],
-      'not-urgent-important': [],
+      'important-not-urgent': [],
       'urgent-not-important': [],
       'not-urgent-not-important': []
     };
@@ -88,7 +88,7 @@ export const useEisenhowerViewData = () => {
   const quadrantTimes = useMemo(() => {
     const times: Record<EisenhowerQuadrant, number> = {
       'urgent-important': 0,
-      'not-urgent-important': 0,
+      'important-not-urgent': 0,
       'urgent-not-important': 0,
       'not-urgent-not-important': 0
     };
@@ -104,7 +104,7 @@ export const useEisenhowerViewData = () => {
   const stats = useMemo(() => ({
     totalTasks: activeTasks.length,
     urgentImportant: quadrants['urgent-important'].length,
-    important: quadrants['not-urgent-important'].length,
+    important: quadrants['important-not-urgent'].length,
     urgent: quadrants['urgent-not-important'].length,
     neither: quadrants['not-urgent-not-important'].length
   }), [activeTasks, quadrants]);

@@ -21,8 +21,8 @@ export interface TaskRewardInput {
   isImportant: boolean;
   isUrgent: boolean;
   postponeCount: number;
-  scheduledAt?: Date | string | null;
-  completedAt: Date | string;
+  /** Hours between event creation and event starts_at (null = no planning bonus) */
+  planningLeadHours?: number | null;
 }
 
 export interface TaskRewardResult {
@@ -61,10 +61,6 @@ function getQuadrantKey(isImportant: boolean, isUrgent: boolean): keyof typeof Q
   return 'not-urgent-not-important';
 }
 
-function toDate(d: Date | string): Date {
-  return typeof d === 'string' ? new Date(d) : d;
-}
-
 // ---- Core Functions ----
 
 /**
@@ -72,7 +68,7 @@ function toDate(d: Date | string): Date {
  * Formula: Math.round(sqrt(duration) × quadrantCoeff × bonusValue)
  */
 export function computeTaskPoints(input: TaskRewardInput): TaskRewardResult {
-  const { durationMinutes, isImportant, isUrgent, postponeCount, scheduledAt, completedAt } = input;
+  const { durationMinutes, isImportant, isUrgent, postponeCount, planningLeadHours } = input;
 
   // 1. Base effort
   const base = Math.sqrt(Math.max(durationMinutes, 0));
@@ -88,15 +84,11 @@ export function computeTaskPoints(input: TaskRewardInput): TaskRewardResult {
   if (postponeCount >= ANTI_ZOMBIE_THRESHOLD) {
     bonusType = 'anti-zombie';
     bonusValue = ANTI_ZOMBIE_BONUS;
-  } else if (scheduledAt && completedAt) {
-    const scheduled = toDate(scheduledAt);
-    const completed = toDate(completedAt);
-    const diffHours = (completed.getTime() - scheduled.getTime()) / (1000 * 60 * 60);
-
-    if (diffHours > PLANNING_THRESHOLD_HOURS) {
+  } else if (planningLeadHours != null && planningLeadHours > 0) {
+    if (planningLeadHours > PLANNING_THRESHOLD_HOURS) {
       bonusType = 'planning-long';
       bonusValue = PLANNING_BONUS_LONG;
-    } else if (diffHours > 0) {
+    } else {
       bonusType = 'planning-short';
       bonusValue = PLANNING_BONUS_SHORT;
     }

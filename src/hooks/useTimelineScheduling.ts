@@ -37,7 +37,7 @@ const getBlockStartHour = (block: TimeBlock): number => {
 
 export const useTimelineScheduling = (dateRange: DateRange) => {
   const { user } = useAuth();
-  const { tasks, updateTask } = useTasks();
+  const { tasks, updateTask, toggleTaskCompletion } = useTasks();
   const { events, loadEvents, checkConflicts, completeEvent } = useTimeHub(dateRange);
   const { syncTaskEventWithSchedule, deleteEntityEvent, updateEventStatus } = useTimeEventSync();
   
@@ -439,18 +439,18 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     );
     
     if (success) {
-      // Also update the task's completion status
+      // Also update the task's completion status (use toggleTaskCompletion to trigger rewards)
       if (event.entityType === 'task') {
         const task = tasks.find(t => t.id === event.entityId);
         if (task) {
-          await updateTask(task.id, { isCompleted: newStatus === 'completed' });
+          await toggleTaskCompletion(task.id);
         }
       }
       await loadEvents();
     }
     
     return success;
-  }, [events, tasks, updateEventStatus, updateTask, loadEvents]);
+  }, [events, tasks, updateEventStatus, toggleTaskCompletion, loadEvents]);
 
   /**
    * Check if a time slot has conflicts

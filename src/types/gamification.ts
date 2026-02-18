@@ -15,6 +15,7 @@ export interface UserProgress {
   currentHabitStreak: number;
   longestHabitStreak: number;
   lastActivityDate: string;
+  lastStreakQualifiedDate: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
