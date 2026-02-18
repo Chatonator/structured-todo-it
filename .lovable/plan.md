@@ -1,220 +1,144 @@
 
-# Moteur de recompenses : remplacement total du systeme de gamification
 
-## Resume
+# Verrouillage du moteur de recompenses : coherence, anti-farming, streak fiable
 
-Remplacer entierement le systeme de recompenses actuel (XP fixe par categorie, niveaux, achievements) par un moteur deterministe base sur la formule `sqrt(duree) x coefficient_quadrant x bonus_unique`, avec plafond micro-taches, streak par minutes importantes, et indicateurs hebdomadaires.
+## Problemes identifies et corrections
 
-## Etat actuel
+### 1. Timeline ne declenche pas les points
 
-Le systeme actuel dans `useGamification.ts` :
-- Attribue des XP fixes par categorie (Obligation=15, Quotidien=10, Envie=12, Autres=8)
-- Gere un systeme de niveaux avec progression exponentielle
-- Supporte les achievements et les defis
-- La streak est basee sur des paliers fixes (7, 14, 30 jours)
-- Les tables DB utilisees : `user_progress`, `xp_transactions`, `achievements`, `user_achievements`, `challenges`, `user_challenges`
+**Probleme** : `handleCompleteEvent` (useTimelineScheduling.ts L428-453) appelle `updateTask(id, { isCompleted })` au lieu de `toggleTaskCompletion`. Or seul `toggleTaskCompletion` (useTasks.ts L123-142) appelle `rewardTaskCompletion`.
 
-Les appels a `rewardTaskCompletion` se font dans `useTasks.ts` (ligne 140), `rewardHabitCompletion` dans `useHabits.ts`, et `rewardProjectCreation`/`rewardProjectCompletion` dans `useProjects.ts`.
+**Correction** : Remplacer `updateTask(task.id, { isCompleted: newStatus === 'completed' })` par `toggleTaskCompletion(task.id)` dans `handleCompleteEvent`. Importer `toggleTaskCompletion` depuis `useTasks` (deja disponible via le hook). Ajouter un guard : ne pas appeler si le toggle va vers "uncomplete" et qu'il y a deja une transaction (lie au point 2).
 
-**Donnee manquante en DB** : il n'existe pas de compteur de reports (`postpone_count`) sur les taches. Il faudra l'ajouter.
+**Fichier** : `src/hooks/useTimelineScheduling.ts` (L428-453)
 
-## Plan d'implementation
+---
 
-### Phase 1 : Migration de la base de donnees
+### 2. Farming par complete/uncomplete/recomplete
 
-**Ajouter `postpone_count` a la table `items`** :
+**Probleme** : Aucune barriere d'idempotence. Un utilisateur peut toggle une tache N fois et accumuler N transactions.
+
+**Correction en deux couches** :
+
+**Couche DB** : Ajouter un index unique sur `xp_transactions(user_id, source_type, source_id)`. Cela garantit qu'une seule transaction existe par tache par utilisateur. Toute tentative d'INSERT duplique echouera.
+
+**Couche code** : Dans `rewardTaskCompletion`, avant l'INSERT, verifier si une transaction existe deja pour cette tache :
+```text
+SELECT id FROM xp_transactions 
+WHERE user_id = ? AND source_type = 'task' AND source_id = ?
+```
+Si oui, ne pas inserer (et ne pas incrementer `tasks_completed`). Afficher un toast neutre "Deja comptabilise".
+
+**Couche annulation** : Quand une tache est decomplete, ne PAS supprimer la transaction (les points restent acquis). C'est volontaire : on ne veut pas encourager le toggle pour "recalculer" avec de meilleures conditions.
+
+**Fichiers** : Migration SQL + `src/hooks/useGamification.ts`
+
+---
+
+### 3. Streak non fiable
+
+**Probleme** : La logique actuelle melange `lastActivityDate` (qui represente "dernier jour avec activite") avec "dernier jour qualifie pour la streak". Si un utilisateur complete des taches non-importantes, `lastActivityDate` est mis a jour mais la streak n'est pas incrementee. Le lendemain, le code pense que la veille etait "active" (car `lastActivityDate === yesterday`) mais elle n'etait pas qualifiee, et incremente quand meme.
+
+Autre bug : si l'utilisateur qualifie la journee avec sa 3eme tache importante (atteignant 30 min), mais que `lastActivityDate` est deja a aujourd'hui (car une tache non-importante a ete faite plus tot), la branche `else if` (L219-223) ne gere que le cas `currentTaskStreak === 0`, ratant le cas ou la streak etait > 0 et pas encore incrementee aujourd'hui.
+
+**Correction** : 
+
+1. Ajouter une colonne `last_streak_qualified_date` (type `date`, nullable) dans `user_progress`.
+
+2. Refactorer la logique streak dans `rewardTaskCompletion` :
 
 ```text
-ALTER TABLE items ADD COLUMN postpone_count integer NOT NULL DEFAULT 0;
+Si streakQualified ET last_streak_qualified_date !== aujourd'hui :
+  Si last_streak_qualified_date === hier : streak += 1
+  Sinon : streak = 1
+  Mettre a jour last_streak_qualified_date = aujourd'hui
+  Mettre a jour longest si necessaire
+
+last_activity_date = aujourd'hui (toujours, independamment de la qualification)
 ```
 
-**Ajouter `metadata` a la table `xp_transactions`** (deja existant en JSONB) pour stocker les details du calcul (base, coefficient, bonus, formule).
+Cette logique est idempotente : meme appelee plusieurs fois dans la journee, elle n'incremente la streak qu'une seule fois grace a `last_streak_qualified_date`.
 
-**Adapter `user_progress`** : Les colonnes existantes `total_xp`, `current_points`, `current_task_streak`, `longest_task_streak`, `tasks_completed`, `last_activity_date` sont reutilisees. Les colonnes `current_level`, `xp_for_next_level`, `lifetime_points` restent mais ne sont plus alimentees par le nouveau moteur (on garde les points comme unite unique). Les colonnes `daily_challenge_streak`, `weekly_challenges_completed` ne sont plus utilisees.
+**Fichiers** : Migration SQL + `src/hooks/useGamification.ts` + `src/types/gamification.ts`
 
-### Phase 2 : Moteur de calcul pur (nouveau fichier)
+---
 
-**Creer `src/lib/rewards/engine.ts`** -- module pur, sans effet de bord, facilement testable :
+### 4. Eisenhower toolbox : mapping inverse
 
+**Probleme** : Dans `useEisenhowerViewData.ts`, le mapping est :
+- Obligation -> urgent-important (correct)
+- Quotidien -> not-urgent-important (FAUX : Quotidien = Urgent seul)
+- Envie -> urgent-not-important (FAUX : Envie = Important seul)
+
+Cela inverse les quadrants "Important seul" et "Urgent seul" dans la matrice visuelle.
+
+**Correction** : Aligner le mapping sur la verite du systeme :
 ```text
-Fonctions exportees :
-
-1. computeTaskPoints(params: TaskRewardInput): TaskRewardResult
-   - TaskRewardInput : { durationMinutes, isImportant, isUrgent, postponeCount, scheduledAt?, completedAt }
-   - TaskRewardResult : { points, base, quadrantCoeff, bonusType, bonusValue, isMicroTask, formula }
-   
-   Logique :
-   - base = sqrt(durationMinutes)
-   - quadrantCoeff selon (isImportant, isUrgent) : 1.5, 1.6, 1.0, 0.7
-   - bonus unique (exclusif, priorite anti-zombie) :
-     - postponeCount >= 3 : 1.5
-     - scheduledAt et completedAt definis :
-       - diff > 48h : 1.20
-       - diff <= 48h : 1.10
-     - sinon : 1.00
-   - points = Math.round(base * quadrantCoeff * bonusValue)
-   - isMicroTask = durationMinutes <= 10
-
-2. checkMicroTaskCap(microTasksCompletedToday: number): boolean
-   - Retourne true si < 5 (scorable), false sinon
-
-3. checkStreakDay(importantMinutesToday: number): boolean
-   - Retourne true si >= 30 (minutes de taches importantes > 10 min)
-
-4. computeWeeklySummary(tasks: WeeklyTaskEntry[]): WeeklySummary
-   - WeeklyTaskEntry : { durationMinutes, isImportant, isUrgent, points }
-   - WeeklySummary : {
-       pctImportantNotUrgent, pctUrgent, pctMaintenance,
-       alignmentScore (points important-non-urgent / points total)
-     }
+Obligation -> urgent-important
+Quotidien  -> urgent-not-important    (etait not-urgent-important)
+Envie      -> important-not-urgent    (etait urgent-not-important : l'inverse !)  
+Autres     -> not-urgent-not-important
 ```
 
-**Creer `src/lib/rewards/constants.ts`** -- toutes les constantes du moteur :
+Aussi : harmoniser les cles de quadrant avec celles du moteur de reward (`engine.ts` utilise `important-not-urgent`, le toolbox utilise `not-urgent-important`). Adopter les memes cles partout : `urgent-important`, `important-not-urgent`, `urgent-not-important`, `not-urgent-not-important`.
 
-```text
-QUADRANT_COEFFICIENTS = {
-  'urgent-important': 1.5,
-  'important-not-urgent': 1.6,
-  'urgent-not-important': 1.0,
-  'not-urgent-not-important': 0.7
-}
+**Fichier** : `src/components/views/toolbox/tools/eisenhower/useEisenhowerViewData.ts`
 
-ANTI_ZOMBIE_THRESHOLD = 3
-ANTI_ZOMBIE_BONUS = 1.5
-PLANNING_BONUS_LONG = 1.20
-PLANNING_BONUS_SHORT = 1.10
-PLANNING_THRESHOLD_HOURS = 48
+---
 
-MICRO_TASK_MAX_MINUTES = 10
-MICRO_TASK_DAILY_CAP = 5
+### 5. Bonus planification : clarifier la semantique
 
-STREAK_MIN_IMPORTANT_MINUTES = 30
-STREAK_MIN_TASK_DURATION = 10
-```
+**Probleme** : Le code recupere `time_events.created_at` (date de creation de l'evenement) comme `scheduledAt`, puis calcule `completedAt - scheduledAt`. Cela mesure "combien de temps avant la completion l'evenement a ete cree", pas "combien de temps avant la date prevue la tache a ete planifiee".
 
-**Creer `src/lib/rewards/index.ts`** -- re-exports.
+**Decision** : Garder la semantique actuelle ("j'ai planifie tot") car elle recompense la planification proactive, ce qui est conforme a la TMT (Temporal Motivation Theory). Mais utiliser `starts_at` au lieu de `created_at` pour que le bonus mesure "j'ai planifie cette tache pour un moment dans le futur" : `diff = starts_at - created_at`. Si la tache est planifiee > 48h avant sa date prevue : bonus long. Sinon : bonus court.
 
-### Phase 3 : Refonte du hook `useGamification.ts`
+**Correction** : Dans `rewardTaskCompletion`, recuperer `created_at` ET `starts_at` du time_event. Calculer `scheduledDiff = starts_at - created_at` (en heures). Passer ce diff au moteur au lieu de `completedAt - scheduledAt`.
 
-Remplacement complet de la logique interne :
+Adapter `computeTaskPoints` pour accepter un `planningLeadHours: number | null` au lieu de `scheduledAt/completedAt`.
 
-**`rewardTaskCompletion(task)`** -- nouvelle version :
-1. Extraire `durationMinutes` (= `task.estimatedTime`), `isImportant`, `isUrgent` depuis la tache
-2. Recuperer `postpone_count` depuis la DB (items)
-3. Recuperer la date de planification depuis `time_events` (si existe pour cette tache)
-4. Appeler `computeTaskPoints(...)` du moteur
-5. Verifier le plafond micro-taches : compter les transactions du jour avec `isMicroTask` dans metadata
-6. Si plafonne : points = 0
-7. Enregistrer dans `xp_transactions` avec metadata detaillee (base, coeff, bonus, formula)
-8. Mettre a jour `user_progress.total_xp += points`, `tasks_completed += 1`
-9. Verifier la streak :
-   - Calculer les minutes importantes du jour (taches important=true, duree > 10 min, completees aujourd'hui)
-   - Si >= 30 min et `last_activity_date !== aujourd'hui` : incrementer `current_task_streak`
-   - Sinon si `last_activity_date` est hier : ne pas casser la streak
-   - Sinon si `last_activity_date` < hier : remettre streak a 1 (ou 0 si pas qualifie)
-   - Mettre a jour `longest_task_streak` si necessaire
-10. Mettre a jour `last_activity_date`
+**Fichiers** : `src/lib/rewards/engine.ts` + `src/hooks/useGamification.ts`
 
-**Supprimer** : `calculateXpForLevel`, `addXp` (remplace par logique directe), `rewardStreak` (ancien systeme de paliers), `checkAndUnlockAchievement`, `rewardProjectCreation`, `rewardProjectCompletion`, `getProgressPercentage` (plus de niveaux).
+---
 
-**Conserver** : `loadProgress`, `formatProgress`, `rewardHabitCompletion` (adaptee pour ne plus utiliser de niveaux).
+### 6. Metadata micro-tache capee : UX coherente
 
-**Nouvelles fonctions exposees** :
-- `getDailyMicroTaskCount()` : compte les micro-taches scorees aujourd'hui
-- `getWeeklySummary()` : calcule le resume hebdomadaire
-- `getAlignmentScore()` : retourne le score d'alignement
+**Probleme** : Quand une micro-tache est capee, `finalPoints = 0` mais la formule dans metadata montre le calcul "normal" (ex: "sqrt(10) x 1.0 x 1.0 = 3"), ce qui est contradictoire avec les 0 points affiches.
 
-### Phase 4 : Adapter les types
+**Correction** : Quand `capped = true`, ecraser `formula` dans la metadata par `"√X × Y × Z = N → capee (0 pts)"` et stocker `finalPoints: 0` en plus de `points: N` (points theoriques).
 
-**`src/types/gamification.ts`** -- refonte :
+**Fichier** : `src/hooks/useGamification.ts`
 
-```text
-Supprimer : XP_CONFIG (ancien systeme)
+---
 
-Ajouter :
-- TaskRewardInput, TaskRewardResult (interfaces du moteur)
-- WeeklyTaskEntry, WeeklySummary
-- DailyStreakInfo
+### 7. Constantes hardcodees dans l'UI
 
-Adapter UserProgress :
-- Garder : totalXp (= total points), currentTaskStreak, longestTaskStreak, 
-  tasksCompleted, lastActivityDate
-- Deprecier/ignorer : currentLevel, xpForNextLevel, lifetimePoints, 
-  currentPoints (tout est dans totalXp maintenant)
-- Les habits restent inchanges
-```
+**Probleme** : Le texte "30 min importantes restantes" dans `ProgressOverview.tsx` (L55) utilise le nombre 30 en dur au lieu de `STREAK_MIN_IMPORTANT_MINUTES`.
 
-### Phase 5 : Adapter la vue Recompenses
+**Correction** : Importer la constante et l'utiliser.
 
-**`src/components/rewards/ProgressOverview.tsx`** :
-- Remplacer la carte "Niveau X" par une carte "Points totaux" avec le streak
-- Remplacer la barre de progression XP par le score d'alignement hebdomadaire
-- Afficher le resume hebdomadaire (3 pourcentages : Important non urgent / Urgent / Maintenance)
-- Afficher le compteur de micro-taches du jour (X/5)
+**Fichier** : `src/components/rewards/ProgressOverview.tsx`
 
-**`src/components/rewards/RecentActivity.tsx`** :
-- Adapter pour afficher les details de calcul depuis metadata (base, coeff, bonus)
-- Afficher "0 pts (plafond micro-taches)" quand applicable
+---
 
-**`src/hooks/view-data/useRewardsViewData.ts`** :
-- Exposer les nouvelles donnees : weeklySummary, alignmentScore, dailyMicroCount, streakInfo
-- Supprimer les references aux niveaux
+## Resume des fichiers modifies
 
-**`src/components/views/rewards/RewardsView.tsx`** :
-- Integrer les nouvelles cartes (resume hebdo, alignement, streak)
-
-**`src/components/rewards/LevelUpAnimation.tsx`** :
-- Transformer en "StreakAnimation" ou supprimer (plus de niveaux)
-
-### Phase 6 : Incrementer `postpone_count`
-
-Identifier ou les reports/replanifications se font :
-- `rescheduleEventToBlock` dans `useTimelineScheduling.ts` (ligne 281)
-- `rescheduleEvent` dans `useTimelineScheduling.ts` (ligne 247)
-
-A chaque replanification d'un evenement lie a une tache, incrementer `postpone_count` sur l'item correspondant :
-
-```text
-await supabase
-  .from('items')
-  .update({ postpone_count: currentCount + 1 })
-  .eq('id', taskId);
-```
-
-### Phase 7 : Nettoyage des appels
-
-**`src/hooks/useTasks.ts`** (ligne 140) : `rewardTaskCompletion(task)` -- la signature reste identique, seul le calcul interne change.
-
-**`src/hooks/useHabits.ts`** (ligne 218) : `rewardHabitCompletion` -- adapter pour ne plus utiliser de niveaux. Les habitudes ne participent pas au calcul de points du brief (seulement les taches). Garder le tracking basique ou le supprimer.
-
-**`src/hooks/useProjects.ts`** (lignes 113, 213) : Supprimer `rewardProjectCreation` et `rewardProjectCompletion` (le brief ne prevoit pas de points pour les projets).
-
-**`src/components/settings/sections/GamificationSettings.tsx`** : Adapter les toggles (supprimer "Notifications de niveau", adapter les labels).
-
-## Fichiers impactes (resume)
-
-| Fichier | Action |
+| Fichier | Modifications |
 |---|---|
-| `supabase/migrations/` | Nouveau : ajouter `postpone_count` sur `items` |
-| `src/lib/rewards/engine.ts` | Nouveau : moteur de calcul pur |
-| `src/lib/rewards/constants.ts` | Nouveau : constantes |
-| `src/lib/rewards/index.ts` | Nouveau : re-exports |
-| `src/types/gamification.ts` | Refonte : nouveaux types, supprimer XP_CONFIG |
-| `src/hooks/useGamification.ts` | Refonte majeure : nouveau calcul |
-| `src/hooks/useTimelineScheduling.ts` | Modifier : incrementer postpone_count |
-| `src/hooks/useProjects.ts` | Modifier : supprimer appels reward |
-| `src/hooks/view-data/useRewardsViewData.ts` | Modifier : nouvelles donnees |
-| `src/components/rewards/ProgressOverview.tsx` | Refonte UI |
-| `src/components/rewards/RecentActivity.tsx` | Adapter affichage |
-| `src/components/views/rewards/RewardsView.tsx` | Adapter structure |
-| `src/components/rewards/LevelUpAnimation.tsx` | Supprimer ou transformer |
-| `src/components/settings/sections/GamificationSettings.tsx` | Adapter |
-| `src/integrations/supabase/types.ts` | Auto-genere apres migration |
+| `supabase/migrations/` | (1) Index unique `xp_transactions(user_id, source_type, source_id)` (2) Colonne `last_streak_qualified_date` sur `user_progress` |
+| `src/lib/rewards/engine.ts` | Remplacer `scheduledAt/completedAt` par `planningLeadHours` dans l'interface et le calcul |
+| `src/hooks/useGamification.ts` | Guard idempotence avant INSERT, streak refactoree avec `last_streak_qualified_date`, formule capee, planning lead hours |
+| `src/hooks/useTimelineScheduling.ts` | `handleCompleteEvent` utilise `toggleTaskCompletion` au lieu de `updateTask` |
+| `src/hooks/useTasks.ts` | Aucune modification (deja correct) |
+| `src/components/views/toolbox/tools/eisenhower/useEisenhowerViewData.ts` | Corriger le mapping categorie -> quadrant, harmoniser les cles |
+| `src/types/gamification.ts` | Ajouter `lastStreakQualifiedDate` a `UserProgress` |
+| `src/components/rewards/ProgressOverview.tsx` | Utiliser `STREAK_MIN_IMPORTANT_MINUTES` au lieu de 30 en dur |
 
-## Risques et points d'attention
+## Ordre d'execution
 
-1. **Pas de compteur de reports actuellement** : La colonne `postpone_count` doit etre ajoutee. Les taches existantes demarrent a 0.
-2. **Date de planification** : Elle est stockee dans `time_events.starts_at`, pas directement sur l'item. Il faut la recuperer via une requete jointe.
-3. **Retrocompatibilite** : Les anciennes transactions XP resteront en base avec l'ancien format. La vue RecentActivity devra gerer les deux formats de metadata.
-4. **Suppression des niveaux** : L'animation de level-up et la barre de progression niveau disparaissent. Si on veut les garder sous une autre forme, il faudra le preciser.
-5. **Habits** : Le brief ne mentionne pas les habitudes dans le calcul de points. Elles continueront d'etre trackees mais ne genereront plus de points sauf decision contraire.
+1. Migration DB (index unique + colonne streak)
+2. Moteur engine.ts (planningLeadHours)  
+3. useGamification.ts (idempotence + streak + formule capee + planning)
+4. useTimelineScheduling.ts (unifier completion)
+5. useEisenhowerViewData.ts (mapping corrige)
+6. Types + UI (ProgressOverview)
+
