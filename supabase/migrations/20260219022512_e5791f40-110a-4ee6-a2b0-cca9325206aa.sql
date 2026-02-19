@@ -1,0 +1,2 @@
+ALTER TABLE public.time_events DROP CONSTRAINT IF EXISTS time_events_entity_type_check;
+ALTER TABLE public.time_events ADD CONSTRAINT time_events_entity_type_check CHECK (entity_type IN ('task', 'habit', 'challenge', 'recovery'));
