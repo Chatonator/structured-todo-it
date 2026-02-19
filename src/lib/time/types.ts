@@ -4,7 +4,7 @@
  */
 
 // Type of temporal event
-export type TimeEventType = 'task' | 'habit' | 'challenge' | 'reminder' | 'external';
+export type TimeEventType = 'task' | 'habit' | 'challenge' | 'reminder' | 'external' | 'recovery';
 
 // Time blocks for day planning
 export type TimeBlock = 'morning' | 'afternoon' | 'evening';
