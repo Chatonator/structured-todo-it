@@ -4,7 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { TimeEvent, TIME_BLOCKS } from '@/lib/time/types';
 import { formatDuration } from '@/lib/formatters';
-import { Check, X, GripVertical, Clock, Folder, Users } from 'lucide-react';
+import { Check, X, GripVertical, Clock, Coffee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCategoryIndicatorColor } from '@/lib/styling';
 import { TaskCategory } from '@/types/task';
@@ -24,12 +24,15 @@ export const ScheduledEventCard: React.FC<ScheduledEventCardProps> = ({
   onClick,
   compact = false
 }) => {
+  const isRecovery = event.entityType === 'recovery';
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `event-${event.id}`,
     data: {
       type: 'scheduled-event',
       event
-    }
+    },
+    disabled: isRecovery
   });
 
   const style = {
@@ -52,30 +55,39 @@ export const ScheduledEventCard: React.FC<ScheduledEventCardProps> = ({
       style={style}
       className={cn(
         "group relative flex items-start gap-1.5 rounded border transition-all cursor-pointer",
-        isCompleted ? "bg-muted/50 border-muted" : "bg-card border-border hover:border-primary/30",
+        isRecovery
+          ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+          : isCompleted ? "bg-muted/50 border-muted" : "bg-card border-border hover:border-primary/30",
         isDragging && "opacity-50 shadow-lg z-50",
         compact ? "p-1.5" : "p-2"
       )}
       onClick={onClick}
       {...attributes}
     >
-      {/* Category indicator bar - plus épaisse */}
+      {/* Category indicator bar */}
       <div className={cn(
         "w-1.5 self-stretch rounded-full shrink-0",
-        isCompleted ? "bg-muted" : categoryColor
+        isRecovery ? "bg-emerald-400" : isCompleted ? "bg-muted" : categoryColor
       )} />
 
-      {/* Drag handle */}
-      <button
-        {...listeners}
-        className={cn(
-          "cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground shrink-0",
-          compact && "hidden group-hover:block"
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
-      </button>
+      {/* Drag handle or recovery icon */}
+      {isRecovery ? (
+        <Coffee className={cn(
+          "text-emerald-500 shrink-0",
+          compact ? "w-3 h-3" : "w-3.5 h-3.5"
+        )} />
+      ) : (
+        <button
+          {...listeners}
+          className={cn(
+            "cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground shrink-0",
+            compact && "hidden group-hover:block"
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
+        </button>
+      )}
 
       {/* Content */}
       <div className="flex-1 min-w-0">

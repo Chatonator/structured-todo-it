@@ -9,6 +9,19 @@ export { RecurrenceResolver } from './RecurrenceResolver';
 export { ConflictChecker } from './ConflictChecker';
 export { EventRegistry } from './EventRegistry';
 export { EventNormalizer } from './EventNormalizer';
+export {
+  shouldCreateBreak,
+  calculateBreakDuration,
+  getRandomSuggestion,
+  buildBreakTitle,
+  getCumulativeWorkWithoutBreak,
+  RECOVERY_SUGGESTIONS,
+  BREAK_RATIO,
+  MIN_BREAK,
+  MAX_BREAK,
+  LONG_TASK_THRESHOLD,
+  ACCUMULATION_THRESHOLD,
+} from './RecoveryEngine';
 
 export type {
   TimeEvent,
