@@ -16,11 +16,14 @@ export {
   getSuggestionForDuration,
   buildBreakTitle,
   getCumulativeWorkWithoutBreak,
+  computeBlockBreaks,
   RECOVERY_SUGGESTIONS,
   BREAK_THRESHOLDS,
   LONG_TASK_THRESHOLD,
   ACCUMULATION_THRESHOLD,
 } from './RecoveryEngine';
+
+export type { PlannedBreak, RecoverySuggestion } from './RecoveryEngine';
 
 export type {
   TimeEvent,

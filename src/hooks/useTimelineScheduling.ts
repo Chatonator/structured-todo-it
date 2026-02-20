@@ -12,7 +12,7 @@ import { useTimeHub } from '@/hooks/useTimeHub';
 import { useTimeEventSync } from '@/hooks/useTimeEventSync';
 import { Task } from '@/types/task';
 import { TimeEvent, DateRange, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
-import { shouldCreateBreak, getEffectiveWorkDuration, calculateBreakDuration, getSuggestionForDuration, buildBreakTitle } from '@/lib/time/RecoveryEngine';
+import { getSuggestionForDuration, buildBreakTitle, computeBlockBreaks } from '@/lib/time/RecoveryEngine';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isPast, isToday, startOfDay } from 'date-fns';
@@ -82,63 +82,65 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
   }, [events]);
 
   /**
-   * Create a recovery break event after a task
+   * Recalculate all recovery breaks for a given date (and optionally block).
+   * Deletes all existing recovery breaks, then computes new ones based on task order.
    */
-  const createRecoveryBreak = useCallback(async (
-    task: Task,
-    taskEndsAt: Date,
-    breakDuration: number,
-    date: Date,
-    block?: TimeBlock
-  ): Promise<void> => {
+  const recalculateBreaks = useCallback(async (date: Date, block?: TimeBlock): Promise<void> => {
     if (!user) return;
 
-    const suggestion = getSuggestionForDuration(breakDuration);
-    const title = buildBreakTitle(suggestion, breakDuration);
-    const endsAt = new Date(taskEndsAt.getTime() + breakDuration * 60 * 1000);
+    const dateStr = format(date, 'yyyy-MM-dd');
 
     try {
-      const { error } = await supabase
-        .from('time_events')
-        .insert({
-          user_id: user.id,
-          entity_type: 'recovery',
-          entity_id: task.id,
-          starts_at: taskEndsAt.toISOString(),
-          ends_at: endsAt.toISOString(),
-          duration: breakDuration,
-          is_all_day: false,
-          title,
-          description: `recovery:${task.id}`,
-          color: '#86efac',
-          status: 'scheduled',
-          time_block: block || null,
-        });
-
-      if (error) throw error;
-      logger.debug('Recovery break created', { taskId: task.id, duration: breakDuration, title });
-    } catch (error: any) {
-      logger.warn('Failed to create recovery break', { error: error.message });
-    }
-  }, [user]);
-
-  /**
-   * Delete recovery break(s) linked to a task
-   */
-  const deleteRecoveryBreak = useCallback(async (taskId: string): Promise<void> => {
-    if (!user) return;
-    try {
-      await supabase
+      // 1. Delete all existing recovery breaks for this date (and block if specified)
+      let deleteQuery = supabase
         .from('time_events')
         .delete()
         .eq('entity_type', 'recovery')
-        .eq('entity_id', taskId)
-        .eq('user_id', user.id);
-    } catch (error: any) {
-      logger.warn('Failed to delete recovery break', { error: error.message });
-    }
-  }, [user]);
+        .eq('user_id', user.id)
+        .gte('starts_at', `${dateStr}T00:00:00`)
+        .lt('starts_at', `${dateStr}T23:59:59`);
+      
+      if (block) {
+        deleteQuery = deleteQuery.eq('time_block', block);
+      }
+      await deleteQuery;
 
+      // 2. Get all task events for this date/block
+      const blockEvts = getBlockEvents(date, block);
+
+      // 3. Compute where breaks should go
+      const taskInfos = tasks.map(t => ({ id: t.id, isImportant: t.isImportant }));
+      const plannedBreaks = computeBlockBreaks(blockEvts, taskInfos);
+
+      // 4. Create all breaks
+      for (const pb of plannedBreaks) {
+        const suggestion = getSuggestionForDuration(pb.breakDuration);
+        const title = buildBreakTitle(suggestion, pb.breakDuration);
+        const endsAt = new Date(pb.afterTaskEndsAt.getTime() + pb.breakDuration * 60 * 1000);
+
+        await supabase
+          .from('time_events')
+          .insert({
+            user_id: user.id,
+            entity_type: 'recovery',
+            entity_id: pb.afterTaskId,
+            starts_at: pb.afterTaskEndsAt.toISOString(),
+            ends_at: endsAt.toISOString(),
+            duration: pb.breakDuration,
+            is_all_day: false,
+            title,
+            description: `recovery:${pb.afterTaskId}`,
+            color: '#86efac',
+            status: 'scheduled',
+            time_block: pb.block || block || null,
+          });
+      }
+
+      logger.debug('Recalculated breaks', { date: dateStr, block, count: plannedBreaks.length });
+    } catch (error: any) {
+      logger.warn('Failed to recalculate breaks', { error: error.message });
+    }
+  }, [user, tasks, getBlockEvents]);
   // Get overdue events (past, not completed, not cancelled)
   const overdueEvents = useMemo(() => {
     return events.filter(e => 
@@ -242,22 +244,10 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
       });
 
       if (success) {
-        // Check if we need a recovery break
-        const taskDuration = taskWithDuration.duration || taskWithDuration.estimatedTime || 30;
-        const blockEvts = getBlockEvents(date);
-        const effectiveWork = getEffectiveWorkDuration(taskDuration, task.isImportant, blockEvts);
-        if (effectiveWork > 0) {
-          const breakDur = calculateBreakDuration(effectiveWork);
-          if (breakDur > 0) {
-            const taskStartsAt = new Date(date);
-            taskStartsAt.setHours(hour, minute, 0, 0);
-            const taskEndsAt = new Date(taskStartsAt.getTime() + taskDuration * 60 * 1000);
-            await createRecoveryBreak(task, taskEndsAt, breakDur, date);
-          }
-        }
-
+        // Recalculate all breaks for this date
+        await recalculateBreaks(date);
         await loadEvents();
-        logger.debug('Task scheduled', { taskId, date, time, duration: taskDuration });
+        logger.debug('Task scheduled', { taskId, date, time });
       }
 
       return success;
@@ -265,7 +255,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
       logger.error('Failed to schedule task', { error: error.message, taskId });
       return false;
     }
-  }, [user, tasks, events, syncTaskEventWithSchedule, loadEvents, getBlockEvents, createRecoveryBreak]);
+  }, [user, tasks, events, syncTaskEventWithSchedule, loadEvents, recalculateBreaks]);
 
   /**
    * Schedule a task to a time block (new block-based scheduling)
@@ -315,19 +305,8 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
           .eq('entity_id', taskId)
           .eq('user_id', user.id);
 
-        // Check if we need a recovery break
-        const taskDuration = taskWithDuration.duration || taskWithDuration.estimatedTime || 30;
-        const blockEvts = getBlockEvents(date, block);
-        const effectiveWork = getEffectiveWorkDuration(taskDuration, task.isImportant, blockEvts);
-        if (effectiveWork > 0) {
-          const breakDur = calculateBreakDuration(effectiveWork);
-          if (breakDur > 0) {
-            const taskStartsAt = new Date(date);
-            taskStartsAt.setHours(hour, 0, 0, 0);
-            const taskEndsAt = new Date(taskStartsAt.getTime() + taskDuration * 60 * 1000);
-            await createRecoveryBreak(task, taskEndsAt, breakDur, date, block);
-          }
-        }
+        // Recalculate all breaks for this block
+        await recalculateBreaks(date, block);
 
         await loadEvents();
         logger.debug('Task scheduled to block', { taskId, date: format(date, 'yyyy-MM-dd'), block });
@@ -338,7 +317,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
       logger.error('Failed to schedule task to block', { error: error.message, taskId });
       return false;
     }
-  }, [user, tasks, syncTaskEventWithSchedule, loadEvents, getBlockEvents, createRecoveryBreak]);
+  }, [user, tasks, syncTaskEventWithSchedule, loadEvents, recalculateBreaks]);
 
   /**
    * Reschedule an existing event to a new time
@@ -522,8 +501,10 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
       );
 
       if (success) {
-        // Also delete associated recovery break
-        await deleteRecoveryBreak(event.entityId);
+        // Recalculate breaks for the date (removing unscheduled task may change break layout)
+        const eventDate = new Date(event.startsAt);
+        const block = event.timeBlock as TimeBlock | undefined;
+        await recalculateBreaks(eventDate, block);
         await loadEvents();
         logger.debug('Event unscheduled', { eventId });
       }
@@ -533,7 +514,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
       logger.error('Failed to unschedule event', { error: error.message, eventId });
       return false;
     }
-  }, [user, events, deleteEntityEvent, loadEvents, deleteRecoveryBreak]);
+  }, [user, events, deleteEntityEvent, loadEvents, recalculateBreaks]);
 
   /**
    * Complete an event
