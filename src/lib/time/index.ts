@@ -12,13 +12,12 @@ export { EventNormalizer } from './EventNormalizer';
 export {
   shouldCreateBreak,
   calculateBreakDuration,
-  getRandomSuggestion,
+  getEffectiveWorkDuration,
+  getSuggestionForDuration,
   buildBreakTitle,
   getCumulativeWorkWithoutBreak,
   RECOVERY_SUGGESTIONS,
-  BREAK_RATIO,
-  MIN_BREAK,
-  MAX_BREAK,
+  BREAK_THRESHOLDS,
   LONG_TASK_THRESHOLD,
   ACCUMULATION_THRESHOLD,
 } from './RecoveryEngine';
