@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { useDroppable } from '@dnd-kit/core';
 import { TimeEvent, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
 import { ScheduledEventCard } from '../ScheduledEventCard';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface TimeBlockRowProps {
   date: Date;
@@ -50,9 +51,42 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
       grouped[block].push(event);
     });
 
-    // Sort by time within each block
+    // Sort events: tasks by startsAt, then insert recovery breaks right after their parent task
     Object.values(grouped).forEach(blockEvents => {
+      // First sort all by startsAt
       blockEvents.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+      
+      // Then reorder: for each recovery event, place it right after its parent task
+      const reordered: TimeEvent[] = [];
+      const recoveryMap = new Map<string, TimeEvent[]>();
+      
+      // Group recovery events by their parent task (entity_id)
+      for (const evt of blockEvents) {
+        if (evt.entityType === 'recovery') {
+          const existing = recoveryMap.get(evt.entityId) || [];
+          existing.push(evt);
+          recoveryMap.set(evt.entityId, existing);
+        }
+      }
+      
+      // Build final order: task followed by its recovery breaks
+      for (const evt of blockEvents) {
+        if (evt.entityType === 'recovery') continue; // will be inserted after parent
+        reordered.push(evt);
+        const breaks = recoveryMap.get(evt.entityId);
+        if (breaks) {
+          reordered.push(...breaks);
+          recoveryMap.delete(evt.entityId);
+        }
+      }
+      
+      // Add any orphaned recovery events at the end
+      for (const breaks of recoveryMap.values()) {
+        reordered.push(...breaks);
+      }
+      
+      blockEvents.length = 0;
+      blockEvents.push(...reordered);
     });
 
     return grouped;
@@ -116,13 +150,12 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
       ref={setNodeRef}
       className={cn(
         "flex flex-col rounded-xl border-2 border-dashed transition-all min-h-[200px]",
-        "h-[300px]",
         isOver && !disabled && "border-primary bg-primary/5",
         disabled ? "bg-muted/20 border-muted" : "border-border hover:border-muted-foreground/40"
       )}
     >
       {/* Block header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30 rounded-t-lg">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30 rounded-t-lg flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-xl">{blockConfig.icon}</span>
           <div>
@@ -134,31 +167,33 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
         </div>
         {events.length > 0 && (
           <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-            {completedCount}/{events.length} • {Math.round(totalDuration / 60)}h
+            {completedCount}/{events.length} • {Math.round(totalDuration / 60)}h{totalDuration % 60 > 0 ? `${totalDuration % 60}m` : ''}
           </span>
         )}
       </div>
 
-      {/* Events list */}
-      <div className="flex-1 p-3 space-y-2">
-        {events.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            <p className="text-sm text-muted-foreground/50 text-center">
-              {disabled ? '—' : 'Glissez une tâche ici'}
-            </p>
-          </div>
-        ) : (
-          events.map(event => (
-            <ScheduledEventCard
-              key={event.id}
-              event={event}
-              onComplete={() => onCompleteEvent?.(event.id)}
-              onRemove={() => onRemoveEvent?.(event.id)}
-              onClick={() => onEventClick?.(event)}
-            />
-          ))
-        )}
-      </div>
+      {/* Events list with scroll */}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-3 space-y-2">
+          {events.length === 0 ? (
+            <div className="h-[120px] flex items-center justify-center">
+              <p className="text-sm text-muted-foreground/50 text-center">
+                {disabled ? '—' : 'Glissez une tâche ici'}
+              </p>
+            </div>
+          ) : (
+            events.map(event => (
+              <ScheduledEventCard
+                key={event.id}
+                event={event}
+                onComplete={() => onCompleteEvent?.(event.id)}
+                onRemove={() => onRemoveEvent?.(event.id)}
+                onClick={() => onEventClick?.(event)}
+              />
+            ))
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 };

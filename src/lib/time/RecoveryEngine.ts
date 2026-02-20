@@ -124,3 +124,67 @@ export function getSuggestionForDuration(breakMinutes: number): RecoverySuggesti
 export function buildBreakTitle(suggestion: RecoverySuggestion, durationMinutes: number): string {
   return `${suggestion.icon} ${suggestion.label} – ${durationMinutes} min`;
 }
+
+/**
+ * Plan of breaks for a block: returns a list of { afterTaskId, breakDuration }
+ * Walks through tasks in order, accumulates work time, and triggers breaks
+ * whenever a threshold is crossed (single task long enough, important, or accumulation).
+ */
+export interface PlannedBreak {
+  afterTaskId: string;
+  afterTaskEndsAt: Date;
+  breakDuration: number;
+  block?: string;
+}
+
+export function computeBlockBreaks(
+  taskEvents: TimeEvent[],
+  allTasks?: { id: string; isImportant?: boolean }[]
+): PlannedBreak[] {
+  // Sort task events by startsAt
+  const sorted = [...taskEvents]
+    .filter(e => e.entityType === 'task' && e.status !== 'cancelled')
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+
+  const breaks: PlannedBreak[] = [];
+  let accumulatedWork = 0;
+
+  for (const event of sorted) {
+    const taskDuration = event.duration;
+    const taskInfo = allTasks?.find(t => t.id === event.entityId);
+    const isImportant = taskInfo?.isImportant ?? false;
+
+    accumulatedWork += taskDuration;
+
+    // Check if this individual task or accumulation triggers a break
+    let effectiveDuration = 0;
+
+    if (taskDuration >= LONG_TASK_THRESHOLD) {
+      // Long task: use task duration
+      effectiveDuration = taskDuration;
+    } else if (isImportant) {
+      // Important task: force at least 30 to trigger minimum break
+      effectiveDuration = Math.max(accumulatedWork, LONG_TASK_THRESHOLD);
+    } else if (accumulatedWork >= ACCUMULATION_THRESHOLD) {
+      // Accumulation threshold reached
+      effectiveDuration = accumulatedWork;
+    }
+
+    if (effectiveDuration > 0) {
+      const breakDur = calculateBreakDuration(effectiveDuration);
+      if (breakDur > 0) {
+        const endsAt = event.endsAt || new Date(event.startsAt.getTime() + taskDuration * 60 * 1000);
+        breaks.push({
+          afterTaskId: event.entityId,
+          afterTaskEndsAt: endsAt,
+          breakDuration: breakDur,
+          block: event.timeBlock,
+        });
+        // Reset accumulation after a break
+        accumulatedWork = 0;
+      }
+    }
+  }
+
+  return breaks;
+}
