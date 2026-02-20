@@ -12,7 +12,7 @@ import { useTimeHub } from '@/hooks/useTimeHub';
 import { useTimeEventSync } from '@/hooks/useTimeEventSync';
 import { Task } from '@/types/task';
 import { TimeEvent, DateRange, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
-import { shouldCreateBreak, calculateBreakDuration, getRandomSuggestion, buildBreakTitle } from '@/lib/time/RecoveryEngine';
+import { shouldCreateBreak, getEffectiveWorkDuration, calculateBreakDuration, getSuggestionForDuration, buildBreakTitle } from '@/lib/time/RecoveryEngine';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isPast, isToday, startOfDay } from 'date-fns';
@@ -93,7 +93,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
   ): Promise<void> => {
     if (!user) return;
 
-    const suggestion = getRandomSuggestion();
+    const suggestion = getSuggestionForDuration(breakDuration);
     const title = buildBreakTitle(suggestion, breakDuration);
     const endsAt = new Date(taskEndsAt.getTime() + breakDuration * 60 * 1000);
 
@@ -245,12 +245,15 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
         // Check if we need a recovery break
         const taskDuration = taskWithDuration.duration || taskWithDuration.estimatedTime || 30;
         const blockEvts = getBlockEvents(date);
-        if (shouldCreateBreak(taskDuration, task.isImportant, blockEvts)) {
-          const breakDur = calculateBreakDuration(taskDuration);
-          const taskStartsAt = new Date(date);
-          taskStartsAt.setHours(hour, minute, 0, 0);
-          const taskEndsAt = new Date(taskStartsAt.getTime() + taskDuration * 60 * 1000);
-          await createRecoveryBreak(task, taskEndsAt, breakDur, date);
+        const effectiveWork = getEffectiveWorkDuration(taskDuration, task.isImportant, blockEvts);
+        if (effectiveWork > 0) {
+          const breakDur = calculateBreakDuration(effectiveWork);
+          if (breakDur > 0) {
+            const taskStartsAt = new Date(date);
+            taskStartsAt.setHours(hour, minute, 0, 0);
+            const taskEndsAt = new Date(taskStartsAt.getTime() + taskDuration * 60 * 1000);
+            await createRecoveryBreak(task, taskEndsAt, breakDur, date);
+          }
         }
 
         await loadEvents();
@@ -315,12 +318,15 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
         // Check if we need a recovery break
         const taskDuration = taskWithDuration.duration || taskWithDuration.estimatedTime || 30;
         const blockEvts = getBlockEvents(date, block);
-        if (shouldCreateBreak(taskDuration, task.isImportant, blockEvts)) {
-          const breakDur = calculateBreakDuration(taskDuration);
-          const taskStartsAt = new Date(date);
-          taskStartsAt.setHours(hour, 0, 0, 0);
-          const taskEndsAt = new Date(taskStartsAt.getTime() + taskDuration * 60 * 1000);
-          await createRecoveryBreak(task, taskEndsAt, breakDur, date, block);
+        const effectiveWork = getEffectiveWorkDuration(taskDuration, task.isImportant, blockEvts);
+        if (effectiveWork > 0) {
+          const breakDur = calculateBreakDuration(effectiveWork);
+          if (breakDur > 0) {
+            const taskStartsAt = new Date(date);
+            taskStartsAt.setHours(hour, 0, 0, 0);
+            const taskEndsAt = new Date(taskStartsAt.getTime() + taskDuration * 60 * 1000);
+            await createRecoveryBreak(task, taskEndsAt, breakDur, date, block);
+          }
         }
 
         await loadEvents();
