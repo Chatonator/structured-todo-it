@@ -105,14 +105,47 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
       }
       await deleteQuery;
 
-      // 2. Get all task events for this date/block
-      const blockEvts = getBlockEvents(date, block);
+      // 2. Fetch fresh task events directly from DB (not stale React state)
+      let fetchQuery = supabase
+        .from('time_events')
+        .select('*')
+        .eq('user_id', user.id)
+        .neq('entity_type', 'recovery')
+        .neq('status', 'cancelled')
+        .gte('starts_at', `${dateStr}T00:00:00`)
+        .lt('starts_at', `${dateStr}T23:59:59`);
 
-      // 3. Compute where breaks should go
+      if (block) {
+        fetchQuery = fetchQuery.eq('time_block', block);
+      }
+
+      const { data: freshRows, error: fetchError } = await fetchQuery;
+      if (fetchError) throw fetchError;
+
+      // 3. Convert DB rows to TimeEvent objects for computeBlockBreaks
+      const freshEvents: TimeEvent[] = (freshRows || []).map(row => ({
+        id: row.id,
+        entityType: row.entity_type as TimeEvent['entityType'],
+        entityId: row.entity_id,
+        userId: row.user_id,
+        startsAt: new Date(row.starts_at),
+        endsAt: row.ends_at ? new Date(row.ends_at) : new Date(new Date(row.starts_at).getTime() + row.duration * 60 * 1000),
+        duration: row.duration,
+        isAllDay: row.is_all_day || false,
+        title: row.title,
+        description: row.description || undefined,
+        color: row.color || undefined,
+        status: row.status as TimeEvent['status'],
+        timeBlock: (row.time_block as TimeBlock) || undefined,
+        createdAt: new Date(row.created_at || ''),
+        updatedAt: new Date(row.updated_at || ''),
+      }));
+
+      // 4. Compute where breaks should go
       const taskInfos = tasks.map(t => ({ id: t.id, isImportant: t.isImportant }));
-      const plannedBreaks = computeBlockBreaks(blockEvts, taskInfos);
+      const plannedBreaks = computeBlockBreaks(freshEvents, taskInfos);
 
-      // 4. Create all breaks
+      // 5. Create all breaks
       for (const pb of plannedBreaks) {
         const suggestion = getSuggestionForDuration(pb.breakDuration);
         const title = buildBreakTitle(suggestion, pb.breakDuration);
@@ -140,7 +173,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
     } catch (error: any) {
       logger.warn('Failed to recalculate breaks', { error: error.message });
     }
-  }, [user, tasks, getBlockEvents]);
+  }, [user, tasks]);
   // Get overdue events (past, not completed, not cancelled)
   const overdueEvents = useMemo(() => {
     return events.filter(e => 
