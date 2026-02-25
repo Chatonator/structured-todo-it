@@ -1,56 +1,52 @@
 
+## Problèmes identifiés
 
-# Fix: Pauses de recuperation reactives et coherentes
+**1. Détection de collision imprécise (`closestCenter`)**
+Le `collisionDetection={closestCenter}` de dnd-kit calcule la distance entre le centre de l'élément draggué et le centre de chaque droppable. Avec des blocs Matin/Après-midi/Soir qui occupent tout l'espace vertical de la vue, l'activation peut targeter le mauvais bloc car le centre de la souris/doigt n'est pas nécessairement dans la colonne visuelle attendue.
 
-## Probleme identifie
+**Solution** : Passer à `rectIntersection` ou à un algorithme custom `pointerWithin` — dnd-kit fournit `pointerWithin` qui utilise la position exacte du pointeur (pas le centre du rectangle draggué). C'est beaucoup plus précis pour des zones bien définies.
 
-`recalculateBreaks()` utilise `getBlockEvents()` qui lit l'etat React `events` — mais cet etat est **perime** au moment de l'appel car `loadEvents()` n'a pas encore ete execute. Les pauses sont donc calculees sur les anciennes donnees et n'apparaissent qu'a l'action suivante.
+**2. Seuil d'activation trop petit (`distance: 8`)**
+Le seuil actuel de 8px signifie que le drag commence quasi-immédiatement sur un simple scroll. Passer à `distance: 5` est ok pour la réactivité mais le vrai gain de précision vient de `pointerWithin`.
 
-Meme probleme a la suppression : les pauses restent car le recalcul se fait sur des donnees obsoletes.
+**3. Pas de feedback visuel immédiat pendant le survol**
+`TimeBlockColumn` et `CompactDayColumn` changent leur border/background via `isOver`, mais l'animation CSS n'utilise que `transition-all` sans durée explicite. Préciser `transition-colors duration-150` évite le flash/lag visuel.
 
-## Solution
+**4. Latence perçue après le drop**
+`scheduleTaskToBlock` fait : `syncTaskEventWithSchedule` → `recalculateBreaks` → `loadEvents` séquentiellement. C'est 3 allers-retours DB avant que l'UI ne reflète le changement. Il faut ajouter **un état optimiste local** : dès le drop, retirer la tâche de la liste `unscheduledTasks` côté UI (sans attendre la DB), puis `reload` en background.
 
-Modifier `recalculateBreaks()` pour **lire directement depuis la base de donnees** au lieu de l'etat React. Cela garantit que le calcul utilise toujours les donnees les plus fraiches, y compris la tache qui vient juste d'etre ajoutee ou supprimee.
+## Plan d'implémentation
 
-## Changements techniques
+### Étape 1 — TimelineView.tsx : `pointerWithin` + état optimiste
+- Importer `pointerWithin` depuis `@dnd-kit/core`
+- Remplacer `collisionDetection={closestCenter}` par `collisionDetection={pointerWithin}`
+- Dans `handleDragEnd`, avant l'`await scheduleTaskToBlock(...)`, mettre à jour un `Set<string>` local `pendingTaskIds` pour masquer la tâche du deck immédiatement
+- Retirer `pendingTaskIds` après le `await` (succès ou échec)
+- Passer `pendingTaskIds` au `TaskDeckPanel` pour filtrer l'affichage
 
-### Fichier : `src/hooks/useTimelineScheduling.ts`
+### Étape 2 — TimeBlockRow.tsx / TimeBlockColumn : feedback visuel précis
+- Remplacer `transition-all` par `transition-colors duration-150` sur le container droppable
+- Ajouter une `scale(1.01)` ou un `ring` sur `isOver` pour un retour visuel net
+- Remplacer `border-2 border-dashed` par `border-2` seul avec changement de couleur plus prononcé sur `isOver`
 
-**Modifier `recalculateBreaks`** :
-- Remplacer l'appel a `getBlockEvents(date, block)` par une requete directe `supabase.from('time_events').select(...)` filtree sur la date, le user_id, et optionnellement le block
-- Convertir les rows DB en objets `TimeEvent` pour les passer a `computeBlockBreaks()`
-- Cela supprime la dependance a l'etat React perime
+### Étape 3 — CompactDayColumn.tsx : même amélioration visuelle
+- Même refactoring `transition-colors duration-150` + style `isOver` plus visible
 
-Sequence corrigee dans `scheduleTask` / `scheduleTaskToBlock` :
-1. Creer l'evenement tache (syncTaskEventWithSchedule) 
-2. Appeler `recalculateBreaks(date, block)` — lit la DB directement, voit la nouvelle tache
-3. Appeler `loadEvents()` — met a jour l'etat React avec taches + pauses
+### Étape 4 — TaskDeckItem.tsx : drag handle sur toute la carte
+- Actuellement le drag handle est un `<button>` séparé invisible par défaut (visible au hover). Cela oblige à viser précisément le handle.
+- Mettre `{...listeners}` directement sur le container principal `div` (à la place du bouton séparé), et garder le `onClick` sur le titre uniquement
+- Le curseur `grab` sur toute la carte rend le drag beaucoup plus intuitif
 
-Pour `unscheduleEvent` :
-1. Supprimer l'evenement tache
-2. Appeler `recalculateBreaks(date, block)` — lit la DB, la tache n'y est plus, donc pas de pause orpheline
-3. Appeler `loadEvents()`
+### Étape 5 — Capteur PointerSensor : délai minimal
+- Garder `distance: 5` (légèrement réduit depuis 8 pour plus de réactivité)
+- Ajouter `delay: 0` explicitement pour s'assurer qu'il n'y a pas de délai système
 
-### Detail de la requete DB dans recalculateBreaks
-
-```text
-1. DELETE recovery events pour cette date/block (deja fait)
-2. SELECT * FROM time_events 
-   WHERE user_id = X 
-   AND entity_type = 'task' 
-   AND status != 'cancelled'
-   AND starts_at entre debut et fin du jour
-   AND (time_block = block si specifie)
-3. Convertir en TimeEvent[]
-4. computeBlockBreaks(freshEvents, taskInfos)
-5. INSERT les nouvelles pauses
-```
-
-Cela remplace simplement la source de donnees (etat React perime -> requete DB fraiche) sans changer la logique de calcul.
-
-### Fichier unique modifie
+## Fichiers modifiés
 
 | Fichier | Modification |
 |---|---|
-| `src/hooks/useTimelineScheduling.ts` | `recalculateBreaks` lit la DB directement au lieu de `getBlockEvents` |
-
+| `src/components/views/timeline/TimelineView.tsx` | `pointerWithin`, état optimiste `pendingTaskIds` |
+| `src/components/timeline/planning/TimeBlockRow.tsx` | feedback visuel `isOver` amélioré |
+| `src/components/timeline/planning/CompactDayColumn.tsx` | feedback visuel `isOver` amélioré |
+| `src/components/timeline/panels/TaskDeckItem.tsx` | drag sur toute la carte |
+| `src/components/timeline/panels/TaskDeckPanel.tsx` | filtre `pendingTaskIds` |
