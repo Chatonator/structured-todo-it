@@ -149,9 +149,9 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col rounded-xl border-2 border-dashed transition-all min-h-[200px]",
-        isOver && !disabled && "border-primary bg-primary/5",
-        disabled ? "bg-muted/20 border-muted" : "border-border hover:border-muted-foreground/40"
+        "flex flex-col rounded-xl border-2 transition-colors duration-150 min-h-[200px]",
+        isOver && !disabled && "border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.01]",
+        disabled ? "bg-muted/20 border-muted border-dashed" : isOver ? "border-primary" : "border-dashed border-border hover:border-muted-foreground/40"
       )}
     >
       {/* Block header */}
