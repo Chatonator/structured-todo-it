@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Matter from 'matter-js';
-import type { ScenePhase, CuveState, PipeLayout, CuveLayout } from './types';
+import type { ScenePhase, CuveState, PipeLayout } from './types';
 import * as C from './LabConfig';
 import {
   createEngine,
@@ -29,13 +29,12 @@ export function useLabScene(canvasRef: React.RefObject<HTMLCanvasElement | null>
   const cuvesRef = useRef<CuveState[]>([]);
   const rewardRef = useRef<ReturnType<typeof createRewardCuve> | null>(null);
   const pipesRef = useRef<PipeLayout[]>([]);
-  const pipeWallsRef = useRef<Matter.Body[]>([]);
   const rafRef = useRef<number>(0);
   const sizeRef = useRef({ w: 0, h: 0 });
+  const phaseRef = useRef<ScenePhase>('initializing');
+  const settleCountRef = useRef(0); // require multiple consecutive settled checks
 
-  // Build the scene for a given canvas size
   const buildScene = useCallback((w: number, h: number) => {
-    // Cleanup old engine
     if (engineRef.current) {
       Matter.Engine.clear(engineRef.current);
       Matter.World.clear(engineRef.current.world, false);
@@ -56,18 +55,16 @@ export function useLabScene(canvasRef: React.RefObject<HTMLCanvasElement | null>
     const pipes = computePipeLayouts(cuveLayouts, rewardLayout);
     pipesRef.current = pipes;
 
-    // Pipe guides are always present (balls slide through them when released)
-    const pipeWalls = createPipeGuides(pipes, engine.world);
-    pipeWallsRef.current = pipeWalls;
+    createPipeGuides(pipes, engine.world);
 
-    // Spawn balls
     cuves.forEach(c => spawnBalls(c, engine.world));
 
     sizeRef.current = { w, h };
+    settleCountRef.current = 0;
+    phaseRef.current = 'initializing';
     setPhase('initializing');
   }, []);
 
-  // Animation loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -75,7 +72,6 @@ export function useLabScene(canvasRef: React.RefObject<HTMLCanvasElement | null>
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Initial build
     const rect = canvas.parentElement?.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
     const w = rect?.width || 800;
@@ -88,50 +84,48 @@ export function useLabScene(canvasRef: React.RefObject<HTMLCanvasElement | null>
 
     buildScene(w, h);
 
-    // Settle timer
-    let settleTimer: ReturnType<typeof setInterval> | null = null;
-    let currentPhase: ScenePhase = 'initializing';
-
-    const phaseUpdater = (p: ScenePhase) => {
-      currentPhase = p;
-      setPhase(p);
-    };
-
-    settleTimer = setInterval(() => {
+    // Settle timer — require 3 consecutive settled checks
+    const settleTimer = setInterval(() => {
       const allBalls = getAllBalls(cuvesRef.current);
-      if (currentPhase === 'initializing' && areBallsSettled(allBalls)) {
-        phaseUpdater('idle');
+      const settled = areBallsSettled(allBalls);
+
+      if (settled) {
+        settleCountRef.current++;
+      } else {
+        settleCountRef.current = 0;
       }
-      if (currentPhase === 'refining' && areBallsSettled(allBalls)) {
-        phaseUpdater('done');
+
+      const confirmed = settleCountRef.current >= 3;
+
+      if (phaseRef.current === 'initializing' && confirmed) {
+        phaseRef.current = 'idle';
+        setPhase('idle');
+      }
+      if (phaseRef.current === 'refining' && confirmed) {
+        phaseRef.current = 'done';
+        setPhase('done');
       }
     }, C.SETTLE_CHECK_INTERVAL_MS);
 
-    // Render loop
     const tick = () => {
       if (!engineRef.current) return;
       Matter.Engine.update(engineRef.current, 1000 / 60);
 
-      // Clear & draw
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const { w: sw, h: sh } = sizeRef.current;
       drawBackground(ctx, sw, sh);
 
-      // Pipes first (behind cuves)
       drawPipes(ctx, pipesRef.current);
 
-      // Category cuves
       for (const cuve of cuvesRef.current) {
         drawCuve(ctx, cuve.layout, cuve.config.color, cuve.config.label, cuve.floor === null);
       }
 
-      // Reward cuve
       if (rewardRef.current) {
         drawRewardCuve(ctx, rewardRef.current.layout);
       }
 
-      // All balls
       const allBalls = getAllBalls(cuvesRef.current);
       drawBalls(ctx, allBalls);
 
@@ -141,7 +135,6 @@ export function useLabScene(canvasRef: React.RefObject<HTMLCanvasElement | null>
 
     rafRef.current = requestAnimationFrame(tick);
 
-    // Resize handler
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width: nw, height: nh } = entry.contentRect;
@@ -153,7 +146,6 @@ export function useLabScene(canvasRef: React.RefObject<HTMLCanvasElement | null>
           ctx.setTransform(1, 0, 0, 1, 0, 0);
           ctx.scale(dpr, dpr);
           buildScene(nw, nh);
-          phaseUpdater('initializing');
         }
       }
     });
@@ -162,7 +154,7 @@ export function useLabScene(canvasRef: React.RefObject<HTMLCanvasElement | null>
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      if (settleTimer) clearInterval(settleTimer);
+      clearInterval(settleTimer);
       observer.disconnect();
       if (engineRef.current) {
         Matter.Engine.clear(engineRef.current);
@@ -172,9 +164,10 @@ export function useLabScene(canvasRef: React.RefObject<HTMLCanvasElement | null>
     };
   }, [canvasRef, buildScene]);
 
-  // Refine action
   const refine = useCallback(() => {
     if (!engineRef.current) return;
+    phaseRef.current = 'refining';
+    settleCountRef.current = 0;
     setPhase('refining');
 
     cuvesRef.current.forEach((cuve, i) => {

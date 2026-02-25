@@ -2,11 +2,13 @@ import Matter from 'matter-js';
 import type { CuveConfig, CuveLayout, CuveState, PipeLayout } from './types';
 import * as C from './LabConfig';
 
-const { Engine, World, Bodies, Body, Composite } = Matter;
+const { Engine, Bodies, Composite } = Matter;
 
 export function createEngine() {
   const engine = Engine.create({
     gravity: { x: 0, y: C.GRAVITY, scale: 0.001 },
+    positionIterations: 10,
+    velocityIterations: 8,
   });
   return engine;
 }
@@ -16,10 +18,15 @@ export function createEngine() {
 function createCuveWalls(layout: CuveLayout, world: Matter.World) {
   const { x, y, width, height } = layout;
   const t = C.WALL_THICKNESS;
-  const opts: Matter.IBodyDefinition = { isStatic: true, friction: 0.3, render: { visible: false } };
+  const opts: Matter.IBodyDefinition = {
+    isStatic: true,
+    friction: 0.8,
+    restitution: 0.1,
+    render: { visible: false },
+  };
 
-  const left  = Bodies.rectangle(x - width / 2 - t / 2, y + height / 2, t, height + t, opts);
-  const right = Bodies.rectangle(x + width / 2 + t / 2, y + height / 2, t, height + t, opts);
+  const left  = Bodies.rectangle(x - width / 2 - t / 2, y + height / 2, t, height + t * 2, opts);
+  const right = Bodies.rectangle(x + width / 2 + t / 2, y + height / 2, t, height + t * 2, opts);
   const floor = Bodies.rectangle(x, y + height + t / 2, width + t * 2, t, opts);
 
   const walls = [left, right];
@@ -71,13 +78,18 @@ export function spawnBalls(cuve: CuveState, world: Matter.World) {
   const r = C.BALL_RADIUS;
   const balls: Matter.Body[] = [];
 
+  // Place balls in a grid pattern inside the cuve so they don't overlap at spawn
+  const cols = Math.floor((layout.width - r * 4) / (r * 2.5));
   for (let i = 0; i < config.ballCount; i++) {
-    const bx = layout.x + (Math.random() - 0.5) * (layout.width - r * 4);
-    const by = layout.y - r * 2 - Math.random() * layout.height * 0.6;
+    const col = i % Math.max(cols, 1);
+    const row = Math.floor(i / Math.max(cols, 1));
+    const bx = layout.x - (layout.width / 2) + r * 2 + col * r * 2.5;
+    const by = layout.y + r * 2 + row * r * 2.5;
     const ball = Bodies.circle(bx, by, r, {
       restitution: C.BALL_RESTITUTION,
       friction: C.BALL_FRICTION,
       density: C.BALL_DENSITY,
+      frictionAir: C.VELOCITY_DAMPING,
       label: `ball_${config.id}`,
       render: { visible: false },
     });
@@ -104,7 +116,12 @@ export function computePipeLayouts(cuveLayouts: CuveLayout[], rewardLayout: Cuve
 export function createPipeGuides(pipes: PipeLayout[], world: Matter.World): Matter.Body[] {
   const bodies: Matter.Body[] = [];
   const halfW = C.PIPE_WIDTH / 2;
-  const opts: Matter.IBodyDefinition = { isStatic: true, friction: 0.05, render: { visible: false } };
+  const opts: Matter.IBodyDefinition = {
+    isStatic: true,
+    friction: 0.3,
+    restitution: 0.05,
+    render: { visible: false },
+  };
 
   for (const pipe of pipes) {
     const dx = pipe.toX - pipe.fromX;
@@ -114,12 +131,11 @@ export function createPipeGuides(pipes: PipeLayout[], world: Matter.World): Matt
     const cx = (pipe.fromX + pipe.toX) / 2;
     const cy = (pipe.fromY + pipe.toY) / 2;
 
-    // Two thin walls forming a channel
     const perpX = Math.cos(angle + Math.PI / 2) * halfW;
     const perpY = Math.sin(angle + Math.PI / 2) * halfW;
 
-    const wallL = Bodies.rectangle(cx + perpX, cy + perpY, len, 3, { ...opts, angle });
-    const wallR = Bodies.rectangle(cx - perpX, cy - perpY, len, 3, { ...opts, angle });
+    const wallL = Bodies.rectangle(cx + perpX, cy + perpY, len, C.WALL_THICKNESS, { ...opts, angle });
+    const wallR = Bodies.rectangle(cx - perpX, cy - perpY, len, C.WALL_THICKNESS, { ...opts, angle });
     bodies.push(wallL, wallR);
   }
 
