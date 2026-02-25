@@ -52,10 +52,10 @@ export const CompactDayColumn: React.FC<CompactDayColumnProps> = ({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col rounded-xl border transition-all min-h-[300px]",
+        "flex flex-col rounded-xl border transition-colors duration-150 min-h-[300px]",
         isCurrentDay && "ring-2 ring-primary/40 border-primary/40",
         isPastDay && "opacity-60",
-        isOver && !isPastDay && "border-primary bg-primary/5"
+        isOver && !isPastDay && "border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.01]"
       )}
     >
       {/* Header */}

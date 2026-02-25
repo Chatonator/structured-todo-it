@@ -53,27 +53,21 @@ export const TaskDeckItem: React.FC<TaskDeckItemProps> = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex items-start gap-2 p-2 rounded-md bg-card border transition-all cursor-pointer",
+        "group flex items-start gap-2 p-2 rounded-md bg-card border transition-colors duration-150 cursor-grab active:cursor-grabbing",
         isDragging && "opacity-50 shadow-lg z-50",
-        "hover:shadow-sm hover:bg-accent/50"
+        "hover:shadow-sm hover:bg-accent/50 hover:border-primary/30"
       )}
-      onClick={onClick}
       {...attributes}
+      {...listeners}
     >
       {/* Barre catégorie plus épaisse */}
       <div className={cn("w-1.5 self-stretch rounded-full shrink-0", categoryColor)} />
 
-      {/* Drag handle - visible on hover */}
-      <button
-        {...listeners}
-        className="mt-0.5 cursor-grab active:cursor-grabbing text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical className="w-3.5 h-3.5" />
-      </button>
+      {/* Grip icon always visible */}
+      <GripVertical className="mt-0.5 w-3.5 h-3.5 text-muted-foreground/30 shrink-0" />
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0" onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
         <p className="text-sm font-medium leading-tight line-clamp-2">{task.name}</p>
         
         {/* Badges minimalistes */}

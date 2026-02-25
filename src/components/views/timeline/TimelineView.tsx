@@ -3,7 +3,7 @@
  * Utilise les nouveaux composants TaskDeckPanel et planning views
  */
 
-import React, { useCallback, useState, useMemo, useEffect } from 'react';
+import React, { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -12,7 +12,7 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
-  closestCenter
+  pointerWithin
 } from '@dnd-kit/core';
 import { ViewLayout } from '@/components/layout/view';
 import { ViewStats } from '@/components/layout/view/ViewStats';
@@ -56,6 +56,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [draggedItem, setDraggedItem] = useState<Task | TimeEvent | null>(null);
+  const [pendingTaskIds, setPendingTaskIds] = useState<Set<string>>(new Set());
   
   // Modal states
   const [selectedEvent, setSelectedEvent] = useState<TimeEvent | null>(null);
@@ -108,7 +109,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
     })
   );
@@ -154,12 +155,18 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
 
       if (activeData?.type === 'unscheduled-task') {
         const task = activeData.task as Task;
-        await scheduleTaskToBlock({
-          taskId: task.id,
-          date,
-          block,
-          duration: task.duration || task.estimatedTime || 30
-        });
+        // Optimistic UI: hide immediately from deck
+        setPendingTaskIds(prev => new Set(prev).add(task.id));
+        try {
+          await scheduleTaskToBlock({
+            taskId: task.id,
+            date,
+            block,
+            duration: task.duration || task.estimatedTime || 30
+          });
+        } finally {
+          setPendingTaskIds(prev => { const next = new Set(prev); next.delete(task.id); return next; });
+        }
       } else if (activeData?.type === 'scheduled-event') {
         const evt = activeData.event as TimeEvent;
         await rescheduleEventToBlock(evt.id, date, block);
@@ -169,16 +176,21 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
     // Handle day column drop (for week view)
     if (overData?.type === 'day-column') {
       const date = new Date(overData.date);
-      const block: TimeBlock = 'morning'; // Default to morning
+      const block: TimeBlock = 'morning';
 
       if (activeData?.type === 'unscheduled-task') {
         const task = activeData.task as Task;
-        await scheduleTaskToBlock({
-          taskId: task.id,
-          date,
-          block,
-          duration: task.duration || task.estimatedTime || 30
-        });
+        setPendingTaskIds(prev => new Set(prev).add(task.id));
+        try {
+          await scheduleTaskToBlock({
+            taskId: task.id,
+            date,
+            block,
+            duration: task.duration || task.estimatedTime || 30
+          });
+        } finally {
+          setPendingTaskIds(prev => { const next = new Set(prev); next.delete(task.id); return next; });
+        }
       } else if (activeData?.type === 'scheduled-event') {
         const evt = activeData.event as TimeEvent;
         await rescheduleEventToBlock(evt.id, date, block);
@@ -276,7 +288,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
     >
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
@@ -331,7 +343,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
            <div className="flex gap-4 flex-1 min-h-0">
             {/* Task deck panel with scheduled events toggle */}
             <TaskDeckPanel
-              tasks={unscheduledTasks}
+              tasks={unscheduledTasks.filter(t => !pendingTaskIds.has(t.id))}
               scheduledEvents={scheduledEvents}
               projects={projects}
               onTaskClick={(task) => {
