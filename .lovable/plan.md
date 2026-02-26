@@ -1,52 +1,141 @@
 
-## Problèmes identifiés
 
-**1. Détection de collision imprécise (`closestCenter`)**
-Le `collisionDetection={closestCenter}` de dnd-kit calcule la distance entre le centre de l'élément draggué et le centre de chaque droppable. Avec des blocs Matin/Après-midi/Soir qui occupent tout l'espace vertical de la vue, l'activation peut targeter le mauvais bloc car le centre de la souris/doigt n'est pas nécessairement dans la colonne visuelle attendue.
+## Plan: Refonte Vue Récompense v1.0
 
-**Solution** : Passer à `rectIntersection` ou à un algorithme custom `pointerWithin` — dnd-kit fournit `pointerWithin` qui utilise la position exacte du pointeur (pas le centre du rectangle draggué). C'est beaucoup plus précis pour des zones bien définies.
+### Scope
 
-**2. Seuil d'activation trop petit (`distance: 8`)**
-Le seuil actuel de 8px signifie que le drag commence quasi-immédiatement sur un simple scroll. Passer à `distance: 5` est ok pour la réactivité mais le vrai gain de précision vient de `pointerWithin`.
+Refonte complète du moteur de points, ajout du système Claim, des compétences, et de la jauge visuelle. Travail structuré en 5 blocs.
 
-**3. Pas de feedback visuel immédiat pendant le survol**
-`TimeBlockColumn` et `CompactDayColumn` changent leur border/background via `isOver`, mais l'animation CSS n'utilise que `transition-all` sans durée explicite. Préciser `transition-colors duration-150` évite le flash/lag visuel.
+---
 
-**4. Latence perçue après le drop**
-`scheduleTaskToBlock` fait : `syncTaskEventWithSchedule` → `recalculateBreaks` → `loadEvents` séquentiellement. C'est 3 allers-retours DB avant que l'UI ne reflète le changement. Il faut ajouter **un état optimiste local** : dès le drop, retirer la tâche de la liste `unscheduledTasks` côté UI (sans attendre la DB), puis `reload` en background.
+### Bloc 1 — Schéma DB (migrations)
 
-## Plan d'implémentation
+**Modifier `user_progress`** : ajouter colonnes
+- `points_available` (int, default 0) — solde dépensable
+- `total_points_earned` (int, default 0)
+- `total_points_spent` (int, default 0)
 
-### Étape 1 — TimelineView.tsx : `pointerWithin` + état optimiste
-- Importer `pointerWithin` depuis `@dnd-kit/core`
-- Remplacer `collisionDetection={closestCenter}` par `collisionDetection={pointerWithin}`
-- Dans `handleDragEnd`, avant l'`await scheduleTaskToBlock(...)`, mettre à jour un `Set<string>` local `pendingTaskIds` pour masquer la tâche du deck immédiatement
-- Retirer `pendingTaskIds` après le `await` (succès ou échec)
-- Passer `pendingTaskIds` au `TaskDeckPanel` pour filtrer l'affichage
+**Nouvelle table `rewards`** (récompenses personnalisées) :
+- `id` uuid PK
+- `user_id` uuid NOT NULL
+- `name` text NOT NULL
+- `icon` text default '🎁'
+- `cost_points` int NOT NULL
+- `order_index` int default 0
+- `created_at` timestamptz default now()
+- RLS : CRUD own rows
 
-### Étape 2 — TimeBlockRow.tsx / TimeBlockColumn : feedback visuel précis
-- Remplacer `transition-all` par `transition-colors duration-150` sur le container droppable
-- Ajouter une `scale(1.01)` ou un `ring` sur `isOver` pour un retour visuel net
-- Remplacer `border-2 border-dashed` par `border-2` seul avec changement de couleur plus prononcé sur `isOver`
+**Nouvelle table `claim_history`** :
+- `id` uuid PK
+- `user_id` uuid NOT NULL
+- `reward_name` text NOT NULL
+- `cost_points` int NOT NULL
+- `claimed_at` timestamptz default now()
+- RLS : INSERT/SELECT own rows
 
-### Étape 3 — CompactDayColumn.tsx : même amélioration visuelle
-- Même refactoring `transition-colors duration-150` + style `isOver` plus visible
+**Nouvelle table `user_skills`** :
+- `id` uuid PK
+- `user_id` uuid NOT NULL
+- `skill_key` text NOT NULL (discipline, prioritisation, constance, finalisation)
+- `xp` int default 0
+- `created_at` / `updated_at`
+- UNIQUE(user_id, skill_key)
+- RLS : CRUD own rows
 
-### Étape 4 — TaskDeckItem.tsx : drag handle sur toute la carte
-- Actuellement le drag handle est un `<button>` séparé invisible par défaut (visible au hover). Cela oblige à viser précisément le handle.
-- Mettre `{...listeners}` directement sur le container principal `div` (à la place du bouton séparé), et garder le `onClick` sur le titre uniquement
-- Le curseur `grab` sur toute la carte rend le drag beaucoup plus intuitif
+---
 
-### Étape 5 — Capteur PointerSensor : délai minimal
-- Garder `distance: 5` (légèrement réduit depuis 8 pour plus de réactivité)
-- Ajouter `delay: 0` explicitement pour s'assurer qu'il n'y a pas de délai système
+### Bloc 2 — Moteur de points (engine.ts + constants.ts)
 
-## Fichiers modifiés
+Remplacer la formule actuelle dans `computeTaskPoints` :
 
-| Fichier | Modification |
+```
+effort = sqrt(duration)
+if duration < 15: effort *= 0.6
+importance_weight = 2 if important else 1
+quadrant_weight = { IU: 1.4, I!U: 1.5, !IU: 1.0, !I!U: 0.6 }
+priority_multiplier = (importance_weight + quadrant_weight) / 2
+secondary_bonus = 1.3 if postpone >= 3, else 1.2 if important && deadline < 48h, else 1
+long_task_bonus = 5 if duration >= 60 else 0
+points = floor(effort × priority_multiplier × secondary_bonus) + long_task_bonus
+```
+
+Mettre à jour `constants.ts` avec les nouveaux coefficients. Supprimer les anciens planning bonus (remplacés par secondary_bonus logic).
+
+Mettre à jour `TaskRewardResult` pour inclure `longTaskBonus`.
+
+---
+
+### Bloc 3 — useGamification : points_available + Claim
+
+- `rewardTaskCompletion` : incrémenter `points_available` et `total_points_earned` en plus de `total_xp`
+- Nouveau : `claimReward(rewardId, cost)` — décrémenter `points_available`, incrémenter `total_points_spent`, insérer dans `claim_history`
+- Nouveau : `getClaimHistory()`
+- Toast post-tâche enrichi : afficher contexte quadrant ("+ X pts (Long terme)" / "+ X pts (Urgence traitée)")
+
+---
+
+### Bloc 4 — Skills (compétences)
+
+Nouveau hook `useSkills` ou intégré dans `useGamification` :
+
+- **Discipline** : XP = somme minutes importantes complétées (depuis xp_transactions metadata)
+- **Priorisation** : XP = % tâches importantes / total tâches (×100 par calcul)
+- **Constance** : XP = streak jours (current_task_streak)
+- **Finalisation** : XP = ratio tâches complétées / tâches créées (×100)
+
+Niveaux : XP seuils simples (ex: 0-100 = lvl 1, 100-300 = lvl 2, etc.)
+
+Calcul à la volée depuis les données existantes (pas de stockage si MVP, ou stocker dans `user_skills` pour perf).
+
+---
+
+### Bloc 5 — UI RewardsView
+
+Restructurer en sections :
+
+1. **Points + Jauge** — Afficher `points_available` avec jauge réservoir vers les paliers 30/60/120/240. Progress bar remplissage.
+
+2. **Récompenses (Claim)** — Grille de cartes récompenses avec état Locked/Available/Claimable. Bouton Claim avec dialog confirmation. CRUD récompenses (ajouter/supprimer ses propres récompenses).
+
+3. **Compétences** — 4 cartes skill avec barre XP, level, progress %.
+
+4. **Résumé hebdomadaire** — Conserver le composant existant `ProgressOverview` adapté (barres répartition, score alignement).
+
+5. **Activité récente** — Conserver `RecentActivity` avec toast feedback enrichi.
+
+6. **Historique Claims** — Liste des récompenses réclamées.
+
+7. **Pause volontaire** (optionnel) — Bouton simple, log dans historique sans impact points.
+
+---
+
+### Fichiers impactés
+
+| Fichier | Action |
 |---|---|
-| `src/components/views/timeline/TimelineView.tsx` | `pointerWithin`, état optimiste `pendingTaskIds` |
-| `src/components/timeline/planning/TimeBlockRow.tsx` | feedback visuel `isOver` amélioré |
-| `src/components/timeline/planning/CompactDayColumn.tsx` | feedback visuel `isOver` amélioré |
-| `src/components/timeline/panels/TaskDeckItem.tsx` | drag sur toute la carte |
-| `src/components/timeline/panels/TaskDeckPanel.tsx` | filtre `pendingTaskIds` |
+| `supabase/migrations/` | 1 migration (3 tables + alter user_progress) |
+| `src/lib/rewards/constants.ts` | Nouveaux coefficients |
+| `src/lib/rewards/engine.ts` | Nouvelle formule |
+| `src/hooks/useGamification.ts` | points_available, claim, toast enrichi |
+| `src/hooks/view-data/useRewardsViewData.ts` | Skills, claims data |
+| `src/types/gamification.ts` | Nouveaux types |
+| `src/components/views/rewards/RewardsView.tsx` | Restructuration complète |
+| `src/components/rewards/ProgressOverview.tsx` | Jauge réservoir + paliers |
+| `src/components/rewards/RecentActivity.tsx` | Toast contextualisé |
+| `src/components/rewards/RewardsClaim.tsx` | **Nouveau** — grille Claim |
+| `src/components/rewards/SkillsPanel.tsx` | **Nouveau** — 4 compétences |
+| `src/components/rewards/ClaimHistory.tsx` | **Nouveau** — historique |
+| `src/components/rewards/RewardModal.tsx` | **Nouveau** — CRUD récompense |
+| `src/components/rewards/VoluntaryPause.tsx` | **Nouveau** — bouton pause |
+
+---
+
+### Technical details
+
+- La formule change les coefficients quadrant : `I+U: 1.4` (était 1.5), `I+!U: 1.5` (était 1.6), `!I+U: 1.0` (inchangé), `!I+!U: 0.6` (était 0.7)
+- Le micro-task adjust passe de "cap daily" à "effort × 0.6" pour duration < 15 min (le cap daily reste aussi)
+- `importance_weight` est un nouveau facteur (2 si important, 1 sinon) combiné avec quadrant_weight via moyenne
+- `long_task_bonus` (+5 pts si ≥60 min) est additif, pas multiplicatif
+- `secondary_bonus` remplace les anciens planning bonus — seuls anti-zombie (≥3 reports) et deadline urgente (<48h important) subsistent
+- Les données de compétences sont calculées depuis `xp_transactions`, `items`, et `user_progress` existants — pas de tracking supplémentaire
+
