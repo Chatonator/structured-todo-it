@@ -83,11 +83,11 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
   const getFormulaDetail = (meta: TransactionMetadata | null) => {
     if (!meta?.formula) return null;
     const parts = [];
+    if (meta.quadrantLabel) parts.push(meta.quadrantLabel);
     if (meta.bonusType !== 'none') {
       const labels: Record<string, string> = {
         'anti-zombie': '🧟 Anti-zombie',
-        'planning-long': '📅 Planifié >48h',
-        'planning-short': '📅 Planifié',
+        'deadline': '⏰ Deadline',
       };
       parts.push(labels[meta.bonusType] || meta.bonusType);
     }

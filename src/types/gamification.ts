@@ -3,11 +3,11 @@ export type TransactionSource = 'task' | 'habit' | 'streak_bonus' | 'project_cre
 export interface UserProgress {
   id: string;
   userId: string;
-  totalXp: number;          // Now represents total points
-  currentLevel: number;      // Deprecated — kept for DB compat
-  xpForNextLevel: number;    // Deprecated
-  lifetimePoints: number;    // Deprecated
-  currentPoints: number;     // Deprecated
+  totalXp: number;
+  currentLevel: number;
+  xpForNextLevel: number;
+  lifetimePoints: number;
+  currentPoints: number;
   tasksCompleted: number;
   habitsCompleted: number;
   currentTaskStreak: number;
@@ -16,6 +16,10 @@ export interface UserProgress {
   longestHabitStreak: number;
   lastActivityDate: string;
   lastStreakQualifiedDate: string | null;
+  // v2.0 fields
+  pointsAvailable: number;
+  totalPointsEarned: number;
+  totalPointsSpent: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,20 +36,23 @@ export interface XpTransaction {
   createdAt: Date;
 }
 
-/** Metadata stored in xp_transactions.metadata for the new engine */
 export interface TransactionMetadata {
   base: number;
   quadrantKey: string;
   quadrantCoeff: number;
+  importanceWeight: number;
+  priorityMultiplier: number;
   bonusType: string;
   bonusValue: number;
+  longTaskBonus: number;
   formula: string;
   isMicroTask: boolean;
-  capped: boolean;           // true if micro-task cap was hit
+  capped: boolean;
   durationMinutes: number;
   isImportant: boolean;
   isUrgent: boolean;
   postponeCount: number;
+  quadrantLabel: string;
 }
 
 export interface DailyStreakInfo {
@@ -53,4 +60,32 @@ export interface DailyStreakInfo {
   longestStreak: number;
   importantMinutesToday: number;
   streakQualifiedToday: boolean;
+}
+
+export interface Reward {
+  id: string;
+  userId: string;
+  name: string;
+  icon: string;
+  costPoints: number;
+  orderIndex: number;
+  createdAt: Date;
+}
+
+export interface ClaimHistoryEntry {
+  id: string;
+  userId: string;
+  rewardName: string;
+  costPoints: number;
+  claimedAt: Date;
+}
+
+export interface SkillData {
+  key: string;
+  name: string;
+  icon: string;
+  xp: number;
+  level: number;
+  progressPct: number;
+  xpForNext: number;
 }
