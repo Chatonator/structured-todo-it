@@ -110,6 +110,30 @@ export type Database = {
         }
         Relationships: []
       }
+      claim_history: {
+        Row: {
+          claimed_at: string
+          cost_points: number
+          id: string
+          reward_name: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          cost_points: number
+          id?: string
+          reward_name: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          cost_points?: number
+          id?: string
+          reward_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       day_planning_config: {
         Row: {
           created_at: string | null
@@ -367,6 +391,36 @@ export type Database = {
           display_name?: string | null
           id?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rewards: {
+        Row: {
+          cost_points: number
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          order_index: number
+          user_id: string
+        }
+        Insert: {
+          cost_points: number
+          created_at?: string
+          icon?: string
+          id?: string
+          name: string
+          order_index?: number
+          user_id: string
+        }
+        Update: {
+          cost_points?: number
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          order_index?: number
           user_id?: string
         }
         Relationships: []
@@ -802,7 +856,10 @@ export type Database = {
           lifetime_points: number | null
           longest_habit_streak: number | null
           longest_task_streak: number | null
+          points_available: number
           tasks_completed: number | null
+          total_points_earned: number
+          total_points_spent: number
           total_xp: number | null
           updated_at: string | null
           user_id: string
@@ -823,7 +880,10 @@ export type Database = {
           lifetime_points?: number | null
           longest_habit_streak?: number | null
           longest_task_streak?: number | null
+          points_available?: number
           tasks_completed?: number | null
+          total_points_earned?: number
+          total_points_spent?: number
           total_xp?: number | null
           updated_at?: string | null
           user_id: string
@@ -844,12 +904,42 @@ export type Database = {
           lifetime_points?: number | null
           longest_habit_streak?: number | null
           longest_task_streak?: number | null
+          points_available?: number
           tasks_completed?: number | null
+          total_points_earned?: number
+          total_points_spent?: number
           total_xp?: number | null
           updated_at?: string | null
           user_id?: string
           weekly_challenges_completed?: number | null
           xp_for_next_level?: number | null
+        }
+        Relationships: []
+      }
+      user_skills: {
+        Row: {
+          created_at: string
+          id: string
+          skill_key: string
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          skill_key: string
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          skill_key?: string
+          updated_at?: string
+          user_id?: string
+          xp?: number
         }
         Relationships: []
       }

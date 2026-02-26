@@ -4,6 +4,7 @@ export {
   checkStreakDay,
   computeWeeklySummary,
   isStreakEligible,
+  computeSkillLevel,
 } from './engine';
 
 export type {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { UserProgress, TransactionMetadata, DailyStreakInfo } from '@/types/gamification';
+import { UserProgress, TransactionMetadata, DailyStreakInfo, Reward, ClaimHistoryEntry } from '@/types/gamification';
 import { computeTaskPoints, checkMicroTaskCap, checkStreakDay, computeWeeklySummary, isStreakEligible } from '@/lib/rewards';
 import type { WeeklySummary } from '@/lib/rewards';
 import { logger } from '@/lib/logger';
@@ -31,6 +31,9 @@ export const useGamification = () => {
     longestHabitStreak: data.longest_habit_streak ?? 0,
     lastActivityDate: data.last_activity_date ?? '',
     lastStreakQualifiedDate: data.last_streak_qualified_date ?? null,
+    pointsAvailable: data.points_available ?? 0,
+    totalPointsEarned: data.total_points_earned ?? 0,
+    totalPointsSpent: data.total_points_spent ?? 0,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
   });
@@ -103,12 +106,12 @@ export const useGamification = () => {
     }, 0);
   }, [user]);
 
-  // ---- Reward task completion (new engine) ----
+  // ---- Reward task completion (v2.0 engine) ----
   const rewardTaskCompletion = useCallback(async (task: any) => {
     if (!user || !progress) return;
 
     try {
-      // 0. Idempotence guard — check if already rewarded
+      // 0. Idempotence guard
       const { data: existingTx } = await supabase
         .from('xp_transactions')
         .select('id')
@@ -135,32 +138,31 @@ export const useGamification = () => {
         .single();
       const postponeCount = itemData?.postpone_count ?? 0;
 
-      // 3. Get planning lead hours from time_events (starts_at - created_at)
-      let planningLeadHours: number | null = null;
-      const { data: eventData } = await supabase
-        .from('time_events')
-        .select('created_at, starts_at')
-        .eq('entity_type', 'task')
-        .eq('entity_id', task.id)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(1);
-      if (eventData && eventData.length > 0 && eventData[0].created_at && eventData[0].starts_at) {
-        const createdAt = new Date(eventData[0].created_at);
-        const startsAt = new Date(eventData[0].starts_at);
-        const diffMs = startsAt.getTime() - createdAt.getTime();
-        if (diffMs > 0) {
-          planningLeadHours = diffMs / (1000 * 60 * 60);
+      // 3. Check if deadline < 48h (from time_events)
+      let hasUrgentDeadline = false;
+      if (isImportant) {
+        const { data: eventData } = await supabase
+          .from('time_events')
+          .select('starts_at')
+          .eq('entity_type', 'task')
+          .eq('entity_id', task.id)
+          .eq('user_id', user.id)
+          .order('starts_at', { ascending: true })
+          .limit(1);
+        if (eventData && eventData.length > 0) {
+          const startsAt = new Date(eventData[0].starts_at);
+          const hoursUntil = (startsAt.getTime() - Date.now()) / (1000 * 60 * 60);
+          hasUrgentDeadline = hoursUntil < 48 && hoursUntil > -24;
         }
       }
 
-      // 4. Compute points
+      // 4. Compute points (v2.0)
       const result = computeTaskPoints({
         durationMinutes,
         isImportant,
         isUrgent,
         postponeCount,
-        planningLeadHours,
+        hasUrgentDeadline,
       });
 
       // 5. Check micro-task cap
@@ -174,7 +176,7 @@ export const useGamification = () => {
         }
       }
 
-      // 6. Build metadata (coherent formula when capped)
+      // 6. Build metadata
       const cappedFormula = capped
         ? `${result.formula} → capée (0 pts)`
         : result.formula;
@@ -183,8 +185,11 @@ export const useGamification = () => {
         base: result.base,
         quadrantKey: result.quadrantKey,
         quadrantCoeff: result.quadrantCoeff,
+        importanceWeight: result.importanceWeight,
+        priorityMultiplier: result.priorityMultiplier,
         bonusType: result.bonusType,
         bonusValue: result.bonusValue,
+        longTaskBonus: result.longTaskBonus,
         formula: cappedFormula,
         isMicroTask: result.isMicroTask,
         capped,
@@ -192,9 +197,10 @@ export const useGamification = () => {
         isImportant,
         isUrgent,
         postponeCount,
+        quadrantLabel: result.quadrantLabel,
       };
 
-      // 7. Record transaction (unique index prevents duplicates at DB level too)
+      // 7. Record transaction
       const { error: insertError } = await supabase
         .from('xp_transactions')
         .insert([{
@@ -208,7 +214,6 @@ export const useGamification = () => {
         }]);
 
       if (insertError) {
-        // Unique constraint violation = already rewarded
         if (insertError.code === '23505') {
           logger.debug('Duplicate transaction blocked by DB', { taskId: task.id });
           return;
@@ -216,15 +221,11 @@ export const useGamification = () => {
         throw insertError;
       }
 
-      // 8. Update total points and tasks_completed
-      const newTotalXp = (progress.totalXp ?? 0) + finalPoints;
-
-      // 9. Streak logic using last_streak_qualified_date
+      // 8. Streak logic
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const importantMinutes = await getImportantMinutesToday();
       const streakQualified = checkStreakDay(importantMinutes);
 
-      // Fetch current last_streak_qualified_date from DB
       const { data: progressData } = await supabase
         .from('user_progress')
         .select('last_streak_qualified_date, current_task_streak, longest_task_streak')
@@ -250,14 +251,16 @@ export const useGamification = () => {
         updateQualifiedDate = true;
       }
 
-      // 10. Update user_progress
+      // 9. Update user_progress (including points_available + total_points_earned)
       const updatePayload: any = {
-        total_xp: newTotalXp,
-        current_points: newTotalXp,
+        total_xp: (progress.totalXp ?? 0) + finalPoints,
+        current_points: (progress.totalXp ?? 0) + finalPoints,
         tasks_completed: progress.tasksCompleted + 1,
         current_task_streak: newStreak,
         longest_task_streak: newLongest,
         last_activity_date: todayStr,
+        points_available: (progress.pointsAvailable ?? 0) + finalPoints,
+        total_points_earned: (progress.totalPointsEarned ?? 0) + finalPoints,
       };
       if (updateQualifiedDate) {
         updatePayload.last_streak_qualified_date = todayStr;
@@ -270,10 +273,10 @@ export const useGamification = () => {
 
       await loadProgress();
 
-      // Show toast
+      // 10. Enriched toast with quadrant label
       if (finalPoints > 0) {
         toast({
-          title: `+${finalPoints} pts`,
+          title: `+${finalPoints} pts (${result.quadrantLabel})`,
           description: `Tâche complétée !`,
           duration: 3000,
         });
@@ -288,6 +291,100 @@ export const useGamification = () => {
       logger.error('Failed to reward task', { error: error.message });
     }
   }, [user, progress, loadProgress, getDailyMicroTaskCount, getImportantMinutesToday, toast]);
+
+  // ---- Claim reward ----
+  const claimReward = useCallback(async (reward: Reward) => {
+    if (!user || !progress) return false;
+    if (progress.pointsAvailable < reward.costPoints) return false;
+
+    try {
+      // Insert claim history
+      const { error: claimError } = await supabase
+        .from('claim_history')
+        .insert({
+          user_id: user.id,
+          reward_name: reward.name,
+          cost_points: reward.costPoints,
+        });
+      if (claimError) throw claimError;
+
+      // Update user_progress
+      const { error: updateError } = await supabase
+        .from('user_progress')
+        .update({
+          points_available: progress.pointsAvailable - reward.costPoints,
+          total_points_spent: progress.totalPointsSpent + reward.costPoints,
+        })
+        .eq('user_id', user.id);
+      if (updateError) throw updateError;
+
+      await loadProgress();
+
+      toast({
+        title: `${reward.icon} Récompense réclamée !`,
+        description: `${reward.name} (-${reward.costPoints} pts)`,
+        duration: 3000,
+      });
+      return true;
+    } catch (error: any) {
+      logger.error('Failed to claim reward', { error: error.message });
+      return false;
+    }
+  }, [user, progress, loadProgress, toast]);
+
+  // ---- Get user rewards ----
+  const getUserRewards = useCallback(async (): Promise<Reward[]> => {
+    if (!user) return [];
+    const { data } = await supabase
+      .from('rewards')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('order_index');
+    return (data || []).map((r: any) => ({
+      id: r.id,
+      userId: r.user_id,
+      name: r.name,
+      icon: r.icon,
+      costPoints: r.cost_points,
+      orderIndex: r.order_index,
+      createdAt: new Date(r.created_at),
+    }));
+  }, [user]);
+
+  // ---- Create reward ----
+  const createReward = useCallback(async (name: string, costPoints: number, icon: string = '🎁') => {
+    if (!user) return;
+    await supabase.from('rewards').insert({
+      user_id: user.id,
+      name,
+      cost_points: costPoints,
+      icon,
+    });
+  }, [user]);
+
+  // ---- Delete reward ----
+  const deleteReward = useCallback(async (rewardId: string) => {
+    if (!user) return;
+    await supabase.from('rewards').delete().eq('id', rewardId).eq('user_id', user.id);
+  }, [user]);
+
+  // ---- Get claim history ----
+  const getClaimHistory = useCallback(async (): Promise<ClaimHistoryEntry[]> => {
+    if (!user) return [];
+    const { data } = await supabase
+      .from('claim_history')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('claimed_at', { ascending: false })
+      .limit(50);
+    return (data || []).map((c: any) => ({
+      id: c.id,
+      userId: c.user_id,
+      rewardName: c.reward_name,
+      costPoints: c.cost_points,
+      claimedAt: new Date(c.claimed_at),
+    }));
+  }, [user]);
 
   // ---- Habit completion (simplified — no points) ----
   const rewardHabitCompletion = useCallback(async (habitId: string, habitName: string) => {
@@ -340,10 +437,8 @@ export const useGamification = () => {
     };
   }, [progress, getImportantMinutesToday]);
 
-  // ---- Kept for backward compat (habits) ----
-  const rewardStreak = useCallback(async (_streakCount: number, _type: 'task' | 'habit') => {
-    // No-op in new engine — streaks are handled differently
-  }, []);
+  // ---- Kept for backward compat ----
+  const rewardStreak = useCallback(async (_streakCount: number, _type: 'task' | 'habit') => {}, []);
 
   useEffect(() => {
     loadProgress();
@@ -352,14 +447,20 @@ export const useGamification = () => {
   return {
     progress,
     loading,
-    levelUpAnimation: false, // Deprecated — kept for compat
+    levelUpAnimation: false,
     rewardTaskCompletion,
     rewardHabitCompletion,
     rewardStreak,
-    getProgressPercentage: () => 0, // Deprecated
+    getProgressPercentage: () => 0,
     reloadProgress: loadProgress,
     getDailyMicroTaskCount,
     getWeeklySummary,
     getStreakInfo,
+    // v2.0
+    claimReward,
+    getUserRewards,
+    createReward,
+    deleteReward,
+    getClaimHistory,
   };
 };
