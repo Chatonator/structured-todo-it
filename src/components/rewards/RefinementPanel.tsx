@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { UnrefinedTask } from '@/types/gamification';
-import { Pickaxe, Clock, AlertTriangle } from 'lucide-react';
+import { Pickaxe, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 const CATEGORY_COLORS: Record<string, string> = {
   Obligation: 'bg-orange-500',
@@ -22,8 +22,6 @@ interface RefinementPanelProps {
 const RefinementPanel: React.FC<RefinementPanelProps> = ({ tasks, onRefine, onReload }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [refining, setRefining] = useState(false);
-
-  if (tasks.length === 0) return null;
 
   const toggle = (id: string) => {
     setSelected(prev => {
@@ -52,53 +50,66 @@ const RefinementPanel: React.FC<RefinementPanelProps> = ({ tasks, onRefine, onRe
     : `Raffiner tout (${tasks.length})`;
 
   return (
-    <Card className="p-4 border-primary/20">
+    <Card className="p-4 border-primary/20 h-full">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Pickaxe className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-bold text-foreground">Travail accompli</h3>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {tasks.length} en attente
-          </Badge>
+          {tasks.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {tasks.length} en attente
+            </Badge>
+          )}
         </div>
 
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {tasks.map(task => (
-            <div
-              key={task.transactionId}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors"
-            >
-              <Checkbox
-                checked={selected.has(task.transactionId)}
-                onCheckedChange={() => toggle(task.transactionId)}
-              />
-              <div
-                className={`w-1 h-8 rounded-full ${CATEGORY_COLORS[task.category] || CATEGORY_COLORS.Autres}`}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{task.taskName}</p>
-                <p className="text-xs text-muted-foreground">{task.category}</p>
-              </div>
-              {task.weeksElapsed > 0 && (
-                <div className="flex items-center gap-1 text-xs text-destructive shrink-0">
-                  <AlertTriangle className="w-3 h-3" />
-                  <span>-{Math.round(task.decayPct)}% ({task.weeksElapsed} sem.)</span>
+        {tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <CheckCircle2 className="w-8 h-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Aucune tâche à raffiner</p>
+            <p className="text-xs text-muted-foreground/60">Complétez des tâches pour gagner des points</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {tasks.map(task => (
+                <div
+                  key={task.transactionId}
+                  className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-accent/50 transition-colors"
+                >
+                  <Checkbox
+                    checked={selected.has(task.transactionId)}
+                    onCheckedChange={() => toggle(task.transactionId)}
+                  />
+                  <div
+                    className={`w-1 h-6 rounded-full ${CATEGORY_COLORS[task.category] || CATEGORY_COLORS.Autres}`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{task.taskName}</p>
+                    <p className="text-[10px] text-muted-foreground">{task.category}</p>
+                  </div>
+                  {task.weeksElapsed > 0 && (
+                    <div className="flex items-center gap-1 text-[10px] text-destructive shrink-0">
+                      <AlertTriangle className="w-3 h-3" />
+                      <span>-{Math.round(task.decayPct)}%</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
 
-        <Button
-          onClick={handleRefine}
-          disabled={refining}
-          className="w-full"
-        >
-          <Pickaxe className="w-4 h-4 mr-2" />
-          {refining ? 'Raffinage...' : label}
-        </Button>
+            <Button
+              onClick={handleRefine}
+              disabled={refining}
+              size="sm"
+              className="w-full"
+            >
+              <Pickaxe className="w-3.5 h-3.5 mr-1.5" />
+              {refining ? 'Raffinage...' : label}
+            </Button>
+          </>
+        )}
       </div>
     </Card>
   );

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { UserProgress } from '@/types/gamification';
 import type { DailyStreakInfo } from '@/types/gamification';
 import { Trophy, Flame } from 'lucide-react';
@@ -18,72 +17,85 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
   if (!progress) return null;
 
   const pointsAvailable = progress.pointsAvailable ?? 0;
-
-  // Find next threshold
-  const nextThreshold = POINT_THRESHOLDS.find(t => t > pointsAvailable) ?? POINT_THRESHOLDS[POINT_THRESHOLDS.length - 1];
-  const prevThreshold = POINT_THRESHOLDS.filter(t => t <= pointsAvailable).pop() ?? 0;
-  const range = nextThreshold - prevThreshold;
-  const progressPct = range > 0 ? Math.min(100, Math.round(((pointsAvailable - prevThreshold) / range) * 100)) : 100;
+  const maxThreshold = POINT_THRESHOLDS[POINT_THRESHOLDS.length - 1];
+  const fillPct = Math.min(100, Math.round((pointsAvailable / maxThreshold) * 100));
 
   return (
-    <Card className="p-4 bg-gradient-to-br from-reward-light to-background border-primary/20">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Points disponibles</h3>
+    <Card className="p-4 border-primary/20 h-full flex flex-col items-center justify-between gap-3 w-40">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Trophy className="w-4 h-4 text-primary" />
+        <h3 className="text-xs font-semibold text-foreground">Points</h3>
+      </div>
+
+      {/* Vertical gauge */}
+      <div className="flex items-end gap-3 flex-1">
+        <div className="relative flex flex-col items-center">
+          {/* Threshold labels on the left */}
+          <div className="relative h-48 w-8 bg-muted rounded-full overflow-hidden border border-border">
+            {/* Fill from bottom */}
+            <div
+              className="absolute bottom-0 left-0 right-0 bg-primary rounded-full transition-all duration-700"
+              style={{ height: `${fillPct}%` }}
+            />
+            {/* Threshold marks */}
+            {POINT_THRESHOLDS.map(t => {
+              const pos = Math.round((t / maxThreshold) * 100);
+              return (
+                <div
+                  key={t}
+                  className="absolute left-0 right-0 border-t border-background/50"
+                  style={{ bottom: `${pos}%` }}
+                />
+              );
+            })}
           </div>
-          <span className="text-xl font-bold text-foreground">{pointsAvailable} pts</span>
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          Gagné : {progress.totalPointsEarned ?? 0} · Dépensé : {progress.totalPointsSpent ?? 0}
-        </div>
-
-        <div className="space-y-1">
-          <Progress value={progressPct} className="h-3" />
-          <div className="flex justify-between text-[10px] text-muted-foreground">
+          {/* Labels beside gauge */}
+          <div className="absolute -right-8 h-48 flex flex-col-reverse justify-between">
             {POINT_THRESHOLDS.map(t => (
-              <span key={t} className={pointsAvailable >= t ? 'text-primary font-semibold' : ''}>
+              <span
+                key={t}
+                className={`text-[9px] leading-none ${pointsAvailable >= t ? 'text-primary font-bold' : 'text-muted-foreground'}`}
+              >
                 {t}
               </span>
             ))}
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <Flame className="w-4 h-4 text-destructive" />
-          <span className="text-sm font-semibold text-foreground">
-            {streakInfo?.currentStreak ?? progress.currentTaskStreak} jours
-          </span>
-          <span className="text-[10px] text-muted-foreground">
-            (record : {streakInfo?.longestStreak ?? progress.longestTaskStreak})
-          </span>
-        </div>
+      {/* Points value */}
+      <div className="text-center">
+        <span className="text-2xl font-bold text-foreground">{pointsAvailable}</span>
+        <p className="text-[10px] text-muted-foreground">pts disponibles</p>
+      </div>
 
-        {streakInfo && (
-          <div className="text-[10px] text-muted-foreground">
-            {streakInfo.streakQualifiedToday
-              ? '✅ Objectif atteint aujourd\'hui'
-              : `⏳ ${Math.max(0, STREAK_MIN_IMPORTANT_MINUTES - streakInfo.importantMinutesToday)} min restantes`
-            }
-          </div>
-        )}
+      {/* Streak */}
+      <div className="flex items-center gap-1.5 text-center">
+        <Flame className="w-3.5 h-3.5 text-destructive" />
+        <span className="text-xs font-semibold text-foreground">
+          {streakInfo?.currentStreak ?? progress.currentTaskStreak}j
+        </span>
+        <span className="text-[9px] text-muted-foreground">
+          (max {streakInfo?.longestStreak ?? progress.longestTaskStreak})
+        </span>
+      </div>
+
+      {streakInfo && (
+        <p className="text-[9px] text-muted-foreground text-center">
+          {streakInfo.streakQualifiedToday
+            ? '✅ Objectif du jour OK'
+            : `⏳ ${Math.max(0, STREAK_MIN_IMPORTANT_MINUTES - streakInfo.importantMinutesToday)} min restantes`
+          }
+        </p>
+      )}
+
+      {/* Earned/Spent summary */}
+      <div className="text-[9px] text-muted-foreground text-center">
+        Gagné {progress.totalPointsEarned ?? 0} · Dépensé {progress.totalPointsSpent ?? 0}
       </div>
     </Card>
   );
 };
-
-function BarRow({ label, pct, color }: { label: string; pct: number; color: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-sm text-foreground w-32 shrink-0">{label}</span>
-      <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
-        <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-sm font-medium text-foreground w-10 text-right">{pct}%</span>
-    </div>
-  );
-}
 
 export default ProgressOverview;
