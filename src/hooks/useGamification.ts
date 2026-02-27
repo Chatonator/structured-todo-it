@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { UserProgress, TransactionMetadata, DailyStreakInfo, Reward, ClaimHistoryEntry } from '@/types/gamification';
+import { UserProgress, TransactionMetadata, DailyStreakInfo, Reward, ClaimHistoryEntry, UnrefinedTask } from '@/types/gamification';
 import { computeTaskPoints, checkMicroTaskCap, checkStreakDay, computeWeeklySummary, isStreakEligible } from '@/lib/rewards';
 import type { WeeklySummary } from '@/lib/rewards';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { startOfWeek, endOfWeek, startOfDay, format } from 'date-fns';
+import { DECAY_RATE_PER_WEEK, MAX_DECAY_WEEKS } from '@/lib/rewards/constants';
 
 export const useGamification = () => {
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -251,7 +252,7 @@ export const useGamification = () => {
         updateQualifiedDate = true;
       }
 
-      // 9. Update user_progress (including points_available + total_points_earned)
+      // 9. Update user_progress (NO points_available/total_points_earned — handled by refinement)
       const updatePayload: any = {
         total_xp: (progress.totalXp ?? 0) + finalPoints,
         current_points: (progress.totalXp ?? 0) + finalPoints,
@@ -259,8 +260,6 @@ export const useGamification = () => {
         current_task_streak: newStreak,
         longest_task_streak: newLongest,
         last_activity_date: todayStr,
-        points_available: (progress.pointsAvailable ?? 0) + finalPoints,
-        total_points_earned: (progress.totalPointsEarned ?? 0) + finalPoints,
       };
       if (updateQualifiedDate) {
         updatePayload.last_streak_qualified_date = todayStr;
@@ -437,6 +436,106 @@ export const useGamification = () => {
     };
   }, [progress, getImportantMinutesToday]);
 
+  // ---- Get unrefined tasks ----
+  const getUnrefinedTasks = useCallback(async (): Promise<UnrefinedTask[]> => {
+    if (!user) return [];
+    const { data: txData } = await supabase
+      .from('xp_transactions')
+      .select('id, source_id, points_gained, created_at, metadata')
+      .eq('user_id', user.id)
+      .eq('source_type', 'task')
+      .eq('is_refined', false)
+      .order('created_at', { ascending: false });
+
+    if (!txData || txData.length === 0) return [];
+
+    const sourceIds = txData.map(t => t.source_id).filter(Boolean) as string[];
+    const { data: itemsData } = await supabase
+      .from('items')
+      .select('id, name, category')
+      .in('id', sourceIds);
+
+    const itemsMap = new Map((itemsData || []).map((i: any) => [i.id, i]));
+    const now = Date.now();
+
+    return txData.map((t: any) => {
+      const item = itemsMap.get(t.source_id);
+      const createdAt = new Date(t.created_at);
+      const weeksElapsed = Math.floor((now - createdAt.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      const decayPct = Math.min(weeksElapsed * DECAY_RATE_PER_WEEK * 100, 100);
+      return {
+        transactionId: t.id,
+        sourceId: t.source_id || '',
+        taskName: item?.name || (t.metadata as any)?.description || 'Tâche',
+        category: item?.category || 'Autres',
+        pointsOriginal: t.points_gained ?? 0,
+        createdAt,
+        weeksElapsed,
+        decayPct,
+      };
+    });
+  }, [user]);
+
+  // ---- Refine points ----
+  const refinePoints = useCallback(async (transactionIds?: string[]) => {
+    if (!user || !progress) return;
+
+    try {
+      // Fetch unrefined transactions
+      let query = supabase
+        .from('xp_transactions')
+        .select('id, points_gained, created_at')
+        .eq('user_id', user.id)
+        .eq('source_type', 'task')
+        .eq('is_refined', false);
+
+      if (transactionIds && transactionIds.length > 0) {
+        query = query.in('id', transactionIds);
+      }
+
+      const { data: txData } = await query;
+      if (!txData || txData.length === 0) return;
+
+      const now = Date.now();
+      let refinedTotal = 0;
+
+      for (const tx of txData) {
+        const createdAt = new Date(tx.created_at!).getTime();
+        const weeksElapsed = Math.floor((now - createdAt) / (7 * 24 * 60 * 60 * 1000));
+        const clampedWeeks = Math.min(weeksElapsed, MAX_DECAY_WEEKS);
+        const decayedValue = Math.max(0, Math.floor((tx.points_gained ?? 0) * (1 - DECAY_RATE_PER_WEEK * clampedWeeks)));
+        refinedTotal += decayedValue;
+      }
+
+      // Mark as refined
+      const ids = txData.map(t => t.id);
+      await supabase
+        .from('xp_transactions')
+        .update({ is_refined: true, refined_at: new Date().toISOString() })
+        .in('id', ids)
+        .eq('user_id', user.id);
+
+      // Update user_progress
+      await supabase
+        .from('user_progress')
+        .update({
+          points_available: (progress.pointsAvailable ?? 0) + refinedTotal,
+          total_points_earned: (progress.totalPointsEarned ?? 0) + refinedTotal,
+        })
+        .eq('user_id', user.id);
+
+      await loadProgress();
+
+      toast({
+        title: `+${refinedTotal} pts raffinés`,
+        description: `${ids.length} tâche${ids.length > 1 ? 's' : ''} raffinée${ids.length > 1 ? 's' : ''}`,
+        duration: 3000,
+      });
+    } catch (error: any) {
+      logger.error('Failed to refine points', { error: error.message });
+    }
+  }, [user, progress, loadProgress, toast]);
+
   // ---- Kept for backward compat ----
   const rewardStreak = useCallback(async (_streakCount: number, _type: 'task' | 'habit') => {}, []);
 
@@ -462,5 +561,8 @@ export const useGamification = () => {
     createReward,
     deleteReward,
     getClaimHistory,
+    // v3.0 refinement
+    getUnrefinedTasks,
+    refinePoints,
   };
 };

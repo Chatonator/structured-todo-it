@@ -948,8 +948,10 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          is_refined: boolean
           metadata: Json | null
           points_gained: number | null
+          refined_at: string | null
           source_id: string | null
           source_type: string
           user_id: string
@@ -959,8 +961,10 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_refined?: boolean
           metadata?: Json | null
           points_gained?: number | null
+          refined_at?: string | null
           source_id?: string | null
           source_type: string
           user_id: string
@@ -970,8 +974,10 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_refined?: boolean
           metadata?: Json | null
           points_gained?: number | null
+          refined_at?: string | null
           source_id?: string | null
           source_type?: string
           user_id?: string

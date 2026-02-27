@@ -36,6 +36,8 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
           pointsGained: t.points_gained,
           description: t.description,
           metadata: t.metadata,
+          isRefined: t.is_refined ?? false,
+          refinedAt: t.refined_at ? new Date(t.refined_at) : null,
           createdAt: new Date(t.created_at),
         }));
 
