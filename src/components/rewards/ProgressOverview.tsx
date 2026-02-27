@@ -2,23 +2,18 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { UserProgress } from '@/types/gamification';
-import type { WeeklySummary } from '@/lib/rewards';
 import type { DailyStreakInfo } from '@/types/gamification';
-import { Trophy, Flame, Target, BarChart3 } from 'lucide-react';
-import { MICRO_TASK_DAILY_CAP, STREAK_MIN_IMPORTANT_MINUTES, POINT_THRESHOLDS } from '@/lib/rewards/constants';
+import { Trophy, Flame } from 'lucide-react';
+import { STREAK_MIN_IMPORTANT_MINUTES, POINT_THRESHOLDS } from '@/lib/rewards/constants';
 
 interface ProgressOverviewProps {
   progress: UserProgress | null;
-  weeklySummary: WeeklySummary | null;
   streakInfo: DailyStreakInfo | null;
-  dailyMicroCount: number;
 }
 
 const ProgressOverview: React.FC<ProgressOverviewProps> = ({
   progress,
-  weeklySummary,
   streakInfo,
-  dailyMicroCount,
 }) => {
   if (!progress) return null;
 
@@ -80,48 +75,6 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Alignment score */}
-        <Card className="p-6 bg-gradient-to-br from-accent/30 to-background">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Target className="w-6 h-6 text-primary" />
-              <h3 className="text-lg font-bold text-foreground">
-                Alignement : {weeklySummary?.alignmentScore ?? 0}%
-              </h3>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Ratio points Important (non urgent) / total cette semaine
-            </p>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Micro-tâches :</span>
-              <span className="font-medium text-foreground">
-                {dailyMicroCount}/{MICRO_TASK_DAILY_CAP}
-              </span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Weekly breakdown */}
-        {weeklySummary && weeklySummary.totalMinutes > 0 && (
-          <Card className="p-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-semibold text-foreground">Répartition hebdo</h3>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {weeklySummary.totalMinutes} min · {weeklySummary.totalPoints} pts
-              </p>
-              <div className="space-y-2">
-                <BarRow label="⭐ Important" pct={weeklySummary.pctImportantNotUrgent} color="bg-emerald-500" />
-                <BarRow label="⚡ Urgent" pct={weeklySummary.pctUrgent} color="bg-orange-500" />
-                <BarRow label="🔧 Maintenance" pct={weeklySummary.pctMaintenance} color="bg-muted-foreground/50" />
-              </div>
-            </div>
-          </Card>
-        )}
-      </div>
     </div>
   );
 };
