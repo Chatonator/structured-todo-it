@@ -1,112 +1,59 @@
-## Plan: Système de Raffinage des Points
 
-### Concept
 
-Les points sont calculés a la completion mais stockes comme "non raffines" dans `xp_transactions` (nouveau champ `is_refined`). Ils ne comptent pas dans `points_available` tant que l'utilisateur n'a pas clique "Raffiner". Une decote de 10%/semaine s'applique sur les points non raffines et raffinés.
+## Plan: Réorganisation du layout Récompenses + corrections
 
----
+### Problèmes identifiés
 
-### Bloc 1 — Migration DB
+**Layout actuel** : Tous les blocs empilés verticalement sur toute la largeur, prenant beaucoup de place.
 
-**Alter `xp_transactions**` :
+**Bugs de calcul des compétences** :
+- **Priorisation** et **Finalisation** : calculés en pourcentage (max 100), mais les seuils de niveau commencent à 100 XP pour le niveau 2. Ces compétences ne dépasseront jamais le niveau 1-2. Il faut multiplier ces valeurs (ex: ×30) pour les rendre comparables aux autres.
+- **Constance** : streak × 10, aussi très faible comparé aux seuils (0, 100, 300, 600...).
+- **Discipline** : somme brute des minutes importantes — peut être disproportionnellement élevée.
 
-- `is_refined` boolean NOT NULL DEFAULT false
-- `refined_at` timestamptz NULL
+### Modifications
 
-Aucune nouvelle table necessaire.
+#### 1. Nouveau layout en grille (RewardsView.tsx)
 
----
-
-### Bloc 2 — Modifier `rewardTaskCompletion` dans `useGamification.ts`
-
-Actuellement les points sont ajoutes a `points_available` immediatement (ligne 262). Changement :
-
-- **Ne plus incrementer `points_available**` ni `total_points_earned` a la completion
-- Stocker les points dans `xp_transactions` avec `is_refined = false` (comportement par defaut grace au DEFAULT)
-- Le toast reste ("+ X pts") mais les points ne sont pas encore utilisables
-
----
-
-### Bloc 3 — Nouvelle action `refinePoints` dans `useGamification.ts`
-
-```
-refinePoints(transactionIds?: string[])
+```text
+┌──────────────────────┬──────────────────┐
+│  Refinement Panel    │  Progress        │
+│  (points à raffiner) │  (points dispo)  │
+├──────────────────────┴──────────────────┤
+│                                         │
+│  ┌─────────────┬─────────────┐ ┌──────┐ │
+│  │ Récompenses │             │ │Skills│ │
+│  │ (cards)     │             │ │  🎯  │ │
+│  │             │             │ │  ⭐  │ │
+│  └─────────────┴─────────────┘ │  🔥  │ │
+│                                │  ✅  │ │
+│  Claim History                 └──────┘ │
+└─────────────────────────────────────────┘
 ```
 
-1. Fetch toutes les `xp_transactions` ou `is_refined = false` et `source_type = 'task'` (ou seulement celles selectionnees)
-2. Pour chaque transaction, calculer la decote : `max(0, points × (1 - 0.10 × nb_semaines))` ou `nb_semaines = floor((now - created_at) / 7 jours)`
-3. Somme des points apres decote = `refinedTotal`
-4. Marquer les transactions `is_refined = true`, `refined_at = now()`
-5. Incrementer `points_available += refinedTotal` et `total_points_earned += refinedTotal`
-6. Toast : "+X pts raffines"
+- Ligne du haut : RefinementPanel + ProgressOverview côte à côte (`grid grid-cols-1 lg:grid-cols-2`)
+- Ligne du bas : Récompenses + Historique à gauche (flex-1), Skills empilés verticalement à droite (colonne fixe)
 
----
+#### 2. Compactifier les composants
 
-### Bloc 4 — Nouvelle action `getUnrefinedTasks` dans `useGamification.ts`
+- **ProgressOverview** : réduire le padding, rendre plus compact
+- **RefinementPanel** : réduire padding, garder la liste scrollable
+- **SkillsPanel** : passer en `grid-cols-1` (cartes empilées verticalement), réduire padding
+- **RewardsClaim** : garder la grille existante
+- **ClaimHistory** : compact, déjà OK
 
-Fetch les `xp_transactions` non raffinees avec jointure sur `items` pour recuperer nom, categorie, etc. Retourne la liste avec les infos de decote calculee.
+#### 3. Corriger les calculs de compétences (useRewardsViewData.ts)
 
----
+- **Discipline** : plafonner ou normaliser (ex: `Math.min(disciplineXp, 5000)`)
+- **Priorisation** : multiplier par 30 → max ~3000 XP, permettant d'atteindre des niveaux significatifs
+- **Constance** : multiplier par 30 → streak de 10 = 300 XP (niveau 3)
+- **Finalisation** : multiplier par 30 → 100% complété = 3000 XP (niveau 7)
 
-### Bloc 5 — Hook `useRewardsViewData` : ajouter donnees non raffinees
+#### 4. Fichiers modifiés
 
-Nouvel etat `unrefinedTasks` charge au mount. Expose `actions.refinePoints`.
+- `src/components/views/rewards/RewardsView.tsx` — layout en grille
+- `src/components/rewards/ProgressOverview.tsx` — compact
+- `src/components/rewards/RefinementPanel.tsx` — compact
+- `src/components/rewards/SkillsPanel.tsx` — colonne verticale, compact
+- `src/hooks/view-data/useRewardsViewData.ts` — corriger les facteurs XP des compétences
 
----
-
-### Bloc 6 — Nouveau composant `RefinementPanel.tsx`
-
-Container "Travail accompli" affichant :
-
-- Liste des taches non raffinees avec barre de couleur categorie
-- Indicateur de decote par tache (ex: "-20% (2 sem.)")
-- Aucune valeur de points affichee
-- Bouton "Raffiner" (toutes ou selection)
-- Action irreversible
-
----
-
-### Bloc 7 — Modifier `ProgressOverview.tsx`
-
-Le titre change en "Points disponibles". N'affiche que les points raffines (`points_available`). Le `totalPointsEarned` ne compte que les points effectivement raffines.
-
----
-
-### Bloc 8 — Modifier `RewardsView.tsx`
-
-Ordre des sections :
-
-1. **RefinementPanel** — "Travail accompli" (en premier, action principale)
-2. **ProgressOverview** — "Points disponibles" (solde raffine)
-3. **RewardsClaim** — Recompenses
-4. **SkillsPanel** — Competences
-5. **ClaimHistory** — Historique
-
----
-
-### Fichiers impactes
-
-
-| Fichier                                        | Action                                                                                     |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `supabase/migrations/`                         | ALTER xp_transactions (is_refined, refined_at)                                             |
-| `src/integrations/supabase/types.ts`           | Ajouter champs xp_transactions                                                             |
-| `src/hooks/useGamification.ts`                 | Retirer points_available de rewardTaskCompletion, ajouter refinePoints + getUnrefinedTasks |
-| `src/types/gamification.ts`                    | Nouveau type UnrefinedTask                                                                 |
-| `src/hooks/view-data/useRewardsViewData.ts`    | Charger unrefinedTasks, exposer refinePoints                                               |
-| `src/components/rewards/RefinementPanel.tsx`   | **Nouveau** — container "Travail accompli"                                                 |
-| `src/components/rewards/ProgressOverview.tsx`  | Renommer en "Points disponibles"                                                           |
-| `src/components/views/rewards/RewardsView.tsx` | Integrer RefinementPanel en position 1                                                     |
-| `src/lib/rewards/constants.ts`                 | Constantes decote (DECAY_RATE, MAX_DECAY_WEEKS)                                            |
-
-
----
-
-### Details techniques
-
-- Decote : `valeur = max(0, points_origin × (1 - 0.10 × nb_semaines))` avec `nb_semaines = floor((now - created_at) / (7×24×60×60×1000))`
-- Apres 10 semaines : valeur = 0
-- Constantes : `DECAY_RATE_PER_WEEK = 0.10`, `MAX_DECAY_WEEKS = 10`
-- Le `points_available` dans `user_progress` ne change qu'au moment du raffinage (pas a la completion)
-- Le `total_points_earned` ne compte que les points raffines (valeur apres decote)
-- Les transactions non raffinees sont filtrables par `is_refined = false`
