@@ -33,7 +33,20 @@ export interface XpTransaction {
   pointsGained: number;
   description?: string;
   metadata?: TransactionMetadata | any;
+  isRefined: boolean;
+  refinedAt?: Date | null;
   createdAt: Date;
+}
+
+export interface UnrefinedTask {
+  transactionId: string;
+  sourceId: string;
+  taskName: string;
+  category: string;
+  pointsOriginal: number;
+  createdAt: Date;
+  weeksElapsed: number;
+  decayPct: number;
 }
 
 export interface TransactionMetadata {

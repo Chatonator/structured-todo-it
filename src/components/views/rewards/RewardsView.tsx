@@ -1,7 +1,7 @@
 import React from 'react';
 import { useRewardsViewData } from '@/hooks/view-data';
 import ProgressOverview from '@/components/rewards/ProgressOverview';
-
+import RefinementPanel from '@/components/rewards/RefinementPanel';
 import RewardsClaim from '@/components/rewards/RewardsClaim';
 import SkillsPanel from '@/components/rewards/SkillsPanel';
 import ClaimHistory from '@/components/rewards/ClaimHistory';
@@ -27,7 +27,14 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
       className={className}
     >
       <div className="space-y-8 pb-20 md:pb-6">
-        {/* 1. Points gauge + streak + weekly */}
+        {/* 1. Refinement panel */}
+        <RefinementPanel
+          tasks={data.unrefinedTasks}
+          onRefine={actions.refinePoints}
+          onReload={actions.reloadData}
+        />
+
+        {/* 2. Points gauge + streak */}
         <ProgressOverview
           progress={data.progress}
           streakInfo={data.streakInfo}

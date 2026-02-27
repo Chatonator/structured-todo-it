@@ -32,3 +32,7 @@ export const POINT_THRESHOLDS = [30, 60, 120, 240] as const;
 
 // Skill level thresholds
 export const SKILL_LEVEL_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500] as const;
+
+// Decay constants for unrefined points
+export const DECAY_RATE_PER_WEEK = 0.10;
+export const MAX_DECAY_WEEKS = 10;

@@ -33,7 +33,10 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className="w-6 h-6 text-primary" />
-              <h3 className="text-2xl font-bold text-foreground">{pointsAvailable} pts</h3>
+              <h3 className="text-lg font-semibold text-foreground">Points disponibles</h3>
+            </div>
+            <div>
+              <span className="text-2xl font-bold text-foreground">{pointsAvailable} pts</span>
             </div>
             <span className="text-sm text-muted-foreground">
               Total gagné : {progress.totalPointsEarned ?? 0} · Dépensé : {progress.totalPointsSpent ?? 0}
