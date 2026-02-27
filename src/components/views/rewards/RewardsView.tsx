@@ -1,7 +1,7 @@
 import React from 'react';
 import { useRewardsViewData } from '@/hooks/view-data';
 import ProgressOverview from '@/components/rewards/ProgressOverview';
-import RecentActivity from '@/components/rewards/RecentActivity';
+
 import RewardsClaim from '@/components/rewards/RewardsClaim';
 import SkillsPanel from '@/components/rewards/SkillsPanel';
 import ClaimHistory from '@/components/rewards/ClaimHistory';
@@ -30,9 +30,7 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
         {/* 1. Points gauge + streak + weekly */}
         <ProgressOverview
           progress={data.progress}
-          weeklySummary={data.weeklySummary}
           streakInfo={data.streakInfo}
-          dailyMicroCount={data.dailyMicroCount}
         />
 
         {/* 2. Claim rewards */}
@@ -50,9 +48,6 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
 
         {/* 4. Claim history */}
         <ClaimHistory claims={data.claimHistory} />
-
-        {/* 5. Recent activity */}
-        <RecentActivity userId={data.userId || ''} />
       </div>
     </ViewLayout>
   );
