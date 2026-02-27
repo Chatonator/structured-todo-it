@@ -27,8 +27,8 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
       className={className}
     >
       <div className="space-y-4 pb-20 md:pb-6">
-        {/* Row 1: Refinement + Progress side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Row 1: Refinement (left) | Progress vertical gauge (center) | Skills stacked (right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_240px] gap-4 items-start">
           <RefinementPanel
             tasks={data.unrefinedTasks}
             onRefine={actions.refinePoints}
@@ -38,24 +38,20 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
             progress={data.progress}
             streakInfo={data.streakInfo}
           />
+          <SkillsPanel skills={data.skills} />
         </div>
 
-        {/* Row 2: Rewards + History (left) | Skills (right) */}
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 space-y-4 min-w-0">
-            <RewardsClaim
-              rewards={data.rewards}
-              pointsAvailable={data.pointsAvailable}
-              onClaim={actions.claimReward}
-              onCreate={actions.createReward}
-              onDelete={actions.deleteReward}
-              onReload={actions.reloadData}
-            />
-            <ClaimHistory claims={data.claimHistory} />
-          </div>
-          <div className="w-full lg:w-64 shrink-0">
-            <SkillsPanel skills={data.skills} />
-          </div>
+        {/* Row 2: Rewards + History full width */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RewardsClaim
+            rewards={data.rewards}
+            pointsAvailable={data.pointsAvailable}
+            onClaim={actions.claimReward}
+            onCreate={actions.createReward}
+            onDelete={actions.deleteReward}
+            onReload={actions.reloadData}
+          />
+          <ClaimHistory claims={data.claimHistory} />
         </div>
       </div>
     </ViewLayout>
