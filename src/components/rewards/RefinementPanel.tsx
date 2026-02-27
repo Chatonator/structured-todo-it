@@ -52,12 +52,12 @@ const RefinementPanel: React.FC<RefinementPanelProps> = ({ tasks, onRefine, onRe
     : `Raffiner tout (${tasks.length})`;
 
   return (
-    <Card className="p-6 border-primary/20">
-      <div className="space-y-4">
+    <Card className="p-4 border-primary/20">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Pickaxe className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-bold text-foreground">Travail accompli</h3>
+            <Pickaxe className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-bold text-foreground">Travail accompli</h3>
           </div>
           <Badge variant="secondary" className="text-xs">
             {tasks.length} en attente

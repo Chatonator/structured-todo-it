@@ -26,35 +26,37 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
       loadingProps={{ variant: 'cards' }}
       className={className}
     >
-      <div className="space-y-8 pb-20 md:pb-6">
-        {/* 1. Refinement panel */}
-        <RefinementPanel
-          tasks={data.unrefinedTasks}
-          onRefine={actions.refinePoints}
-          onReload={actions.reloadData}
-        />
+      <div className="space-y-4 pb-20 md:pb-6">
+        {/* Row 1: Refinement + Progress side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RefinementPanel
+            tasks={data.unrefinedTasks}
+            onRefine={actions.refinePoints}
+            onReload={actions.reloadData}
+          />
+          <ProgressOverview
+            progress={data.progress}
+            streakInfo={data.streakInfo}
+          />
+        </div>
 
-        {/* 2. Points gauge + streak */}
-        <ProgressOverview
-          progress={data.progress}
-          streakInfo={data.streakInfo}
-        />
-
-        {/* 2. Claim rewards */}
-        <RewardsClaim
-          rewards={data.rewards}
-          pointsAvailable={data.pointsAvailable}
-          onClaim={actions.claimReward}
-          onCreate={actions.createReward}
-          onDelete={actions.deleteReward}
-          onReload={actions.reloadData}
-        />
-
-        {/* 3. Skills */}
-        <SkillsPanel skills={data.skills} />
-
-        {/* 4. Claim history */}
-        <ClaimHistory claims={data.claimHistory} />
+        {/* Row 2: Rewards + History (left) | Skills (right) */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex-1 space-y-4 min-w-0">
+            <RewardsClaim
+              rewards={data.rewards}
+              pointsAvailable={data.pointsAvailable}
+              onClaim={actions.claimReward}
+              onCreate={actions.createReward}
+              onDelete={actions.deleteReward}
+              onReload={actions.reloadData}
+            />
+            <ClaimHistory claims={data.claimHistory} />
+          </div>
+          <div className="w-full lg:w-64 shrink-0">
+            <SkillsPanel skills={data.skills} />
+          </div>
+        </div>
       </div>
     </ViewLayout>
   );

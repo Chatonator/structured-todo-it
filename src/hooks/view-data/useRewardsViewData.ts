@@ -39,26 +39,27 @@ export const useRewardsViewData = () => {
     const transactions = txResult.data || [];
     const items = itemsResult.data || [];
 
-    // Discipline: sum of important minutes completed
-    const disciplineXp = transactions.reduce((sum: number, t: any) => {
+    // Discipline: sum of important minutes completed (capped at 5000)
+    const rawDisciplineXp = transactions.reduce((sum: number, t: any) => {
       const meta = t.metadata;
       if (meta?.isImportant && meta?.durationMinutes) {
         return sum + meta.durationMinutes;
       }
       return sum;
     }, 0);
+    const disciplineXp = Math.min(rawDisciplineXp, 5000);
 
-    // Priorisation: % important tasks × 100
+    // Priorisation: % important tasks × 30 (max ~3000 XP)
     const totalTasks = items.length;
     const importantTasks = items.filter((i: any) => i.is_important).length;
-    const prioXp = totalTasks > 0 ? Math.round((importantTasks / totalTasks) * 100) : 0;
+    const prioXp = totalTasks > 0 ? Math.round((importantTasks / totalTasks) * 100) * 30 : 0;
 
-    // Constance: current streak (from progress)
-    const constanceXp = (gamification.progress?.currentTaskStreak ?? 0) * 10;
+    // Constance: current streak × 30 (streak 10 = 300 XP = niveau 3)
+    const constanceXp = (gamification.progress?.currentTaskStreak ?? 0) * 30;
 
-    // Finalisation: completed / total × 100
+    // Finalisation: completed / total × 30 (100% = 3000 XP = niveau 7)
     const completedTasks = items.filter((i: any) => i.is_completed).length;
-    const finalisationXp = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const finalisationXp = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) * 30 : 0;
 
     const skillDefs = [
       { key: 'discipline', name: 'Discipline', icon: '🎯', xp: disciplineXp },
