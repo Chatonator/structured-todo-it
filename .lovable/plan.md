@@ -1,141 +1,112 @@
+## Plan: Système de Raffinage des Points
 
+### Concept
 
-## Plan: Refonte Vue Récompense v1.0
-
-### Scope
-
-Refonte complète du moteur de points, ajout du système Claim, des compétences, et de la jauge visuelle. Travail structuré en 5 blocs.
+Les points sont calculés a la completion mais stockes comme "non raffines" dans `xp_transactions` (nouveau champ `is_refined`). Ils ne comptent pas dans `points_available` tant que l'utilisateur n'a pas clique "Raffiner". Une decote de 10%/semaine s'applique sur les points non raffines et raffinés.
 
 ---
 
-### Bloc 1 — Schéma DB (migrations)
+### Bloc 1 — Migration DB
 
-**Modifier `user_progress`** : ajouter colonnes
-- `points_available` (int, default 0) — solde dépensable
-- `total_points_earned` (int, default 0)
-- `total_points_spent` (int, default 0)
+**Alter `xp_transactions**` :
 
-**Nouvelle table `rewards`** (récompenses personnalisées) :
-- `id` uuid PK
-- `user_id` uuid NOT NULL
-- `name` text NOT NULL
-- `icon` text default '🎁'
-- `cost_points` int NOT NULL
-- `order_index` int default 0
-- `created_at` timestamptz default now()
-- RLS : CRUD own rows
+- `is_refined` boolean NOT NULL DEFAULT false
+- `refined_at` timestamptz NULL
 
-**Nouvelle table `claim_history`** :
-- `id` uuid PK
-- `user_id` uuid NOT NULL
-- `reward_name` text NOT NULL
-- `cost_points` int NOT NULL
-- `claimed_at` timestamptz default now()
-- RLS : INSERT/SELECT own rows
-
-**Nouvelle table `user_skills`** :
-- `id` uuid PK
-- `user_id` uuid NOT NULL
-- `skill_key` text NOT NULL (discipline, prioritisation, constance, finalisation)
-- `xp` int default 0
-- `created_at` / `updated_at`
-- UNIQUE(user_id, skill_key)
-- RLS : CRUD own rows
+Aucune nouvelle table necessaire.
 
 ---
 
-### Bloc 2 — Moteur de points (engine.ts + constants.ts)
+### Bloc 2 — Modifier `rewardTaskCompletion` dans `useGamification.ts`
 
-Remplacer la formule actuelle dans `computeTaskPoints` :
+Actuellement les points sont ajoutes a `points_available` immediatement (ligne 262). Changement :
+
+- **Ne plus incrementer `points_available**` ni `total_points_earned` a la completion
+- Stocker les points dans `xp_transactions` avec `is_refined = false` (comportement par defaut grace au DEFAULT)
+- Le toast reste ("+ X pts") mais les points ne sont pas encore utilisables
+
+---
+
+### Bloc 3 — Nouvelle action `refinePoints` dans `useGamification.ts`
 
 ```
-effort = sqrt(duration)
-if duration < 15: effort *= 0.6
-importance_weight = 2 if important else 1
-quadrant_weight = { IU: 1.4, I!U: 1.5, !IU: 1.0, !I!U: 0.6 }
-priority_multiplier = (importance_weight + quadrant_weight) / 2
-secondary_bonus = 1.3 if postpone >= 3, else 1.2 if important && deadline < 48h, else 1
-long_task_bonus = 5 if duration >= 60 else 0
-points = floor(effort × priority_multiplier × secondary_bonus) + long_task_bonus
+refinePoints(transactionIds?: string[])
 ```
 
-Mettre à jour `constants.ts` avec les nouveaux coefficients. Supprimer les anciens planning bonus (remplacés par secondary_bonus logic).
-
-Mettre à jour `TaskRewardResult` pour inclure `longTaskBonus`.
-
----
-
-### Bloc 3 — useGamification : points_available + Claim
-
-- `rewardTaskCompletion` : incrémenter `points_available` et `total_points_earned` en plus de `total_xp`
-- Nouveau : `claimReward(rewardId, cost)` — décrémenter `points_available`, incrémenter `total_points_spent`, insérer dans `claim_history`
-- Nouveau : `getClaimHistory()`
-- Toast post-tâche enrichi : afficher contexte quadrant ("+ X pts (Long terme)" / "+ X pts (Urgence traitée)")
+1. Fetch toutes les `xp_transactions` ou `is_refined = false` et `source_type = 'task'` (ou seulement celles selectionnees)
+2. Pour chaque transaction, calculer la decote : `max(0, points × (1 - 0.10 × nb_semaines))` ou `nb_semaines = floor((now - created_at) / 7 jours)`
+3. Somme des points apres decote = `refinedTotal`
+4. Marquer les transactions `is_refined = true`, `refined_at = now()`
+5. Incrementer `points_available += refinedTotal` et `total_points_earned += refinedTotal`
+6. Toast : "+X pts raffines"
 
 ---
 
-### Bloc 4 — Skills (compétences)
+### Bloc 4 — Nouvelle action `getUnrefinedTasks` dans `useGamification.ts`
 
-Nouveau hook `useSkills` ou intégré dans `useGamification` :
-
-- **Discipline** : XP = somme minutes importantes complétées (depuis xp_transactions metadata)
-- **Priorisation** : XP = % tâches importantes / total tâches (×100 par calcul)
-- **Constance** : XP = streak jours (current_task_streak)
-- **Finalisation** : XP = ratio tâches complétées / tâches créées (×100)
-
-Niveaux : XP seuils simples (ex: 0-100 = lvl 1, 100-300 = lvl 2, etc.)
-
-Calcul à la volée depuis les données existantes (pas de stockage si MVP, ou stocker dans `user_skills` pour perf).
+Fetch les `xp_transactions` non raffinees avec jointure sur `items` pour recuperer nom, categorie, etc. Retourne la liste avec les infos de decote calculee.
 
 ---
 
-### Bloc 5 — UI RewardsView
+### Bloc 5 — Hook `useRewardsViewData` : ajouter donnees non raffinees
 
-Restructurer en sections :
-
-1. **Points + Jauge** — Afficher `points_available` avec jauge réservoir vers les paliers 30/60/120/240. Progress bar remplissage.
-
-2. **Récompenses (Claim)** — Grille de cartes récompenses avec état Locked/Available/Claimable. Bouton Claim avec dialog confirmation. CRUD récompenses (ajouter/supprimer ses propres récompenses).
-
-3. **Compétences** — 4 cartes skill avec barre XP, level, progress %.
-
-4. **Résumé hebdomadaire** — Conserver le composant existant `ProgressOverview` adapté (barres répartition, score alignement).
-
-5. **Activité récente** — Conserver `RecentActivity` avec toast feedback enrichi.
-
-6. **Historique Claims** — Liste des récompenses réclamées.
-
-7. **Pause volontaire** (optionnel) — Bouton simple, log dans historique sans impact points.
+Nouvel etat `unrefinedTasks` charge au mount. Expose `actions.refinePoints`.
 
 ---
 
-### Fichiers impactés
+### Bloc 6 — Nouveau composant `RefinementPanel.tsx`
 
-| Fichier | Action |
-|---|---|
-| `supabase/migrations/` | 1 migration (3 tables + alter user_progress) |
-| `src/lib/rewards/constants.ts` | Nouveaux coefficients |
-| `src/lib/rewards/engine.ts` | Nouvelle formule |
-| `src/hooks/useGamification.ts` | points_available, claim, toast enrichi |
-| `src/hooks/view-data/useRewardsViewData.ts` | Skills, claims data |
-| `src/types/gamification.ts` | Nouveaux types |
-| `src/components/views/rewards/RewardsView.tsx` | Restructuration complète |
-| `src/components/rewards/ProgressOverview.tsx` | Jauge réservoir + paliers |
-| `src/components/rewards/RecentActivity.tsx` | Toast contextualisé |
-| `src/components/rewards/RewardsClaim.tsx` | **Nouveau** — grille Claim |
-| `src/components/rewards/SkillsPanel.tsx` | **Nouveau** — 4 compétences |
-| `src/components/rewards/ClaimHistory.tsx` | **Nouveau** — historique |
-| `src/components/rewards/RewardModal.tsx` | **Nouveau** — CRUD récompense |
-| `src/components/rewards/VoluntaryPause.tsx` | **Nouveau** — bouton pause |
+Container "Travail accompli" affichant :
+
+- Liste des taches non raffinees avec barre de couleur categorie
+- Indicateur de decote par tache (ex: "-20% (2 sem.)")
+- Aucune valeur de points affichee
+- Bouton "Raffiner" (toutes ou selection)
+- Action irreversible
 
 ---
 
-### Technical details
+### Bloc 7 — Modifier `ProgressOverview.tsx`
 
-- La formule change les coefficients quadrant : `I+U: 1.4` (était 1.5), `I+!U: 1.5` (était 1.6), `!I+U: 1.0` (inchangé), `!I+!U: 0.6` (était 0.7)
-- Le micro-task adjust passe de "cap daily" à "effort × 0.6" pour duration < 15 min (le cap daily reste aussi)
-- `importance_weight` est un nouveau facteur (2 si important, 1 sinon) combiné avec quadrant_weight via moyenne
-- `long_task_bonus` (+5 pts si ≥60 min) est additif, pas multiplicatif
-- `secondary_bonus` remplace les anciens planning bonus — seuls anti-zombie (≥3 reports) et deadline urgente (<48h important) subsistent
-- Les données de compétences sont calculées depuis `xp_transactions`, `items`, et `user_progress` existants — pas de tracking supplémentaire
+Le titre change en "Points disponibles". N'affiche que les points raffines (`points_available`). Le `totalPointsEarned` ne compte que les points effectivement raffines.
 
+---
+
+### Bloc 8 — Modifier `RewardsView.tsx`
+
+Ordre des sections :
+
+1. **RefinementPanel** — "Travail accompli" (en premier, action principale)
+2. **ProgressOverview** — "Points disponibles" (solde raffine)
+3. **RewardsClaim** — Recompenses
+4. **SkillsPanel** — Competences
+5. **ClaimHistory** — Historique
+
+---
+
+### Fichiers impactes
+
+
+| Fichier                                        | Action                                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `supabase/migrations/`                         | ALTER xp_transactions (is_refined, refined_at)                                             |
+| `src/integrations/supabase/types.ts`           | Ajouter champs xp_transactions                                                             |
+| `src/hooks/useGamification.ts`                 | Retirer points_available de rewardTaskCompletion, ajouter refinePoints + getUnrefinedTasks |
+| `src/types/gamification.ts`                    | Nouveau type UnrefinedTask                                                                 |
+| `src/hooks/view-data/useRewardsViewData.ts`    | Charger unrefinedTasks, exposer refinePoints                                               |
+| `src/components/rewards/RefinementPanel.tsx`   | **Nouveau** — container "Travail accompli"                                                 |
+| `src/components/rewards/ProgressOverview.tsx`  | Renommer en "Points disponibles"                                                           |
+| `src/components/views/rewards/RewardsView.tsx` | Integrer RefinementPanel en position 1                                                     |
+| `src/lib/rewards/constants.ts`                 | Constantes decote (DECAY_RATE, MAX_DECAY_WEEKS)                                            |
+
+
+---
+
+### Details techniques
+
+- Decote : `valeur = max(0, points_origin × (1 - 0.10 × nb_semaines))` avec `nb_semaines = floor((now - created_at) / (7×24×60×60×1000))`
+- Apres 10 semaines : valeur = 0
+- Constantes : `DECAY_RATE_PER_WEEK = 0.10`, `MAX_DECAY_WEEKS = 10`
+- Le `points_available` dans `user_progress` ne change qu'au moment du raffinage (pas a la completion)
+- Le `total_points_earned` ne compte que les points raffines (valeur apres decote)
+- Les transactions non raffinees sont filtrables par `is_refined = false`
