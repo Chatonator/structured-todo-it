@@ -21,18 +21,18 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
   const fillPct = Math.min(100, Math.round((pointsAvailable / maxThreshold) * 100));
 
   return (
-    <Card className="p-3 border-primary/20 h-full w-full min-w-[160px]">
-      {/* Header */}
-      <div className="flex items-center gap-1.5 mb-2">
+    <Card className="p-3 border-primary/20 h-full w-full min-w-[160px] flex flex-col">
+      {/* Header compact */}
+      <div className="flex items-center gap-1.5 mb-2 shrink-0">
         <Trophy className="w-4 h-4 text-primary" />
         <h3 className="text-sm font-bold text-foreground">Points</h3>
       </div>
 
-      {/* Gauge + Info side by side */}
-      <div className="flex gap-3 items-center">
-        {/* Gauge column */}
-        <div className="relative shrink-0 flex items-center">
-          <div className="relative h-36 w-6 bg-muted rounded-full overflow-hidden border border-border">
+      {/* Body: gauge + info, fills all remaining height */}
+      <div className="flex gap-4 flex-1 min-h-0">
+        {/* Gauge column — stretches vertically */}
+        <div className="relative shrink-0 flex">
+          <div className="relative w-7 bg-muted rounded-full overflow-hidden border border-border flex-1">
             <div
               className="absolute bottom-0 left-0 right-0 bg-primary rounded-full transition-all duration-700"
               style={{ height: `${fillPct}%` }}
@@ -48,12 +48,12 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
               );
             })}
           </div>
-          {/* Threshold labels */}
-          <div className="absolute left-8 h-36 flex flex-col-reverse justify-between">
+          {/* Threshold labels — aligned to gauge height */}
+          <div className="absolute left-9 top-0 bottom-0 flex flex-col-reverse justify-between py-0.5">
             {POINT_THRESHOLDS.map(t => (
               <span
                 key={t}
-                className={`text-[9px] leading-none ${pointsAvailable >= t ? 'text-primary font-bold' : 'text-muted-foreground'}`}
+                className={`text-[10px] leading-none whitespace-nowrap ${pointsAvailable >= t ? 'text-primary font-bold' : 'text-muted-foreground'}`}
               >
                 {t}
               </span>
@@ -61,33 +61,35 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
           </div>
         </div>
 
-        {/* Info column */}
-        <div className="flex flex-col gap-1.5 min-w-0 pl-6">
+        {/* Info column — fills height, content spread vertically */}
+        <div className="flex flex-col justify-between min-w-0 flex-1 pl-4 py-0.5">
           <div>
-            <span className="text-2xl font-bold text-foreground leading-none">{pointsAvailable}</span>
-            <p className="text-[10px] text-muted-foreground leading-tight">pts disponibles</p>
+            <span className="text-3xl font-bold text-foreground leading-none">{pointsAvailable}</span>
+            <p className="text-xs text-muted-foreground mt-0.5">pts disponibles</p>
           </div>
 
-          <div className="flex items-center gap-1">
-            <Flame className="w-3 h-3 text-destructive shrink-0" />
-            <span className="text-xs font-semibold text-foreground">
-              {streakInfo?.currentStreak ?? progress.currentTaskStreak}j
-            </span>
-            <span className="text-[9px] text-muted-foreground">
-              (max {streakInfo?.longestStreak ?? progress.longestTaskStreak})
-            </span>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <Flame className="w-4 h-4 text-destructive shrink-0" />
+              <span className="text-sm font-semibold text-foreground">
+                {streakInfo?.currentStreak ?? progress.currentTaskStreak}j
+              </span>
+              <span className="text-xs text-muted-foreground">
+                (max {streakInfo?.longestStreak ?? progress.longestTaskStreak})
+              </span>
+            </div>
+
+            {streakInfo && (
+              <p className="text-xs text-muted-foreground leading-snug">
+                {streakInfo.streakQualifiedToday
+                  ? '✅ Objectif OK'
+                  : `⏳ ${Math.max(0, STREAK_MIN_IMPORTANT_MINUTES - streakInfo.importantMinutesToday)} min restantes`
+                }
+              </p>
+            )}
           </div>
 
-          {streakInfo && (
-            <p className="text-[9px] text-muted-foreground leading-tight">
-              {streakInfo.streakQualifiedToday
-                ? '✅ Objectif OK'
-                : `⏳ ${Math.max(0, STREAK_MIN_IMPORTANT_MINUTES - streakInfo.importantMinutesToday)} min restantes`
-              }
-            </p>
-          )}
-
-          <p className="text-[9px] text-muted-foreground leading-tight">
+          <p className="text-[10px] text-muted-foreground leading-tight">
             Gagné {progress.totalPointsEarned ?? 0} · Dépensé {progress.totalPointsSpent ?? 0}
           </p>
         </div>
