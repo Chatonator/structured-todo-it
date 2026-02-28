@@ -55,42 +55,42 @@ const RewardsClaim: React.FC<RewardsClaimProps> = ({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Gift className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold text-foreground">Récompenses</h3>
+    <Card className="p-4 border-primary/20 h-full">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Gift className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-bold text-foreground">Récompenses</h3>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowCreate(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Ajouter
+          </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Ajouter
-        </Button>
-      </div>
 
-      {rewards.length === 0 && (
-        <Card className="p-6 text-center">
-          <Gift className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
-          <p className="text-muted-foreground text-sm">Ajoutez vos récompenses personnalisées</p>
-        </Card>
-      )}
+        {rewards.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <Gift className="w-8 h-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Ajoutez vos récompenses personnalisées</p>
+          </div>
+        )}
 
-      <div className="flex flex-wrap gap-3">
-        {rewards.map(reward => {
-          const canClaim = pointsAvailable >= reward.costPoints;
-          return (
-            <Card key={reward.id} className={`p-3 transition-all w-fit max-w-[260px] ${canClaim ? 'border-primary/40 bg-primary/5' : 'opacity-70'}`}>
-              <div className="flex items-start gap-2">
-                <span className="text-xl">{reward.icon}</span>
+        <div className="flex flex-col gap-2">
+          {rewards.map(reward => {
+            const canClaim = pointsAvailable >= reward.costPoints;
+            return (
+              <div key={reward.id} className={`flex items-center gap-2 p-2 rounded-lg transition-all ${canClaim ? 'bg-primary/5' : 'opacity-70'}`}>
+                <span className="text-lg">{reward.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{reward.name}</p>
-                  <p className="text-xs text-muted-foreground">{reward.costPoints} pts</p>
+                  <p className="text-xs font-medium text-foreground truncate">{reward.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{reward.costPoints} pts</p>
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1">
                   {canClaim ? (
-                    <Button size="sm" className="h-7 text-xs" onClick={() => setShowConfirm(reward)}>
+                    <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => setShowConfirm(reward)}>
                       Claim
                     </Button>
                   ) : (
-                    <Lock className="w-4 h-4 text-muted-foreground" />
+                    <Lock className="w-3.5 h-3.5 text-muted-foreground" />
                   )}
                   <Button
                     variant="ghost"
@@ -102,9 +102,9 @@ const RewardsClaim: React.FC<RewardsClaimProps> = ({
                   </Button>
                 </div>
               </div>
-            </Card>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Create dialog */}
@@ -163,7 +163,7 @@ const RewardsClaim: React.FC<RewardsClaimProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   );
 };
 

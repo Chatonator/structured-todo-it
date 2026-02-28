@@ -64,35 +64,39 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
         </div>
       </div>
 
-      {/* Points value */}
-      <div className="text-center">
-        <span className="text-2xl font-bold text-foreground">{pointsAvailable}</span>
-        <p className="text-[10px] text-muted-foreground">pts disponibles</p>
-      </div>
+      {/* Points value + Streak + Summary — side by side if space allows */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:gap-4 gap-1 text-center lg:text-left">
+        <div>
+          <span className="text-2xl font-bold text-foreground">{pointsAvailable}</span>
+          <p className="text-[10px] text-muted-foreground">pts disponibles</p>
+        </div>
 
-      {/* Streak */}
-      <div className="flex items-center gap-1.5 text-center">
-        <Flame className="w-3.5 h-3.5 text-destructive" />
-        <span className="text-xs font-semibold text-foreground">
-          {streakInfo?.currentStreak ?? progress.currentTaskStreak}j
-        </span>
-        <span className="text-[9px] text-muted-foreground">
-          (max {streakInfo?.longestStreak ?? progress.longestTaskStreak})
-        </span>
-      </div>
+        <div className="flex flex-col gap-0.5">
+          {/* Streak */}
+          <div className="flex items-center gap-1.5 justify-center lg:justify-start">
+            <Flame className="w-3.5 h-3.5 text-destructive" />
+            <span className="text-xs font-semibold text-foreground">
+              {streakInfo?.currentStreak ?? progress.currentTaskStreak}j
+            </span>
+            <span className="text-[9px] text-muted-foreground">
+              (max {streakInfo?.longestStreak ?? progress.longestTaskStreak})
+            </span>
+          </div>
 
-      {streakInfo && (
-        <p className="text-[9px] text-muted-foreground text-center">
-          {streakInfo.streakQualifiedToday
-            ? '✅ Objectif du jour OK'
-            : `⏳ ${Math.max(0, STREAK_MIN_IMPORTANT_MINUTES - streakInfo.importantMinutesToday)} min restantes`
-          }
-        </p>
-      )}
+          {streakInfo && (
+            <p className="text-[9px] text-muted-foreground">
+              {streakInfo.streakQualifiedToday
+                ? '✅ Objectif du jour OK'
+                : `⏳ ${Math.max(0, STREAK_MIN_IMPORTANT_MINUTES - streakInfo.importantMinutesToday)} min restantes`
+              }
+            </p>
+          )}
 
-      {/* Earned/Spent summary */}
-      <div className="text-[9px] text-muted-foreground text-center">
-        Gagné {progress.totalPointsEarned ?? 0} · Dépensé {progress.totalPointsSpent ?? 0}
+          {/* Earned/Spent summary */}
+          <div className="text-[9px] text-muted-foreground">
+            Gagné {progress.totalPointsEarned ?? 0} · Dépensé {progress.totalPointsSpent ?? 0}
+          </div>
+        </div>
       </div>
     </Card>
   );
