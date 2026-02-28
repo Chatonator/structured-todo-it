@@ -27,7 +27,7 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
       className={className}
     >
       <div className="space-y-4 pb-20 md:pb-6">
-        {/* Row 1: flex layout — each section takes its natural width */}
+        {/* Row 1: dynamic layout — rewards shrink to content, points can expand */}
         <div className="flex flex-col lg:flex-row gap-4 items-stretch">
           <div className="lg:w-[220px] lg:min-w-[180px] lg:shrink-0">
             <RefinementPanel
@@ -36,13 +36,15 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
               onReload={actions.reloadData}
             />
           </div>
-          <div className="lg:shrink-0">
+
+          <div className="lg:flex-1 lg:min-w-[260px]">
             <ProgressOverview
               progress={data.progress}
               streakInfo={data.streakInfo}
             />
           </div>
-          <div className="lg:flex-1 lg:min-w-[200px]">
+
+          <div className="lg:shrink-0 lg:w-fit lg:max-w-[560px]">
             <RewardsClaim
               rewards={data.rewards}
               pointsAvailable={data.pointsAvailable}
@@ -52,6 +54,7 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
               onReload={actions.reloadData}
             />
           </div>
+
           <div className="lg:w-[170px] lg:shrink-0">
             <SkillsPanel skills={data.skills} />
           </div>
