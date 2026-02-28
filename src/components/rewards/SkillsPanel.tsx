@@ -20,7 +20,7 @@ const SkillsPanel: React.FC<SkillsPanelProps> = ({ skills }) => {
 
       <div className="flex flex-col gap-2">
         {skills.map(skill => (
-          <Card key={skill.key} className="p-3">
+          <Card key={skill.key} className="p-2">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">{skill.icon}</span>
               <div className="flex-1 min-w-0">

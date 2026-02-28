@@ -86,7 +86,7 @@ const RefinementPanel: React.FC<RefinementPanelProps> = ({ tasks, onRefine, onRe
                     className={`w-1 h-6 rounded-full ${CATEGORY_COLORS[task.category] || CATEGORY_COLORS.Autres}`}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{task.taskName}</p>
+                    <p className="text-xs font-medium text-foreground truncate text-justify">{task.taskName}</p>
                     <p className="text-[10px] text-muted-foreground">{task.category}</p>
                   </div>
                   {task.weeksElapsed > 0 && (
