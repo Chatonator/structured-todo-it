@@ -37,7 +37,7 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
             />
           </div>
 
-          <div className="lg:flex-1 lg:min-w-[260px]">
+          <div className="lg:w-[280px] lg:min-w-[240px] lg:shrink-0">
             <ProgressOverview
               progress={data.progress}
               streakInfo={data.streakInfo}
