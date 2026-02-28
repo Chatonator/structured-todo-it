@@ -27,26 +27,34 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
       className={className}
     >
       <div className="space-y-4 pb-20 md:pb-6">
-        {/* Row 1: Refinement | Progress | Rewards | Skills */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(180px,0.5fr)_auto_1fr_170px] gap-4 items-start">
-          <RefinementPanel
-            tasks={data.unrefinedTasks}
-            onRefine={actions.refinePoints}
-            onReload={actions.reloadData}
-          />
-          <ProgressOverview
-            progress={data.progress}
-            streakInfo={data.streakInfo}
-          />
-          <RewardsClaim
-            rewards={data.rewards}
-            pointsAvailable={data.pointsAvailable}
-            onClaim={actions.claimReward}
-            onCreate={actions.createReward}
-            onDelete={actions.deleteReward}
-            onReload={actions.reloadData}
-          />
-          <SkillsPanel skills={data.skills} />
+        {/* Row 1: flex layout — each section takes its natural width */}
+        <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+          <div className="lg:w-[220px] lg:min-w-[180px] lg:shrink-0">
+            <RefinementPanel
+              tasks={data.unrefinedTasks}
+              onRefine={actions.refinePoints}
+              onReload={actions.reloadData}
+            />
+          </div>
+          <div className="lg:shrink-0">
+            <ProgressOverview
+              progress={data.progress}
+              streakInfo={data.streakInfo}
+            />
+          </div>
+          <div className="lg:flex-1 lg:min-w-[200px]">
+            <RewardsClaim
+              rewards={data.rewards}
+              pointsAvailable={data.pointsAvailable}
+              onClaim={actions.claimReward}
+              onCreate={actions.createReward}
+              onDelete={actions.deleteReward}
+              onReload={actions.reloadData}
+            />
+          </div>
+          <div className="lg:w-[170px] lg:shrink-0">
+            <SkillsPanel skills={data.skills} />
+          </div>
         </div>
 
         {/* Row 2: Claim History full width */}
