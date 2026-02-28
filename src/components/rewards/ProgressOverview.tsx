@@ -21,24 +21,20 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
   const fillPct = Math.min(100, Math.round((pointsAvailable / maxThreshold) * 100));
 
   return (
-    <Card className="p-4 border-primary/20 h-full flex flex-col items-center justify-between gap-3 w-full min-w-[180px]">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Trophy className="w-4 h-4 text-primary" />
-        <h3 className="text-xs font-semibold text-foreground">Points</h3>
-      </div>
+    <Card className="p-4 border-primary/20 h-full flex flex-row items-stretch gap-4 w-full min-w-[180px]">
+      {/* Left side: Gauge */}
+      <div className="flex flex-col items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-primary" />
+          <h3 className="text-xs font-semibold text-foreground">Points</h3>
+        </div>
 
-      {/* Vertical gauge */}
-      <div className="flex items-end gap-3 flex-1">
-        <div className="relative flex flex-col items-center">
-          {/* Threshold labels on the left */}
+        <div className="relative flex flex-col items-center flex-1">
           <div className="relative h-48 w-8 bg-muted rounded-full overflow-hidden border border-border">
-            {/* Fill from bottom */}
             <div
               className="absolute bottom-0 left-0 right-0 bg-primary rounded-full transition-all duration-700"
               style={{ height: `${fillPct}%` }}
             />
-            {/* Threshold marks */}
             {POINT_THRESHOLDS.map(t => {
               const pos = Math.round((t / maxThreshold) * 100);
               return (
@@ -50,7 +46,6 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
               );
             })}
           </div>
-          {/* Labels beside gauge */}
           <div className="absolute -right-8 h-48 flex flex-col-reverse justify-between">
             {POINT_THRESHOLDS.map(t => (
               <span
@@ -64,38 +59,34 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
         </div>
       </div>
 
-      {/* Points value + Streak + Summary — side by side if space allows */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:gap-4 gap-1 text-center lg:text-left">
+      {/* Right side: Text info */}
+      <div className="flex flex-col justify-center gap-2 min-w-0">
         <div>
           <span className="text-2xl font-bold text-foreground">{pointsAvailable}</span>
           <p className="text-[10px] text-muted-foreground">pts disponibles</p>
         </div>
 
-        <div className="flex flex-col gap-0.5">
-          {/* Streak */}
-          <div className="flex items-center gap-1.5 justify-center lg:justify-start">
-            <Flame className="w-3.5 h-3.5 text-destructive" />
-            <span className="text-xs font-semibold text-foreground">
-              {streakInfo?.currentStreak ?? progress.currentTaskStreak}j
-            </span>
-            <span className="text-[9px] text-muted-foreground">
-              (max {streakInfo?.longestStreak ?? progress.longestTaskStreak})
-            </span>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <Flame className="w-3.5 h-3.5 text-destructive" />
+          <span className="text-xs font-semibold text-foreground">
+            {streakInfo?.currentStreak ?? progress.currentTaskStreak}j
+          </span>
+          <span className="text-[9px] text-muted-foreground">
+            (max {streakInfo?.longestStreak ?? progress.longestTaskStreak})
+          </span>
+        </div>
 
-          {streakInfo && (
-            <p className="text-[9px] text-muted-foreground">
-              {streakInfo.streakQualifiedToday
-                ? '✅ Objectif du jour OK'
-                : `⏳ ${Math.max(0, STREAK_MIN_IMPORTANT_MINUTES - streakInfo.importantMinutesToday)} min restantes`
-              }
-            </p>
-          )}
+        {streakInfo && (
+          <p className="text-[9px] text-muted-foreground">
+            {streakInfo.streakQualifiedToday
+              ? '✅ Objectif du jour OK'
+              : `⏳ ${Math.max(0, STREAK_MIN_IMPORTANT_MINUTES - streakInfo.importantMinutesToday)} min restantes`
+            }
+          </p>
+        )}
 
-          {/* Earned/Spent summary */}
-          <div className="text-[9px] text-muted-foreground">
-            Gagné {progress.totalPointsEarned ?? 0} · Dépensé {progress.totalPointsSpent ?? 0}
-          </div>
+        <div className="text-[9px] text-muted-foreground">
+          Gagné {progress.totalPointsEarned ?? 0} · Dépensé {progress.totalPointsSpent ?? 0}
         </div>
       </div>
     </Card>
