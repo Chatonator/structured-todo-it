@@ -27,8 +27,8 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
       className={className}
     >
       <div className="space-y-4 pb-20 md:pb-6">
-        {/* Row 1: Refinement (left) | Progress vertical gauge (center) | Skills stacked (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_240px] gap-4 items-start">
+        {/* Row 1: Refinement | Progress | Rewards | Skills */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(180px,0.5fr)_auto_1fr_170px] gap-4 items-start">
           <RefinementPanel
             tasks={data.unrefinedTasks}
             onRefine={actions.refinePoints}
@@ -38,11 +38,6 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
             progress={data.progress}
             streakInfo={data.streakInfo}
           />
-          <SkillsPanel skills={data.skills} />
-        </div>
-
-        {/* Row 2: Rewards + History full width */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <RewardsClaim
             rewards={data.rewards}
             pointsAvailable={data.pointsAvailable}
@@ -51,8 +46,11 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
             onDelete={actions.deleteReward}
             onReload={actions.reloadData}
           />
-          <ClaimHistory claims={data.claimHistory} />
+          <SkillsPanel skills={data.skills} />
         </div>
+
+        {/* Row 2: Claim History full width */}
+        <ClaimHistory claims={data.claimHistory} />
       </div>
     </ViewLayout>
   );
