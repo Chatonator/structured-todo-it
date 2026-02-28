@@ -73,20 +73,20 @@ const RewardsClaim: React.FC<RewardsClaimProps> = ({
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="flex flex-wrap gap-3">
         {rewards.map(reward => {
           const canClaim = pointsAvailable >= reward.costPoints;
           return (
-            <Card key={reward.id} className={`p-4 transition-all ${canClaim ? 'border-primary/40 bg-primary/5' : 'opacity-70'}`}>
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">{reward.icon}</span>
+            <Card key={reward.id} className={`p-3 transition-all w-fit max-w-[260px] ${canClaim ? 'border-primary/40 bg-primary/5' : 'opacity-70'}`}>
+              <div className="flex items-start gap-2">
+                <span className="text-xl">{reward.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">{reward.name}</p>
-                  <p className="text-sm text-muted-foreground">{reward.costPoints} pts</p>
+                  <p className="text-sm font-medium text-foreground truncate">{reward.name}</p>
+                  <p className="text-xs text-muted-foreground">{reward.costPoints} pts</p>
                 </div>
                 <div className="flex flex-col gap-1">
                   {canClaim ? (
-                    <Button size="sm" onClick={() => setShowConfirm(reward)}>
+                    <Button size="sm" className="h-7 text-xs" onClick={() => setShowConfirm(reward)}>
                       Claim
                     </Button>
                   ) : (
@@ -95,7 +95,7 @@ const RewardsClaim: React.FC<RewardsClaimProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-destructive h-7 w-7 p-0"
+                    className="text-destructive h-6 w-6 p-0"
                     onClick={() => handleDelete(reward.id)}
                   >
                     <Trash2 className="w-3 h-3" />
