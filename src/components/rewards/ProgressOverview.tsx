@@ -21,7 +21,7 @@ const ProgressOverview: React.FC<ProgressOverviewProps> = ({
   const fillPct = Math.min(100, Math.round((pointsAvailable / maxThreshold) * 100));
 
   return (
-    <Card className="p-4 border-primary/20 h-full flex flex-col items-center justify-between gap-3 w-40">
+    <Card className="p-4 border-primary/20 h-full flex flex-col items-center justify-between gap-3 w-full min-w-[180px]">
       {/* Header */}
       <div className="flex items-center gap-2">
         <Trophy className="w-4 h-4 text-primary" />
