@@ -10,7 +10,7 @@ import {
   ActivityTimeline,
   TaskFolders
 } from './components';
-import { Telescope, LayoutGrid, FolderTree, TrendingUp } from 'lucide-react';
+import { Telescope, LayoutGrid, FolderTree, TrendingUp, BrainCircuit, Target, Flame, Layers, Shield } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -92,6 +92,60 @@ const ObservatoryView: React.FC = () => {
             </Card>
           </section>
         )}
+
+        {/* Section 1.75: Maturity Indices */}
+        <section>
+          <Card>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <BrainCircuit className="w-4 h-4 text-primary" />
+                Indices de maturité organisationnelle
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Planification */}
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                  <Layers className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Structuration</p>
+                    <p className="text-xl font-bold">{data.maturityIndices.avgDepth}</p>
+                    <p className="text-[10px] text-muted-foreground">profondeur moy.</p>
+                    <p className="text-[10px] text-primary font-medium mt-0.5">{data.maturityIndices.structuredCompleted} tâches structurées</p>
+                  </div>
+                </div>
+                {/* Priorisation */}
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                  <Target className="w-4 h-4 text-chart-1 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Indice stratégique</p>
+                    <p className="text-xl font-bold">{data.maturityIndices.pctQ2.d30}%</p>
+                    <p className="text-[10px] text-muted-foreground">Q2 sur 30 jours</p>
+                    <p className="text-[10px] text-chart-1 font-medium mt-0.5">{data.maturityIndices.pctQ2.d60}% / 60j · {data.maturityIndices.pctQ2.d90}% / 90j</p>
+                  </div>
+                </div>
+                {/* Résilience */}
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                  <Shield className="w-4 h-4 text-chart-2 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Taux de récupération</p>
+                    <p className="text-xl font-bold">{data.maturityIndices.recoveryRate}%</p>
+                    <p className="text-[10px] text-muted-foreground">tâches &gt;3j terminées</p>
+                  </div>
+                </div>
+                {/* Vision long terme */}
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                  <Flame className="w-4 h-4 text-chart-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Indice long terme</p>
+                    <p className="text-xl font-bold">{data.maturityIndices.pctInProject}%</p>
+                    <p className="text-[10px] text-muted-foreground">tâches en projet</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Section 2: Visualizations */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
