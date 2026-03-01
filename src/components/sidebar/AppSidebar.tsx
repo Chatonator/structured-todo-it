@@ -23,10 +23,13 @@ import TaskModal from '@/components/task/TaskModal';
 import { useSidebarContext } from '@/contexts/SidebarContext';
 import { useSidebarFilters, useSidebarProjectActions } from './hooks';
 import { cn } from '@/lib/utils';
+import { canAddSubTask } from '@/utils/taskValidation';
+import { useToast } from '@/hooks/use-toast';
 
 const AppSidebar: React.FC = () => {
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === 'collapsed';
+  const { toast } = useToast();
 
   const {
     tasks, mainTasks, pinnedTasks, recurringTaskIds, taskSchedules,
@@ -54,6 +57,12 @@ const AppSidebar: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const handleCreateSubTask = (parentTask: Task) => {
+    const siblingCount = tasks.filter(t => t.parentId === parentTask.id).length;
+    const check = canAddSubTask(parentTask.level, siblingCount);
+    if (!check.allowed) {
+      toast({ title: 'Limite atteinte', description: check.reason, variant: 'destructive', duration: 3000 });
+      return;
+    }
     setSelectedParentTask(parentTask);
     setIsSubTaskModalOpen(true);
   };

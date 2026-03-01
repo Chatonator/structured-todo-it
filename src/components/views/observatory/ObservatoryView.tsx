@@ -10,9 +10,11 @@ import {
   ActivityTimeline,
   TaskFolders
 } from './components';
-import { Telescope, LayoutGrid, FolderTree, TrendingUp, BrainCircuit, Target, Flame, Layers, Shield } from 'lucide-react';
+import { Telescope, LayoutGrid, FolderTree, TrendingUp, BrainCircuit, Target, Flame, Layers, Shield, AlertTriangle, Gauge } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { useGamification } from '@/hooks/useGamification';
 import type { WeeklySummary } from '@/lib/rewards';
@@ -153,6 +155,53 @@ const ObservatoryView: React.FC = () => {
             </CardContent>
           </Card>
         </section>
+
+        {/* Section 1.8: Global Maturity Score */}
+        <section>
+          <Card>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Gauge className="w-4 h-4 text-primary" />
+                Indice de maturité organisationnelle
+                <span className="ml-auto text-lg font-bold">{data.globalMaturity.score}%</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0 space-y-3">
+              <Progress value={data.globalMaturity.score} className="h-2" />
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span>{data.globalMaturity.isBalanced ? '✅ Équilibré' : '⚠️ Déséquilibré'}</span>
+                <span>{data.globalMaturity.highLevelSkillCount}/5 compétences avancées</span>
+              </div>
+              {data.globalMaturity.alerts.length > 0 && (
+                <div className="space-y-1">
+                  {data.globalMaturity.alerts.map((alert, i) => (
+                    <p key={i} className="text-xs text-muted-foreground">• {alert}</p>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Section 1.9: Cognitive Load Alert */}
+        {data.cognitiveLoad.isOverloaded && (
+          <section>
+            <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Charge cognitive élevée
+              </AlertTitle>
+              <AlertDescription className="text-xs text-amber-700 dark:text-amber-300 space-y-1 mt-1">
+                <p>{data.cognitiveLoad.openTaskCount} tâches ouvertes · {data.cognitiveLoad.activeProjectCount} projets actifs</p>
+                <ul className="list-disc list-inside space-y-0.5 mt-2">
+                  {data.cognitiveLoad.suggestions.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          </section>
+        )}
 
         {/* Section 2: Visualizations */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
