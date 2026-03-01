@@ -1,136 +1,113 @@
 
-## Analyse de l'existant
+# Restructuration du systeme XP — Competences alignees sur la realite
 
-**Système actuel** : basé sur des "minutes guilty-free" calculées avec `√(durée) × coefficient_quadrant × multiplicateurs`. Les 4 compétences actuelles (Discipline, Priorisation, Constance, Finalisation) sont des métriques calculées à la volée dans `useRewardsViewData.ts` sans être persistées en DB. Elles utilisent `SKILL_LEVEL_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500]`.
+## Resume
 
-**Ce qui change** : Remplacer les 4 compétences par 5 nouvelles (Planification, Priorisation Stratégique, Discipline, Vision Long Terme, Résilience) avec des règles XP spécifiques et des indicateurs visibles dans l'Observatoire.
-
-**Ce qui ne change PAS** : Le système de "minutes guilty-free" reste intact (jauge, récompenses, temps libre) — c'est la couche de motivation principale. Les compétences sont une couche de progression complémentaire.
+Refonte du moteur de competences (`skillsEngine.ts`) pour aligner les 5 competences (Planification, Priorisation, Discipline, Vision long terme, Resilience) sur les comportements reels de l'application. Les regles XP sont recalibrees, la priorisation distingue taches classiques (Eisenhower) et taches projet (priorite interne), et les indices de maturite sont exposes dans l'Observatoire.
 
 ---
 
-## Architecture retenue
+## Ce qui change
 
-### Couche de calcul : `src/lib/rewards/skillsEngine.ts` (nouveau)
-Fonction pure `computeSkillXP(items, projects, transactions)` qui calcule les XP des 5 compétences à partir des données brutes. Retourne `SkillData[]`.
+### 1. Planification — Recompenser la clarte, pas la complexite
 
-Les données nécessaires sont déjà en DB :
-- `items` : `parent_id`, `is_completed`, `is_important`, `is_urgent`, `created_at`, `project_id`, `postpone_count`, `category`
-- `items` (kanban column via `metadata.kanbanStatus` ou `project_status`)  
-- `xp_transactions` : déjà utilisées
-- `user_progress` : streak, tasks_completed
+**Regles actuelles** : +5 XP pour 3+ sous-taches, +10 XP pour profondeur 2+, +25 XP pour structuration complete.
 
-### Calcul XP par compétence
+**Nouvelles regles** :
+- +5 XP si tache contient 2+ sous-taches
+- +8 XP si tache contient exactement 3 sous-taches
+- +5 XP bonus si toutes les sous-taches sont completees
+- +3 XP si une sous-tache contient 2+ sous-sous-taches (bonus leger)
+- Niveaux : 20 / 50 / 100 taches structurees (2+ sous-taches)
 
-**1. Planification** (structuration hiérarchique)
-- Données : requête `items` filtrée `item_type = 'task'` avec `parent_id`
-- XP = (nb tâches avec ≥3 sous-tâches × 5) + (nb tâches avec 2 niveaux × 10) + (nb tâches structurées complétées à 100% × 25)
-- Seuils niveaux : 20 / 50 / 100 tâches structurées complétées → utiliser `SKILL_LEVEL_THRESHOLDS` adapté
+### 2. Priorisation — Deux systemes distincts
 
-**2. Priorisation Stratégique** (Q2 / matrice Eisenhower)
-- Données : `items` avec `is_important`, `is_urgent`, `is_completed`
-- XP = (nb Q2 complétées × 5) + (nb Q1 complétées × 3) − malus si >70% Q1 sur 30j (−1/tâche excédentaire, plafonné à 0)
-- Indicateur : % Q2 sur 30/60/90j
+**A) Taches classiques (Eisenhower)** :
+- +5 XP tache Q2 completee
+- +3 XP tache Q1 completee
+- Niveau superieur si 40%+ des completees sont Q2 sur 60 jours
+- Malus si >70% Q1 sur 30 jours (conserve de l'existant)
 
-**3. Discipline** (constance)
-- Données : `user_progress.current_task_streak`, `xp_transactions` pour jours actifs
-- XP = (streak actuel × 20) + (nb semaines consécutives complètes × 20) + (bonus habitudes si ≥80% cette semaine × 10)
-- Note : le bonus habitude nécessite de calculer le taux de complétion hebdomadaire depuis `habit_completions`
+**B) Taches projet (priorite interne `subCategory`)** :
+- +5 XP "Le plus important"
+- +3 XP "Important"
+- +1 XP "Peut attendre"
+- +0 XP "Si j'ai le temps"
+- -2 XP si sur 30 jours >50% des completees projet sont "Si j'ai le temps" alors que des priorites hautes restent ouvertes
 
-**4. Vision Long Terme** (projets)
-- Données : `items` avec `project_id`, projets de `useProjects`
-- XP = (nb projets complétés × 15) + (nb tâches projet Q2 complétées × 5)
-- Indicateur : % tâches dans un projet, % projets complétés
+### 3. Discipline — Constance et engagement
 
-**5. Résilience** (finir les tâches anciennes)
-- Données : `items` avec `created_at`, `is_completed`, `metadata` (colonnes kanban passées)
-- XP = (nb tâches complétées après ≥3 jours × 10) + (nb tâches passées par 3 colonnes × 15)
-- Indicateur : taux de récupération
+**Regles actuelles** : +20 XP par bloc de 7 jours, +10 XP habitudes 80%+.
 
-### Persistance des XP compétences
-Les XP sont **recalculés à la volée** (pas de persistance supplémentaire en DB), exactement comme les 4 compétences actuelles. La table `user_skills` existe déjà mais n'est pas utilisée — on peut l'ignorer ou l'utiliser pour caching. On reste en recalcul pur pour rester simple.
+**Nouvelles regles** :
+- +1 XP par tache completee (toutes taches)
+- +20 XP tous les 7 jours consecutifs
+- +10 XP par semaine d'habitudes validees 80%+
+- Niveaux : 30 / 60 / 90 jours actifs
 
-### Affichage Observatoire : nouveaux indicateurs
-Ajout d'une section "Indices de maturité" dans `ObservatoryView.tsx` avec :
-- Indice Structuration (Planification) : profondeur moyenne
-- Indice Stratégique (Priorisation) : % Q2 sur 30/60/90j  
-- Taux de récupération (Résilience) : % tâches anciennes finies
-- Indice Long Terme (Vision) : % tâches en projet
+### 4. Vision long terme — Valoriser le travail en projet
+
+**Regles actuelles** : +15 XP par projet complete, +5 XP par Q2 en projet.
+
+**Nouvelles regles** :
+- +15 XP projet complete
+- +5 XP si 70%+ des taches d'un projet sont completees
+- Niveau superieur si 50%+ des taches completees appartiennent a des projets
+- Ne pas penaliser les taches isolees
+
+### 5. Resilience — Finir ce qui traine
+
+**Regles actuelles** : +10 XP tache ancienne (3+ jours), +15 XP si reportee 2+ fois.
+
+**Nouvelles regles** :
+- +10 XP tache completee apres 3+ jours
+- +15 XP si tache passe par colonnes Kanban (projectStatus change)
+- Niveau superieur si 25%+ des completees sont des taches anciennes
 
 ---
 
-## Plan d'implémentation
+## Plan technique
 
-### Fichiers à créer/modifier
+### Fichiers a modifier
 
-| Fichier | Action | Détail |
-|---|---|---|
-| `src/lib/rewards/skillsEngine.ts` | **Créer** | Calcul XP des 5 compétences (fonctions pures) |
-| `src/lib/rewards/constants.ts` | **Modifier** | Nouveaux seuils de niveaux par compétence |
-| `src/lib/rewards/index.ts` | **Modifier** | Exporter le nouveau skillsEngine |
-| `src/types/gamification.ts` | **Modifier** | Mettre à jour `SkillData` avec les nouveaux champs |
-| `src/hooks/view-data/useRewardsViewData.ts` | **Modifier** | Remplacer `computeSkills` par appel au nouveau engine |
-| `src/hooks/view-data/observatoryComputations.ts` | **Modifier** | Ajouter `calculateMaturityIndices()` |
-| `src/hooks/view-data/useObservatoryViewData.ts` | **Modifier** | Exposer les nouveaux indices |
-| `src/components/rewards/SkillsPanel.tsx` | **Modifier** | Adapter l'affichage aux 5 compétences avec leurs indicateurs |
-| `src/components/views/observatory/ObservatoryView.tsx` | **Modifier** | Ajouter section "Indices de maturité" |
+**1. `src/lib/rewards/skillsEngine.ts`** — Coeur des changements
+- Recrire `computePlanificationXP` : compter sous-taches (2+), bonus 3, bonus completion totale, bonus sous-sous-taches leger
+- Recrire `computePriorisationXP` : separer Eisenhower (taches sans `project_id`) et priorite interne (taches avec `project_id`, utilisant `subCategory`). Ajouter malus priorite basse projet.
+- Modifier `computeDisciplineXP` : ajouter `completedTaskCount` en param, +1 XP par tache
+- Modifier `computeVisionXP` : ajouter bonus +5 XP si 70%+ taches projet completees (necessite `projectTaskCounts` en entree)
+- Modifier `computeResilienceXP` : ajouter bonus Kanban (+15 XP si `projectStatus` a change avant completion)
+- Enrichir `RawSkillItem` avec `sub_category?: string` et `project_status?: string`
+- Mettre a jour `SkillsEngineInput` avec `activeDaysCount: number`
+- Ajouter seuils de niveau specifiques par competence au lieu des generiques
 
-### Étape 1 — `skillsEngine.ts` (cœur du système)
+**2. `src/lib/rewards/constants.ts`**
+- Ajouter constantes pour les seuils de niveau par competence :
+  - `PLANIF_LEVEL_THRESHOLDS = [0, 20, 50, 100]` (en taches structurees)
+  - `PRIO_LEVEL_Q2_THRESHOLD = 40` (% sur 60 jours)
+  - `DISCIPLINE_LEVEL_DAYS = [30, 60, 90]`
+  - `VISION_LEVEL_PCT_IN_PROJECT = 50`
+  - `RESILIENCE_LEVEL_PCT_ANCIENT = 25`
 
-```typescript
-// Interfaces d'entrée
-interface RawItem {
-  id: string; parent_id?: string; is_completed: boolean;
-  is_important: boolean; is_urgent: boolean;
-  created_at: string; project_id?: string;
-  postpone_count: number; category: string;
-  metadata?: any;
-}
+**3. `src/hooks/view-data/useRewardsViewData.ts`** — Passer les nouvelles donnees au moteur
+- Enrichir les items envoyes a `computeAllSkills` avec `sub_category` et `project_status`
+- Calculer `activeDaysCount` et le passer en input
 
-// Retourne les 5 compétences avec XP calculé
-export function computeAllSkills(
-  items: RawItem[],
-  currentStreak: number,
-  habitWeeklyRate: number  // 0-1
-): SkillData[]
-```
+**4. `src/hooks/view-data/observatoryComputations.ts`** — Indices dans l'Observatoire
+- Remplacer `MaturityIndices` par 5 indices nommes : strategique, structuration, constance, long terme, resilience
+- Calculer via `computeAllSkills` directement
 
-Logique interne :
-- `computePlanificationXP` : grouper par parent, compter niveaux de profondeur
-- `computePriorisationXP` : compter Q1/Q2 complétées, appliquer malus
-- `computeDisciplineXP` : streak × 20, bonus habitudes
-- `computeVisionXP` : tâches avec project_id, projets complétés
-- `computeResilienceXP` : tâches avec age ≥3j au moment de complétion (diff created_at vs updated_at approximatif)
+**5. `src/components/views/observatory/components/InsightsCards.tsx`** — Afficher les indices
+- Ajouter une rangee de 5 indices sous les cartes existantes (ou remplacer)
+- Chaque indice : nom, valeur %, icone, couleur
 
-### Étape 2 — `useRewardsViewData.ts`
+**6. `src/components/rewards/SkillsPanel.tsx`** — Afficher niveaux par competence
+- Adapter l'indicateur par competence pour montrer le critere de niveau (ex: "12/20 taches structurees")
 
-Remplacer `computeSkills` (4 compétences) par un appel à `computeAllSkills` depuis le nouveau engine. Charger les données nécessaires en plus (items avec hiérarchie, taux habitudes).
+---
 
-### Étape 3 — Observatoire
+## Ce qui ne change PAS
 
-Ajouter dans `observatoryComputations.ts` une fonction `calculateMaturityIndices` qui produit :
-```typescript
-interface MaturityIndices {
-  structurationDepth: number;      // profondeur moyenne
-  strategicIndex: { pct30: number; pct60: number; pct90: number }; // % Q2
-  recoveryRate: number;             // % tâches anciennes finies
-  longTermIndex: number;            // % tâches en projet
-}
-```
-
-Afficher dans l'Observatoire sous forme de 4 cartes métriques (réutiliser `InsightCard`).
-
-### Étape 4 — `SkillsPanel.tsx`
-
-Adapter pour afficher 5 compétences avec :
-- Icône, nom, niveau, barre de progression (existant)
-- Ajouter : indicateur principal (ex: "Profondeur moy. 2.3" pour Planification)
-
-### Seuils de niveaux
-```
-SKILL_LEVEL_THRESHOLDS (inchangés) = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500]
-```
-Les formules XP garantissent que le spam de petites tâches ne peut pas atteindre rapidement les niveaux élevés car les bonus se cumulent seulement via des comportements spécifiques (tâches structurées, Q2, streak long, projets, résilience).
-
-### Note sur la Résilience et les colonnes Kanban
-La détection "passage par 3 colonnes" nécessite un historique Kanban qui n'existe pas aujourd'hui. On simplifie : +15 XP si une tâche a `postpone_count ≥ 2` ET `age ≥ 3j` au moment de complétion. C'est un proxy raisonnable du comportement "tâche difficile finalement terminée".
+- Le systeme de guilty-free minutes (`engine.ts`) reste intact
+- Le `useGamification` hook et la logique de reward par tache completee restent identiques
+- La base de donnees ne change pas (pas de migration)
+- Les recompenses, claim history, jauge restent en place
