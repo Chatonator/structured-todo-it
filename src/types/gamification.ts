@@ -101,4 +101,5 @@ export interface SkillData {
   level: number;
   progressPct: number;
   xpForNext: number;
+  indicator?: string;
 }

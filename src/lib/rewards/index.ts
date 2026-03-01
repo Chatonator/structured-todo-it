@@ -17,4 +17,7 @@ export type {
   WeeklySummary,
 } from './engine';
 
+export { computeAllSkills } from './skillsEngine';
+export type { SkillsEngineInput, SkillsEngineResult, RawSkillItem } from './skillsEngine';
+
 export * from './constants';

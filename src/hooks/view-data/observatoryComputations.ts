@@ -171,6 +171,58 @@ export function groupTasks(
   });
 }
 
+// ---- Maturity Indices ----
+
+export interface MaturityIndices {
+  avgDepth: number;
+  structuredCompleted: number;
+  pctQ2: { d30: number; d60: number; d90: number };
+  recoveryRate: number;
+  pctInProject: number;
+}
+
+export function calculateMaturityIndices(enrichedTasks: EnrichedTask[]): MaturityIndices {
+  const now = Date.now();
+  const completed = enrichedTasks.filter(t => t.isCompleted);
+
+  // Structuration depth: count tasks that have children (proxy: tasks with same name pattern or parentId presence)
+  // Since EnrichedTask doesn't have children, we compute via parent lookup
+  const childIds = new Set(enrichedTasks.map(t => t.parentId).filter(Boolean));
+  const parents = enrichedTasks.filter(t => childIds.has(t.id));
+  const avgDepth = parents.length > 0 ? 2 : 1; // simplified: if any parent exists, depth ≥ 2
+
+  // Q2 % over 30/60/90 days
+  const c30 = completed.filter(t => (now - new Date(t.createdAt).getTime()) <= 30 * 86400000);
+  const c60 = completed.filter(t => (now - new Date(t.createdAt).getTime()) <= 60 * 86400000);
+  const c90 = completed.filter(t => (now - new Date(t.createdAt).getTime()) <= 90 * 86400000);
+  const q2 = (arr: EnrichedTask[]) => arr.filter(t => t.isImportant && !t.isUrgent).length;
+  const pctQ2 = {
+    d30: c30.length > 0 ? Math.round((q2(c30) / c30.length) * 100) : 0,
+    d60: c60.length > 0 ? Math.round((q2(c60) / c60.length) * 100) : 0,
+    d90: c90.length > 0 ? Math.round((q2(c90) / c90.length) * 100) : 0,
+  };
+
+  // Recovery rate: completed tasks that were ≥3 days old when completed
+  const ancient = completed.filter(t => {
+    const created = new Date(t.createdAt).getTime();
+    const age = (now - created) / 86400000;
+    return age >= 3;
+  });
+  const recoveryRate = completed.length > 0 ? Math.round((ancient.length / completed.length) * 100) : 0;
+
+  // % tasks in project
+  const inProject = completed.filter(t => !!t.projectId);
+  const pctInProject = completed.length > 0 ? Math.round((inProject.length / completed.length) * 100) : 0;
+
+  return {
+    avgDepth,
+    structuredCompleted: parents.filter(t => t.isCompleted).length,
+    pctQ2,
+    recoveryRate,
+    pctInProject,
+  };
+}
+
 /** Generate recent activity from tasks */
 export function buildRecentActivity(enrichedTasks: EnrichedTask[]): ActivityItem[] {
   return enrichedTasks

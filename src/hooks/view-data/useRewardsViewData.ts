@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGamification } from '@/hooks/useGamification';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { computeSkillLevel } from '@/lib/rewards';
-import type { WeeklySummary } from '@/lib/rewards';
+import { computeSkillLevel, computeAllSkills } from '@/lib/rewards';
+import type { WeeklySummary, RawSkillItem } from '@/lib/rewards';
 import type { DailyStreakInfo, Reward, ClaimHistoryEntry, SkillData, UnrefinedTask } from '@/types/gamification';
+import { startOfWeek } from 'date-fns';
 
 export const useRewardsViewData = () => {
   const { user } = useAuth();
@@ -22,56 +23,70 @@ export const useRewardsViewData = () => {
   const computeSkills = useCallback(async (): Promise<SkillData[]> => {
     if (!user) return [];
 
-    // Fetch data for skill computation
-    const [txResult, itemsResult] = await Promise.all([
-      supabase
-        .from('xp_transactions')
-        .select('metadata')
-        .eq('user_id', user.id)
-        .eq('source_type', 'task'),
+    // Fetch all needed data in parallel
+    const [itemsResult, projectsResult, habitsResult, habitCompletionsResult] = await Promise.all([
       supabase
         .from('items')
-        .select('is_completed, is_important')
+        .select('id, parent_id, is_completed, is_important, is_urgent, created_at, updated_at, metadata, postpone_count')
         .eq('user_id', user.id)
         .eq('item_type', 'task'),
+      supabase
+        .from('items')
+        .select('id, is_completed, metadata')
+        .eq('user_id', user.id)
+        .eq('item_type', 'project'),
+      supabase
+        .from('habits')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true),
+      supabase
+        .from('habit_completions')
+        .select('habit_id, date')
+        .eq('user_id', user.id)
+        .gte('date', (() => {
+          const d = new Date();
+          d.setDate(d.getDate() - 7);
+          return d.toISOString().split('T')[0];
+        })()),
     ]);
 
-    const transactions = txResult.data || [];
-    const items = itemsResult.data || [];
+    const items: RawSkillItem[] = (itemsResult.data || []).map((i: any) => ({
+      id: i.id,
+      parent_id: i.parent_id,
+      is_completed: i.is_completed,
+      is_important: i.is_important,
+      is_urgent: i.is_urgent,
+      created_at: i.created_at,
+      updated_at: i.updated_at,
+      project_id: i.metadata?.projectId || null,
+      postpone_count: i.postpone_count || 0,
+      metadata: i.metadata,
+    }));
 
-    // Discipline: sum of important minutes completed (capped at 5000)
-    const rawDisciplineXp = transactions.reduce((sum: number, t: any) => {
-      const meta = t.metadata;
-      if (meta?.isImportant && meta?.durationMinutes) {
-        return sum + meta.durationMinutes;
-      }
-      return sum;
-    }, 0);
-    const disciplineXp = Math.min(rawDisciplineXp, 5000);
+    const projects = projectsResult.data || [];
+    const completedProjectCount = projects.filter((p: any) => p.metadata?.status === 'completed').length;
+    const totalProjectCount = projects.length;
 
-    // Priorisation: % important tasks × 30 (max ~3000 XP)
-    const totalTasks = items.length;
-    const importantTasks = items.filter((i: any) => i.is_important).length;
-    const prioXp = totalTasks > 0 ? Math.round((importantTasks / totalTasks) * 100) * 30 : 0;
+    // Compute habit weekly rate
+    const activeHabitIds = new Set((habitsResult.data || []).map((h: any) => h.id));
+    const completionsThisWeek = (habitCompletionsResult.data || []);
+    const uniqueHabitsCompletedThisWeek = new Set(completionsThisWeek.map((c: any) => c.habit_id));
+    const habitWeeklyRate = activeHabitIds.size > 0
+      ? uniqueHabitsCompletedThisWeek.size / activeHabitIds.size
+      : 0;
 
-    // Constance: current streak × 30 (streak 10 = 300 XP = niveau 3)
-    const constanceXp = (gamification.progress?.currentTaskStreak ?? 0) * 30;
+    const currentStreak = gamification.progress?.currentTaskStreak ?? 0;
 
-    // Finalisation: completed / total × 30 (100% = 3000 XP = niveau 7)
-    const completedTasks = items.filter((i: any) => i.is_completed).length;
-    const finalisationXp = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) * 30 : 0;
-
-    const skillDefs = [
-      { key: 'discipline', name: 'Discipline', icon: '🎯', xp: disciplineXp },
-      { key: 'prioritisation', name: 'Priorisation', icon: '⭐', xp: prioXp },
-      { key: 'constance', name: 'Constance', icon: '🔥', xp: constanceXp },
-      { key: 'finalisation', name: 'Finalisation', icon: '✅', xp: finalisationXp },
-    ];
-
-    return skillDefs.map(s => {
-      const { level, progressPct, xpForNext } = computeSkillLevel(s.xp);
-      return { ...s, level, progressPct, xpForNext };
+    const { skills } = computeAllSkills({
+      items,
+      currentStreak,
+      habitWeeklyRate,
+      completedProjectCount,
+      totalProjectCount,
     });
+
+    return skills;
   }, [user, gamification.progress?.currentTaskStreak]);
 
   const loadAsyncData = useCallback(async () => {
