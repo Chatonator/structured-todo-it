@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Reward } from '@/types/gamification';
+import { TIME_TIERS } from '@/lib/rewards/constants';
 import { Gift, Plus, Trash2, Lock } from 'lucide-react';
 
 interface RewardsClaimProps {
   rewards: Reward[];
-  pointsAvailable: number;
+  minutesAvailable: number;
   onClaim: (reward: Reward) => Promise<boolean>;
   onCreate: (name: string, cost: number, icon: string) => Promise<void>;
   onDelete: (rewardId: string) => Promise<void>;
@@ -19,7 +21,7 @@ const ICONS = ['🎁', '☕', '🎮', '📚', '🍕', '🎬', '🌿', '🏃', '�
 
 const RewardsClaim: React.FC<RewardsClaimProps> = ({
   rewards,
-  pointsAvailable,
+  minutesAvailable,
   onClaim,
   onCreate,
   onDelete,
@@ -76,13 +78,13 @@ const RewardsClaim: React.FC<RewardsClaimProps> = ({
 
         <div className="flex flex-col gap-2">
           {rewards.map(reward => {
-            const canClaim = pointsAvailable >= reward.costPoints;
+            const canClaim = minutesAvailable >= reward.costMinutes;
             return (
               <div key={reward.id} className={`flex items-center gap-2 p-2 rounded-lg transition-all ${canClaim ? 'bg-primary/5' : 'opacity-70'}`}>
                 <span className="text-lg">{reward.icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">{reward.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{reward.costPoints} pts</p>
+                  <p className="text-[10px] text-muted-foreground">{reward.costMinutes} min</p>
                 </div>
                 <div className="flex items-center gap-1">
                   {canClaim ? (
@@ -130,13 +132,18 @@ const RewardsClaim: React.FC<RewardsClaimProps> = ({
               value={newName}
               onChange={e => setNewName(e.target.value)}
             />
-            <Input
-              type="number"
-              placeholder="Coût en points"
-              value={newCost}
-              onChange={e => setNewCost(e.target.value)}
-              min="1"
-            />
+            <Select value={newCost} onValueChange={setNewCost}>
+              <SelectTrigger>
+                <SelectValue placeholder="Coût en minutes" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_TIERS.map(tier => (
+                  <SelectItem key={tier} value={String(tier)}>
+                    {tier} min
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
@@ -152,10 +159,10 @@ const RewardsClaim: React.FC<RewardsClaimProps> = ({
             <DialogTitle>Confirmer</DialogTitle>
           </DialogHeader>
           <p className="text-foreground">
-            Réclamer <strong>{showConfirm?.icon} {showConfirm?.name}</strong> pour <strong>{showConfirm?.costPoints} pts</strong> ?
+            Réclamer <strong>{showConfirm?.icon} {showConfirm?.name}</strong> pour <strong>{showConfirm?.costMinutes} min</strong> ?
           </p>
           <p className="text-sm text-muted-foreground">
-            Solde restant : {pointsAvailable - (showConfirm?.costPoints ?? 0)} pts
+            Solde restant : {minutesAvailable - (showConfirm?.costMinutes ?? 0)} min
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirm(null)}>Annuler</Button>

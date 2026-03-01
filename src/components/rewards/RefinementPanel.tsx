@@ -68,7 +68,7 @@ const RefinementPanel: React.FC<RefinementPanelProps> = ({ tasks, onRefine, onRe
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <CheckCircle2 className="w-8 h-8 text-muted-foreground/40 mb-2" />
             <p className="text-sm text-muted-foreground">Aucune tâche à raffiner</p>
-            <p className="text-xs text-muted-foreground/60">Complétez des tâches pour gagner des points</p>
+            <p className="text-xs text-muted-foreground/60">Complétez des tâches pour gagner du temps</p>
           </div>
         ) : (
           <>

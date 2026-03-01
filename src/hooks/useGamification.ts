@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { UserProgress, TransactionMetadata, DailyStreakInfo, Reward, ClaimHistoryEntry, UnrefinedTask } from '@/types/gamification';
-import { computeTaskPoints, checkMicroTaskCap, checkStreakDay, computeWeeklySummary, isStreakEligible } from '@/lib/rewards';
+import { computeTaskMinutes, checkMicroTaskCap, checkStreakDay, computeWeeklySummary, isStreakEligible, clampToGauge, computeCompensationBonus } from '@/lib/rewards';
 import type { WeeklySummary } from '@/lib/rewards';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { startOfWeek, endOfWeek, startOfDay, format } from 'date-fns';
-import { DECAY_RATE_PER_WEEK, MAX_DECAY_WEEKS } from '@/lib/rewards/constants';
+import { DECAY_RATE_PER_WEEK, MAX_DECAY_WEEKS, GAUGE_MAX_MINUTES } from '@/lib/rewards/constants';
 
 export const useGamification = () => {
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -32,9 +32,9 @@ export const useGamification = () => {
     longestHabitStreak: data.longest_habit_streak ?? 0,
     lastActivityDate: data.last_activity_date ?? '',
     lastStreakQualifiedDate: data.last_streak_qualified_date ?? null,
-    pointsAvailable: data.points_available ?? 0,
-    totalPointsEarned: data.total_points_earned ?? 0,
-    totalPointsSpent: data.total_points_spent ?? 0,
+    minutesAvailable: data.points_available ?? 0,
+    totalMinutesEarned: data.total_points_earned ?? 0,
+    totalMinutesSpent: data.total_points_spent ?? 0,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
   });
@@ -107,7 +107,7 @@ export const useGamification = () => {
     }, 0);
   }, [user]);
 
-  // ---- Reward task completion (v2.0 engine) ----
+  // ---- Reward task completion (v3.0 — guilty-free minutes) ----
   const rewardTaskCompletion = useCallback(async (task: any) => {
     if (!user || !progress) return;
 
@@ -139,7 +139,7 @@ export const useGamification = () => {
         .single();
       const postponeCount = itemData?.postpone_count ?? 0;
 
-      // 3. Check if deadline < 48h (from time_events)
+      // 3. Check if deadline < 48h
       let hasUrgentDeadline = false;
       if (isImportant) {
         const { data: eventData } = await supabase
@@ -157,8 +157,8 @@ export const useGamification = () => {
         }
       }
 
-      // 4. Compute points (v2.0)
-      const result = computeTaskPoints({
+      // 4. Compute minutes (v3.0)
+      const result = computeTaskMinutes({
         durationMinutes,
         isImportant,
         isUrgent,
@@ -167,19 +167,19 @@ export const useGamification = () => {
       });
 
       // 5. Check micro-task cap
-      let finalPoints = result.points;
+      let finalMinutes = result.minutes;
       let capped = false;
       if (result.isMicroTask) {
         const microCount = await getDailyMicroTaskCount();
         if (!checkMicroTaskCap(microCount)) {
-          finalPoints = 0;
+          finalMinutes = 0;
           capped = true;
         }
       }
 
       // 6. Build metadata
       const cappedFormula = capped
-        ? `${result.formula} → capée (0 pts)`
+        ? `${result.formula} → capée (0 min)`
         : result.formula;
 
       const metadata: TransactionMetadata = {
@@ -208,8 +208,8 @@ export const useGamification = () => {
           user_id: user.id,
           source_type: 'task',
           source_id: task.id,
-          xp_gained: finalPoints,
-          points_gained: finalPoints,
+          xp_gained: finalMinutes,
+          points_gained: finalMinutes,
           description: `Tâche complétée: ${task.name}`,
           metadata: metadata as any,
         }]);
@@ -229,7 +229,7 @@ export const useGamification = () => {
 
       const { data: progressData } = await supabase
         .from('user_progress')
-        .select('last_streak_qualified_date, current_task_streak, longest_task_streak')
+        .select('last_streak_qualified_date, current_task_streak, longest_task_streak, points_available, total_points_earned')
         .eq('user_id', user.id)
         .single();
 
@@ -252,14 +252,27 @@ export const useGamification = () => {
         updateQualifiedDate = true;
       }
 
-      // 9. Update user_progress (NO points_available/total_points_earned — handled by refinement)
+      // 9. Apply minutes directly to available balance (no refinement needed)
+      const currentAvailable = progressData?.points_available ?? progress.minutesAvailable;
+      const currentEarned = progressData?.total_points_earned ?? progress.totalMinutesEarned;
+
+      // Compensation bonus: +10 min per 60-min tranche crossed
+      const compensationBonus = computeCompensationBonus(currentAvailable, finalMinutes);
+      const totalGain = finalMinutes + compensationBonus;
+
+      // Clamp to gauge max (200)
+      const newAvailable = clampToGauge(currentAvailable + totalGain);
+      const actualGain = newAvailable - currentAvailable;
+
       const updatePayload: any = {
-        total_xp: (progress.totalXp ?? 0) + finalPoints,
-        current_points: (progress.totalXp ?? 0) + finalPoints,
+        total_xp: (progress.totalXp ?? 0) + finalMinutes,
+        current_points: (progress.totalXp ?? 0) + finalMinutes,
         tasks_completed: progress.tasksCompleted + 1,
         current_task_streak: newStreak,
         longest_task_streak: newLongest,
         last_activity_date: todayStr,
+        points_available: newAvailable,
+        total_points_earned: currentEarned + actualGain,
       };
       if (updateQualifiedDate) {
         updatePayload.last_streak_qualified_date = todayStr;
@@ -270,18 +283,27 @@ export const useGamification = () => {
         .update(updatePayload)
         .eq('user_id', user.id);
 
+      // Mark transaction as refined immediately (minutes go directly to balance)
+      await supabase
+        .from('xp_transactions')
+        .update({ is_refined: true, refined_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('source_type', 'task')
+        .eq('source_id', task.id);
+
       await loadProgress();
 
-      // 10. Enriched toast with quadrant label
-      if (finalPoints > 0) {
+      // 10. Toast
+      if (finalMinutes > 0) {
+        const bonusText = compensationBonus > 0 ? ` (+${compensationBonus} bonus)` : '';
         toast({
-          title: `+${finalPoints} pts (${result.quadrantLabel})`,
+          title: `+${finalMinutes} min guilty-free (${result.quadrantLabel})${bonusText}`,
           description: `Tâche complétée !`,
           duration: 3000,
         });
       } else if (capped) {
         toast({
-          title: '0 pts',
+          title: '0 min',
           description: `Plafond micro-tâches atteint pour aujourd'hui`,
           duration: 3000,
         });
@@ -294,34 +316,31 @@ export const useGamification = () => {
   // ---- Claim reward ----
   const claimReward = useCallback(async (reward: Reward) => {
     if (!user || !progress) return false;
-    if (progress.pointsAvailable < reward.costPoints) return false;
+    if (progress.minutesAvailable < reward.costMinutes) return false;
 
     try {
-      // Insert claim history
       const { error: claimError } = await supabase
         .from('claim_history')
         .insert({
           user_id: user.id,
           reward_name: reward.name,
-          cost_points: reward.costPoints,
+          cost_points: reward.costMinutes,
         });
       if (claimError) throw claimError;
 
-      // Update user_progress
-      const { error: updateError } = await supabase
+      await supabase
         .from('user_progress')
         .update({
-          points_available: progress.pointsAvailable - reward.costPoints,
-          total_points_spent: progress.totalPointsSpent + reward.costPoints,
+          points_available: progress.minutesAvailable - reward.costMinutes,
+          total_points_spent: progress.totalMinutesSpent + reward.costMinutes,
         })
         .eq('user_id', user.id);
-      if (updateError) throw updateError;
 
       await loadProgress();
 
       toast({
         title: `${reward.icon} Récompense réclamée !`,
-        description: `${reward.name} (-${reward.costPoints} pts)`,
+        description: `${reward.name} (-${reward.costMinutes} min)`,
         duration: 3000,
       });
       return true;
@@ -344,19 +363,19 @@ export const useGamification = () => {
       userId: r.user_id,
       name: r.name,
       icon: r.icon,
-      costPoints: r.cost_points,
+      costMinutes: r.cost_points,
       orderIndex: r.order_index,
       createdAt: new Date(r.created_at),
     }));
   }, [user]);
 
   // ---- Create reward ----
-  const createReward = useCallback(async (name: string, costPoints: number, icon: string = '🎁') => {
+  const createReward = useCallback(async (name: string, costMinutes: number, icon: string = '🎁') => {
     if (!user) return;
     await supabase.from('rewards').insert({
       user_id: user.id,
       name,
-      cost_points: costPoints,
+      cost_points: costMinutes,
       icon,
     });
   }, [user]);
@@ -380,12 +399,12 @@ export const useGamification = () => {
       id: c.id,
       userId: c.user_id,
       rewardName: c.reward_name,
-      costPoints: c.cost_points,
+      costMinutes: c.cost_points,
       claimedAt: new Date(c.claimed_at),
     }));
   }, [user]);
 
-  // ---- Habit completion (simplified — no points) ----
+  // ---- Habit completion (simplified — no minutes) ----
   const rewardHabitCompletion = useCallback(async (habitId: string, habitName: string) => {
     if (!progress || !user) return;
     await supabase
@@ -397,7 +416,7 @@ export const useGamification = () => {
 
   // ---- Weekly summary ----
   const getWeeklySummary = useCallback(async (): Promise<WeeklySummary> => {
-    if (!user) return { pctImportantNotUrgent: 0, pctUrgent: 0, pctMaintenance: 0, alignmentScore: 0, totalMinutes: 0, totalPoints: 0 };
+    if (!user) return { pctImportantNotUrgent: 0, pctUrgent: 0, pctMaintenance: 0, alignmentScore: 0, totalMinutes: 0, totalGuiltyFreeMinutes: 0 };
 
     const now = new Date();
     const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd'T'00:00:00");
@@ -412,14 +431,14 @@ export const useGamification = () => {
       .lte('created_at', weekEnd);
 
     if (!data || data.length === 0) {
-      return { pctImportantNotUrgent: 0, pctUrgent: 0, pctMaintenance: 0, alignmentScore: 0, totalMinutes: 0, totalPoints: 0 };
+      return { pctImportantNotUrgent: 0, pctUrgent: 0, pctMaintenance: 0, alignmentScore: 0, totalMinutes: 0, totalGuiltyFreeMinutes: 0 };
     }
 
     const entries = data.map((t: any) => ({
       durationMinutes: t.metadata?.durationMinutes ?? 0,
       isImportant: t.metadata?.isImportant ?? false,
       isUrgent: t.metadata?.isUrgent ?? false,
-      points: t.xp_gained ?? 0,
+      minutes: t.xp_gained ?? 0,
     }));
 
     return computeWeeklySummary(entries);
@@ -468,7 +487,7 @@ export const useGamification = () => {
         sourceId: t.source_id || '',
         taskName: item?.name || (t.metadata as any)?.description || 'Tâche',
         category: item?.category || 'Autres',
-        pointsOriginal: t.points_gained ?? 0,
+        minutesOriginal: t.points_gained ?? 0,
         createdAt,
         weeksElapsed,
         decayPct,
@@ -476,12 +495,11 @@ export const useGamification = () => {
     });
   }, [user]);
 
-  // ---- Refine points ----
+  // ---- Refine points (depreciation applies to minutes) ----
   const refinePoints = useCallback(async (transactionIds?: string[]) => {
     if (!user || !progress) return;
 
     try {
-      // Fetch unrefined transactions
       let query = supabase
         .from('xp_transactions')
         .select('id, points_gained, created_at')
@@ -507,6 +525,13 @@ export const useGamification = () => {
         refinedTotal += decayedValue;
       }
 
+      // Compensation bonus on refined total
+      const currentAvailable = progress.minutesAvailable;
+      const compensationBonus = computeCompensationBonus(currentAvailable, refinedTotal);
+      const totalGain = refinedTotal + compensationBonus;
+      const newAvailable = clampToGauge(currentAvailable + totalGain);
+      const actualGain = newAvailable - currentAvailable;
+
       // Mark as refined
       const ids = txData.map(t => t.id);
       await supabase
@@ -515,19 +540,19 @@ export const useGamification = () => {
         .in('id', ids)
         .eq('user_id', user.id);
 
-      // Update user_progress
       await supabase
         .from('user_progress')
         .update({
-          points_available: (progress.pointsAvailable ?? 0) + refinedTotal,
-          total_points_earned: (progress.totalPointsEarned ?? 0) + refinedTotal,
+          points_available: newAvailable,
+          total_points_earned: progress.totalMinutesEarned + actualGain,
         })
         .eq('user_id', user.id);
 
       await loadProgress();
 
+      const bonusText = compensationBonus > 0 ? ` (+${compensationBonus} bonus)` : '';
       toast({
-        title: `+${refinedTotal} pts raffinés`,
+        title: `+${refinedTotal} min raffinées${bonusText}`,
         description: `${ids.length} tâche${ids.length > 1 ? 's' : ''} raffinée${ids.length > 1 ? 's' : ''}`,
         duration: 3000,
       });
@@ -555,13 +580,11 @@ export const useGamification = () => {
     getDailyMicroTaskCount,
     getWeeklySummary,
     getStreakInfo,
-    // v2.0
     claimReward,
     getUserRewards,
     createReward,
     deleteReward,
     getClaimHistory,
-    // v3.0 refinement
     getUnrefinedTasks,
     refinePoints,
   };

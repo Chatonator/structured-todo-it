@@ -16,10 +16,10 @@ export interface UserProgress {
   longestHabitStreak: number;
   lastActivityDate: string;
   lastStreakQualifiedDate: string | null;
-  // v2.0 fields
-  pointsAvailable: number;
-  totalPointsEarned: number;
-  totalPointsSpent: number;
+  // v3.0 — guilty-free time (minutes stored in DB points columns)
+  minutesAvailable: number;
+  totalMinutesEarned: number;
+  totalMinutesSpent: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,7 +30,7 @@ export interface XpTransaction {
   sourceType: TransactionSource;
   sourceId?: string;
   xpGained: number;
-  pointsGained: number;
+  minutesGained: number;
   description?: string;
   metadata?: TransactionMetadata | any;
   isRefined: boolean;
@@ -43,7 +43,7 @@ export interface UnrefinedTask {
   sourceId: string;
   taskName: string;
   category: string;
-  pointsOriginal: number;
+  minutesOriginal: number;
   createdAt: Date;
   weeksElapsed: number;
   decayPct: number;
@@ -80,7 +80,7 @@ export interface Reward {
   userId: string;
   name: string;
   icon: string;
-  costPoints: number;
+  costMinutes: number;
   orderIndex: number;
   createdAt: Date;
 }
@@ -89,7 +89,7 @@ export interface ClaimHistoryEntry {
   id: string;
   userId: string;
   rewardName: string;
-  costPoints: number;
+  costMinutes: number;
   claimedAt: Date;
 }
 

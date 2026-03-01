@@ -1,4 +1,4 @@
-// ============= Reward Engine v2.0 =============
+// ============= Reward Engine v3.0 — Guilty-Free Time =============
 // Pure, deterministic calculation module — no side effects
 
 import {
@@ -14,6 +14,9 @@ import {
   STREAK_MIN_IMPORTANT_MINUTES,
   STREAK_MIN_TASK_DURATION,
   SKILL_LEVEL_THRESHOLDS,
+  GAUGE_MAX_MINUTES,
+  COMPENSATION_THRESHOLD,
+  COMPENSATION_BONUS,
 } from './constants';
 
 // ---- Types ----
@@ -23,12 +26,11 @@ export interface TaskRewardInput {
   isImportant: boolean;
   isUrgent: boolean;
   postponeCount: number;
-  /** Whether deadline is < 48h (for secondary bonus) */
   hasUrgentDeadline?: boolean;
 }
 
 export interface TaskRewardResult {
-  points: number;
+  minutes: number;
   base: number;
   quadrantKey: string;
   quadrantCoeff: number;
@@ -39,7 +41,6 @@ export interface TaskRewardResult {
   longTaskBonus: number;
   isMicroTask: boolean;
   formula: string;
-  /** Quadrant label for toast feedback */
   quadrantLabel: string;
 }
 
@@ -47,7 +48,7 @@ export interface WeeklyTaskEntry {
   durationMinutes: number;
   isImportant: boolean;
   isUrgent: boolean;
-  points: number;
+  minutes: number;
 }
 
 export interface WeeklySummary {
@@ -56,7 +57,7 @@ export interface WeeklySummary {
   pctMaintenance: number;
   alignmentScore: number;
   totalMinutes: number;
-  totalPoints: number;
+  totalGuiltyFreeMinutes: number;
 }
 
 // ---- Helpers ----
@@ -78,31 +79,23 @@ function getQuadrantLabel(isImportant: boolean, isUrgent: boolean): string {
 // ---- Core Functions ----
 
 /**
- * Compute points for a single completed task (v2.0 formula).
+ * Compute guilty-free minutes for a single completed task.
  */
-export function computeTaskPoints(input: TaskRewardInput): TaskRewardResult {
+export function computeTaskMinutes(input: TaskRewardInput): TaskRewardResult {
   const { durationMinutes, isImportant, isUrgent, postponeCount, hasUrgentDeadline } = input;
 
-  // 1. Effort compressé
   let base = Math.sqrt(Math.max(durationMinutes, 0));
 
-  // 2. Micro-task adjust
   const isMicroTask = durationMinutes < MICRO_TASK_MAX_MINUTES;
   if (isMicroTask) {
     base *= MICRO_TASK_EFFORT_FACTOR;
   }
 
-  // 3. Importance weight
   const importanceWeight = isImportant ? 2 : 1;
-
-  // 4. Quadrant weight
   const quadrantKey = getQuadrantKey(isImportant, isUrgent);
   const quadrantCoeff = QUADRANT_COEFFICIENTS[quadrantKey];
-
-  // 5. Priority multiplier
   const priorityMultiplier = (importanceWeight + quadrantCoeff) / 2;
 
-  // 6. Secondary bonus (non-cumulative)
   let bonusType: TaskRewardResult['bonusType'] = 'none';
   let bonusValue = 1.0;
 
@@ -114,17 +107,14 @@ export function computeTaskPoints(input: TaskRewardInput): TaskRewardResult {
     bonusValue = DEADLINE_BONUS;
   }
 
-  // 7. Long task bonus (additive)
   const longTaskBonus = durationMinutes >= LONG_TASK_THRESHOLD_MINUTES ? LONG_TASK_BONUS : 0;
-
-  // 8. Final calculation
-  const points = Math.floor(base * priorityMultiplier * bonusValue) + longTaskBonus;
+  const minutes = Math.floor(base * priorityMultiplier * bonusValue) + longTaskBonus;
 
   const quadrantLabel = getQuadrantLabel(isImportant, isUrgent);
-  const formula = `⌊√${durationMinutes}${isMicroTask ? '×0.6' : ''} × ${priorityMultiplier.toFixed(2)} × ${bonusValue}⌋${longTaskBonus > 0 ? ` + ${longTaskBonus}` : ''} = ${points}`;
+  const formula = `⌊√${durationMinutes}${isMicroTask ? '×0.6' : ''} × ${priorityMultiplier.toFixed(2)} × ${bonusValue}⌋${longTaskBonus > 0 ? ` + ${longTaskBonus}` : ''} = ${minutes} min`;
 
   return {
-    points,
+    minutes,
     base,
     quadrantKey,
     quadrantCoeff,
@@ -138,6 +128,9 @@ export function computeTaskPoints(input: TaskRewardInput): TaskRewardResult {
     quadrantLabel,
   };
 }
+
+/** @deprecated Use computeTaskMinutes instead */
+export const computeTaskPoints = computeTaskMinutes;
 
 /**
  * Check if a micro-task can still score today.
@@ -154,21 +147,39 @@ export function checkStreakDay(importantMinutesToday: number): boolean {
 }
 
 /**
+ * Clamp a value to the gauge maximum (200 min). Excess is lost.
+ */
+export function clampToGauge(value: number): number {
+  return Math.min(value, GAUGE_MAX_MINUTES);
+}
+
+/**
+ * Compute compensation bonus: +10 min for each 60-min tranche crossed.
+ * Returns the bonus minutes to add (before clamping).
+ */
+export function computeCompensationBonus(currentMinutes: number, addedMinutes: number): number {
+  const before = Math.floor(currentMinutes / COMPENSATION_THRESHOLD);
+  const after = Math.floor((currentMinutes + addedMinutes) / COMPENSATION_THRESHOLD);
+  const tranchesCrossed = after - before;
+  return tranchesCrossed > 0 ? tranchesCrossed * COMPENSATION_BONUS : 0;
+}
+
+/**
  * Compute weekly summary from completed tasks.
  */
 export function computeWeeklySummary(tasks: WeeklyTaskEntry[]): WeeklySummary {
   const totalMinutes = tasks.reduce((s, t) => s + t.durationMinutes, 0);
-  const totalPoints = tasks.reduce((s, t) => s + t.points, 0);
+  const totalGuiltyFreeMinutes = tasks.reduce((s, t) => s + t.minutes, 0);
 
   let minImportantNotUrgent = 0;
   let minUrgent = 0;
   let minMaintenance = 0;
-  let ptsImportantNotUrgent = 0;
+  let minsImportantNotUrgent = 0;
 
   for (const t of tasks) {
     if (t.isImportant && !t.isUrgent) {
       minImportantNotUrgent += t.durationMinutes;
-      ptsImportantNotUrgent += t.points;
+      minsImportantNotUrgent += t.minutes;
     } else if (t.isUrgent) {
       minUrgent += t.durationMinutes;
     } else {
@@ -180,9 +191,9 @@ export function computeWeeklySummary(tasks: WeeklyTaskEntry[]): WeeklySummary {
     pctImportantNotUrgent: totalMinutes > 0 ? Math.round((minImportantNotUrgent / totalMinutes) * 100) : 0,
     pctUrgent: totalMinutes > 0 ? Math.round((minUrgent / totalMinutes) * 100) : 0,
     pctMaintenance: totalMinutes > 0 ? Math.round((minMaintenance / totalMinutes) * 100) : 0,
-    alignmentScore: totalPoints > 0 ? Math.round((ptsImportantNotUrgent / totalPoints) * 100) : 0,
+    alignmentScore: totalGuiltyFreeMinutes > 0 ? Math.round((minsImportantNotUrgent / totalGuiltyFreeMinutes) * 100) : 0,
     totalMinutes,
-    totalPoints,
+    totalGuiltyFreeMinutes,
   };
 }
 
