@@ -1,64 +1,133 @@
 
-Objectif validé: corriger le container **Points** pour qu’il n’ait plus de grand vide inutile et que le contenu utile (jauge + infos) occupe intelligemment toute la hauteur/largeur disponibles, sans rendre le texte/jauge minuscules.
 
-### Ce que j’ai observé (image + code)
-- Le card `Points` est en `h-full`, donc il prend la hauteur de la rangée (étirée par les autres panneaux).
-- À l’intérieur, le contenu est presque fixe (`h-36`, petites tailles, `items-center`), donc il reste collé en haut-gauche et laisse un gros vide.
-- La jauge et le texte ne “scalent” pas avec la place disponible, ce qui crée l’effet disproportionné visible sur ta capture.
+## Changement structurel : Points → Temps Guilty-Free (minutes)
 
-### Plan d’implémentation
+Remplacement complet du systeme de "points" par un systeme de **temps guilty-free en minutes**, avec jauge plafonnee a 200 min, paliers fixes, bonus de compensation, et depreciation hebdomadaire.
 
-#### 1) Refaire la structure interne de `ProgressOverview` pour utiliser toute la hauteur
-**Fichier:** `src/components/rewards/ProgressOverview.tsx`
+---
 
-- Garder un layout en 2 zones claires:
-  - **Zone gauche**: jauge + seuils
-  - **Zone droite**: texte/statuts
-- Transformer le card en:
-  - header compact (titre)
-  - body en `flex-1 min-h-0` pour remplir la hauteur réelle du container.
-- Remplacer le bloc actuel `items-center` par un body qui s’étire:
-  - `grid`/`flex` horizontal avec `h-full`
-  - plus de centrage vertical global qui “compacte” tout en haut.
+### 1. Mise a jour des constantes
 
-#### 2) Faire grandir la jauge avec l’espace disponible (au lieu d’une hauteur figée)
-**Fichier:** `src/components/rewards/ProgressOverview.tsx`
+**Fichier:** `src/lib/rewards/constants.ts`
 
-- Remplacer `h-36` par une hauteur flexible basée sur le container:
-  - ex: `h-full min-h-[190px]` + `max-h` raisonnable.
-- Conserver les seuils alignés sur la hauteur réelle de la jauge (même référentiel).
-- Ajuster largeur de jauge/labels pour lisibilité (pas minuscule).
+- Remplacer `POINT_THRESHOLDS` par `TIME_TIERS = [30, 60, 90, 120, 150, 180]` (paliers fixes de recompenses)
+- Ajouter `GAUGE_MAX_MINUTES = 200` (plafond absolu)
+- Ajouter `COMPENSATION_THRESHOLD = 60` et `COMPENSATION_BONUS = 10` (bonus de 10 min par tranche de 60 min)
+- Conserver `DECAY_RATE_PER_WEEK`, `MAX_DECAY_WEEKS` (depreciation inchangee)
+- Supprimer les references "points" dans les commentaires
 
-#### 3) Faire occuper la colonne texte toute la hauteur disponible
-**Fichier:** `src/components/rewards/ProgressOverview.tsx`
+---
 
-- Donner `flex-1 h-full` à la colonne de droite.
-- Distribuer les blocs en `justify-between` (ou sections compactes) pour supprimer le “trou” vide.
-- Ré-augmenter légèrement les tailles utiles:
-  - valeur points plus visible,
-  - lignes streak/résumé lisibles,
-  - espacement vertical optimisé (compact mais respirant).
-- Supprimer les paddings qui décalent inutilement (`pl-6` rigide), remplacer par gap proportionné.
+### 2. Refonte du moteur de calcul
 
-#### 4) Équilibrer la largeur de la carte Points dans la rangée (anti-disproportion)
-**Fichier:** `src/components/views/rewards/RewardsView.tsx`
+**Fichier:** `src/lib/rewards/engine.ts`
 
-- Revoir la distribution largeur sur desktop pour éviter que `Points` prenne un espace excessif par défaut quand les autres colonnes sont étroites.
-- Garder le comportement demandé précédemment (récompenses en colonne), mais poser des bornes de largeur plus équilibrées (`min/max` ou `basis`) afin que la carte Points reste “dense” et visuellement cohérente.
+- Renommer `computeTaskPoints` → `computeTaskMinutes` (ou garder le meme nom avec sortie en minutes)
+- Le resultat (`TaskRewardResult`) retourne desormais `minutes` au lieu de `points`
+- Formule identique dans sa logique :  `floor(sqrt(duree) x quadrantCoeff x bonus)`
+- Renommer les champs de sortie : `points` → `minutes`
+- Ajouter `computeCompensationBonus(currentMinutes, addedMinutes)` : retourne le bonus de 10 min si une tranche de 60 est franchie
+- Ajouter `clampToGauge(value)` : tronque a `GAUGE_MAX_MINUTES` (200)
+- Mettre a jour `WeeklySummary` : `totalPoints` → `totalMinutes`
 
-### Résultat attendu
-- Plus de grand vide vide dans `Points`.
-- Jauge + texte utilisent vraiment la surface du card.
-- Lisibilité en hausse (pas de contenu réduit inutilement).
-- Carte plus compacte, plus jolie, mieux proportionnée avec le reste de la vue.
+---
 
-### Vérifications après implémentation
-1. Desktop large: vérifier que la jauge et le texte occupent la hauteur complète sans trou visuel.
-2. Largeur intermédiaire: vérifier que rien ne devient minuscule.
-3. Mobile/tablette: vérifier que la structure reste propre et lisible (pas de chevauchement labels/jauge).
-4. Contrôle visuel final avec ta capture comme référence (avant/après).
+### 3. Mise a jour des types
 
-### Détails techniques (section technique)
-- Principal problème actuel: combinaison `h-full` (parent étiré) + contenu interne à dimensions fixes.
-- Correctif clé: faire passer la hauteur “disponible” du card au body (`flex-1 min-h-0`) puis à la jauge/colonne texte.
-- Les tailles de police ne seront pas réduites; elles seront recalibrées à la hausse ou conservées, avec une meilleure répartition spatiale.
+**Fichier:** `src/types/gamification.ts`
+
+- `UserProgress` : renommer semantiquement `pointsAvailable` → `minutesAvailable`, `totalPointsEarned` → `totalMinutesEarned`, `totalPointsSpent` → `totalMinutesSpent`
+- `TransactionMetadata` : pas de changement structurel (les metadonnees restent identiques)
+- `Reward` : `costPoints` → `costMinutes` (doit etre un des paliers fixes : 30, 60, 90, 120, 150, 180)
+- `ClaimHistoryEntry` : `costPoints` → `costMinutes`
+- `UnrefinedTask` : `pointsOriginal` → `minutesOriginal`
+
+---
+
+### 4. Refonte du hook de gamification
+
+**Fichier:** `src/hooks/useGamification.ts`
+
+Changements majeurs :
+
+- **`rewardTaskCompletion`** : le resultat du moteur donne des minutes. Application directe :
+  - Calculer le bonus de compensation (si tranche de 60 franchie)
+  - Tronquer le total a 200 min (`clampToGauge`)
+  - Mettre a jour `points_available` en DB (semantiquement = minutes) directement, **sans passer par le raffinement**
+  - L'excedent au-dela de 200 est perdu
+  - Toast : `+X min guilty-free`
+
+- **`refinePoints`** → toujours present mais la depreciation s'applique aux minutes. La logique reste : les taches non raffinees perdent 10%/semaine. Le raffinement convertit en minutes utilisables, tronquees a 200.
+
+- **`claimReward`** : verifie `minutesAvailable >= costMinutes`. Deduit exactement le cout. Toast en minutes.
+
+- **Bonus de compensation** : integre dans `rewardTaskCompletion` et `refinePoints`. Chaque fois que le cumul franchit un multiple de 60, +10 min sont ajoutees (soumises au plafond de 200 et a la depreciation).
+
+---
+
+### 5. Mise a jour du hook view-data
+
+**Fichier:** `src/hooks/view-data/useRewardsViewData.ts`
+
+- Adapter les noms de champs : `pointsAvailable` → `minutesAvailable`, etc.
+- Le reste de la logique (skills, streak) est inchange
+
+---
+
+### 6. Mise a jour des composants UI
+
+#### `ProgressOverview.tsx`
+- Titre : "Points" → "Temps libre" ou "Guilty-Free"
+- Jauge max = 200 (au lieu de 240)
+- Afficher `X min` au lieu de `X pts`
+- Paliers sur la jauge : marques a 30, 60, 90, 120, 150, 180 min
+- Texte en bas : "Gagne X min - Depense X min"
+
+#### `RewardsClaim.tsx`
+- La creation de recompense propose un **select** parmi les paliers fixes (30, 60, 90, 120, 150, 180 min) au lieu d'un input libre
+- Affichage : `X min` au lieu de `X pts`
+- Dialog de confirmation : "Reclamer ... pour X min ?" + "Solde restant : Y min"
+
+#### `RefinementPanel.tsx`
+- Texte : "points" → "minutes", "pts" → "min"
+- "Completez des taches pour gagner du temps" au lieu de "pour gagner des points"
+
+#### `ClaimHistory.tsx`
+- Afficher `-X min` au lieu de `-X pts`
+
+#### `RewardsView.tsx`
+- Sous-titre : "Suivez votre temps guilty-free et reclamez vos recompenses"
+
+---
+
+### 7. Aucune migration DB necessaire
+
+Les colonnes existantes (`points_available`, `total_points_earned`, `total_points_spent`, `points_gained`, `cost_points`) stockeront desormais des minutes au lieu de points. Le changement est purement semantique cote DB -- les valeurs numeriques restent dans les memes colonnes, seul leur sens change.
+
+---
+
+### 8. Export et index
+
+**Fichier:** `src/lib/rewards/index.ts`
+
+- Exporter les nouveaux noms (`computeTaskMinutes` ou alias)
+- Exporter les nouvelles constantes (`GAUGE_MAX_MINUTES`, `TIME_TIERS`, `COMPENSATION_THRESHOLD`, `COMPENSATION_BONUS`)
+
+---
+
+### Resume des fichiers modifies
+
+| Fichier | Nature du changement |
+|---|---|
+| `src/lib/rewards/constants.ts` | Nouvelles constantes (jauge 200, paliers, bonus 60→10) |
+| `src/lib/rewards/engine.ts` | Sortie en minutes, fonctions clamp + compensation |
+| `src/lib/rewards/index.ts` | Nouveaux exports |
+| `src/types/gamification.ts` | Renommage points → minutes |
+| `src/hooks/useGamification.ts` | Logique minutes + plafond + compensation |
+| `src/hooks/view-data/useRewardsViewData.ts` | Adaptation noms de champs |
+| `src/components/rewards/ProgressOverview.tsx` | UI temps libre, jauge 200 |
+| `src/components/rewards/RewardsClaim.tsx` | Select paliers fixes, affichage min |
+| `src/components/rewards/RefinementPanel.tsx` | Texte min au lieu de pts |
+| `src/components/rewards/ClaimHistory.tsx` | Affichage min |
+| `src/components/views/rewards/RewardsView.tsx` | Sous-titre |
+
