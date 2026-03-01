@@ -28,36 +28,25 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
     >
       <div className="space-y-4 pb-20 md:pb-6">
         {/* Row 1: dynamic layout — rewards shrink to content, points can expand */}
-        <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-          <div className="lg:w-[220px] lg:min-w-[180px] lg:shrink-0">
-            <RefinementPanel
-              tasks={data.unrefinedTasks}
-              onRefine={actions.refinePoints}
-              onReload={actions.reloadData}
-            />
-          </div>
-
-          <div className="lg:w-[280px] lg:min-w-[240px] lg:shrink-0">
-            <ProgressOverview
-              progress={data.progress}
-              streakInfo={data.streakInfo}
-            />
-          </div>
-
-          <div className="lg:shrink-0 lg:w-fit lg:max-w-[560px]">
-            <RewardsClaim
-              rewards={data.rewards}
-              minutesAvailable={data.minutesAvailable}
-              onClaim={actions.claimReward}
-              onCreate={actions.createReward}
-              onDelete={actions.deleteReward}
-              onReload={actions.reloadData}
-            />
-          </div>
-
-          <div className="lg:w-[170px] lg:shrink-0">
-            <SkillsPanel skills={data.skills} />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr_auto_170px] gap-4 items-stretch">
+          <RefinementPanel
+            tasks={data.unrefinedTasks}
+            onRefine={actions.refinePoints}
+            onReload={actions.reloadData}
+          />
+          <ProgressOverview
+            progress={data.progress}
+            streakInfo={data.streakInfo}
+          />
+          <RewardsClaim
+            rewards={data.rewards}
+            minutesAvailable={data.minutesAvailable}
+            onClaim={actions.claimReward}
+            onCreate={actions.createReward}
+            onDelete={actions.deleteReward}
+            onReload={actions.reloadData}
+          />
+          <SkillsPanel skills={data.skills} />
         </div>
 
         {/* Row 2: Claim History full width */}
