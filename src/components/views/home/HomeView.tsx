@@ -47,7 +47,7 @@ const HomeView: React.FC<{ className?: string }> = ({ className }) => {
       state={state.loading ? 'loading' : 'success'}
       className={className}
     >
-      <div className="pb-20 md:pb-6">
+      <div>
         <WidgetGrid
           widgets={allWidgets}
           isEditing={isEditing}

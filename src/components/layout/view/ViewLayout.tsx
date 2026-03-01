@@ -160,7 +160,9 @@ export const ViewLayout: React.FC<ViewLayoutProps> = ({
         )}
         
         <ViewContent {...contentProps}>
-          {renderContent()}
+          <div className="pb-20 md:pb-6">
+            {renderContent()}
+          </div>
         </ViewContent>
       </div>
     </div>

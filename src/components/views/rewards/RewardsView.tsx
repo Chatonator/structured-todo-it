@@ -26,7 +26,7 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
       loadingProps={{ variant: 'cards' }}
       className={className}
     >
-      <div className="space-y-4 pb-20 md:pb-6">
+      <div className="space-y-4">
         {/* Row 1: dynamic layout — rewards shrink to content, points can expand */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr_auto_170px] gap-4 items-stretch">
           <RefinementPanel
