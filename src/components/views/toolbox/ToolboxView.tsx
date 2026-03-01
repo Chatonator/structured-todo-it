@@ -54,7 +54,7 @@ const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
       }}
       className={className}
     >
-      <div className="pb-20 md:pb-6">
+      <div>
         {/* Info banner */}
         <div className="mb-6 p-4 rounded-lg bg-muted/50 border">
           <div className="flex items-start gap-3">
