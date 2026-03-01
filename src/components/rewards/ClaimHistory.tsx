@@ -32,7 +32,7 @@ const ClaimHistory: React.FC<ClaimHistoryProps> = ({ claims }) => {
           <Card key={claim.id} className="p-3 flex items-center gap-3">
             <span className="text-muted-foreground text-sm">{formatDate(claim.claimedAt)}</span>
             <span className="flex-1 text-sm font-medium text-foreground truncate">{claim.rewardName}</span>
-            <span className="text-sm text-destructive font-medium">-{claim.costPoints} pts</span>
+            <span className="text-sm text-destructive font-medium">-{claim.costMinutes} min</span>
           </Card>
         ))}
       </div>

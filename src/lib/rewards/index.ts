@@ -1,10 +1,13 @@
 export {
-  computeTaskPoints,
+  computeTaskMinutes,
+  computeTaskPoints, // deprecated alias
   checkMicroTaskCap,
   checkStreakDay,
   computeWeeklySummary,
   isStreakEligible,
   computeSkillLevel,
+  clampToGauge,
+  computeCompensationBonus,
 } from './engine';
 
 export type {

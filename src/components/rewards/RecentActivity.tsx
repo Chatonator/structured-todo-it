@@ -33,7 +33,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
           sourceType: t.source_type,
           sourceId: t.source_id,
           xpGained: t.xp_gained,
-          pointsGained: t.points_gained,
+          minutesGained: t.points_gained,
           description: t.description,
           metadata: t.metadata,
           isRefined: t.is_refined ?? false,
@@ -108,7 +108,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
         <div className="text-center py-8">
           <TrendingUp className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground">Aucune activité récente</p>
-          <p className="text-sm text-muted-foreground mt-1">Complétez des tâches pour gagner des points !</p>
+          <p className="text-sm text-muted-foreground mt-1">Complétez des tâches pour gagner du temps !</p>
         </div>
       )}
 
@@ -132,7 +132,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
               </div>
               <div className="text-right shrink-0">
                 <div className={`text-sm font-semibold ${transaction.xpGained > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
-                  {transaction.xpGained > 0 ? `+${transaction.xpGained}` : '0'} pts
+                  {transaction.xpGained > 0 ? `+${transaction.xpGained}` : '0'} min
                 </div>
               </div>
             </div>

@@ -19,7 +19,7 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
     <ViewLayout
       header={{
         title: "Récompenses",
-        subtitle: "Suivez votre progression et réclamez vos récompenses",
+        subtitle: "Suivez votre temps guilty-free et réclamez vos récompenses",
         icon: <Trophy className="w-5 h-5" />
       }}
       state={state.loading ? 'loading' : 'success'}
@@ -47,7 +47,7 @@ const RewardsView: React.FC<RewardsViewProps> = ({ className }) => {
           <div className="lg:shrink-0 lg:w-fit lg:max-w-[560px]">
             <RewardsClaim
               rewards={data.rewards}
-              pointsAvailable={data.pointsAvailable}
+              minutesAvailable={data.minutesAvailable}
               onClaim={actions.claimReward}
               onCreate={actions.createReward}
               onDelete={actions.deleteReward}
