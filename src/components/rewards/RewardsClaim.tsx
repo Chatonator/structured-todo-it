@@ -57,7 +57,7 @@ const RewardsClaim: React.FC<RewardsClaimProps> = ({
   };
 
   return (
-    <Card className="p-4 border-primary/20 h-full">
+    <Card className="p-4 border-primary/20 h-full w-fit min-w-[200px]">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
