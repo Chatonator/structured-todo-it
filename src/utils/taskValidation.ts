@@ -1,10 +1,24 @@
 
 import { Task, TaskCategory, TaskContext, SubTaskCategory } from '@/types/task';
+import { MAX_SUBTASK_DEPTH, MAX_CHILDREN_PER_TASK } from '@/lib/rewards/constants';
 
 /**
  * Utilitaires de validation et nettoyage des tâches
  * Assure l'intégrité des données et évite les conflits
  */
+
+/**
+ * Vérifie si une sous-tâche peut être ajoutée
+ */
+export const canAddSubTask = (parentLevel: number, siblingCount: number): { allowed: boolean; reason?: string } => {
+  if (parentLevel >= MAX_SUBTASK_DEPTH) {
+    return { allowed: false, reason: `Profondeur maximale atteinte (${MAX_SUBTASK_DEPTH} niveaux)` };
+  }
+  if (siblingCount >= MAX_CHILDREN_PER_TASK) {
+    return { allowed: false, reason: `Maximum ${MAX_CHILDREN_PER_TASK} sous-tâches atteint` };
+  }
+  return { allowed: true };
+};
 
 /**
  * Valide qu'une tâche respecte les contraintes métier

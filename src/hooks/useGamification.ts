@@ -6,8 +6,8 @@ import { computeTaskMinutes, checkMicroTaskCap, checkStreakDay, computeWeeklySum
 import type { WeeklySummary } from '@/lib/rewards';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
-import { startOfWeek, endOfWeek, startOfDay, format } from 'date-fns';
-import { DECAY_RATE_PER_WEEK, MAX_DECAY_WEEKS, GAUGE_MAX_MINUTES } from '@/lib/rewards/constants';
+import { startOfWeek, endOfWeek, startOfDay, format, differenceInDays } from 'date-fns';
+import { DECAY_RATE_PER_WEEK, MAX_DECAY_WEEKS, GAUGE_MAX_MINUTES, ANTI_SPAM_MINUTES, PROJECT_COMPLETED_BONUS } from '@/lib/rewards/constants';
 
 export const useGamification = () => {
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -131,13 +131,33 @@ export const useGamification = () => {
       const isImportant = task.isImportant ?? (task.category === 'Obligation' || task.category === 'Envie');
       const isUrgent = task.isUrgent ?? (task.category === 'Obligation' || task.category === 'Quotidien');
 
-      // 2. Get postpone_count from DB
+      // 2. Get item data from DB (postpone_count + created_at for anti-spam & resilience)
       const { data: itemData } = await supabase
         .from('items')
-        .select('postpone_count')
+        .select('postpone_count, created_at')
         .eq('id', task.id)
         .single();
       const postponeCount = itemData?.postpone_count ?? 0;
+      const itemCreatedAt = itemData?.created_at ? new Date(itemData.created_at) : null;
+
+      // ANTI-SPAM GUARD: skip XP if task completed < 15 min after creation
+      if (itemCreatedAt) {
+        const minutesSinceCreation = (Date.now() - itemCreatedAt.getTime()) / (1000 * 60);
+        if (minutesSinceCreation < ANTI_SPAM_MINUTES) {
+          logger.debug('Anti-spam: task completed too quickly, skipping XP', { taskId: task.id, minutesSinceCreation });
+          // Record transaction with 0 XP for audit trail
+          await supabase.from('xp_transactions').insert([{
+            user_id: user.id, source_type: 'task', source_id: task.id,
+            xp_gained: 0, points_gained: 0,
+            description: `Anti-spam: ${task.name}`,
+            metadata: { blocked: 'anti-spam', minutesSinceCreation } as any,
+          }]);
+          return;
+        }
+      }
+
+      // Calculate task age for resilience bonus
+      const ageInDays = itemCreatedAt ? differenceInDays(new Date(), itemCreatedAt) : 0;
 
       // 3. Check if deadline < 48h
       let hasUrgentDeadline = false;
@@ -157,13 +177,42 @@ export const useGamification = () => {
         }
       }
 
-      // 4. Compute minutes (v3.0)
+      // 4. Build project context for vision bonus
+      let projectContext: { isProjectTask: boolean; projectAgeInDays?: number; weeklyActivity?: boolean } | undefined;
+      if (task.projectId) {
+        const { data: projData } = await supabase
+          .from('items')
+          .select('created_at')
+          .eq('id', task.projectId)
+          .single();
+        const projCreatedAt = projData?.created_at ? new Date(projData.created_at) : null;
+        const projectAgeInDays = projCreatedAt ? differenceInDays(new Date(), projCreatedAt) : 0;
+        // Check weekly activity: at least 1 task completed in the project in the last 7 days
+        const weekAgo = format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd'T'00:00:00");
+        const { data: recentTasks } = await supabase
+          .from('xp_transactions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('source_type', 'task')
+          .gte('created_at', weekAgo)
+          .limit(1);
+        projectContext = {
+          isProjectTask: true,
+          projectAgeInDays,
+          weeklyActivity: (recentTasks?.length ?? 0) > 0,
+        };
+      }
+
+      // 5. Compute minutes (v3.0)
       const result = computeTaskMinutes({
         durationMinutes,
         isImportant,
         isUrgent,
         postponeCount,
         hasUrgentDeadline,
+        ageInDays,
+        kanbanChanges: postponeCount, // proxy for kanban changes
+        projectContext,
       });
 
       // 5. Check micro-task cap
@@ -561,6 +610,42 @@ export const useGamification = () => {
     }
   }, [user, progress, loadProgress, toast]);
 
+  // ---- Reward project completion ----
+  const rewardProjectCompletion = useCallback(async (projectId: string, projectName: string) => {
+    if (!user || !progress) return;
+    try {
+      // Idempotence
+      const { data: existing } = await supabase
+        .from('xp_transactions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('source_type', 'project')
+        .eq('source_id', projectId)
+        .limit(1);
+      if (existing && existing.length > 0) return;
+
+      const bonus = PROJECT_COMPLETED_BONUS;
+      await supabase.from('xp_transactions').insert([{
+        user_id: user.id, source_type: 'project', source_id: projectId,
+        xp_gained: bonus, points_gained: bonus,
+        description: `Projet complété: ${projectName}`,
+        metadata: { type: 'project_completion' } as any,
+      }]);
+
+      const newAvailable = clampToGauge((progress.minutesAvailable ?? 0) + bonus);
+      await supabase.from('user_progress').update({
+        total_xp: (progress.totalXp ?? 0) + bonus,
+        points_available: newAvailable,
+        total_points_earned: (progress.totalMinutesEarned ?? 0) + bonus,
+      }).eq('user_id', user.id);
+
+      await loadProgress();
+      toast({ title: `+${bonus} min — Projet complété !`, description: projectName, duration: 3000 });
+    } catch (error: any) {
+      logger.error('Failed to reward project', { error: error.message });
+    }
+  }, [user, progress, loadProgress, toast]);
+
   // ---- Kept for backward compat ----
   const rewardStreak = useCallback(async (_streakCount: number, _type: 'task' | 'habit') => {}, []);
 
@@ -574,6 +659,7 @@ export const useGamification = () => {
     levelUpAnimation: false,
     rewardTaskCompletion,
     rewardHabitCompletion,
+    rewardProjectCompletion,
     rewardStreak,
     getProgressPercentage: () => 0,
     reloadProgress: loadProgress,

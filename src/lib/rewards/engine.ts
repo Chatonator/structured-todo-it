@@ -17,6 +17,14 @@ import {
   GAUGE_MAX_MINUTES,
   COMPENSATION_THRESHOLD,
   COMPENSATION_BONUS,
+  RESILIENCE_BONUS_3D,
+  RESILIENCE_BONUS_7D,
+  RESILIENCE_BONUS_14D,
+  KANBAN_CHANGE_BONUS,
+  KANBAN_MIN_CHANGES,
+  PROJECT_TASK_BONUS,
+  PROJECT_ACTIVE_60D_BONUS,
+  PROJECT_ACTIVE_90D_BONUS,
 } from './constants';
 
 // ---- Types ----
@@ -27,6 +35,14 @@ export interface TaskRewardInput {
   isUrgent: boolean;
   postponeCount: number;
   hasUrgentDeadline?: boolean;
+  ageInDays?: number;
+  kanbanChanges?: number;
+  projectContext?: {
+    isProjectTask: boolean;
+    projectAgeInDays?: number;
+    projectCompletedAt?: Date;
+    weeklyActivity?: boolean;
+  };
 }
 
 export interface TaskRewardResult {
@@ -39,6 +55,9 @@ export interface TaskRewardResult {
   bonusType: 'anti-zombie' | 'deadline' | 'none';
   bonusValue: number;
   longTaskBonus: number;
+  resilienceBonus: number;
+  kanbanBonus: number;
+  projectBonus: number;
   isMicroTask: boolean;
   formula: string;
   quadrantLabel: string;
@@ -108,10 +127,36 @@ export function computeTaskMinutes(input: TaskRewardInput): TaskRewardResult {
   }
 
   const longTaskBonus = durationMinutes >= LONG_TASK_THRESHOLD_MINUTES ? LONG_TASK_BONUS : 0;
-  const minutes = Math.floor(base * priorityMultiplier * bonusValue) + longTaskBonus;
+
+  // Resilience bonus based on task age
+  let resilienceBonus = 0;
+  if (input.ageInDays !== undefined) {
+    if (input.ageInDays >= 14) resilienceBonus = RESILIENCE_BONUS_14D;
+    else if (input.ageInDays >= 7) resilienceBonus = RESILIENCE_BONUS_7D;
+    else if (input.ageInDays >= 3) resilienceBonus = RESILIENCE_BONUS_3D;
+  }
+
+  // Kanban change bonus
+  const kanbanBonus = (input.kanbanChanges ?? 0) >= KANBAN_MIN_CHANGES ? KANBAN_CHANGE_BONUS : 0;
+
+  // Project bonus
+  let projectBonus = 0;
+  if (input.projectContext?.isProjectTask) {
+    projectBonus += PROJECT_TASK_BONUS;
+    const projAge = input.projectContext.projectAgeInDays ?? 0;
+    if (projAge >= 90 && input.projectContext.weeklyActivity) {
+      projectBonus += PROJECT_ACTIVE_90D_BONUS;
+    } else if (projAge >= 60) {
+      projectBonus += PROJECT_ACTIVE_60D_BONUS;
+    }
+  }
+
+  const minutes = Math.floor(base * priorityMultiplier * bonusValue) + longTaskBonus + resilienceBonus + kanbanBonus + projectBonus;
 
   const quadrantLabel = getQuadrantLabel(isImportant, isUrgent);
-  const formula = `⌊√${durationMinutes}${isMicroTask ? '×0.6' : ''} × ${priorityMultiplier.toFixed(2)} × ${bonusValue}⌋${longTaskBonus > 0 ? ` + ${longTaskBonus}` : ''} = ${minutes} min`;
+  const bonusParts = [longTaskBonus, resilienceBonus, kanbanBonus, projectBonus].filter(b => b > 0);
+  const bonusSuffix = bonusParts.length > 0 ? ` + ${bonusParts.join('+')}` : '';
+  const formula = `⌊√${durationMinutes}${isMicroTask ? '×0.6' : ''} × ${priorityMultiplier.toFixed(2)} × ${bonusValue}⌋${bonusSuffix} = ${minutes} min`;
 
   return {
     minutes,
@@ -123,6 +168,9 @@ export function computeTaskMinutes(input: TaskRewardInput): TaskRewardResult {
     bonusType,
     bonusValue,
     longTaskBonus,
+    resilienceBonus,
+    kanbanBonus,
+    projectBonus,
     isMicroTask,
     formula,
     quadrantLabel,

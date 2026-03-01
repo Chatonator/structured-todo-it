@@ -6,13 +6,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task, TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from '@/types/task';
 import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
 import { TaskDraft, isTaskDraftValid, getDefaultsForTaskType } from '@/utils/taskValidationByType';
+import { canAddSubTask } from '@/utils/taskValidation';
 import TaskDraftForm from './TaskDraftForm';
 import type { TeamMemberOption } from '@/components/task/fields/AssignmentSelector';
+import { useToast } from '@/hooks/use-toast';
 
 import { format } from 'date-fns';
 import { useTimeHub } from '@/hooks/useTimeHub';
 import { useTimeEventSync } from '@/hooks/useTimeEventSync';
 import { TimeEvent } from '@/lib/time/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -53,6 +56,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
   
   const { checkConflicts } = useTimeHub();
   const { getEntityEvent } = useTimeEventSync();
+  const { toast } = useToast();
+  const [structuralError, setStructuralError] = useState<string>('');
 
   useEffect(() => {
     const loadExistingEvent = async () => {
@@ -75,7 +80,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
     if (isOpen) loadExistingEvent();
   }, [isOpen, editingTask, getEntityEvent, taskType]);
 
-  const resetModal = () => { setTaskDrafts([createEmptyDraft()]); setSchedulingError(''); setExistingTimeEvent(null); };
+  const resetModal = () => { setTaskDrafts([createEmptyDraft()]); setSchedulingError(''); setExistingTimeEvent(null); setStructuralError(''); };
   const handleClose = () => { resetModal(); onClose(); };
 
   const addNewTaskDraft = () => {
@@ -101,6 +106,30 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const handleFinish = async () => {
     const hasIncomplete = taskDrafts.some(d => (d.scheduledDate && !d.scheduledTime) || (!d.scheduledDate && d.scheduledTime));
     if (hasIncomplete) { setSchedulingError('Date + heure obligatoires pour la planification'); return; }
+
+    // Structural limit check for subtasks
+    if (parentTask && !editingTask) {
+      // Count existing siblings
+      const { data: siblingData } = await supabase
+        .from('items')
+        .select('id')
+        .eq('parent_id', parentTask.id);
+      const siblingCount = siblingData?.length ?? 0;
+      const check = canAddSubTask(parentTask.level, siblingCount);
+      if (!check.allowed) {
+        setStructuralError(check.reason || 'Limite structurelle atteinte');
+        toast({ title: 'Limite atteinte', description: check.reason, variant: 'destructive', duration: 3000 });
+        return;
+      }
+      // Also check if adding multiple drafts would exceed limit
+      const validDraftCount = taskDrafts.filter(d => isTaskDraftValid(d, taskType, true)).length;
+      if (siblingCount + validDraftCount > 3) {
+        const remaining = 3 - siblingCount;
+        setStructuralError(`Il reste ${remaining} sous-tâche(s) disponible(s)`);
+        toast({ title: 'Limite atteinte', description: `Maximum 3 sous-tâches. Il reste ${remaining} place(s).`, variant: 'destructive', duration: 3000 });
+        return;
+      }
+    }
 
     const isSubTask = !!parentTask;
     const validTasks = taskDrafts.filter(d => isTaskDraftValid(d, taskType, isSubTask));
@@ -164,7 +193,10 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
         <div className="space-y-4">
           {showLimitWarning && (
-            <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>Vous avez dépassé la limite recommandée de 3 sous-tâches.</AlertDescription></Alert>
+            <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>Maximum 3 sous-tâches par niveau.</AlertDescription></Alert>
+          )}
+          {structuralError && (
+            <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>{structuralError}</AlertDescription></Alert>
           )}
           {schedulingError && (
             <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>{schedulingError}</AlertDescription></Alert>

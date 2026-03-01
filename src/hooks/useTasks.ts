@@ -9,6 +9,8 @@ import { useTimeEventSync } from './useTimeEventSync';
 import { Task } from '@/types/task';
 import { ItemMetadata } from '@/types/item';
 import { itemToTask } from '@/utils/itemConverters';
+import { canAddSubTask } from '@/utils/taskValidation';
+import { logger } from '@/lib/logger';
 
 // Convert Task to Item metadata
 function taskToItemMetadata(task: Partial<Task>): Partial<ItemMetadata> {
@@ -78,14 +80,28 @@ export const useTasks = () => {
 
   // Add task - SECURED: Validates no duplicate exists
   const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    // GUARD: Structural limits for subtasks
+    if (taskData.parentId) {
+      const parentTask = tasks.find(t => t.id === taskData.parentId);
+      const siblingCount = tasks.filter(t => t.parentId === taskData.parentId).length;
+      const parentLevel = parentTask?.level ?? 0;
+      const check = canAddSubTask(parentLevel, siblingCount);
+      if (!check.allowed) {
+        logger.warn('addTask: Structural limit reached', { reason: check.reason, parentId: taskData.parentId });
+        return;
+      }
+    }
+    if ((taskData.level ?? 0) > 2) {
+      logger.warn('addTask: Level exceeds max depth', { level: taskData.level });
+      return;
+    }
+
     // For project tasks, use projectId as parentId (project tasks are children of projects)
     const isProjectTask = !!taskData.projectId;
     const contextType = taskData.level === 0 
       ? (isProjectTask ? 'project_task' : 'task') 
       : 'subtask';
     
-    // For project tasks, parentId should be projectId
-    // For subtasks, parentId is the parent task
     const parentId = isProjectTask && taskData.level === 0 
       ? taskData.projectId 
       : (taskData.parentId || null);
@@ -99,11 +115,9 @@ export const useTasks = () => {
     
     if (existingTask) {
       console.warn('addTask: Duplicate task detected, skipping creation', { 
-        name: taskData.name, 
-        parentId,
-        existingId: existingTask.id 
+        name: taskData.name, parentId, existingId: existingTask.id 
       });
-      return existingTask; // Return existing instead of creating duplicate
+      return existingTask;
     }
     
     await createItem({
@@ -112,7 +126,7 @@ export const useTasks = () => {
       parentId,
       metadata: taskToItemMetadata(taskData),
     });
-  }, [createItem, items]);
+  }, [createItem, items, tasks]);
 
   // Remove task
   const removeTask = useCallback(async (taskId: string) => {

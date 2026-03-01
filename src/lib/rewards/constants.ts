@@ -68,3 +68,30 @@ export const PROJECT_PRIORITY_XP: Record<string, number> = {
 // Decay constants for unrefined minutes
 export const DECAY_RATE_PER_WEEK = 0.10;
 export const MAX_DECAY_WEEKS = 10;
+
+// Anti-spam: no XP if task completed < 15 min after creation
+export const ANTI_SPAM_MINUTES = 15;
+
+// Resilience multi-level bonuses (additive XP based on task age)
+export const RESILIENCE_BONUS_3D = 5;
+export const RESILIENCE_BONUS_7D = 10;
+export const RESILIENCE_BONUS_14D = 20;
+
+// Kanban change bonus
+export const KANBAN_CHANGE_BONUS = 15;
+export const KANBAN_MIN_CHANGES = 2;
+
+// Project vision bonuses
+export const PROJECT_TASK_BONUS = 5;
+export const PROJECT_COMPLETED_BONUS = 15;
+export const PROJECT_ACTIVE_60D_BONUS = 10;
+export const PROJECT_ACTIVE_90D_BONUS = 20;
+
+// Cognitive load thresholds (observatory alerts, no XP penalty)
+export const COGNITIVE_LOAD_OPEN_TASKS_THRESHOLD = 50;
+export const COGNITIVE_LOAD_RATIO_THRESHOLD = 3;
+export const COGNITIVE_LOAD_ACTIVE_PROJECTS_THRESHOLD = 5;
+
+// Subtask structural limits
+export const MAX_SUBTASK_DEPTH = 2;
+export const MAX_CHILDREN_PER_TASK = 3;

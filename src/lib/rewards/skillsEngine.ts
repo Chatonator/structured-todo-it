@@ -9,6 +9,14 @@ import {
   VISION_LEVEL_PCT_IN_PROJECT,
   RESILIENCE_LEVEL_PCT_ANCIENT,
   PROJECT_PRIORITY_XP,
+  RESILIENCE_BONUS_3D,
+  RESILIENCE_BONUS_7D,
+  RESILIENCE_BONUS_14D,
+  KANBAN_CHANGE_BONUS,
+  KANBAN_MIN_CHANGES,
+  PROJECT_TASK_BONUS,
+  PROJECT_ACTIVE_60D_BONUS,
+  PROJECT_ACTIVE_90D_BONUS,
 } from './constants';
 import type { SkillData } from '@/types/gamification';
 import { differenceInDays } from 'date-fns';
@@ -174,11 +182,16 @@ function computeVisionXP(
   items: RawSkillItem[],
   completedProjectCount: number,
   projectTaskCounts: Map<string, { total: number; completed: number }>,
+  projectAges?: Map<string, number>,
+  projectWeeklyActivity?: Map<string, boolean>,
 ): { xp: number; pctInProject: number } {
   const completedTasks = items.filter(i => i.is_completed);
   const inProject = completedTasks.filter(i => i.project_id);
 
   let xp = completedProjectCount * 15;
+
+  // +5 XP per project task completed
+  xp += inProject.length * PROJECT_TASK_BONUS;
 
   // +5 XP si ≥70% des tâches d'un projet sont complétées
   for (const [, counts] of projectTaskCounts) {
@@ -187,34 +200,57 @@ function computeVisionXP(
     }
   }
 
+  // Project duration bonuses
+  if (projectAges) {
+    for (const [projectId, ageInDays] of projectAges) {
+      const hasWeekly = projectWeeklyActivity?.get(projectId) ?? false;
+      if (ageInDays >= 90 && hasWeekly) {
+        xp += PROJECT_ACTIVE_90D_BONUS;
+      } else if (ageInDays >= 60) {
+        xp += PROJECT_ACTIVE_60D_BONUS;
+      }
+    }
+  }
+
   const pctInProject = completedTasks.length > 0 ? Math.round((inProject.length / completedTasks.length) * 100) : 0;
   return { xp, pctInProject };
 }
 
 // ---- 5. Résilience ----
-function computeResilienceXP(items: RawSkillItem[]): { xp: number; recoveryRate: number; ancientCount: number } {
+function computeResilienceXP(items: RawSkillItem[]): { xp: number; recoveryRate: number; ancientCount: number; ancient7dCount: number } {
   const completed = items.filter(i => i.is_completed);
   let xp = 0;
   let ancientCount = 0;
+  let ancient7dCount = 0;
 
   for (const item of completed) {
     const createdAt = new Date(item.created_at);
     const updatedAt = item.updated_at ? new Date(item.updated_at) : createdAt;
     const age = differenceInDays(updatedAt, createdAt);
 
-    if (age >= 3) {
-      xp += 10;
+    // Multi-level resilience bonuses
+    if (age >= 14) {
+      xp += RESILIENCE_BONUS_14D;
+      ancientCount++;
+      ancient7dCount++;
+    } else if (age >= 7) {
+      xp += RESILIENCE_BONUS_7D;
+      ancientCount++;
+      ancient7dCount++;
+    } else if (age >= 3) {
+      xp += RESILIENCE_BONUS_3D;
       ancientCount++;
     }
 
     // Bonus Kanban: tâche passée par des colonnes avant complétion
-    if (item.project_status && item.project_status !== 'to-do') {
-      xp += 15;
+    // Use postpone_count as proxy for column changes
+    if (item.postpone_count >= KANBAN_MIN_CHANGES) {
+      xp += KANBAN_CHANGE_BONUS;
     }
   }
 
   const recoveryRate = completed.length > 0 ? Math.round((ancientCount / completed.length) * 100) : 0;
-  return { xp, recoveryRate, ancientCount };
+  return { xp, recoveryRate, ancientCount, ancient7dCount };
 }
 
 // ---- Main export ----
@@ -227,6 +263,8 @@ export interface SkillsEngineInput {
   totalProjectCount: number;
   activeDaysCount: number;
   projectTaskCounts: Map<string, { total: number; completed: number }>;
+  projectAges?: Map<string, number>;
+  projectWeeklyActivity?: Map<string, boolean>;
 }
 
 export interface SkillsEngineResult {
@@ -241,18 +279,18 @@ export interface SkillsEngineResult {
 }
 
 export function computeAllSkills(input: SkillsEngineInput): SkillsEngineResult {
-  const { items, currentStreak, habitWeeklyRate, completedProjectCount, totalProjectCount, activeDaysCount, projectTaskCounts } = input;
+  const { items, currentStreak, habitWeeklyRate, completedProjectCount, totalProjectCount, activeDaysCount, projectTaskCounts, projectAges, projectWeeklyActivity } = input;
 
   const completedTaskCount = items.filter(i => i.is_completed).length;
 
   const planif = computePlanificationXP(items);
   const prio = computePriorisationXP(items);
   const disc = computeDisciplineXP(currentStreak, habitWeeklyRate, completedTaskCount, activeDaysCount);
-  const vision = computeVisionXP(items, completedProjectCount, projectTaskCounts);
+  const vision = computeVisionXP(items, completedProjectCount, projectTaskCounts, projectAges, projectWeeklyActivity);
   const resil = computeResilienceXP(items);
 
   const planifLevel = computeThresholdLevel(planif.structuredCount, PLANIF_LEVEL_THRESHOLDS);
-  const prioLevel = computeSkillLevel(prio.xp); // XP-based, but influenced by Q2 threshold
+  const prioLevel = computeSkillLevel(prio.xp);
   const discLevel = computeThresholdLevel(activeDaysCount, DISCIPLINE_LEVEL_DAYS);
   const visionLevel = computeSkillLevel(vision.xp);
   const resilLevel = computeSkillLevel(resil.xp);

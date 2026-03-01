@@ -3,8 +3,8 @@ import { useViewDataContext } from '@/contexts/ViewDataContext';
 import { Task, TaskCategory } from '@/types/task';
 import { useProjects } from '@/hooks/useProjects';
 import { subDays } from 'date-fns';
-import { enrichTasks, calculateInsights, calculateCharts, groupTasks, buildRecentActivity, calculateMaturityIndices } from './observatoryComputations';
-import type { MaturityIndices } from './observatoryComputations';
+import { enrichTasks, calculateInsights, calculateCharts, groupTasks, buildRecentActivity, calculateMaturityIndices, computeGlobalMaturityScore, computeCognitiveLoad } from './observatoryComputations';
+import type { MaturityIndices, GlobalMaturityScore, CognitiveLoadResult } from './observatoryComputations';
 
 // ============= Types =============
 export type TabFilter = 'active' | 'completed' | 'zombie' | 'recent';
@@ -95,6 +95,8 @@ export const useObservatoryViewData = () => {
   const groupedTasks = useMemo(() => groupTasks(sortedTasks, projectLookup), [sortedTasks, projectLookup]);
   const recentActivity = useMemo(() => buildRecentActivity(enrichedTasks), [enrichedTasks]);
   const maturityIndices = useMemo(() => calculateMaturityIndices(enrichedTasks), [enrichedTasks]);
+  const globalMaturity = useMemo(() => computeGlobalMaturityScore(maturityIndices), [maturityIndices]);
+  const cognitiveLoad = useMemo(() => computeCognitiveLoad(enrichedTasks, projects.length), [enrichedTasks, projects.length]);
 
   // Actions
   const handleSort = useCallback((field: SortField) => {
@@ -117,7 +119,7 @@ export const useObservatoryViewData = () => {
   }), [enrichedTasks, insights.zombieTasks]);
 
   return {
-    data: { tasks: sortedTasks, groupedTasks, insights, charts, recentActivity, stats, maturityIndices },
+    data: { tasks: sortedTasks, groupedTasks, insights, charts, recentActivity, stats, maturityIndices, globalMaturity, cognitiveLoad },
     state: { loading: false, isEmpty: enrichedTasks.length === 0, activeTab, sortField, sortDirection, searchQuery, selectedTasks },
     actions: {
       setActiveTab, handleSort, setSearchQuery, toggleTaskSelection, selectAllTasks, clearSelection,

@@ -181,6 +181,81 @@ export interface MaturityIndices {
   resilience: number;
 }
 
+export interface GlobalMaturityScore {
+  score: number;
+  isBalanced: boolean;
+  highLevelSkillCount: number;
+  alerts: string[];
+}
+
+export function computeGlobalMaturityScore(indices: MaturityIndices): GlobalMaturityScore {
+  // Normalize constance to 0-100 (cap at 90 days)
+  const normalizedConstance = Math.min(100, Math.round((indices.constance / 90) * 100));
+  
+  const values = [
+    indices.structuration,
+    indices.strategique,
+    normalizedConstance,
+    indices.longTerme,
+    indices.resilience,
+  ];
+  
+  const score = Math.round(values.reduce((s, v) => s + v, 0) / values.length);
+  const isBalanced = values.every(v => v >= 30);
+  
+  // Count skills >= level 3 (approximated: >= 60%)
+  const highLevelSkillCount = values.filter(v => v >= 60).length;
+  
+  const alerts: string[] = [];
+  if (!isBalanced) {
+    const labels = ['Structuration', 'Stratégique', 'Constance', 'Long terme', 'Résilience'];
+    values.forEach((v, i) => {
+      if (v < 30) alerts.push(`${labels[i]} est sous le seuil (${v}%)`);
+    });
+  }
+  if (highLevelSkillCount < 2) {
+    alerts.push('Moins de 2 compétences au niveau avancé');
+  }
+  
+  return { score, isBalanced, highLevelSkillCount, alerts };
+}
+
+export interface CognitiveLoadResult {
+  openTaskCount: number;
+  completedTaskCount: number;
+  openCompletedRatio: number;
+  activeProjectCount: number;
+  isOverloaded: boolean;
+  suggestions: string[];
+}
+
+export function computeCognitiveLoad(
+  tasks: EnrichedTask[],
+  activeProjectCount: number
+): CognitiveLoadResult {
+  const openTaskCount = tasks.filter(t => !t.isCompleted).length;
+  const completedTaskCount = tasks.filter(t => t.isCompleted).length;
+  const openCompletedRatio = completedTaskCount > 0 ? openTaskCount / completedTaskCount : openTaskCount;
+  
+  const suggestions: string[] = [];
+  let isOverloaded = false;
+  
+  if (openTaskCount > 50) {
+    isOverloaded = true;
+    suggestions.push('Archiver les tâches inactives depuis plus de 30 jours');
+  }
+  if (openCompletedRatio > 3) {
+    isOverloaded = true;
+    suggestions.push('Regrouper les tâches isolées en projet');
+  }
+  if (activeProjectCount > 5) {
+    isOverloaded = true;
+    suggestions.push('Clôturer les projets inactifs');
+  }
+  
+  return { openTaskCount, completedTaskCount, openCompletedRatio, activeProjectCount, isOverloaded, suggestions };
+}
+
 export function calculateMaturityIndices(enrichedTasks: EnrichedTask[]): MaturityIndices {
   const now = Date.now();
   const completed = enrichedTasks.filter(t => t.isCompleted);
@@ -207,10 +282,10 @@ export function calculateMaturityIndices(enrichedTasks: EnrichedTask[]): Maturit
   const inProject = completed.filter(t => !!t.projectId);
   const longTerme = completed.length > 0 ? Math.round((inProject.length / completed.length) * 100) : 0;
 
-  // Resilience: % ancient completed
+  // Resilience: % ancient completed (≥ 7 days for level-up threshold)
   const ancient = completed.filter(t => {
     const age = (now - new Date(t.createdAt).getTime()) / 86400000;
-    return age >= 3;
+    return age >= 7;
   });
   const resilience = completed.length > 0 ? Math.round((ancient.length / completed.length) * 100) : 0;
 
