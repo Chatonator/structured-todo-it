@@ -1,113 +1,148 @@
 
-# Restructuration du systeme XP — Competences alignees sur la realite
 
-## Resume
+# Plan: Garde-fous XP et ajustements comportementaux
 
-Refonte du moteur de competences (`skillsEngine.ts`) pour aligner les 5 competences (Planification, Priorisation, Discipline, Vision long terme, Resilience) sur les comportements reels de l'application. Les regles XP sont recalibrees, la priorisation distingue taches classiques (Eisenhower) et taches projet (priorite interne), et les indices de maturite sont exposes dans l'Observatoire.
+## Vue d'ensemble
 
----
-
-## Ce qui change
-
-### 1. Planification — Recompenser la clarte, pas la complexite
-
-**Regles actuelles** : +5 XP pour 3+ sous-taches, +10 XP pour profondeur 2+, +25 XP pour structuration complete.
-
-**Nouvelles regles** :
-- +5 XP si tache contient 2+ sous-taches
-- +8 XP si tache contient exactement 3 sous-taches
-- +5 XP bonus si toutes les sous-taches sont completees
-- +3 XP si une sous-tache contient 2+ sous-sous-taches (bonus leger)
-- Niveaux : 20 / 50 / 100 taches structurees (2+ sous-taches)
-
-### 2. Priorisation — Deux systemes distincts
-
-**A) Taches classiques (Eisenhower)** :
-- +5 XP tache Q2 completee
-- +3 XP tache Q1 completee
-- Niveau superieur si 40%+ des completees sont Q2 sur 60 jours
-- Malus si >70% Q1 sur 30 jours (conserve de l'existant)
-
-**B) Taches projet (priorite interne `subCategory`)** :
-- +5 XP "Le plus important"
-- +3 XP "Important"
-- +1 XP "Peut attendre"
-- +0 XP "Si j'ai le temps"
-- -2 XP si sur 30 jours >50% des completees projet sont "Si j'ai le temps" alors que des priorites hautes restent ouvertes
-
-### 3. Discipline — Constance et engagement
-
-**Regles actuelles** : +20 XP par bloc de 7 jours, +10 XP habitudes 80%+.
-
-**Nouvelles regles** :
-- +1 XP par tache completee (toutes taches)
-- +20 XP tous les 7 jours consecutifs
-- +10 XP par semaine d'habitudes validees 80%+
-- Niveaux : 30 / 60 / 90 jours actifs
-
-### 4. Vision long terme — Valoriser le travail en projet
-
-**Regles actuelles** : +15 XP par projet complete, +5 XP par Q2 en projet.
-
-**Nouvelles regles** :
-- +15 XP projet complete
-- +5 XP si 70%+ des taches d'un projet sont completees
-- Niveau superieur si 50%+ des taches completees appartiennent a des projets
-- Ne pas penaliser les taches isolees
-
-### 5. Resilience — Finir ce qui traine
-
-**Regles actuelles** : +10 XP tache ancienne (3+ jours), +15 XP si reportee 2+ fois.
-
-**Nouvelles regles** :
-- +10 XP tache completee apres 3+ jours
-- +15 XP si tache passe par colonnes Kanban (projectStatus change)
-- Niveau superieur si 25%+ des completees sont des taches anciennes
+Six chantiers distincts pour renforcer le modèle de gamification : anti-spam 15 min, résilience multi-niveaux, indice global de maturité, alertes surcharge cognitive, bonus vision long terme projets, et limitation structurelle des sous-tâches.
 
 ---
 
-## Plan technique
+## 1. Anti-spam (garde-fou 15 minutes)
 
-### Fichiers a modifier
+**Fichier:** `src/hooks/useGamification.ts` — fonction `rewardTaskCompletion`
 
-**1. `src/lib/rewards/skillsEngine.ts`** — Coeur des changements
-- Recrire `computePlanificationXP` : compter sous-taches (2+), bonus 3, bonus completion totale, bonus sous-sous-taches leger
-- Recrire `computePriorisationXP` : separer Eisenhower (taches sans `project_id`) et priorite interne (taches avec `project_id`, utilisant `subCategory`). Ajouter malus priorite basse projet.
-- Modifier `computeDisciplineXP` : ajouter `completedTaskCount` en param, +1 XP par tache
-- Modifier `computeVisionXP` : ajouter bonus +5 XP si 70%+ taches projet completees (necessite `projectTaskCounts` en entree)
-- Modifier `computeResilienceXP` : ajouter bonus Kanban (+15 XP si `projectStatus` a change avant completion)
-- Enrichir `RawSkillItem` avec `sub_category?: string` et `project_status?: string`
-- Mettre a jour `SkillsEngineInput` avec `activeDaysCount: number`
-- Ajouter seuils de niveau specifiques par competence au lieu des generiques
+- Après le guard d'idempotence (ligne ~116), ajouter une vérification : comparer `task.createdAt` (ou requêter `items.created_at` depuis la DB) avec `Date.now()`. Si la différence est < 15 minutes, skip l'attribution XP (return early, ou enregistrer la transaction avec `points_gained: 0` et metadata `{ blocked: 'anti-spam' }`).
+- La tâche reste marquée complétée (pas de blocage côté `toggleTaskCompletion`), seul le scoring est annulé.
+- Ajouter une constante `ANTI_SPAM_MINUTES = 15` dans `src/lib/rewards/constants.ts`.
 
-**2. `src/lib/rewards/constants.ts`**
-- Ajouter constantes pour les seuils de niveau par competence :
-  - `PLANIF_LEVEL_THRESHOLDS = [0, 20, 50, 100]` (en taches structurees)
-  - `PRIO_LEVEL_Q2_THRESHOLD = 40` (% sur 60 jours)
-  - `DISCIPLINE_LEVEL_DAYS = [30, 60, 90]`
-  - `VISION_LEVEL_PCT_IN_PROJECT = 50`
-  - `RESILIENCE_LEVEL_PCT_ANCIENT = 25`
+## 2. Résilience multi-niveaux
 
-**3. `src/hooks/view-data/useRewardsViewData.ts`** — Passer les nouvelles donnees au moteur
-- Enrichir les items envoyes a `computeAllSkills` avec `sub_category` et `project_status`
-- Calculer `activeDaysCount` et le passer en input
+**Fichier:** `src/lib/rewards/engine.ts` — fonction `computeTaskMinutes`
 
-**4. `src/hooks/view-data/observatoryComputations.ts`** — Indices dans l'Observatoire
-- Remplacer `MaturityIndices` par 5 indices nommes : strategique, structuration, constance, long terme, resilience
-- Calculer via `computeAllSkills` directement
+- Ajouter un champ optionnel `ageInDays` à `TaskRewardInput`.
+- Calculer un bonus additif basé sur l'âge :
+  - `≥ 14 jours → +20 XP`
+  - `≥ 7 jours → +10 XP`
+  - `≥ 3 jours → +5 XP`
+- Ajouter un champ optionnel `kanbanChanges` à `TaskRewardInput`. Si `≥ 2` → `+15 XP`.
+- Intégrer ces bonus dans le résultat `TaskRewardResult` (nouveau champ `resilienceBonus`, `kanbanBonus`).
 
-**5. `src/components/views/observatory/components/InsightsCards.tsx`** — Afficher les indices
-- Ajouter une rangee de 5 indices sous les cartes existantes (ou remplacer)
-- Chaque indice : nom, valeur %, icone, couleur
+**Fichier:** `src/hooks/useGamification.ts` — `rewardTaskCompletion`
 
-**6. `src/components/rewards/SkillsPanel.tsx`** — Afficher niveaux par competence
-- Adapter l'indicateur par competence pour montrer le critere de niveau (ex: "12/20 taches structurees")
+- Calculer `ageInDays` depuis `items.created_at`.
+- Pour le bonus Kanban, il n'y a pas de tracking historique des changements de colonne actuellement. Option : compter le `postpone_count` comme proxy, ou ajouter une colonne `kanban_changes` dans `items.metadata`. On utilisera `postpone_count ≥ 2` comme proxy initial (déjà disponible en DB).
+
+**Fichier:** `src/lib/rewards/skillsEngine.ts` — `computeResilienceXP`
+
+- Remplacer le bonus fixe `+10 XP` pour `age ≥ 3` par les paliers multi-niveaux (+5/+10/+20).
+- Ajuster le calcul du niveau : `≥ 25%` des tâches complétées avec `≥ 7 jours` d'ancienneté sur 60 jours pour monter de niveau.
+
+## 3. Indice global de maturité
+
+**Fichier:** `src/hooks/view-data/observatoryComputations.ts`
+
+- Créer une fonction `computeGlobalMaturityScore(indices: MaturityIndices)` retournant :
+  - `score` (0-100) : moyenne pondérée des 5 indices normalisés
+  - `isBalanced` : aucun indice < 30%
+  - `highLevelSkillCount` : nombre de compétences ≥ niveau 3
+  - `alerts` : liste de messages si déséquilibre détecté
+
+**Fichier:** `src/components/views/observatory/ObservatoryView.tsx`
+
+- Sous la section "Indices de maturité organisationnelle", ajouter l'affichage du score global composite avec une jauge visuelle et un message qualitatif (pas de pénalité, juste un reflet).
+
+## 4. Surcharge cognitive (sans pénalité)
+
+**Fichier:** `src/hooks/view-data/observatoryComputations.ts`
+
+- Créer `computeCognitiveLoad(tasks, projects)` retournant :
+  - `openTaskCount`, `completedTaskCount`, `openCompletedRatio`
+  - `activeProjectCount`
+  - `isOverloaded` (seuils : > 50 tâches ouvertes, ratio > 3:1, > 5 projets actifs)
+  - `suggestions` : liste d'actions recommandées (archiver tâches > 30j inactives, regrouper isolées, clôturer projets inactifs)
+
+**Fichier:** `src/components/views/observatory/ObservatoryView.tsx`
+
+- Ajouter un composant d'alerte douce (Card avec icône warning, fond ambre léger) qui apparaît conditionnellement si `isOverloaded`. Afficher les suggestions comme boutons/liens d'action.
+- Aucun malus XP associé.
+
+## 5. Vision long terme — Projets durables
+
+**Fichier:** `src/lib/rewards/engine.ts`
+
+- Ajouter un champ optionnel `projectContext` à `TaskRewardInput` : `{ isProjectTask: boolean; projectAgeInDays?: number; projectCompletedAt?: Date; weeklyActivity?: boolean }`.
+- Bonus additifs :
+  - `+5 XP` si tâche appartient à un projet
+  - `+15 XP` si projet complété (attribué lors de la complétion du projet)
+  - `+10 XP` si projet actif ≥ 60 jours
+  - `+20 XP` si projet actif ≥ 90 jours avec progression continue (≥ 1 tâche/semaine)
+
+**Fichier:** `src/hooks/useGamification.ts`
+
+- Dans `rewardTaskCompletion`, enrichir l'input avec le contexte projet (requêter le projet si `task.projectId` existe pour obtenir `created_at`, calculer l'âge).
+- Ajouter une fonction `rewardProjectCompletion(projectId)` pour le bonus de +15 XP projet complété.
+
+**Fichier:** `src/lib/rewards/skillsEngine.ts` — `computeVisionXP`
+
+- Intégrer les bonus projet durables (+10/+20) dans le calcul XP Vision.
+
+## 6. Limitation structurelle des sous-tâches
+
+**Fichier:** `src/components/task/TaskModal.tsx`
+
+- Dans `handleFinish`, si `parentTask` existe et `parentTask.level >= 2`, bloquer la création et afficher une erreur.
+- Ajouter une vérification du nombre d'enfants directs : requêter les items avec `parent_id = parentTask.id`, si `count ≥ 3`, bloquer et afficher "Maximum 3 sous-tâches atteint".
+
+**Fichier:** `src/hooks/useTasks.ts` — `addTask`
+
+- Ajouter un guard : si `taskData.level > 2`, rejeter.
+- Ajouter un guard : compter les siblings (items avec même `parentId`), si `≥ 3`, rejeter.
+
+**Fichier:** `src/components/sidebar/AppSidebar.tsx`
+
+- Même vérification avant d'ouvrir le modal de sous-tâche : si le parent est au level 2 ou a déjà 3 enfants, désactiver l'action.
+
+**Fichier:** `src/utils/taskValidation.ts`
+
+- Ajouter des fonctions utilitaires `canAddSubTask(parentLevel, siblingCount)` et constantes `MAX_SUBTASK_DEPTH = 2`, `MAX_CHILDREN_PER_TASK = 3`.
 
 ---
 
-## Ce qui ne change PAS
+## Constantes à ajouter (`src/lib/rewards/constants.ts`)
 
-- Le systeme de guilty-free minutes (`engine.ts`) reste intact
-- Le `useGamification` hook et la logique de reward par tache completee restent identiques
-- La base de donnees ne change pas (pas de migration)
-- Les recompenses, claim history, jauge restent en place
+```text
+ANTI_SPAM_MINUTES = 15
+RESILIENCE_BONUS_3D = 5
+RESILIENCE_BONUS_7D = 10
+RESILIENCE_BONUS_14D = 20
+KANBAN_CHANGE_BONUS = 15
+KANBAN_MIN_CHANGES = 2
+PROJECT_TASK_BONUS = 5
+PROJECT_COMPLETED_BONUS = 15
+PROJECT_ACTIVE_60D_BONUS = 10
+PROJECT_ACTIVE_90D_BONUS = 20
+COGNITIVE_LOAD_OPEN_TASKS_THRESHOLD = 50
+COGNITIVE_LOAD_RATIO_THRESHOLD = 3
+COGNITIVE_LOAD_ACTIVE_PROJECTS_THRESHOLD = 5
+MAX_SUBTASK_DEPTH = 2
+MAX_CHILDREN_PER_TASK = 3
+```
+
+## Résumé des fichiers modifiés
+
+| Fichier | Changement |
+|---|---|
+| `src/lib/rewards/constants.ts` | Nouvelles constantes |
+| `src/lib/rewards/engine.ts` | Bonus résilience, projet, anti-spam check |
+| `src/lib/rewards/skillsEngine.ts` | Résilience multi-niveaux, vision projets durables |
+| `src/lib/rewards/index.ts` | Exports nouveaux |
+| `src/hooks/useGamification.ts` | Anti-spam guard, enrichissement projet, `rewardProjectCompletion` |
+| `src/hooks/view-data/observatoryComputations.ts` | Score maturité global, surcharge cognitive |
+| `src/components/views/observatory/ObservatoryView.tsx` | Affichage maturité globale + alerte surcharge |
+| `src/components/task/TaskModal.tsx` | Limite profondeur/nombre sous-tâches |
+| `src/hooks/useTasks.ts` | Guards sous-tâches |
+| `src/utils/taskValidation.ts` | Utilitaires validation sous-tâches |
+
+Aucune migration DB requise — toutes les données nécessaires existent déjà (created_at, postpone_count, project_id, metadata).
+
