@@ -1,4 +1,4 @@
-export type TransactionSource = 'task' | 'habit' | 'streak_bonus' | 'project_created' | 'project_completed';
+export type TransactionSource = 'task' | 'habit' | 'streak_bonus' | 'project_created' | 'project_completed' | 'project';
 
 export interface UserProgress {
   id: string;

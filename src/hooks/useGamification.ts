@@ -301,18 +301,7 @@ export const useGamification = () => {
         updateQualifiedDate = true;
       }
 
-      // 9. Apply minutes directly to available balance (no refinement needed)
-      const currentAvailable = progressData?.points_available ?? progress.minutesAvailable;
-      const currentEarned = progressData?.total_points_earned ?? progress.totalMinutesEarned;
-
-      // Compensation bonus: +10 min per 60-min tranche crossed
-      const compensationBonus = computeCompensationBonus(currentAvailable, finalMinutes);
-      const totalGain = finalMinutes + compensationBonus;
-
-      // Clamp to gauge max (200)
-      const newAvailable = clampToGauge(currentAvailable + totalGain);
-      const actualGain = newAvailable - currentAvailable;
-
+      // 9. Update progress (XP, streak, counters) — points stay unrefined
       const updatePayload: any = {
         total_xp: (progress.totalXp ?? 0) + finalMinutes,
         current_points: (progress.totalXp ?? 0) + finalMinutes,
@@ -320,8 +309,6 @@ export const useGamification = () => {
         current_task_streak: newStreak,
         longest_task_streak: newLongest,
         last_activity_date: todayStr,
-        points_available: newAvailable,
-        total_points_earned: currentEarned + actualGain,
       };
       if (updateQualifiedDate) {
         updatePayload.last_streak_qualified_date = todayStr;
@@ -332,22 +319,13 @@ export const useGamification = () => {
         .update(updatePayload)
         .eq('user_id', user.id);
 
-      // Mark transaction as refined immediately (minutes go directly to balance)
-      await supabase
-        .from('xp_transactions')
-        .update({ is_refined: true, refined_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('source_type', 'task')
-        .eq('source_id', task.id);
-
       await loadProgress();
 
       // 10. Toast
       if (finalMinutes > 0) {
-        const bonusText = compensationBonus > 0 ? ` (+${compensationBonus} bonus)` : '';
         toast({
-          title: `+${finalMinutes} min guilty-free (${result.quadrantLabel})${bonusText}`,
-          description: `Tâche complétée !`,
+          title: `+${finalMinutes} min guilty-free (${result.quadrantLabel})`,
+          description: `Tâche complétée ! Raffinez pour débloquer.`,
           duration: 3000,
         });
       } else if (capped) {

@@ -3,17 +3,15 @@ import { useGamification } from '@/hooks/useGamification';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { computeSkillLevel, computeAllSkills } from '@/lib/rewards';
-import type { WeeklySummary, RawSkillItem } from '@/lib/rewards';
+import type { RawSkillItem } from '@/lib/rewards';
 import type { DailyStreakInfo, Reward, ClaimHistoryEntry, SkillData, UnrefinedTask } from '@/types/gamification';
-import { startOfWeek, differenceInDays, startOfDay } from 'date-fns';
+import { startOfDay } from 'date-fns';
 
 export const useRewardsViewData = () => {
   const { user } = useAuth();
   const gamification = useGamification();
 
-  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
   const [streakInfo, setStreakInfo] = useState<DailyStreakInfo | null>(null);
-  const [dailyMicroCount, setDailyMicroCount] = useState(0);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [claimHistory, setClaimHistory] = useState<ClaimHistoryEntry[]>([]);
   const [skills, setSkills] = useState<SkillData[]>([]);
@@ -120,18 +118,14 @@ export const useRewardsViewData = () => {
     if (!user) return;
     setDataLoading(true);
     try {
-      const [summary, streak, microCount, userRewards, history, computedSkills, unrefined] = await Promise.all([
-        gamification.getWeeklySummary(),
+      const [streak, userRewards, history, computedSkills, unrefined] = await Promise.all([
         gamification.getStreakInfo(),
-        gamification.getDailyMicroTaskCount(),
         gamification.getUserRewards(),
         gamification.getClaimHistory(),
         computeSkills(),
         gamification.getUnrefinedTasks(),
       ]);
-      setWeeklySummary(summary);
       setStreakInfo(streak);
-      setDailyMicroCount(microCount);
       setRewards(userRewards);
       setClaimHistory(history);
       setSkills(computedSkills);
@@ -141,7 +135,7 @@ export const useRewardsViewData = () => {
     } finally {
       setDataLoading(false);
     }
-  }, [user, gamification.getWeeklySummary, gamification.getStreakInfo, gamification.getDailyMicroTaskCount, gamification.getUserRewards, gamification.getClaimHistory, computeSkills, gamification.getUnrefinedTasks]);
+  }, [user, gamification.getStreakInfo, gamification.getUserRewards, gamification.getClaimHistory, computeSkills, gamification.getUnrefinedTasks]);
 
   useEffect(() => {
     loadAsyncData();
@@ -153,9 +147,7 @@ export const useRewardsViewData = () => {
     data: {
       progress: gamification.progress,
       userId: user?.id,
-      weeklySummary,
       streakInfo,
-      dailyMicroCount,
       minutesAvailable: gamification.progress?.minutesAvailable ?? 0,
       totalMinutesEarned: gamification.progress?.totalMinutesEarned ?? 0,
       totalMinutesSpent: gamification.progress?.totalMinutesSpent ?? 0,
