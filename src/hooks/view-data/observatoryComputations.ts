@@ -174,53 +174,47 @@ export function groupTasks(
 // ---- Maturity Indices ----
 
 export interface MaturityIndices {
-  avgDepth: number;
-  structuredCompleted: number;
-  pctQ2: { d30: number; d60: number; d90: number };
-  recoveryRate: number;
-  pctInProject: number;
+  structuration: number;
+  strategique: number;
+  constance: number;
+  longTerme: number;
+  resilience: number;
 }
 
 export function calculateMaturityIndices(enrichedTasks: EnrichedTask[]): MaturityIndices {
   const now = Date.now();
   const completed = enrichedTasks.filter(t => t.isCompleted);
 
-  // Structuration depth: count tasks that have children (proxy: tasks with same name pattern or parentId presence)
-  // Since EnrichedTask doesn't have children, we compute via parent lookup
+  // Structuration: % of structured roots fully completed
   const childIds = new Set(enrichedTasks.map(t => t.parentId).filter(Boolean));
   const parents = enrichedTasks.filter(t => childIds.has(t.id));
-  const avgDepth = parents.length > 0 ? 2 : 1; // simplified: if any parent exists, depth ≥ 2
+  const structuredCompleted = parents.filter(t => t.isCompleted).length;
+  const structuration = parents.length > 0 ? Math.round((structuredCompleted / parents.length) * 100) : 0;
 
-  // Q2 % over 30/60/90 days
-  const c30 = completed.filter(t => (now - new Date(t.createdAt).getTime()) <= 30 * 86400000);
+  // Strategique: Q2 % over 60 days
   const c60 = completed.filter(t => (now - new Date(t.createdAt).getTime()) <= 60 * 86400000);
-  const c90 = completed.filter(t => (now - new Date(t.createdAt).getTime()) <= 90 * 86400000);
-  const q2 = (arr: EnrichedTask[]) => arr.filter(t => t.isImportant && !t.isUrgent).length;
-  const pctQ2 = {
-    d30: c30.length > 0 ? Math.round((q2(c30) / c30.length) * 100) : 0,
-    d60: c60.length > 0 ? Math.round((q2(c60) / c60.length) * 100) : 0,
-    d90: c90.length > 0 ? Math.round((q2(c90) / c90.length) * 100) : 0,
-  };
+  const q2_60 = c60.filter(t => t.isImportant && !t.isUrgent).length;
+  const strategique = c60.length > 0 ? Math.round((q2_60 / c60.length) * 100) : 0;
 
-  // Recovery rate: completed tasks that were ≥3 days old when completed
+  // Constance: unique active days (simplified from completions)
+  const activeDays = new Set(completed.map(t => {
+    const d = t.createdAt instanceof Date ? t.createdAt : new Date(t.createdAt);
+    return d.toISOString().split('T')[0];
+  }));
+  const constance = activeDays.size;
+
+  // Long terme: % tasks in project
+  const inProject = completed.filter(t => !!t.projectId);
+  const longTerme = completed.length > 0 ? Math.round((inProject.length / completed.length) * 100) : 0;
+
+  // Resilience: % ancient completed
   const ancient = completed.filter(t => {
-    const created = new Date(t.createdAt).getTime();
-    const age = (now - created) / 86400000;
+    const age = (now - new Date(t.createdAt).getTime()) / 86400000;
     return age >= 3;
   });
-  const recoveryRate = completed.length > 0 ? Math.round((ancient.length / completed.length) * 100) : 0;
+  const resilience = completed.length > 0 ? Math.round((ancient.length / completed.length) * 100) : 0;
 
-  // % tasks in project
-  const inProject = completed.filter(t => !!t.projectId);
-  const pctInProject = completed.length > 0 ? Math.round((inProject.length / completed.length) * 100) : 0;
-
-  return {
-    avgDepth,
-    structuredCompleted: parents.filter(t => t.isCompleted).length,
-    pctQ2,
-    recoveryRate,
-    pctInProject,
-  };
+  return { structuration, strategique, constance, longTerme, resilience };
 }
 
 /** Generate recent activity from tasks */

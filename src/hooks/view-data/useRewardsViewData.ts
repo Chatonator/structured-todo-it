@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { computeSkillLevel, computeAllSkills } from '@/lib/rewards';
 import type { WeeklySummary, RawSkillItem } from '@/lib/rewards';
 import type { DailyStreakInfo, Reward, ClaimHistoryEntry, SkillData, UnrefinedTask } from '@/types/gamification';
-import { startOfWeek } from 'date-fns';
+import { startOfWeek, differenceInDays, startOfDay } from 'date-fns';
 
 export const useRewardsViewData = () => {
   const { user } = useAuth();
@@ -23,8 +23,7 @@ export const useRewardsViewData = () => {
   const computeSkills = useCallback(async (): Promise<SkillData[]> => {
     if (!user) return [];
 
-    // Fetch all needed data in parallel
-    const [itemsResult, projectsResult, habitsResult, habitCompletionsResult] = await Promise.all([
+    const [itemsResult, projectsResult, habitsResult, habitCompletionsResult, transactionsResult] = await Promise.all([
       supabase
         .from('items')
         .select('id, parent_id, is_completed, is_important, is_urgent, created_at, updated_at, metadata, postpone_count')
@@ -49,6 +48,12 @@ export const useRewardsViewData = () => {
           d.setDate(d.getDate() - 7);
           return d.toISOString().split('T')[0];
         })()),
+      // Fetch transactions to compute active days
+      supabase
+        .from('xp_transactions')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .eq('source_type', 'task'),
     ]);
 
     const items: RawSkillItem[] = (itemsResult.data || []).map((i: any) => ({
@@ -62,11 +67,31 @@ export const useRewardsViewData = () => {
       project_id: i.metadata?.projectId || null,
       postpone_count: i.postpone_count || 0,
       metadata: i.metadata,
+      sub_category: i.metadata?.subCategory || null,
+      project_status: i.metadata?.projectStatus || null,
     }));
 
     const projects = projectsResult.data || [];
     const completedProjectCount = projects.filter((p: any) => p.metadata?.status === 'completed').length;
     const totalProjectCount = projects.length;
+
+    // Compute project task counts
+    const projectTaskCounts = new Map<string, { total: number; completed: number }>();
+    for (const item of items) {
+      if (item.project_id) {
+        const entry = projectTaskCounts.get(item.project_id) || { total: 0, completed: 0 };
+        entry.total++;
+        if (item.is_completed) entry.completed++;
+        projectTaskCounts.set(item.project_id, entry);
+      }
+    }
+
+    // Compute active days from transactions
+    const activeDaysSet = new Set<string>();
+    for (const tx of (transactionsResult.data || [])) {
+      activeDaysSet.add(startOfDay(new Date(tx.created_at)).toISOString());
+    }
+    const activeDaysCount = activeDaysSet.size;
 
     // Compute habit weekly rate
     const activeHabitIds = new Set((habitsResult.data || []).map((h: any) => h.id));
@@ -84,6 +109,8 @@ export const useRewardsViewData = () => {
       habitWeeklyRate,
       completedProjectCount,
       totalProjectCount,
+      activeDaysCount,
+      projectTaskCounts,
     });
 
     return skills;

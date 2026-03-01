@@ -1,7 +1,15 @@
-// ============= Skills Engine v2.0 — Organisational Maturity =============
+// ============= Skills Engine v3.0 — Aligned with real app behaviour =============
 // 5 skills measuring real behaviours, not volume
 
 import { computeSkillLevel } from './engine';
+import {
+  PLANIF_LEVEL_THRESHOLDS,
+  PRIO_LEVEL_Q2_THRESHOLD,
+  DISCIPLINE_LEVEL_DAYS,
+  VISION_LEVEL_PCT_IN_PROJECT,
+  RESILIENCE_LEVEL_PCT_ANCIENT,
+  PROJECT_PRIORITY_XP,
+} from './constants';
 import type { SkillData } from '@/types/gamification';
 import { differenceInDays } from 'date-fns';
 
@@ -16,84 +24,71 @@ export interface RawSkillItem {
   project_id?: string | null;
   postpone_count: number;
   metadata?: any;
-}
-
-export interface SkillItemWithChildren extends RawSkillItem {
-  children?: SkillItemWithChildren[];
+  sub_category?: string | null;   // priorité interne projet
+  project_status?: string | null; // statut Kanban (to-do, doing, done)
 }
 
 // ---- Helpers ----
 
-/** Compute depth of a task tree (1 = only root, 2 = root + children, etc.) */
-function computeDepth(node: SkillItemWithChildren): number {
-  if (!node.children || node.children.length === 0) return 1;
-  return 1 + Math.max(...node.children.map(computeDepth));
-}
-
-/** Get all child items for a given parent id */
 function getChildren(items: RawSkillItem[], parentId: string): RawSkillItem[] {
   return items.filter(i => i.parent_id === parentId);
 }
 
-/** Build tree for root-level tasks */
-function buildTree(items: RawSkillItem[]): SkillItemWithChildren[] {
-  const itemMap = new Map<string, SkillItemWithChildren>(
-    items.map(i => [i.id, { ...i, children: [] }])
-  );
-  const roots: SkillItemWithChildren[] = [];
-  for (const item of itemMap.values()) {
-    if (!item.parent_id) {
-      roots.push(item);
-    } else {
-      const parent = itemMap.get(item.parent_id);
-      if (parent) {
-        parent.children = parent.children || [];
-        parent.children.push(item);
-      } else {
-        // orphan treated as root
-        roots.push(item);
-      }
+function computeThresholdLevel(value: number, thresholds: readonly number[]): { level: number; progressPct: number; xpForNext: number } {
+  let level = 1;
+  for (let i = thresholds.length - 1; i >= 0; i--) {
+    if (value >= thresholds[i]) {
+      level = i + 1;
+      break;
     }
   }
-  return roots;
+  const current = thresholds[level - 1] ?? 0;
+  const next = thresholds[level] ?? current + Math.max(current, 50);
+  const range = next - current;
+  const progressPct = range > 0 ? Math.min(100, Math.round(((value - current) / range) * 100)) : 100;
+  return { level, progressPct, xpForNext: next };
 }
 
 // ---- 1. Planification ----
-function computePlanificationXP(items: RawSkillItem[]): { xp: number; avgDepth: number; structuredCompleted: number } {
-  const trees = buildTree(items);
+function computePlanificationXP(items: RawSkillItem[]): { xp: number; structuredCount: number; completionRate: number } {
+  // Only consider root tasks (no parent)
+  const roots = items.filter(i => !i.parent_id);
   let xp = 0;
-  let totalDepthForTrees = 0;
-  let treesWithChildren = 0;
-  let structuredCompleted = 0;
+  let structuredCount = 0;
 
-  for (const root of trees) {
-    const directChildren = root.children || [];
-    const depth = computeDepth(root);
+  for (const root of roots) {
+    const children = getChildren(items, root.id);
+    if (children.length < 2) continue;
 
-    if (directChildren.length >= 3) xp += 5; // ≥3 sub-tasks
-    if (depth >= 2) {
-      xp += 10; // 2-level hierarchy
-      treesWithChildren++;
-      totalDepthForTrees += depth;
+    // ≥2 sous-tâches
+    structuredCount++;
+    xp += children.length >= 3 ? 8 : 5;
+
+    // Toutes sous-tâches complétées
+    if (children.every(c => c.is_completed)) {
+      xp += 5;
     }
 
-    // Structured task: root has children and all children are completed
-    const allChildrenCompleted = directChildren.length > 0 && directChildren.every(c => c.is_completed);
-    if (allChildrenCompleted && root.is_completed) {
-      xp += 25;
-      structuredCompleted++;
+    // Bonus léger: une sous-tâche a ≥2 sous-sous-tâches
+    for (const child of children) {
+      const grandchildren = getChildren(items, child.id);
+      if (grandchildren.length >= 2) {
+        xp += 3;
+        break; // bonus une seule fois par root
+      }
     }
   }
 
-  const avgDepth = treesWithChildren > 0 ? Math.round((totalDepthForTrees / treesWithChildren) * 10) / 10 : 1;
-  return { xp, avgDepth, structuredCompleted };
+  const totalRoots = roots.filter(r => r.is_completed).length;
+  const completionRate = totalRoots > 0 && structuredCount > 0
+    ? Math.round((roots.filter(r => r.is_completed && getChildren(items, r.id).length >= 2 && getChildren(items, r.id).every(c => c.is_completed)).length / structuredCount) * 100)
+    : 0;
+
+  return { xp, structuredCount, completionRate };
 }
 
-// ---- 2. Priorisation Stratégique ----
-function computePriorisationXP(
-  items: RawSkillItem[],
-  daysWindow: number = 30
-): { xp: number; pctQ2_30: number; pctQ2_60: number; pctQ2_90: number } {
+// ---- 2. Priorisation ----
+function computePriorisationXP(items: RawSkillItem[]): { xp: number; pctQ2_30: number; pctQ2_60: number; pctQ2_90: number } {
   const now = Date.now();
   const cutoff30 = now - 30 * 86400000;
   const cutoff60 = now - 60 * 86400000;
@@ -102,40 +97,47 @@ function computePriorisationXP(
   const completed = items.filter(i => i.is_completed);
   let xp = 0;
 
-  let q2Total = 0, q1Total = 0, total = 0;
   let q2_30 = 0, total_30 = 0;
   let q2_60 = 0, total_60 = 0;
   let q2_90 = 0, total_90 = 0;
 
-  for (const item of completed) {
+  // A) Tâches classiques (sans projet) — Eisenhower
+  const classicCompleted = completed.filter(i => !i.project_id);
+  for (const item of classicCompleted) {
     const isQ2 = item.is_important && !item.is_urgent;
     const isQ1 = item.is_important && item.is_urgent;
-    if (isQ2) { xp += 5; q2Total++; }
-    if (isQ1) { xp += 3; q1Total++; }
-    total++;
+    if (isQ2) xp += 5;
+    else if (isQ1) xp += 3;
 
     const createdMs = new Date(item.created_at).getTime();
-    if (createdMs >= cutoff30) {
-      total_30++;
-      if (isQ2) q2_30++;
-    }
-    if (createdMs >= cutoff60) {
-      total_60++;
-      if (isQ2) q2_60++;
-    }
-    if (createdMs >= cutoff90) {
-      total_90++;
-      if (isQ2) q2_90++;
+    if (createdMs >= cutoff30) { total_30++; if (isQ2) q2_30++; }
+    if (createdMs >= cutoff60) { total_60++; if (isQ2) q2_60++; }
+    if (createdMs >= cutoff90) { total_90++; if (isQ2) q2_90++; }
+  }
+
+  // Malus Q1 >70% sur 30 jours (classiques uniquement)
+  if (total_30 > 0) {
+    const q1_30 = classicCompleted.filter(i => i.is_important && i.is_urgent && new Date(i.created_at).getTime() >= cutoff30).length;
+    if (q1_30 / total_30 > 0.7) {
+      const excess = q1_30 - Math.floor(total_30 * 0.7);
+      xp = Math.max(0, xp - excess);
     }
   }
 
-  // Malus: if >70% tasks Q1 in last 30 days (floored at 0)
-  if (total_30 > 0) {
-    const q1count = items.filter(i => i.is_completed && i.is_important && i.is_urgent && new Date(i.created_at).getTime() >= cutoff30).length;
-    const q1Pct = q1count / total_30;
-    if (q1Pct > 0.7) {
-      const excess = q1count - Math.floor(total_30 * 0.7);
-      xp = Math.max(0, xp - excess);
+  // B) Tâches projet — priorité interne (subCategory)
+  const projectCompleted = completed.filter(i => !!i.project_id);
+  for (const item of projectCompleted) {
+    const sc = item.sub_category || '';
+    xp += PROJECT_PRIORITY_XP[sc] ?? 1;
+  }
+
+  // Malus projet: >50% "Si j'ai le temps" complétées sur 30j alors que priorités hautes ouvertes
+  const projectCompleted30 = projectCompleted.filter(i => new Date(i.created_at).getTime() >= cutoff30);
+  if (projectCompleted30.length > 0) {
+    const lowCount = projectCompleted30.filter(i => i.sub_category === "Si j'ai le temps").length;
+    const hasHighOpen = items.some(i => !!i.project_id && !i.is_completed && (i.sub_category === 'Le plus important' || i.sub_category === 'Important'));
+    if (lowCount / projectCompleted30.length > 0.5 && hasHighOpen) {
+      xp = Math.max(0, xp - 2 * lowCount);
     }
   }
 
@@ -149,47 +151,51 @@ function computePriorisationXP(
 // ---- 3. Discipline ----
 function computeDisciplineXP(
   currentStreak: number,
-  habitWeeklyRate: number // 0-1
-): { xp: number } {
+  habitWeeklyRate: number,
+  completedTaskCount: number,
+  activeDaysCount: number,
+): { xp: number; activeDays: number } {
   let xp = 0;
 
-  // Streak bonus: +20 XP per 7-day block
-  const weekBlocks = Math.floor(currentStreak / 7);
-  xp += weekBlocks * 20;
+  // +1 XP par tâche complétée
+  xp += completedTaskCount;
 
-  // Habit completion bonus: if ≥80% this week, +10 XP
+  // +20 XP par bloc de 7 jours consécutifs
+  xp += Math.floor(currentStreak / 7) * 20;
+
+  // +10 XP habitudes ≥80%
   if (habitWeeklyRate >= 0.8) xp += 10;
 
-  return { xp };
+  return { xp, activeDays: activeDaysCount };
 }
 
 // ---- 4. Vision Long Terme ----
 function computeVisionXP(
   items: RawSkillItem[],
-  completedProjectCount: number
-): { xp: number; pctInProject: number; pctProjectCompleted: number } {
-  const tasks = items.filter(i => i.is_completed);
-  const inProject = tasks.filter(i => i.project_id);
+  completedProjectCount: number,
+  projectTaskCounts: Map<string, { total: number; completed: number }>,
+): { xp: number; pctInProject: number } {
+  const completedTasks = items.filter(i => i.is_completed);
+  const inProject = completedTasks.filter(i => i.project_id);
 
   let xp = completedProjectCount * 15;
 
-  // +5 XP per Q2 task in a project
-  const projectQ2 = inProject.filter(i => i.is_important && !i.is_urgent);
-  xp += projectQ2.length * 5;
+  // +5 XP si ≥70% des tâches d'un projet sont complétées
+  for (const [, counts] of projectTaskCounts) {
+    if (counts.total > 0 && (counts.completed / counts.total) >= 0.7) {
+      xp += 5;
+    }
+  }
 
-  const pctInProject = tasks.length > 0 ? Math.round((inProject.length / tasks.length) * 100) : 0;
-
-  return { xp, pctInProject, pctProjectCompleted: 0 }; // pctProjectCompleted computed externally
+  const pctInProject = completedTasks.length > 0 ? Math.round((inProject.length / completedTasks.length) * 100) : 0;
+  return { xp, pctInProject };
 }
 
 // ---- 5. Résilience ----
-function computeResilienceXP(
-  items: RawSkillItem[]
-): { xp: number; recoveryRate: number } {
+function computeResilienceXP(items: RawSkillItem[]): { xp: number; recoveryRate: number; ancientCount: number } {
   const completed = items.filter(i => i.is_completed);
-  const totalCompleted = completed.length;
-  let ancientCompleted = 0;
   let xp = 0;
+  let ancientCount = 0;
 
   for (const item of completed) {
     const createdAt = new Date(item.created_at);
@@ -198,17 +204,17 @@ function computeResilienceXP(
 
     if (age >= 3) {
       xp += 10;
-      ancientCompleted++;
+      ancientCount++;
     }
 
-    // Extra bonus: postponed AND ancient
-    if (age >= 3 && item.postpone_count >= 2) {
+    // Bonus Kanban: tâche passée par des colonnes avant complétion
+    if (item.project_status && item.project_status !== 'to-do') {
       xp += 15;
     }
   }
 
-  const recoveryRate = totalCompleted > 0 ? Math.round((ancientCompleted / totalCompleted) * 100) : 0;
-  return { xp, recoveryRate };
+  const recoveryRate = completed.length > 0 ? Math.round((ancientCount / completed.length) * 100) : 0;
+  return { xp, recoveryRate, ancientCount };
 }
 
 // ---- Main export ----
@@ -219,55 +225,77 @@ export interface SkillsEngineInput {
   habitWeeklyRate: number;
   completedProjectCount: number;
   totalProjectCount: number;
+  activeDaysCount: number;
+  projectTaskCounts: Map<string, { total: number; completed: number }>;
 }
 
 export interface SkillsEngineResult {
   skills: SkillData[];
   maturityIndices: {
-    avgDepth: number;
-    structuredCompleted: number;
-    pctQ2: { d30: number; d60: number; d90: number };
-    recoveryRate: number;
-    pctInProject: number;
+    structuration: number;   // % tâches structurées complétées
+    strategique: number;     // % Q2 sur 60j
+    constance: number;       // jours actifs
+    longTerme: number;       // % tâches en projet
+    resilience: number;      // % tâches anciennes terminées
   };
 }
 
 export function computeAllSkills(input: SkillsEngineInput): SkillsEngineResult {
-  const { items, currentStreak, habitWeeklyRate, completedProjectCount, totalProjectCount } = input;
+  const { items, currentStreak, habitWeeklyRate, completedProjectCount, totalProjectCount, activeDaysCount, projectTaskCounts } = input;
+
+  const completedTaskCount = items.filter(i => i.is_completed).length;
 
   const planif = computePlanificationXP(items);
   const prio = computePriorisationXP(items);
-  const disc = computeDisciplineXP(currentStreak, habitWeeklyRate);
-  const vision = computeVisionXP(items, completedProjectCount);
+  const disc = computeDisciplineXP(currentStreak, habitWeeklyRate, completedTaskCount, activeDaysCount);
+  const vision = computeVisionXP(items, completedProjectCount, projectTaskCounts);
   const resil = computeResilienceXP(items);
 
-  const defs = [
+  const planifLevel = computeThresholdLevel(planif.structuredCount, PLANIF_LEVEL_THRESHOLDS);
+  const prioLevel = computeSkillLevel(prio.xp); // XP-based, but influenced by Q2 threshold
+  const discLevel = computeThresholdLevel(activeDaysCount, DISCIPLINE_LEVEL_DAYS);
+  const visionLevel = computeSkillLevel(vision.xp);
+  const resilLevel = computeSkillLevel(resil.xp);
+
+  const skills: SkillData[] = [
     {
       key: 'planification',
       name: 'Planification',
       icon: '🗂️',
       xp: planif.xp,
-      indicator: `Profondeur moy. ${planif.avgDepth}`,
+      level: planifLevel.level,
+      progressPct: planifLevel.progressPct,
+      xpForNext: planifLevel.xpForNext,
+      indicator: `${planif.structuredCount} tâches structurées`,
     },
     {
       key: 'priorisation',
       name: 'Priorisation',
       icon: '⭐',
       xp: prio.xp,
-      indicator: `Q2 : ${prio.pctQ2_30}% / 30j`,
+      level: prioLevel.level,
+      progressPct: prioLevel.progressPct,
+      xpForNext: prioLevel.xpForNext,
+      indicator: `Q2 : ${prio.pctQ2_60}% / 60j`,
     },
     {
       key: 'discipline',
       name: 'Discipline',
       icon: '🔥',
       xp: disc.xp,
-      indicator: `Série : ${currentStreak}j`,
+      level: discLevel.level,
+      progressPct: discLevel.progressPct,
+      xpForNext: discLevel.xpForNext,
+      indicator: `${activeDaysCount} jours actifs`,
     },
     {
       key: 'vision',
       name: 'Vision long terme',
       icon: '🚀',
       xp: vision.xp,
+      level: visionLevel.level,
+      progressPct: visionLevel.progressPct,
+      xpForNext: visionLevel.xpForNext,
       indicator: `${vision.pctInProject}% en projet`,
     },
     {
@@ -275,36 +303,21 @@ export function computeAllSkills(input: SkillsEngineInput): SkillsEngineResult {
       name: 'Résilience',
       icon: '💪',
       xp: resil.xp,
+      level: resilLevel.level,
+      progressPct: resilLevel.progressPct,
+      xpForNext: resilLevel.xpForNext,
       indicator: `Récupération ${resil.recoveryRate}%`,
     },
   ];
 
-  const skills: SkillData[] = defs.map(s => {
-    const { level, progressPct, xpForNext } = computeSkillLevel(s.xp);
-    return {
-      key: s.key,
-      name: s.name,
-      icon: s.icon,
-      xp: s.xp,
-      level,
-      progressPct,
-      xpForNext,
-      indicator: s.indicator,
-    };
-  });
-
-  const pctProjectCompleted = totalProjectCount > 0
-    ? Math.round((completedProjectCount / totalProjectCount) * 100)
-    : 0;
-
   return {
     skills,
     maturityIndices: {
-      avgDepth: planif.avgDepth,
-      structuredCompleted: planif.structuredCompleted,
-      pctQ2: { d30: prio.pctQ2_30, d60: prio.pctQ2_60, d90: prio.pctQ2_90 },
-      recoveryRate: resil.recoveryRate,
-      pctInProject: vision.pctInProject,
+      structuration: planif.completionRate,
+      strategique: prio.pctQ2_60,
+      constance: activeDaysCount,
+      longTerme: vision.pctInProject,
+      resilience: resil.recoveryRate,
     },
   };
 }

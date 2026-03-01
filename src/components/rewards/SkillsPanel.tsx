@@ -50,7 +50,7 @@ const SkillsPanel: React.FC<SkillsPanelProps> = ({ skills }) => {
               <div className="flex items-center justify-between mt-1">
                 <span className="text-[10px] text-muted-foreground">{skill.xp} XP</span>
                 <span className="text-[10px] text-muted-foreground">
-                  {skill.progressPct}% → Niv. {skill.level + 1}
+                  {skill.progressPct}% → Niv. {skill.level + 1} ({skill.xpForNext})
                 </span>
               </div>
             </Card>

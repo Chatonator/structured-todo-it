@@ -37,8 +37,33 @@ export const TIME_TIERS = [30, 60, 90, 120, 150, 180] as const;
 export const COMPENSATION_THRESHOLD = 60;
 export const COMPENSATION_BONUS = 10;
 
-// Skill level thresholds
+// Skill level thresholds (generic, still used by engine.ts)
 export const SKILL_LEVEL_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500] as const;
+
+// ---- Per-skill level thresholds ----
+
+// Planification: niveaux basés sur le nombre de tâches structurées (≥2 sous-tâches)
+export const PLANIF_LEVEL_THRESHOLDS = [0, 20, 50, 100] as const;
+
+// Priorisation: seuil Q2 % sur 60 jours pour monter de niveau
+export const PRIO_LEVEL_Q2_THRESHOLD = 40;
+
+// Discipline: niveaux basés sur le nombre de jours actifs
+export const DISCIPLINE_LEVEL_DAYS = [0, 30, 60, 90] as const;
+
+// Vision long terme: seuil % de tâches complétées appartenant à des projets
+export const VISION_LEVEL_PCT_IN_PROJECT = 50;
+
+// Résilience: seuil % de tâches anciennes terminées
+export const RESILIENCE_LEVEL_PCT_ANCIENT = 25;
+
+// Priorité interne projet (subCategory XP)
+export const PROJECT_PRIORITY_XP: Record<string, number> = {
+  'Le plus important': 5,
+  'Important': 3,
+  'Peut attendre': 1,
+  "Si j'ai le temps": 0,
+};
 
 // Decay constants for unrefined minutes
 export const DECAY_RATE_PER_WEEK = 0.10;

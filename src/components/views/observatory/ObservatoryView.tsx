@@ -103,43 +103,50 @@ const ObservatoryView: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* Planification */}
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                {/* Structuration */}
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
                   <Layers className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Structuration</p>
-                    <p className="text-xl font-bold">{data.maturityIndices.avgDepth}</p>
-                    <p className="text-[10px] text-muted-foreground">profondeur moy.</p>
-                    <p className="text-[10px] text-primary font-medium mt-0.5">{data.maturityIndices.structuredCompleted} tâches structurées</p>
+                    <p className="text-xl font-bold">{data.maturityIndices.structuration}%</p>
+                    <p className="text-[10px] text-muted-foreground">tâches structurées complétées</p>
                   </div>
                 </div>
-                {/* Priorisation */}
+                {/* Stratégique */}
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
                   <Target className="w-4 h-4 text-chart-1 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Indice stratégique</p>
-                    <p className="text-xl font-bold">{data.maturityIndices.pctQ2.d30}%</p>
-                    <p className="text-[10px] text-muted-foreground">Q2 sur 30 jours</p>
-                    <p className="text-[10px] text-chart-1 font-medium mt-0.5">{data.maturityIndices.pctQ2.d60}% / 60j · {data.maturityIndices.pctQ2.d90}% / 90j</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Stratégique</p>
+                    <p className="text-xl font-bold">{data.maturityIndices.strategique}%</p>
+                    <p className="text-[10px] text-muted-foreground">Q2 sur 60 jours</p>
+                  </div>
+                </div>
+                {/* Constance */}
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                  <Flame className="w-4 h-4 text-chart-3 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Constance</p>
+                    <p className="text-xl font-bold">{data.maturityIndices.constance}</p>
+                    <p className="text-[10px] text-muted-foreground">jours actifs</p>
+                  </div>
+                </div>
+                {/* Long terme */}
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                  <Target className="w-4 h-4 text-chart-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Long terme</p>
+                    <p className="text-xl font-bold">{data.maturityIndices.longTerme}%</p>
+                    <p className="text-[10px] text-muted-foreground">tâches en projet</p>
                   </div>
                 </div>
                 {/* Résilience */}
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
                   <Shield className="w-4 h-4 text-chart-2 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Taux de récupération</p>
-                    <p className="text-xl font-bold">{data.maturityIndices.recoveryRate}%</p>
-                    <p className="text-[10px] text-muted-foreground">tâches &gt;3j terminées</p>
-                  </div>
-                </div>
-                {/* Vision long terme */}
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
-                  <Flame className="w-4 h-4 text-chart-4 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Indice long terme</p>
-                    <p className="text-xl font-bold">{data.maturityIndices.pctInProject}%</p>
-                    <p className="text-[10px] text-muted-foreground">tâches en projet</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Résilience</p>
+                    <p className="text-xl font-bold">{data.maturityIndices.resilience}%</p>
+                    <p className="text-[10px] text-muted-foreground">tâches anciennes terminées</p>
                   </div>
                 </div>
               </div>
