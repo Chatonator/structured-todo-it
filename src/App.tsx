@@ -42,7 +42,7 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 const DEV_BYPASS_AUTH = true;
 
 // Admin UUID — stored only here, never in user-accessible files
-const ADMIN_USER_ID = '5bc43bb8-0880-4631-bc01-174543461bb8';
+const ADMIN_USER_ID = 'a72dc5ca-c281-46c0-a16c-139676705564';
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
