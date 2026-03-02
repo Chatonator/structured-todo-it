@@ -1,82 +1,59 @@
 
+## Plan : Sécurisation de la vue Admin Bug Reports
 
-## Plan : Signalement de bugs — Table Supabase + Page Admin
+### Problème actuel
+- La route `/admin/bugs` est accessible à n'importe quel utilisateur authentifié (DEV_BYPASS_AUTH = true rend même ça inutile)
+- La RLS `bug_reports` n'autorise le SELECT que sur ses propres rapports → l'admin ne voit rien des autres utilisateurs
+- Pas de vérification d'identité côté client ni côté DB
 
-### Architecture
+### Ce qu'on va faire
+
+**1. RLS Supabase — migration SQL**
+- Ajouter une politique SELECT admin sur `bug_reports` : autoriser la lecture de tous les rapports si `auth.uid() = '5bc43bb8-0880-4631-bc01-174543461bb8'`
+- Ajouter une politique UPDATE admin sur `bug_reports` : autoriser la mise à jour de tous les rapports (notes, status) si admin
+- Hardcoder l'UUID admin directement dans les politiques RLS (côté DB, inviolable)
+
+**2. Hook `useAdminCheck`** (nouveau, simple)
+- Vérifie côté client que `user.id === ADMIN_USER_ID` 
+- Utilisé uniquement pour l'affichage UI (redirection), la vraie sécurité est en RLS
+
+**3. Route `/admin/bugs` dans `App.tsx`**
+- Créer un `AdminRoute` qui :
+  1. Désactive `DEV_BYPASS_AUTH` pour cette route spécifique
+  2. Vérifie l'auth ET que `user.id === ADMIN_USER_ID`
+  3. Redirige vers `/` si non-admin
+
+**4. `BugReportsAdmin.tsx`**
+- Supprimer la dépendance au contexte DEV, route déjà protégée
+- Aucun autre changement UI nécessaire
+
+### Architecture de sécurité
 
 ```text
-┌─────────────────┐       ┌──────────────┐       ┌─────────────────┐
-│  BugReportModal  │──────▶│  bug_reports  │◀──────│  AdminBugView   │
-│  (formulaire)    │ INSERT│  (Supabase)   │ SELECT│  (lecture/gestion)│
-└─────────────────┘       └──────────────┘       └─────────────────┘
-                              │
-                          storage bucket
-                          "bug-screenshots"
+Requête vers /admin/bugs
+        │
+        ▼
+AdminRoute (client)
+  ├─ Non authentifié → redirect /auth
+  ├─ user.id ≠ ADMIN_ID → redirect /
+  └─ OK → affiche BugReportsAdmin
+               │
+               ▼
+        useBugReportsList()
+               │
+               ▼
+        Supabase RLS
+  ├─ user = admin → SELECT * bug_reports ✓
+  └─ user ≠ admin → SELECT uniquement ses propres ✗
 ```
 
-### 1. Base de données
-
-**Table `bug_reports`** :
-- `id` uuid PK
-- `user_id` uuid (ref auth.users)
-- `title` text NOT NULL
-- `description` text NOT NULL
-- `screenshot_url` text (nullable, URL du fichier dans le bucket)
-- `page_url` text — collecté automatiquement
-- `user_agent` text — collecté automatiquement (navigateur + OS)
-- `status` text DEFAULT `'open'` — open / in_progress / resolved / closed
-- `admin_notes` text (nullable) — pour tes commentaires
-- `created_at` timestamptz DEFAULT now()
-- `resolved_at` timestamptz (nullable)
-
-**RLS** :
-- INSERT : `auth.uid() = user_id` (chaque user peut signaler)
-- SELECT : `auth.uid() = user_id` (voit ses propres bugs) — l'admin verra tout via une policy basée sur un rôle ou un user_id hardcodé
-- UPDATE : admin uniquement (pour changer status/notes)
-
-**Bucket storage `bug-screenshots`** : public en lecture, INSERT pour les users authentifiés.
-
-### 2. Formulaire — `BugReportModal.tsx`
-
-- Modale ouverte par le bouton Bug du header
-- Champs :
-  - **Titre** (input text, requis, max 200 chars)
-  - **Description** (textarea, requis, max 2000 chars)
-  - **Capture d'ecran** (input file, optionnel, image/* uniquement, max 5MB)
-- **Contexte auto** (invisible pour l'utilisateur, collecté au submit) :
-  - `window.location.href` pour la page
-  - `navigator.userAgent` pour navigateur/OS
-- Upload du screenshot dans `bug-screenshots/{user_id}/{timestamp}.png` puis insertion dans `bug_reports`
-- Toast de confirmation apres envoi
-
-### 3. Hook — `useBugReports.ts`
-
-- `submitBugReport(title, description, file?)` — upload screenshot + insert
-- `useBugReportsList()` — pour la vue admin, fetch tous les reports avec filtres status
-- `updateBugStatus(id, status, notes?)` — pour l'admin
-
-### 4. Vue Admin — `BugReportsAdmin.tsx`
-
-- Accessible via une route protegee `/admin/bugs` (ou dans le Toolbox comme outil)
-- Liste des bugs avec colonnes : date, titre, user, status, page
-- Filtre par status (open/in_progress/resolved)
-- Detail expandable avec description, screenshot (clic pour agrandir), user agent
-- Actions : changer status, ajouter une note admin
-- Protection : vérifier que le user connecté est l'admin (par user_id ou role)
-
-### 5. Intégration Header
-
-- Le bouton Bug existant dans `HeaderBar.tsx` ouvre `BugReportModal`
-- Un state `isBugModalOpen` geré localement dans le header
-
-### Fichiers créés/modifiés
+### Fichiers touchés
 
 | Fichier | Action |
 |---|---|
-| Migration SQL | Créer table `bug_reports` + bucket + RLS |
-| `src/components/bugs/BugReportModal.tsx` | Nouveau — formulaire |
-| `src/hooks/useBugReports.ts` | Nouveau — logique CRUD |
-| `src/components/bugs/BugReportsAdmin.tsx` | Nouveau — vue admin |
-| `src/components/layout/HeaderBar.tsx` | Modifier — brancher la modale |
-| `src/App.tsx` | Modifier — ajouter route admin |
+| Migration SQL | Ajouter politiques RLS admin SELECT + UPDATE sur `bug_reports` |
+| `src/App.tsx` | Créer `AdminRoute`, protéger `/admin/bugs` |
+| `src/hooks/useBugReports.ts` | Aucun changement nécessaire (RLS fait le travail) |
 
+### Constante admin
+L'UUID admin `5bc43bb8-0880-4631-bc01-174543461bb8` sera stocké dans une constante dans `src/App.tsx` uniquement, jamais exposé dans un fichier accessible à l'utilisateur via le réseau.
