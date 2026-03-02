@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Plus, Menu, Users } from 'lucide-react';
+import { CheckSquare, Plus, Menu, Users, Bug, Bell } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TaskContext } from '@/types/task';
 import ContextPills from '@/components/layout/ContextPills';
 import ViewNavigation from '@/components/layout/ViewNavigation';
@@ -84,6 +85,38 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
                 <span className="hidden sm:inline">{currentTeam.name}</span>
               </Badge>
             )}
+
+            {/* Bug report button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => {/* TODO: ouvrir modal signalement bug */}}
+                >
+                  <Bug className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Signaler un bug</TooltipContent>
+            </Tooltip>
+
+            {/* Notifications button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative text-muted-foreground hover:text-foreground"
+                  onClick={() => {/* TODO: ouvrir panneau notifications */}}
+                >
+                  <Bell className="w-4 h-4" />
+                  {/* Pastille notification (à activer dynamiquement plus tard) */}
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Notifications</TooltipContent>
+            </Tooltip>
             
             <Button
               onClick={onOpenModal}
