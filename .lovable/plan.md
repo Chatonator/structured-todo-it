@@ -1,44 +1,67 @@
 
 
-## Remise a zero du systeme de recompenses
+## Correction du redirect email de confirmation
 
-### Objectif
+### Probleme
 
-Remettre tous les utilisateurs a zero sur le systeme de gamification suite au changement du systeme de raffinage, sans toucher aux taches, projets ni habitudes.
+Le lien de confirmation par email redirige vers `localhost:3000` au lieu de l'URL publique GitHub Pages. Cela vient de deux sources :
 
-### Donnees a supprimer / reinitialiser
+1. **Supabase Dashboard** : La "Site URL" est configuree sur localhost
+2. **Code** : `window.location.origin` est dynamique et correct en production, mais Supabase peut l'ignorer si l'URL n'est pas dans la liste des redirections autorisees
 
-| Table | Action | Impact |
-|---|---|---|
-| `xp_transactions` | DELETE toutes les lignes | Supprime tout l'historique de points gagnes |
-| `claim_history` | DELETE toutes les lignes | Supprime l'historique des recompenses reclamees |
-| `user_skills` | DELETE toutes les lignes | Remet les competences a zero |
-| `user_achievements` | UPDATE `current_progress = 0`, `is_unlocked = false`, `unlocked_at = NULL` | Reinitialise la progression des succes |
-| `user_challenges` | UPDATE `current_progress = 0`, `is_completed = false`, `completed_at = NULL` | Reinitialise les defis en cours |
-| `user_progress` | UPDATE tous les compteurs a 0 | Remet XP, points, streaks, compteurs a zero |
+---
 
-### Donnees NON touchees
+### Action 1 — Configuration Supabase Dashboard (manuelle)
 
-- `items` (taches, projets) — intact
-- `habits` / `habit_completions` — intact
-- `time_events` / `time_occurrences` — intact
-- `rewards` (definitions des recompenses custom) — intact
-- `teams` / `team_tasks` / `team_projects` — intact
-- `profiles` — intact
+Vous devez modifier ces parametres dans le dashboard Supabase :
 
-### Detail de la reinitialisation `user_progress`
+**Authentication > URL Configuration** :
 
-Tous les champs remis a leur valeur par defaut :
-- `total_xp = 0`, `current_level = 1`, `xp_for_next_level = 100`
-- `lifetime_points = 0`, `current_points = 0`
-- `points_available = 0`, `total_points_earned = 0`, `total_points_spent = 0`
-- `tasks_completed = 0`, `habits_completed = 0`
-- `current_task_streak = 0`, `longest_task_streak = 0`
-- `current_habit_streak = 0`, `longest_habit_streak = 0`
-- `last_activity_date = NULL`, `last_streak_qualified_date = NULL`
-- `daily_challenge_streak = 0`, `weekly_challenges_completed = 0`
+- **Site URL** : `https://chatonator.github.io/structured-todo-it/`
+- **Redirect URLs** (ajouter si absents) :
+  - `https://chatonator.github.io/structured-todo-it/**`
+  - `https://chatonator.github.io/structured-todo-it/#/**`
 
-### Execution
+Lien direct : https://supabase.com/dashboard/project/dqctsbahpxeosufvapln/auth/url-configuration
 
-6 requetes SQL via l'outil d'insertion de donnees (pas de migration de schema).
+---
 
+### Action 2 — Securiser le code (petite modification)
+
+Actuellement le code (ligne 139) construit le redirect dynamiquement :
+
+```
+const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL}#/`;
+```
+
+Cela fonctionne en production GitHub Pages mais genere `http://localhost:8080/` en dev et des URLs de preview en pre-production. Pour plus de robustesse, ajouter un fallback vers l'URL de production en `.env.production`.
+
+**Fichier** : `.env.production`
+- Ajouter `VITE_PUBLIC_URL=https://chatonator.github.io/structured-todo-it/`
+
+**Fichier** : `src/pages/Auth.tsx`
+- Ligne 139 : utiliser `import.meta.env.VITE_PUBLIC_URL` si disponible, sinon fallback sur la construction dynamique actuelle
+- Ligne 217 : meme correction pour `resetPasswordForEmail`
+
+```typescript
+const getRedirectUrl = (path: string = '') => {
+  const publicUrl = import.meta.env.VITE_PUBLIC_URL;
+  if (publicUrl) return `${publicUrl}#/${path}`;
+  return `${window.location.origin}${import.meta.env.BASE_URL}#/${path}`;
+};
+```
+
+Puis utiliser `getRedirectUrl()` pour le signup et `getRedirectUrl('auth')` pour le reset password.
+
+---
+
+### Fichiers impactes
+
+| Fichier | Action |
+|---|---|
+| `.env.production` | Ajouter `VITE_PUBLIC_URL` |
+| `src/pages/Auth.tsx` | Helper `getRedirectUrl`, l'utiliser aux lignes 139 et 217 |
+
+### Action manuelle requise
+
+Configurer la Site URL et les Redirect URLs dans le dashboard Supabase (lien fourni ci-dessus). Sans cette etape, le fix code seul ne suffira pas car Supabase valide les URLs de redirection contre sa liste autorisee.
