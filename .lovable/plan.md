@@ -1,67 +1,82 @@
 
 
-## Correction du redirect email de confirmation
+## Plan : Signalement de bugs — Table Supabase + Page Admin
 
-### Probleme
+### Architecture
 
-Le lien de confirmation par email redirige vers `localhost:3000` au lieu de l'URL publique GitHub Pages. Cela vient de deux sources :
-
-1. **Supabase Dashboard** : La "Site URL" est configuree sur localhost
-2. **Code** : `window.location.origin` est dynamique et correct en production, mais Supabase peut l'ignorer si l'URL n'est pas dans la liste des redirections autorisees
-
----
-
-### Action 1 — Configuration Supabase Dashboard (manuelle)
-
-Vous devez modifier ces parametres dans le dashboard Supabase :
-
-**Authentication > URL Configuration** :
-
-- **Site URL** : `https://chatonator.github.io/structured-todo-it/`
-- **Redirect URLs** (ajouter si absents) :
-  - `https://chatonator.github.io/structured-todo-it/**`
-  - `https://chatonator.github.io/structured-todo-it/#/**`
-
-Lien direct : https://supabase.com/dashboard/project/dqctsbahpxeosufvapln/auth/url-configuration
-
----
-
-### Action 2 — Securiser le code (petite modification)
-
-Actuellement le code (ligne 139) construit le redirect dynamiquement :
-
-```
-const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL}#/`;
+```text
+┌─────────────────┐       ┌──────────────┐       ┌─────────────────┐
+│  BugReportModal  │──────▶│  bug_reports  │◀──────│  AdminBugView   │
+│  (formulaire)    │ INSERT│  (Supabase)   │ SELECT│  (lecture/gestion)│
+└─────────────────┘       └──────────────┘       └─────────────────┘
+                              │
+                          storage bucket
+                          "bug-screenshots"
 ```
 
-Cela fonctionne en production GitHub Pages mais genere `http://localhost:8080/` en dev et des URLs de preview en pre-production. Pour plus de robustesse, ajouter un fallback vers l'URL de production en `.env.production`.
+### 1. Base de données
 
-**Fichier** : `.env.production`
-- Ajouter `VITE_PUBLIC_URL=https://chatonator.github.io/structured-todo-it/`
+**Table `bug_reports`** :
+- `id` uuid PK
+- `user_id` uuid (ref auth.users)
+- `title` text NOT NULL
+- `description` text NOT NULL
+- `screenshot_url` text (nullable, URL du fichier dans le bucket)
+- `page_url` text — collecté automatiquement
+- `user_agent` text — collecté automatiquement (navigateur + OS)
+- `status` text DEFAULT `'open'` — open / in_progress / resolved / closed
+- `admin_notes` text (nullable) — pour tes commentaires
+- `created_at` timestamptz DEFAULT now()
+- `resolved_at` timestamptz (nullable)
 
-**Fichier** : `src/pages/Auth.tsx`
-- Ligne 139 : utiliser `import.meta.env.VITE_PUBLIC_URL` si disponible, sinon fallback sur la construction dynamique actuelle
-- Ligne 217 : meme correction pour `resetPasswordForEmail`
+**RLS** :
+- INSERT : `auth.uid() = user_id` (chaque user peut signaler)
+- SELECT : `auth.uid() = user_id` (voit ses propres bugs) — l'admin verra tout via une policy basée sur un rôle ou un user_id hardcodé
+- UPDATE : admin uniquement (pour changer status/notes)
 
-```typescript
-const getRedirectUrl = (path: string = '') => {
-  const publicUrl = import.meta.env.VITE_PUBLIC_URL;
-  if (publicUrl) return `${publicUrl}#/${path}`;
-  return `${window.location.origin}${import.meta.env.BASE_URL}#/${path}`;
-};
-```
+**Bucket storage `bug-screenshots`** : public en lecture, INSERT pour les users authentifiés.
 
-Puis utiliser `getRedirectUrl()` pour le signup et `getRedirectUrl('auth')` pour le reset password.
+### 2. Formulaire — `BugReportModal.tsx`
 
----
+- Modale ouverte par le bouton Bug du header
+- Champs :
+  - **Titre** (input text, requis, max 200 chars)
+  - **Description** (textarea, requis, max 2000 chars)
+  - **Capture d'ecran** (input file, optionnel, image/* uniquement, max 5MB)
+- **Contexte auto** (invisible pour l'utilisateur, collecté au submit) :
+  - `window.location.href` pour la page
+  - `navigator.userAgent` pour navigateur/OS
+- Upload du screenshot dans `bug-screenshots/{user_id}/{timestamp}.png` puis insertion dans `bug_reports`
+- Toast de confirmation apres envoi
 
-### Fichiers impactes
+### 3. Hook — `useBugReports.ts`
+
+- `submitBugReport(title, description, file?)` — upload screenshot + insert
+- `useBugReportsList()` — pour la vue admin, fetch tous les reports avec filtres status
+- `updateBugStatus(id, status, notes?)` — pour l'admin
+
+### 4. Vue Admin — `BugReportsAdmin.tsx`
+
+- Accessible via une route protegee `/admin/bugs` (ou dans le Toolbox comme outil)
+- Liste des bugs avec colonnes : date, titre, user, status, page
+- Filtre par status (open/in_progress/resolved)
+- Detail expandable avec description, screenshot (clic pour agrandir), user agent
+- Actions : changer status, ajouter une note admin
+- Protection : vérifier que le user connecté est l'admin (par user_id ou role)
+
+### 5. Intégration Header
+
+- Le bouton Bug existant dans `HeaderBar.tsx` ouvre `BugReportModal`
+- Un state `isBugModalOpen` geré localement dans le header
+
+### Fichiers créés/modifiés
 
 | Fichier | Action |
 |---|---|
-| `.env.production` | Ajouter `VITE_PUBLIC_URL` |
-| `src/pages/Auth.tsx` | Helper `getRedirectUrl`, l'utiliser aux lignes 139 et 217 |
+| Migration SQL | Créer table `bug_reports` + bucket + RLS |
+| `src/components/bugs/BugReportModal.tsx` | Nouveau — formulaire |
+| `src/hooks/useBugReports.ts` | Nouveau — logique CRUD |
+| `src/components/bugs/BugReportsAdmin.tsx` | Nouveau — vue admin |
+| `src/components/layout/HeaderBar.tsx` | Modifier — brancher la modale |
+| `src/App.tsx` | Modifier — ajouter route admin |
 
-### Action manuelle requise
-
-Configurer la Site URL et les Redirect URLs dans le dashboard Supabase (lien fourni ci-dessus). Sans cette etape, le fix code seul ne suffira pas car Supabase valide les URLs de redirection contre sa liste autorisee.
