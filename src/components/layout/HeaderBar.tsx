@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Plus, Menu, Users, Bug, Bell } from 'lucide-react';
+import { CheckSquare, Plus, Menu, Users, Bug } from 'lucide-react';
+import NotificationPanel from '@/components/notifications/NotificationPanel';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TaskContext } from '@/types/task';
 import ContextPills from '@/components/layout/ContextPills';
@@ -101,22 +102,8 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
               <TooltipContent>Signaler un bug</TooltipContent>
             </Tooltip>
 
-            {/* Notifications button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative text-muted-foreground hover:text-foreground"
-                  onClick={() => {/* TODO: ouvrir panneau notifications */}}
-                >
-                  <Bell className="w-4 h-4" />
-                  {/* Pastille notification (à activer dynamiquement plus tard) */}
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Notifications</TooltipContent>
-            </Tooltip>
+            {/* Notifications */}
+            <NotificationPanel />
             
             <Button
               onClick={onOpenModal}
