@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { User, LogOut, Users, Settings } from 'lucide-react';
+import { User, LogOut, Users, Settings, Bug } from 'lucide-react';
+
+const ADMIN_USER_ID = 'a72dc5ca-c281-46c0-a16c-139676705564';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,6 +94,16 @@ const UserProfileBlock: React.FC = () => {
           <Users className="h-4 w-4" />
           Mes équipes
         </DropdownMenuItem>
+
+        {user?.id === ADMIN_USER_ID && (
+          <DropdownMenuItem 
+            onClick={() => navigate('/admin/bugs')}
+            className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
+          >
+            <Bug className="h-4 w-4" />
+            Admin — Bug Reports
+          </DropdownMenuItem>
+        )}
         
         <DropdownMenuSeparator className="bg-border" />
         
