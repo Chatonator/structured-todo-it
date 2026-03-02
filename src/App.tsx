@@ -41,6 +41,9 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 // ⚠️ DEV MODE: Bypass authentication for visual development
 const DEV_BYPASS_AUTH = true;
 
+// Admin UUID — stored only here, never in user-accessible files
+const ADMIN_USER_ID = '5bc43bb8-0880-4631-bc01-174543461bb8';
+
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -90,6 +93,25 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Admin Route — always checks real auth regardless of DEV_BYPASS_AUTH
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user || user.id !== ADMIN_USER_ID) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const App = () => (
   <ErrorBoundary
     onError={(error, errorInfo) => {
@@ -125,11 +147,11 @@ const App = () => (
                     } 
                   />
                   <Route 
-                    path="/admin/bugs" 
+                   path="/admin/bugs" 
                     element={
-                      <ProtectedRoute>
+                      <AdminRoute>
                         <BugReportsAdmin />
-                      </ProtectedRoute>
+                      </AdminRoute>
                     } 
                   />
                   <Route 
