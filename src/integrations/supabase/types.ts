@@ -62,6 +62,48 @@ export type Database = {
         }
         Relationships: []
       }
+      bug_reports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string
+          id: string
+          page_url: string | null
+          resolved_at: string | null
+          screenshot_url: string | null
+          status: string
+          title: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          page_url?: string | null
+          resolved_at?: string | null
+          screenshot_url?: string | null
+          status?: string
+          title: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          page_url?: string | null
+          resolved_at?: string | null
+          screenshot_url?: string | null
+          status?: string
+          title?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       challenges: {
         Row: {
           category: string

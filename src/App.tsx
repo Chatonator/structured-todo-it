@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { TeamManagement } from "./components/team/TeamManagement";
+import BugReportsAdmin from "./components/bugs/BugReportsAdmin";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { TeamProvider } from "@/contexts/TeamContext";
 import { UserPreferencesProvider } from "@/hooks/useUserPreferences";
@@ -120,6 +121,14 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <TeamManagement />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/admin/bugs" 
+                    element={
+                      <ProtectedRoute>
+                        <BugReportsAdmin />
                       </ProtectedRoute>
                     } 
                   />
