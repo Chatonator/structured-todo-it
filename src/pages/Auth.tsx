@@ -24,6 +24,12 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const getRedirectUrl = (path: string = '') => {
+    const publicUrl = import.meta.env.VITE_PUBLIC_URL;
+    if (publicUrl) return `${publicUrl}#/${path}`;
+    return `${window.location.origin}${import.meta.env.BASE_URL}#/${path}`;
+  };
+
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
@@ -136,7 +142,7 @@ const Auth = () => {
         // Continue even if this fails
       }
 
-      const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL}#/`;
+      const redirectUrl = getRedirectUrl();
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -214,7 +220,7 @@ const Auth = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}#/auth`,
+        redirectTo: getRedirectUrl('auth'),
       });
 
       if (error) {
