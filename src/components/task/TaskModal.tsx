@@ -7,6 +7,7 @@ import { Task, TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } 
 import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
 import { TaskDraft, isTaskDraftValid, getDefaultsForTaskType } from '@/utils/taskValidationByType';
 import { canAddSubTask } from '@/utils/taskValidation';
+import { MAX_CHILDREN_PER_TASK } from '@/lib/rewards/constants';
 import TaskDraftForm from './TaskDraftForm';
 import type { TeamMemberOption } from '@/components/task/fields/AssignmentSelector';
 import { useToast } from '@/hooks/use-toast';
@@ -53,6 +54,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([createEmptyDraft()]);
   const [schedulingError, setSchedulingError] = useState<string>('');
   const [existingTimeEvent, setExistingTimeEvent] = useState<TimeEvent | null>(null);
+  const [existingSiblingCount, setExistingSiblingCount] = useState<number>(0);
   
   const { checkConflicts } = useTimeHub();
   const { getEntityEvent } = useTimeEventSync();
@@ -60,7 +62,18 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const [structuralError, setStructuralError] = useState<string>('');
 
   useEffect(() => {
-    const loadExistingEvent = async () => {
+    const loadOnOpen = async () => {
+      // Load existing sibling count for subtask limit
+      if (parentTask && !editingTask) {
+        const { data: siblingData } = await supabase
+          .from('items')
+          .select('id')
+          .eq('parent_id', parentTask.id);
+        setExistingSiblingCount(siblingData?.length ?? 0);
+      } else {
+        setExistingSiblingCount(0);
+      }
+
       if (editingTask) {
         const event = await getEntityEvent('task', editingTask.id);
         setExistingTimeEvent(event);
@@ -77,14 +90,17 @@ const TaskModal: React.FC<TaskModalProps> = ({
         setTaskDrafts([createEmptyDraft()]);
       }
     };
-    if (isOpen) loadExistingEvent();
-  }, [isOpen, editingTask, getEntityEvent, taskType]);
+    if (isOpen) loadOnOpen();
+  }, [isOpen, editingTask, getEntityEvent, taskType, parentTask]);
 
-  const resetModal = () => { setTaskDrafts([createEmptyDraft()]); setSchedulingError(''); setExistingTimeEvent(null); setStructuralError(''); };
+  const resetModal = () => { setTaskDrafts([createEmptyDraft()]); setSchedulingError(''); setExistingTimeEvent(null); setStructuralError(''); setExistingSiblingCount(0); };
   const handleClose = () => { resetModal(); onClose(); };
 
+  const remainingSlots = parentTask ? Math.max(0, MAX_CHILDREN_PER_TASK - existingSiblingCount - taskDrafts.length) : Infinity;
+  const canAddMoreDrafts = !editingTask && config.showMultipleTasks && (!parentTask || remainingSlots > 0);
+
   const addNewTaskDraft = () => {
-    if (!editingTask && config.showMultipleTasks) setTaskDrafts([...taskDrafts, createEmptyDraft()]);
+    if (canAddMoreDrafts) setTaskDrafts([...taskDrafts, createEmptyDraft()]);
   };
 
   const updateTaskDraft = (index: number, field: keyof TaskDraft, value: string | number | Date | boolean | undefined) => {
@@ -169,7 +185,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const isSubTask = !!parentTask;
   const allValid = taskDrafts.length > 0 && taskDrafts.every(d => isTaskDraftValid(d, taskType, isSubTask));
   const validCount = taskDrafts.filter(d => isTaskDraftValid(d, taskType, isSubTask)).length;
-  const showLimitWarning = parentTask && taskDrafts.length > 3;
+  const showLimitInfo = parentTask && !editingTask && remainingSlots < Infinity;
   const canSubmit = allValid && !schedulingError;
   const shouldUseGrid = taskDrafts.length >= 2 && !editingTask && config.showMultipleTasks;
   const gridCols = taskDrafts.length >= 4 ? 'grid-cols-2' : 'grid-cols-1 lg:grid-cols-2';
@@ -192,8 +208,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
         <DialogHeader><DialogTitle>{getTitle()}</DialogTitle></DialogHeader>
 
         <div className="space-y-4">
-          {showLimitWarning && (
-            <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>Maximum 3 sous-tâches par niveau.</AlertDescription></Alert>
+          {showLimitInfo && (
+            <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>
+              {existingSiblingCount > 0
+                ? `${existingSiblingCount} sous-tâche(s) existante(s) — ${remainingSlots} place(s) restante(s) (max ${MAX_CHILDREN_PER_TASK})`
+                : `Maximum ${MAX_CHILDREN_PER_TASK} sous-tâches par niveau`}
+            </AlertDescription></Alert>
           )}
           {structuralError && (
             <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>{structuralError}</AlertDescription></Alert>
@@ -220,7 +240,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
             ))}
           </div>
 
-          {!editingTask && config.showMultipleTasks && (
+          {!editingTask && config.showMultipleTasks && canAddMoreDrafts && (
             <Button type="button" variant="outline" onClick={addNewTaskDraft} className="w-full border-dashed">
               <Plus className="w-4 h-4 mr-2" />Ajouter une autre tâche
             </Button>
