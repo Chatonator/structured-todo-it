@@ -71,8 +71,10 @@ export type Database = {
           page_url: string | null
           resolved_at: string | null
           screenshot_url: string | null
+          severity: string
           status: string
           title: string
+          type: string
           user_agent: string | null
           user_id: string
         }
@@ -84,8 +86,10 @@ export type Database = {
           page_url?: string | null
           resolved_at?: string | null
           screenshot_url?: string | null
+          severity?: string
           status?: string
           title: string
+          type?: string
           user_agent?: string | null
           user_id: string
         }
@@ -97,8 +101,10 @@ export type Database = {
           page_url?: string | null
           resolved_at?: string | null
           screenshot_url?: string | null
+          severity?: string
           status?: string
           title?: string
+          type?: string
           user_agent?: string | null
           user_id?: string
         }

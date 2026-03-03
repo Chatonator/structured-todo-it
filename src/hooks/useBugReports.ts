@@ -13,6 +13,8 @@ export interface BugReport {
   page_url: string | null;
   user_agent: string | null;
   status: string;
+  type: string;
+  severity: string;
   admin_notes: string | null;
   created_at: string;
   resolved_at: string | null;
@@ -25,6 +27,8 @@ export function useSubmitBugReport() {
   const submitBugReport = async (
     title: string,
     description: string,
+    type: string,
+    severity: string,
     screenshotFile?: File | null
   ) => {
     setIsSubmitting(true);
@@ -56,11 +60,13 @@ export function useSubmitBugReport() {
         screenshot_url: screenshotUrl,
         page_url: window.location.href,
         user_agent: navigator.userAgent,
+        type,
+        severity: type === 'bug' ? severity : 'medium',
       });
 
       if (error) throw error;
 
-      toast({ title: 'Bug signalé', description: 'Merci pour votre signalement !' });
+      toast({ title: type === 'bug' ? 'Bug signalé' : 'Amélioration soumise', description: 'Merci pour votre retour !' });
       return true;
     } catch (err: any) {
       logger.error('Failed to submit bug report', { error: err.message }, err);
@@ -74,9 +80,9 @@ export function useSubmitBugReport() {
   return { submitBugReport, isSubmitting };
 }
 
-export function useBugReportsList(statusFilter?: string) {
+export function useBugReportsList(statusFilter?: string, typeFilter?: string) {
   return useQuery({
-    queryKey: ['bug-reports', statusFilter],
+    queryKey: ['bug-reports', statusFilter, typeFilter],
     queryFn: async () => {
       let query = supabase
         .from('bug_reports')
@@ -86,8 +92,30 @@ export function useBugReportsList(statusFilter?: string) {
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       }
+      if (typeFilter && typeFilter !== 'all') {
+        query = query.eq('type', typeFilter);
+      }
 
       const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as BugReport[];
+    },
+  });
+}
+
+export function useMyReports() {
+  return useQuery({
+    queryKey: ['my-bug-reports'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('bug_reports')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
       return (data || []) as BugReport[];
     },
@@ -110,7 +138,7 @@ export function useUpdateBugReport() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bug-reports'] });
-      toast({ title: 'Bug mis à jour' });
+      toast({ title: 'Mis à jour' });
     },
     onError: (err: any) => {
       toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
