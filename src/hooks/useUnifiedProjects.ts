@@ -35,7 +35,10 @@ export interface UnifiedProjectsResult {
     name: string,
     description?: string,
     icon?: string,
-    color?: string
+    color?: string,
+    context?: string,
+    isImportant?: boolean,
+    isUrgent?: boolean
   ) => Promise<UnifiedProject | null>;
   
   updateProject: (
@@ -81,13 +84,16 @@ export const useUnifiedProjects = (): UnifiedProjectsResult => {
     name: string,
     description?: string,
     icon?: string,
-    color?: string
+    color?: string,
+    context?: string,
+    isImportant?: boolean,
+    isUrgent?: boolean
   ): Promise<UnifiedProject | null> => {
     if (isTeamMode) {
       const project = await teamProjects.createProject(name, description, icon, color);
       return project ? teamProjectToUnified(project) : null;
     } else {
-      const project = await personalProjects.createProject(name, description, icon, color);
+      const project = await personalProjects.createProject(name, description, icon, color, context, isImportant, isUrgent);
       return project ? projectToUnified(project as ProjectWithKanban) : null;
     }
   }, [isTeamMode, teamProjects, personalProjects]);

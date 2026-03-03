@@ -43,7 +43,7 @@ export const useProjectsFullViewData = () => {
     : "Gérez vos projets complexes avec des tâches organisées";
 
   const handleCreateProject = useCallback(async (data: any) => {
-    await createProject(data.name, data.description, data.icon, data.color);
+    await createProject(data.name, data.description, data.icon, data.color, data.context, data.isImportant, data.isUrgent);
     setShowModal(false);
   }, [createProject]);
 

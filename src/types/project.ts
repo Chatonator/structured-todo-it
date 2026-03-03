@@ -68,4 +68,3 @@ export const TASK_PROJECT_STATUS_CONFIG: Record<TaskProjectStatus, {
 };
 
 export const PROJECT_ICONS = ['📚', '🎯', '💼', '🏠', '✈️', '🎨', '💡', '🚀', '🎓', '❤️'];
-export const PROJECT_COLORS = ['#a78bfa', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];

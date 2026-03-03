@@ -38,12 +38,19 @@ function itemToProject(item: Item): ProjectWithKanban {
 }
 
 // Convert Project to Item metadata - only includes defined properties to avoid undefined overwriting defaults
-function projectToItemMetadata(project: Partial<ProjectWithKanban>): Partial<ItemMetadata> {
+function projectToItemMetadata(
+  project: Partial<ProjectWithKanban>,
+  context?: string,
+  isImportant?: boolean,
+  isUrgent?: boolean
+): Partial<ItemMetadata> {
   const metadata: Partial<ItemMetadata> = {
-    // Required harmonized fields - always with defaults
-    category: 'Projet' as any,
-    context: 'Perso' as any,
+    // Required harmonized fields
+    category: 'Autres' as any,
+    context: (context as any) || 'Perso',
     estimatedTime: 60,
+    isImportant: isImportant ?? false,
+    isUrgent: isUrgent ?? false,
   };
   
   // Required project fields - always with defaults
@@ -87,7 +94,10 @@ export const useProjects = () => {
     name: string,
     description?: string,
     icon?: string,
-    color?: string
+    color?: string,
+    context?: string,
+    isImportant?: boolean,
+    isUrgent?: boolean
   ) => {
     try {
       const newItem = await createItem({
@@ -99,7 +109,7 @@ export const useProjects = () => {
           color: color || '#a78bfa',
           status: 'planning',
           progress: 0,
-        }),
+        }, context, isImportant, isUrgent),
         orderIndex: projects.length,
       });
 
