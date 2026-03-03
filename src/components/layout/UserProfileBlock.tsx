@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { User, LogOut, Users, Settings, Bug } from 'lucide-react';
+import { User, LogOut, Users, Settings, Bug, Inbox, MessageSquarePlus } from 'lucide-react';
+import MyReportsPanel from '@/components/bugs/MyReportsPanel';
+import BugReportModal from '@/components/bugs/BugReportModal';
 
 const ADMIN_USER_ID = 'a72dc5ca-c281-46c0-a16c-139676705564';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +25,8 @@ const UserProfileBlock: React.FC = () => {
   const { progress, getProgressPercentage } = useGamification();
   const navigate = useNavigate();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMyReportsOpen, setIsMyReportsOpen] = useState(false);
+  const [isBugReportOpen, setIsBugReportOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -95,6 +100,24 @@ const UserProfileBlock: React.FC = () => {
           Mes équipes
         </DropdownMenuItem>
 
+        <DropdownMenuSeparator className="bg-border" />
+
+        <DropdownMenuItem
+          onClick={() => setIsBugReportOpen(true)}
+          className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
+        >
+          <MessageSquarePlus className="h-4 w-4" />
+          Signaler / Suggérer
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onClick={() => setIsMyReportsOpen(true)}
+          className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
+        >
+          <Inbox className="h-4 w-4" />
+          Mes réclamations
+        </DropdownMenuItem>
+
         {user?.id === ADMIN_USER_ID && (
           <DropdownMenuItem 
             onClick={() => navigate('/admin/bugs')}
@@ -118,6 +141,8 @@ const UserProfileBlock: React.FC = () => {
     </DropdownMenu>
     
     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+    <MyReportsPanel open={isMyReportsOpen} onOpenChange={setIsMyReportsOpen} />
+    <BugReportModal open={isBugReportOpen} onOpenChange={setIsBugReportOpen} />
     </>
   );
 };

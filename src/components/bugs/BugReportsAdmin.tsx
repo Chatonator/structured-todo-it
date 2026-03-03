@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Bug, ExternalLink, Monitor, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Bug, ExternalLink, Monitor, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 const statusColors: Record<string, string> = {
   open: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -24,11 +25,26 @@ const statusLabels: Record<string, string> = {
   closed: 'Fermé',
 };
 
+const severityColors: Record<string, string> = {
+  low: 'bg-green-500/10 text-green-600 border-green-500/20',
+  medium: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+  high: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  critical: 'bg-destructive/10 text-destructive border-destructive/20',
+};
+
+const severityLabels: Record<string, string> = {
+  low: 'Faible',
+  medium: 'Moyen',
+  high: 'Élevé',
+  critical: 'Critique',
+};
+
 const BugReportsAdmin: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
-  const { data: bugs = [], isLoading } = useBugReportsList(statusFilter);
+  const { data: bugs = [], isLoading } = useBugReportsList(statusFilter, typeFilter);
   const updateBug = useUpdateBugReport();
   const navigate = useNavigate();
 
@@ -39,6 +55,9 @@ const BugReportsAdmin: React.FC = () => {
   const handleSaveNotes = (bugId: string) => {
     updateBug.mutate({ id: bugId, admin_notes: adminNotes[bugId] ?? '' });
   };
+
+  const bugCount = bugs.filter(b => b.type === 'bug').length;
+  const featureCount = bugs.filter(b => b.type === 'feature_request').length;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -52,21 +71,28 @@ const BugReportsAdmin: React.FC = () => {
             <Bug className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold text-foreground">Bug Reports</h1>
           </div>
-          <Badge variant="secondary" className="ml-auto">{bugs.length} signalement{bugs.length !== 1 ? 's' : ''}</Badge>
+          <div className="ml-auto flex items-center gap-2">
+            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">🐛 {bugCount} bug{bugCount !== 1 ? 's' : ''}</Badge>
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">💡 {featureCount} amélioration{featureCount !== 1 ? 's' : ''}</Badge>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 flex-wrap">
-          {['all', 'open', 'in_progress', 'resolved', 'closed'].map((s) => (
-            <Button
-              key={s}
-              variant={statusFilter === s ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter(s)}
-            >
-              {s === 'all' ? 'Tous' : statusLabels[s]}
-            </Button>
-          ))}
+        <div className="space-y-2">
+          <div className="flex gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground self-center mr-1">Type :</span>
+            {[{ v: 'all', l: 'Tous' }, { v: 'bug', l: '🐛 Bugs' }, { v: 'feature_request', l: '💡 Améliorations' }].map(({ v, l }) => (
+              <Button key={v} variant={typeFilter === v ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(v)}>{l}</Button>
+            ))}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground self-center mr-1">Statut :</span>
+            {['all', 'open', 'in_progress', 'resolved', 'closed'].map((s) => (
+              <Button key={s} variant={statusFilter === s ? 'secondary' : 'outline'} size="sm" onClick={() => setStatusFilter(s)}>
+                {s === 'all' ? 'Tous' : statusLabels[s]}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* List */}
@@ -85,9 +111,17 @@ const BugReportsAdmin: React.FC = () => {
                     onClick={() => setExpandedId(isExpanded ? null : bug.id)}
                   >
                     <div className="flex items-center gap-3">
-                      <Badge className={statusColors[bug.status] || ''} variant="outline">
+                      {bug.type === 'bug'
+                        ? <Bug className="w-4 h-4 text-destructive shrink-0" />
+                        : <Lightbulb className="w-4 h-4 text-primary shrink-0" />}
+                      <Badge className={cn(statusColors[bug.status] || '')} variant="outline">
                         {statusLabels[bug.status] || bug.status}
                       </Badge>
+                      {bug.type === 'bug' && bug.severity && (
+                        <Badge className={cn(severityColors[bug.severity] || '')} variant="outline">
+                          {severityLabels[bug.severity] || bug.severity}
+                        </Badge>
+                      )}
                       <CardTitle className="text-sm font-medium flex-1 truncate">{bug.title}</CardTitle>
                       <span className="text-xs text-muted-foreground shrink-0">
                         {format(new Date(bug.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}
@@ -127,10 +161,7 @@ const BugReportsAdmin: React.FC = () => {
 
                       {/* Admin actions */}
                       <div className="flex items-center gap-3 pt-2 border-t border-border">
-                        <Select
-                          value={bug.status}
-                          onValueChange={(val) => handleStatusChange(bug, val)}
-                        >
+                        <Select value={bug.status} onValueChange={(val) => handleStatusChange(bug, val)}>
                           <SelectTrigger className="w-40 h-8 text-xs">
                             <SelectValue />
                           </SelectTrigger>
@@ -146,14 +177,14 @@ const BugReportsAdmin: React.FC = () => {
                       {/* Admin notes */}
                       <div className="space-y-2">
                         <Textarea
-                          placeholder="Notes admin..."
+                          placeholder="Notes / réponse visible par l'utilisateur..."
                           value={adminNotes[bug.id] ?? bug.admin_notes ?? ''}
                           onChange={(e) => setAdminNotes((prev) => ({ ...prev, [bug.id]: e.target.value }))}
                           rows={2}
                           className="text-xs"
                         />
                         <Button size="sm" variant="outline" onClick={() => handleSaveNotes(bug.id)}>
-                          Sauvegarder notes
+                          Sauvegarder la réponse
                         </Button>
                       </div>
                     </CardContent>
