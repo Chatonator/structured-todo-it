@@ -1,59 +1,96 @@
 
-## Plan : Sécurisation de la vue Admin Bug Reports
+## Plan : Amélioration du système de signalement utilisateur
 
-### Problème actuel
-- La route `/admin/bugs` est accessible à n'importe quel utilisateur authentifié (DEV_BYPASS_AUTH = true rend même ça inutile)
-- La RLS `bug_reports` n'autorise le SELECT que sur ses propres rapports → l'admin ne voit rien des autres utilisateurs
-- Pas de vérification d'identité côté client ni côté DB
+### Analyse de l'état actuel
+
+**Côté utilisateur (BugReportModal) :**
+- Pas de champ "type" de signalement → on ne peut pas distinguer bug / amélioration
+- Formulaire minimaliste, pas d'indication de priorité ou de sévérité
+- Pas de vue "mes réclamations en cours" pour le suivi
+
+**Côté DB :**
+- La table `bug_reports` n'a pas de colonne `type` (bug | feature_request) ni `severity`
+- Les statuts existants : open, in_progress, resolved, closed
+
+---
 
 ### Ce qu'on va faire
 
-**1. RLS Supabase — migration SQL**
-- Ajouter une politique SELECT admin sur `bug_reports` : autoriser la lecture de tous les rapports si `auth.uid() = '5bc43bb8-0880-4631-bc01-174543461bb8'`
-- Ajouter une politique UPDATE admin sur `bug_reports` : autoriser la mise à jour de tous les rapports (notes, status) si admin
-- Hardcoder l'UUID admin directement dans les politiques RLS (côté DB, inviolable)
+**1. Migration SQL**
+- Ajouter colonne `type text NOT NULL DEFAULT 'bug'` → valeurs : `'bug'` | `'feature_request'`
+- Ajouter colonne `severity text NOT NULL DEFAULT 'medium'` → valeurs : `'low'` | `'medium'` | `'high'` | `'critical'` (uniquement pour bugs)
+- Ajouter policy SELECT pour que les utilisateurs puissent lire leurs propres réclamations (déjà en place via "Users can view their own bug reports" ✓)
 
-**2. Hook `useAdminCheck`** (nouveau, simple)
-- Vérifie côté client que `user.id === ADMIN_USER_ID` 
-- Utilisé uniquement pour l'affichage UI (redirection), la vraie sécurité est en RLS
+**2. `BugReportModal.tsx` — refonte visuelle et structurelle**
+- Sélecteur de type en haut : **Bug** 🐛 ou **Amélioration** 💡 (deux cartes cliquables, plus visuel qu'un select)
+- Si type = bug : afficher un sélecteur de sévérité (Faible / Moyen / Élevé / Critique) avec couleurs
+- Titre et description améliorés avec compteur de caractères
+- Zone screenshot plus lisible avec drag-and-drop visuel
+- Meilleure mise en page générale (plus aéré, icônes)
 
-**3. Route `/admin/bugs` dans `App.tsx`**
-- Créer un `AdminRoute` qui :
-  1. Désactive `DEV_BYPASS_AUTH` pour cette route spécifique
-  2. Vérifie l'auth ET que `user.id === ADMIN_USER_ID`
-  3. Redirige vers `/` si non-admin
+**3. Nouveau composant `MyReportsPanel.tsx`**
+- Modal ou panel affichant les signalements de l'utilisateur connecté
+- Filtres par type (Bugs / Améliorations / Tous) et statut
+- Chaque item : titre, type badge, statut coloré, date, et note admin si présente
+- Accessible via un bouton dans le menu profil "Mes réclamations"
 
-**4. `BugReportsAdmin.tsx`**
-- Supprimer la dépendance au contexte DEV, route déjà protégée
-- Aucun autre changement UI nécessaire
+**4. `useBugReports.ts`**
+- Mettre à jour `BugReport` interface avec `type` et `severity`
+- Mettre à jour `submitBugReport` pour accepter `type` et `severity`
+- Ajouter hook `useMyReports()` : query sur `bug_reports` filtrée sur `auth.uid()` (déjà permis par RLS existante)
 
-### Architecture de sécurité
+**5. `BugReportsAdmin.tsx`**
+- Ajouter filtre par type (Bugs / Améliorations)
+- Afficher le badge de type et sévérité dans chaque card
+- Ajouter filtre combiné type + statut
+
+**6. `UserProfileBlock.tsx`**
+- Ajouter entrée "Mes réclamations" (visible pour tous les utilisateurs authentifiés) qui ouvre `MyReportsPanel`
+
+---
+
+### Wireframe modal amélioré
 
 ```text
-Requête vers /admin/bugs
-        │
-        ▼
-AdminRoute (client)
-  ├─ Non authentifié → redirect /auth
-  ├─ user.id ≠ ADMIN_ID → redirect /
-  └─ OK → affiche BugReportsAdmin
-               │
-               ▼
-        useBugReportsList()
-               │
-               ▼
-        Supabase RLS
-  ├─ user = admin → SELECT * bug_reports ✓
-  └─ user ≠ admin → SELECT uniquement ses propres ✗
+┌─────────────────────────────────────────┐
+│  Signaler un problème                   │
+│─────────────────────────────────────────│
+│  Type de signalement                    │
+│  ┌──────────────┐  ┌──────────────────┐ │
+│  │ 🐛 Bug        │  │ 💡 Amélioration  │ │
+│  │ Quelque chose │  │ Une idée ou      │ │
+│  │ ne fonctionne │  │ suggestion       │ │
+│  └──────────────┘  └──────────────────┘ │
+│                                         │
+│  [Si bug] Sévérité                      │
+│  ○ Faible  ○ Moyen  ● Élevé  ○ Critique │
+│                                         │
+│  Titre *                    [0/200]     │
+│  ┌─────────────────────────────────────┐│
+│  │ Résumé court...                     ││
+│  └─────────────────────────────────────┘│
+│                                         │
+│  Description *              [0/2000]    │
+│  ┌─────────────────────────────────────┐│
+│  │ Décrivez...                         ││
+│  └─────────────────────────────────────┘│
+│                                         │
+│  Capture (optionnel)                    │
+│  ┌─ - - - - - - - - - - - - - - - - -┐ │
+│  │   📎 Glisser ou cliquer            │ │
+│  └─ - - - - - - - - - - - - - - - - -┘ │
+│                                         │
+│              [Annuler]  [Envoyer →]     │
+└─────────────────────────────────────────┘
 ```
 
 ### Fichiers touchés
 
 | Fichier | Action |
 |---|---|
-| Migration SQL | Ajouter politiques RLS admin SELECT + UPDATE sur `bug_reports` |
-| `src/App.tsx` | Créer `AdminRoute`, protéger `/admin/bugs` |
-| `src/hooks/useBugReports.ts` | Aucun changement nécessaire (RLS fait le travail) |
-
-### Constante admin
-L'UUID admin `5bc43bb8-0880-4631-bc01-174543461bb8` sera stocké dans une constante dans `src/App.tsx` uniquement, jamais exposé dans un fichier accessible à l'utilisateur via le réseau.
+| Migration SQL | Ajout colonnes `type` + `severity` |
+| `src/hooks/useBugReports.ts` | Mise à jour interface + hooks |
+| `src/components/bugs/BugReportModal.tsx` | Refonte complète |
+| `src/components/bugs/MyReportsPanel.tsx` | Nouveau composant |
+| `src/components/bugs/BugReportsAdmin.tsx` | Filtres type + sévérité |
+| `src/components/layout/UserProfileBlock.tsx` | Lien "Mes réclamations" |
