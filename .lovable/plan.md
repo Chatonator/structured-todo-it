@@ -1,96 +1,73 @@
 
-## Plan : Amélioration du système de signalement utilisateur
 
-### Analyse de l'état actuel
+# Correction creation projet + Amelioration modale projet
 
-**Côté utilisateur (BugReportModal) :**
-- Pas de champ "type" de signalement → on ne peut pas distinguer bug / amélioration
-- Formulaire minimaliste, pas d'indication de priorité ou de sévérité
-- Pas de vue "mes réclamations en cours" pour le suivi
+## Probleme de creation
 
-**Côté DB :**
-- La table `bug_reports` n'a pas de colonne `type` (bug | feature_request) ni `severity`
-- Les statuts existants : open, in_progress, resolved, closed
+Le `handleCreateProject` dans `useProjectsFullViewData.ts` (ligne 46) appelle `createProject(data.name, data.description, data.icon, data.color)` — il ne transmet que 4 arguments. Mais la modale envoie un objet avec plus de champs. Le probleme probable est que `onSave` dans `ProjectModal` appelle aussi `onClose()` (ligne 79) immediatement apres `onSave()`, et le `handleCreateProject` ferme aussi le modal. Double fermeture + possible race condition. A verifier en debug, mais le fix principal est de s'assurer que le flux de donnees est correct.
+
+De plus, `projectToItemMetadata` dans `useProjects.ts` hardcode `context: 'Perso'` et `category: 'Projet'` — les nouveaux champs contexte/importance devront etre passes.
 
 ---
 
-### Ce qu'on va faire
+## Modifications prevues
 
-**1. Migration SQL**
-- Ajouter colonne `type text NOT NULL DEFAULT 'bug'` → valeurs : `'bug'` | `'feature_request'`
-- Ajouter colonne `severity text NOT NULL DEFAULT 'medium'` → valeurs : `'low'` | `'medium'` | `'high'` | `'critical'` (uniquement pour bugs)
-- Ajouter policy SELECT pour que les utilisateurs puissent lire leurs propres réclamations (déjà en place via "Users can view their own bug reports" ✓)
+### 1. `src/components/projects/ProjectModal.tsx` — Refonte de la modale
 
-**2. `BugReportModal.tsx` — refonte visuelle et structurelle**
-- Sélecteur de type en haut : **Bug** 🐛 ou **Amélioration** 💡 (deux cartes cliquables, plus visuel qu'un select)
-- Si type = bug : afficher un sélecteur de sévérité (Faible / Moyen / Élevé / Critique) avec couleurs
-- Titre et description améliorés avec compteur de caractères
-- Zone screenshot plus lisible avec drag-and-drop visuel
-- Meilleure mise en page générale (plus aéré, icônes)
+**Couleur libre** :
+- Remplacer le `Select` de couleurs predefinies par un `<input type="color">` natif avec preview du cercle colore.
 
-**3. Nouveau composant `MyReportsPanel.tsx`**
-- Modal ou panel affichant les signalements de l'utilisateur connecté
-- Filtres par type (Bugs / Améliorations / Tous) et statut
-- Chaque item : titre, type badge, statut coloré, date, et note admin si présente
-- Accessible via un bouton dans le menu profil "Mes réclamations"
+**Contexte Pro/Perso** :
+- Ajouter un selecteur Pro/Perso identique aux taches (deux boutons toggle avec emojis).
 
-**4. `useBugReports.ts`**
-- Mettre à jour `BugReport` interface avec `type` et `severity`
-- Mettre à jour `submitBugReport` pour accepter `type` et `severity`
-- Ajouter hook `useMyReports()` : query sur `bug_reports` filtrée sur `auth.uid()` (déjà permis par RLS existante)
+**Boutons Important/Urgent** :
+- Ajouter les memes boutons toggle que dans `SidebarQuickAdd` (etoile Important + eclair Urgent).
+- Stocker en interne `isImportant` et `isUrgent` (booleans).
 
-**5. `BugReportsAdmin.tsx`**
-- Ajouter filtre par type (Bugs / Améliorations)
-- Afficher le badge de type et sévérité dans chaque card
-- Ajouter filtre combiné type + statut
+**Date cible** :
+- Garder le champ existant, inchange.
 
-**6. `UserProfileBlock.tsx`**
-- Ajouter entrée "Mes réclamations" (visible pour tous les utilisateurs authentifiés) qui ouvre `MyReportsPanel`
+**Enrichir le type `onSave`** :
+- Ajouter `context?: TaskContext`, `isImportant?: boolean`, `isUrgent?: boolean` au type de retour du `onSave`.
+
+### 2. `src/hooks/useProjects.ts` — Passer contexte et Eisenhower
+
+- Modifier `createProject` pour accepter `context`, `isImportant`, `isUrgent` en parametres optionnels.
+- Dans `projectToItemMetadata`, utiliser le contexte et les flags passes au lieu des valeurs hardcodees.
+- Modifier `updateProject` pour supporter ces nouveaux champs.
+
+### 3. `src/hooks/useUnifiedProjects.ts` — Propager les nouveaux params
+
+- Etendre la signature de `createProject` pour inclure `context`, `isImportant`, `isUrgent`.
+
+### 4. `src/hooks/view-data/useProjectsFullViewData.ts` — Passer les nouvelles donnees
+
+- Modifier `handleCreateProject` pour transmettre `context`, `isImportant`, `isUrgent` depuis les donnees du formulaire.
+
+### 5. `src/types/project.ts` — Nettoyer
+
+- Supprimer `PROJECT_COLORS` (plus necessaire avec le color picker libre).
+- Ajouter `context?: TaskContext` et `isImportant/isUrgent` optionnels au type `Project`.
+
+### 6. Date cible dans la Timeline
+
+- Dans `useTimelineViewData.ts` ou le hook de time events, detecter les projets avec `targetDate` definie et les injecter comme evenements de type deadline dans la timeline a la date concernee. Creer un `TimeEvent` de type `reminder` avec le nom du projet et la date cible.
 
 ---
 
-### Wireframe modal amélioré
+## Details techniques
 
-```text
-┌─────────────────────────────────────────┐
-│  Signaler un problème                   │
-│─────────────────────────────────────────│
-│  Type de signalement                    │
-│  ┌──────────────┐  ┌──────────────────┐ │
-│  │ 🐛 Bug        │  │ 💡 Amélioration  │ │
-│  │ Quelque chose │  │ Une idée ou      │ │
-│  │ ne fonctionne │  │ suggestion       │ │
-│  └──────────────┘  └──────────────────┘ │
-│                                         │
-│  [Si bug] Sévérité                      │
-│  ○ Faible  ○ Moyen  ● Élevé  ○ Critique │
-│                                         │
-│  Titre *                    [0/200]     │
-│  ┌─────────────────────────────────────┐│
-│  │ Résumé court...                     ││
-│  └─────────────────────────────────────┘│
-│                                         │
-│  Description *              [0/2000]    │
-│  ┌─────────────────────────────────────┐│
-│  │ Décrivez...                         ││
-│  └─────────────────────────────────────┘│
-│                                         │
-│  Capture (optionnel)                    │
-│  ┌─ - - - - - - - - - - - - - - - - -┐ │
-│  │   📎 Glisser ou cliquer            │ │
-│  └─ - - - - - - - - - - - - - - - - -┘ │
-│                                         │
-│              [Annuler]  [Envoyer →]     │
-└─────────────────────────────────────────┘
+### Color picker
+```
+<div className="flex items-center gap-2">
+  <input type="color" value={color} onChange={e => setColor(e.target.value)} />
+  <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: color }} />
+</div>
 ```
 
-### Fichiers touchés
+### Boutons Important/Urgent (meme pattern que SidebarQuickAdd)
+Deux boutons toggle avec classes conditionnelles `bg-category-envie/15` pour Important et `bg-category-quotidien/15` pour Urgent.
 
-| Fichier | Action |
-|---|---|
-| Migration SQL | Ajout colonnes `type` + `severity` |
-| `src/hooks/useBugReports.ts` | Mise à jour interface + hooks |
-| `src/components/bugs/BugReportModal.tsx` | Refonte complète |
-| `src/components/bugs/MyReportsPanel.tsx` | Nouveau composant |
-| `src/components/bugs/BugReportsAdmin.tsx` | Filtres type + sévérité |
-| `src/components/layout/UserProfileBlock.tsx` | Lien "Mes réclamations" |
+### Timeline — injection des deadlines projet
+Recuperer tous les projets actifs avec `targetDate`, les convertir en occurrences affichees comme marqueurs visuels (badge "Deadline") sur le jour concerne.
+
