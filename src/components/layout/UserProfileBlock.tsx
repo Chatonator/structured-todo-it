@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { User, LogOut, Users, Settings, Bug, MessageSquarePlus } from 'lucide-react';
-import BugHub from '@/components/bugs/BugHub';
+import { User, LogOut, Users, Settings, Bug } from 'lucide-react';
 
 const ADMIN_USER_ID = 'a72dc5ca-c281-46c0-a16c-139676705564';
 
@@ -24,7 +23,6 @@ const UserProfileBlock: React.FC = () => {
   const { progress, getProgressPercentage } = useGamification();
   const navigate = useNavigate();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isBugHubOpen, setIsBugHubOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -97,17 +95,6 @@ const UserProfileBlock: React.FC = () => {
           <Users className="h-4 w-4" />
           Mes équipes
         </DropdownMenuItem>
-
-        <DropdownMenuSeparator className="bg-border" />
-
-        <DropdownMenuItem
-          onClick={() => setIsBugHubOpen(true)}
-          className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
-        >
-          <MessageSquarePlus className="h-4 w-4" />
-          Signaler / Mes demandes
-        </DropdownMenuItem>
-
         {user?.id === ADMIN_USER_ID && (
           <DropdownMenuItem 
             onClick={() => navigate('/admin/bugs')}
@@ -131,7 +118,6 @@ const UserProfileBlock: React.FC = () => {
     </DropdownMenu>
     
     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-    <BugHub open={isBugHubOpen} onOpenChange={setIsBugHubOpen} />
     </>
   );
 };
