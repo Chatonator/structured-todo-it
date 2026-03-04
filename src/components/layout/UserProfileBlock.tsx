@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { User, LogOut, Users, Settings, Bug, Inbox, MessageSquarePlus } from 'lucide-react';
-import MyReportsPanel from '@/components/bugs/MyReportsPanel';
-import BugReportModal from '@/components/bugs/BugReportModal';
+import { User, LogOut, Users, Settings, Bug, MessageSquarePlus } from 'lucide-react';
+import BugHub from '@/components/bugs/BugHub';
 
 const ADMIN_USER_ID = 'a72dc5ca-c281-46c0-a16c-139676705564';
 
@@ -25,8 +24,7 @@ const UserProfileBlock: React.FC = () => {
   const { progress, getProgressPercentage } = useGamification();
   const navigate = useNavigate();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isMyReportsOpen, setIsMyReportsOpen] = useState(false);
-  const [isBugReportOpen, setIsBugReportOpen] = useState(false);
+  const [isBugHubOpen, setIsBugHubOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -103,19 +101,11 @@ const UserProfileBlock: React.FC = () => {
         <DropdownMenuSeparator className="bg-border" />
 
         <DropdownMenuItem
-          onClick={() => setIsBugReportOpen(true)}
+          onClick={() => setIsBugHubOpen(true)}
           className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
         >
           <MessageSquarePlus className="h-4 w-4" />
-          Signaler / Suggérer
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          onClick={() => setIsMyReportsOpen(true)}
-          className="text-foreground hover:bg-accent cursor-pointer flex items-center gap-2"
-        >
-          <Inbox className="h-4 w-4" />
-          Mes réclamations
+          Signaler / Mes demandes
         </DropdownMenuItem>
 
         {user?.id === ADMIN_USER_ID && (
@@ -141,8 +131,7 @@ const UserProfileBlock: React.FC = () => {
     </DropdownMenu>
     
     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-    <MyReportsPanel open={isMyReportsOpen} onOpenChange={setIsMyReportsOpen} />
-    <BugReportModal open={isBugReportOpen} onOpenChange={setIsBugReportOpen} />
+    <BugHub open={isBugHubOpen} onOpenChange={setIsBugHubOpen} />
     </>
   );
 };
