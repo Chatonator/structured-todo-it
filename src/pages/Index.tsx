@@ -13,6 +13,7 @@ import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsMobile } from '@/hooks/shared/use-mobile';
+import { useAppUpdates } from '@/hooks/useAppUpdates';
 import type { Task } from '@/types/task';
 
 /**
@@ -22,6 +23,7 @@ import type { Task } from '@/types/task';
 const IndexContent: React.FC = () => {
   const { theme } = useTheme();
   const isMobile = useIsMobile();
+  useAppUpdates();
   
   const {
     currentView,
