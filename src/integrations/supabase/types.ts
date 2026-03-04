@@ -62,6 +62,33 @@ export type Database = {
         }
         Relationships: []
       }
+      app_updates: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          title: string
+          update_type: string
+          version: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          title: string
+          update_type?: string
+          version?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          title?: string
+          update_type?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
       bug_reports: {
         Row: {
           admin_notes: string | null
@@ -996,6 +1023,32 @@ export type Database = {
           xp_for_next_level?: number | null
         }
         Relationships: []
+      }
+      user_seen_updates: {
+        Row: {
+          seen_at: string
+          update_id: string
+          user_id: string
+        }
+        Insert: {
+          seen_at?: string
+          update_id: string
+          user_id: string
+        }
+        Update: {
+          seen_at?: string
+          update_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_seen_updates_update_id_fkey"
+            columns: ["update_id"]
+            isOneToOne: false
+            referencedRelation: "app_updates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_skills: {
         Row: {
