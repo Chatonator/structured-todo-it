@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckSquare, Plus, Menu, Users, Bug } from 'lucide-react';
-import BugReportModal from '@/components/bugs/BugReportModal';
+import BugHub from '@/components/bugs/BugHub';
 import NotificationPanel from '@/components/notifications/NotificationPanel';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TaskContext } from '@/types/task';
@@ -46,7 +46,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
   navigationItems,
   currentTeam
 }) => {
-  const [isBugModalOpen, setIsBugModalOpen] = useState(false);
+  const [isBugHubOpen, setIsBugHubOpen] = useState(false);
 
   return (
     <header className="bg-background border-b border-border">
@@ -97,12 +97,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground hover:text-foreground"
-                  onClick={() => setIsBugModalOpen(true)}
+                  onClick={() => setIsBugHubOpen(true)}
                 >
                   <Bug className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Signaler un bug</TooltipContent>
+              <TooltipContent>Signaler / Mes demandes</TooltipContent>
             </Tooltip>
 
             {/* Notifications */}
@@ -135,7 +135,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
           />
         </div>
       )}
-      <BugReportModal open={isBugModalOpen} onOpenChange={setIsBugModalOpen} />
+      <BugHub open={isBugHubOpen} onOpenChange={setIsBugHubOpen} />
     </header>
   );
 };
