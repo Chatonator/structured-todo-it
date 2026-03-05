@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Bug, ExternalLink, Monitor, ChevronDown, ChevronUp, Lightbulb, Sparkles, Send } from 'lucide-react';
+import { ArrowLeft, Bug, ExternalLink, Monitor, ChevronDown, ChevronUp, Lightbulb, Sparkles, Send, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -51,6 +51,17 @@ const ChangelogAdmin: React.FC = () => {
   const [message, setMessage] = useState('');
   const [updateType, setUpdateType] = useState('feature');
   const [sending, setSending] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    const { data } = await supabase.from('app_updates').select('*').order('created_at', { ascending: false });
+    setHistory(data ?? []);
+    setLoadingHistory(false);
+  };
+
+  React.useEffect(() => { fetchHistory(); }, []);
 
   const handlePublish = async () => {
     if (!title.trim()) return;
@@ -71,39 +82,83 @@ const ChangelogAdmin: React.FC = () => {
       setTitle('');
       setMessage('');
       setUpdateType('feature');
+      fetchHistory();
     }
   };
 
+  const handleDelete = async (id: string) => {
+    await supabase.from('app_updates').delete().eq('id', id);
+    setHistory(prev => prev.filter(u => u.id !== id));
+    toast({ title: 'Supprimé' });
+  };
+
+  const typeEmoji: Record<string, string> = { feature: '✨', fix: '🔧', improvement: '⚡' };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          Publier une mise à jour
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex gap-2">
-          <Input placeholder="Version (ex: 1.2.0)" value={version} onChange={e => setVersion(e.target.value)} className="w-32" />
-          <Select value={updateType} onValueChange={setUpdateType}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="feature">✨ Feature</SelectItem>
-              <SelectItem value="fix">🔧 Fix</SelectItem>
-              <SelectItem value="improvement">⚡ Amélioration</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Input placeholder="Titre de la mise à jour *" value={title} onChange={e => setTitle(e.target.value)} />
-        <Textarea placeholder="Description (optionnel)" value={message} onChange={e => setMessage(e.target.value)} rows={3} />
-        <Button onClick={handlePublish} disabled={!title.trim() || sending} className="gap-2">
-          <Send className="w-4 h-4" />
-          Publier
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            Publier une mise à jour
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input placeholder="Version (ex: 1.2.0)" value={version} onChange={e => setVersion(e.target.value)} className="w-32" />
+            <Select value={updateType} onValueChange={setUpdateType}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="feature">✨ Feature</SelectItem>
+                <SelectItem value="fix">🔧 Fix</SelectItem>
+                <SelectItem value="improvement">⚡ Amélioration</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Input placeholder="Titre de la mise à jour *" value={title} onChange={e => setTitle(e.target.value)} />
+          <Textarea placeholder="Description (optionnel)" value={message} onChange={e => setMessage(e.target.value)} rows={3} />
+          <Button onClick={handlePublish} disabled={!title.trim() || sending} className="gap-2">
+            <Send className="w-4 h-4" />
+            Publier
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Historique des publications</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingHistory ? (
+            <p className="text-sm text-muted-foreground">Chargement…</p>
+          ) : history.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucune mise à jour publiée.</p>
+          ) : (
+            <div className="space-y-3">
+              {history.map(u => (
+                <div key={u.id} className="flex items-start gap-3 p-3 rounded-lg border border-border">
+                  <span className="text-lg">{typeEmoji[u.update_type] ?? '📋'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{u.title}</span>
+                      {u.version && <Badge variant="outline" className="text-[10px] px-1.5">{u.version}</Badge>}
+                    </div>
+                    {u.message && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{u.message}</p>}
+                    <p className="text-[11px] text-muted-foreground/70 mt-1">{format(new Date(u.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0" onClick={() => handleDelete(u.id)}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
