@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNotifications, type Notification } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Bell, Check, CheckCheck, Trash2, Info, Users, Sparkles, AlertTriangle } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, Info, Users, Sparkles, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -16,43 +16,70 @@ const typeIcons: Record<string, React.ReactNode> = {
   warning: <AlertTriangle className="w-4 h-4 text-destructive" />,
 };
 
+const MESSAGE_PREVIEW_LENGTH = 80;
+
 const NotificationItem: React.FC<{
   notification: Notification;
   onMarkRead: (id: string) => void;
   onDelete: (id: string) => void;
-}> = ({ notification, onMarkRead, onDelete }) => (
-  <div
-    className={cn(
-      "flex items-start gap-3 p-3 rounded-lg transition-colors group",
-      notification.is_read ? "opacity-60" : "bg-primary/5"
-    )}
-  >
-    <div className="flex-shrink-0 mt-0.5">
-      {typeIcons[notification.type] ?? typeIcons.info}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className={cn("text-sm leading-tight", !notification.is_read && "font-medium")}>
-        {notification.title}
-      </p>
-      {notification.message && (
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notification.message}</p>
+}> = ({ notification, onMarkRead, onDelete }) => {
+  const [expanded, setExpanded] = useState(false);
+  const hasLongMessage = (notification.message?.length ?? 0) > MESSAGE_PREVIEW_LENGTH;
+  const displayMessage = expanded
+    ? notification.message
+    : notification.message?.slice(0, MESSAGE_PREVIEW_LENGTH);
+
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-3 p-3 rounded-lg transition-colors group",
+        notification.is_read ? "opacity-60" : "bg-primary/5"
       )}
-      <p className="text-[11px] text-muted-foreground/70 mt-1">
-        {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: fr })}
-      </p>
-    </div>
-    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-      {!notification.is_read && (
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMarkRead(notification.id)}>
-          <Check className="w-3.5 h-3.5" />
+    >
+      <div className="flex-shrink-0 mt-0.5">
+        {typeIcons[notification.type] ?? typeIcons.info}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={cn("text-sm leading-tight", !notification.is_read && "font-medium")}>
+          {notification.title}
+        </p>
+        {notification.message && (
+          <div className="mt-0.5">
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+              {displayMessage}
+              {hasLongMessage && !expanded && '…'}
+            </p>
+            {hasLongMessage && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+                className="inline-flex items-center gap-0.5 text-[11px] text-primary hover:text-primary/80 font-medium mt-1 transition-colors"
+              >
+                {expanded ? (
+                  <>Réduire <ChevronUp className="w-3 h-3" /></>
+                ) : (
+                  <>Voir plus <ChevronDown className="w-3 h-3" /></>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground/70 mt-1">
+          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: fr })}
+        </p>
+      </div>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {!notification.is_read && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMarkRead(notification.id)}>
+            <Check className="w-3.5 h-3.5" />
+          </Button>
+        )}
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(notification.id)}>
+          <Trash2 className="w-3.5 h-3.5" />
         </Button>
-      )}
-      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(notification.id)}>
-        <Trash2 className="w-3.5 h-3.5" />
-      </Button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const NotificationPanel: React.FC = () => {
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
