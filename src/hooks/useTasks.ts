@@ -50,7 +50,7 @@ export const useTasks = () => {
   });
   
   const { rewardTaskCompletion } = useGamification();
-  const { updateEventStatus } = useTimeEventSync();
+  const { updateEventStatus, syncTaskEventWithSchedule } = useTimeEventSync();
 
   // Convert items to tasks
   const tasks = useMemo(() => items.map(itemToTask), [items]);
