@@ -12,6 +12,13 @@ import { itemToTask } from '@/utils/itemConverters';
 import { canAddSubTask } from '@/utils/taskValidation';
 import { logger } from '@/lib/logger';
 
+interface ScheduleInfo {
+  date?: Date;
+  time?: string;
+  isRecurring?: boolean;
+  recurrenceInterval?: string;
+}
+
 // Convert Task to Item metadata
 function taskToItemMetadata(task: Partial<Task>): Partial<ItemMetadata> {
   return {
@@ -43,7 +50,7 @@ export const useTasks = () => {
   });
   
   const { rewardTaskCompletion } = useGamification();
-  const { updateEventStatus } = useTimeEventSync();
+  const { updateEventStatus, syncTaskEventWithSchedule } = useTimeEventSync();
 
   // Convert items to tasks
   const tasks = useMemo(() => items.map(itemToTask), [items]);
@@ -80,6 +87,9 @@ export const useTasks = () => {
 
   // Add task - SECURED: Validates no duplicate exists
   const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    // Extract schedule info before processing
+    const scheduleInfo = (taskData as any)._scheduleInfo as ScheduleInfo | undefined;
+
     // GUARD: Structural limits for subtasks
     if (taskData.parentId) {
       const parentTask = tasks.find(t => t.id === taskData.parentId);
@@ -120,13 +130,22 @@ export const useTasks = () => {
       return existingTask;
     }
     
-    await createItem({
+    const newItem = await createItem({
       name: taskData.name,
       contextType,
       parentId,
       metadata: taskToItemMetadata(taskData),
     });
-  }, [createItem, items, tasks]);
+
+    // Sync time_event if schedule info provided
+    if (newItem && scheduleInfo?.date && scheduleInfo?.time) {
+      const newTask = { ...taskData, id: newItem.id, name: taskData.name } as Task;
+      await syncTaskEventWithSchedule(newTask, scheduleInfo);
+      logger.debug('addTask: time_event synced', { taskId: newItem.id });
+    }
+
+    return newItem;
+  }, [createItem, items, tasks, syncTaskEventWithSchedule]);
 
   // Remove task
   const removeTask = useCallback(async (taskId: string) => {
@@ -172,6 +191,9 @@ export const useTasks = () => {
 
   // Update task - SECURED: Validates item exists and prevents orphaning
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
+    // Extract schedule info before processing
+    const scheduleInfo = (updates as any)._scheduleInfo as ScheduleInfo | undefined;
+    
     const item = items.find(i => i.id === taskId);
     if (!item) {
       console.error('updateTask: Item not found', { taskId });
@@ -181,7 +203,6 @@ export const useTasks = () => {
     // GUARD: Prevent removing projectId from project_task without type change
     if (item.contextType === 'project_task' && updates.projectId === null) {
       console.warn('updateTask: Preventing orphaning of project_task', { taskId });
-      // Force type change to 'task' when removing from project
       await updateItem(taskId, {
         name: updates.name ?? item.name,
         isCompleted: updates.isCompleted ?? item.isCompleted,
@@ -189,18 +210,25 @@ export const useTasks = () => {
         contextType: 'task',
         metadata: { ...item.metadata, ...taskToItemMetadata(updates), projectId: undefined, projectStatus: undefined },
       });
-      return;
+    } else {
+      const newMetadata = { ...item.metadata, ...taskToItemMetadata(updates) };
+      
+      await updateItem(taskId, {
+        name: updates.name ?? item.name,
+        isCompleted: updates.isCompleted ?? item.isCompleted,
+        parentId: updates.parentId ?? item.parentId,
+        metadata: newMetadata,
+      });
     }
 
-    const newMetadata = { ...item.metadata, ...taskToItemMetadata(updates) };
-    
-    await updateItem(taskId, {
-      name: updates.name ?? item.name,
-      isCompleted: updates.isCompleted ?? item.isCompleted,
-      parentId: updates.parentId ?? item.parentId,
-      metadata: newMetadata,
-    });
-  }, [items, updateItem]);
+    // Sync time_event if schedule info provided
+    if (scheduleInfo) {
+      const task = tasks.find(t => t.id === taskId);
+      const mergedTask = { ...task, ...updates, id: taskId } as Task;
+      await syncTaskEventWithSchedule(mergedTask, scheduleInfo);
+      logger.debug('updateTask: time_event synced', { taskId });
+    }
+  }, [items, tasks, updateItem, syncTaskEventWithSchedule]);
 
   // Get subtasks
   const getSubTasks = useCallback((parentId: string) => {
