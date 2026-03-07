@@ -20,6 +20,14 @@ interface ScheduleInfo {
   recurrenceInterval?: string;
 }
 
+// Format date en YYYY-MM-DD en timezone locale (évite les décalages liés à toISOString)
+const toLocalDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Map task recurrence to TimeEvent recurrence
 const mapTaskRecurrence = (interval: string): RecurrenceConfig => {
   const frequencyMap: Record<string, RecurrenceFrequency> = {
@@ -123,10 +131,12 @@ export const useTimeEventSync = () => {
         return true;
       }
 
-      // Calculer les dates à partir des infos de planification
-      const dateStr = scheduleInfo.date!.toISOString().split('T')[0];
+      // Calculer les dates à partir des infos de planification (timezone locale)
+      const dateStr = toLocalDateString(scheduleInfo.date!);
       const startsAt = new Date(`${dateStr}T${scheduleInfo.time}:00`);
-      
+      if (Number.isNaN(startsAt.getTime())) {
+        throw new Error(`Invalid schedule date/time: ${dateStr} ${scheduleInfo.time}`);
+      }
       const duration = task.duration || task.estimatedTime || 30;
       const endsAt = new Date(startsAt.getTime() + duration * 60000);
 
