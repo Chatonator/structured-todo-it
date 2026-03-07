@@ -1,94 +1,58 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+## Diagnostic
 
-## Concept
+Les tâches planifiées depuis la modale n'apparaissent pas dans la Timeline car **l'information de planification (`_scheduleInfo`) est ignorée lors de la création**.
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
-
-## Architecture
-
+Le flux actuel :
 ```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
+TaskModal (attache _scheduleInfo)
+    → handleAddTask (Index.tsx)
+        → viewData.addTask
+            → useTasks.addTask
+                → createItem (stocke seulement les métadonnées item)
+                    ❌ _scheduleInfo n'est jamais lu
+                    ❌ syncTaskEventWithSchedule n'est jamais appelé
 ```
 
-## Modifications
+Résultat : aucun `time_event` n'est créé en base, donc la Timeline ne voit rien.
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+## Plan
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+### 1. `src/hooks/useTasks.ts` — Appeler `syncTaskEventWithSchedule` apres la creation
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+Dans `addTask`, apres l'appel a `createItem` :
+- Extraire `_scheduleInfo` du `taskData`
+- Si `_scheduleInfo` contient une date + heure, appeler `syncTaskEventWithSchedule` avec la tache nouvellement creee et les infos de planification
+- Necessaire : recuperer l'ID de la tache creee (via le retour de `createItem` ou en cherchant la tache juste creee)
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+### 2. `src/hooks/useTasks.ts` — Meme chose pour `updateTask`
 
-### 3. `NotificationPanel.tsx` — Deja pret
+Quand `onUpdateTask` est appele depuis la modale d'edition, extraire `_scheduleInfo` des updates et appeler `syncTaskEventWithSchedule`.
 
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+### 3. Verification du retour de `createItem`
 
-### 4. Outil d'insertion pour l'admin
+Verifier si `createItem` dans `useItems.ts` retourne l'item cree (avec son ID). Si non, adapter pour pouvoir recuperer l'ID necessaire a la synchronisation du time_event.
 
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
+### Details techniques
 
-Je recommande l'**Option A** pour rester autonome.
+Dans `useTasks.ts`, le `addTask` deviendrait :
 
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
 ```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
+const addTask = useCallback(async (taskData) => {
+  // ... existing guards ...
+  
+  const scheduleInfo = (taskData as any)._scheduleInfo;
+  
+  const newItem = await createItem({ ... });
+  
+  // Sync time_event si planification
+  if (newItem && scheduleInfo?.date && scheduleInfo?.time) {
+    const newTask = { ...taskData, id: newItem.id } as Task;
+    await syncTaskEventWithSchedule(newTask, scheduleInfo);
+  }
+}, [createItem, syncTaskEventWithSchedule, ...]);
 ```
 
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+Meme pattern pour `updateTask` : extraire `_scheduleInfo` des updates avant de les passer a `updateItem`, puis appeler `syncTaskEventWithSchedule`.
 
