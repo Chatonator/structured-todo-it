@@ -87,6 +87,9 @@ export const useTasks = () => {
 
   // Add task - SECURED: Validates no duplicate exists
   const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    // Extract schedule info before processing
+    const scheduleInfo = (taskData as any)._scheduleInfo as ScheduleInfo | undefined;
+
     // GUARD: Structural limits for subtasks
     if (taskData.parentId) {
       const parentTask = tasks.find(t => t.id === taskData.parentId);
@@ -127,13 +130,22 @@ export const useTasks = () => {
       return existingTask;
     }
     
-    await createItem({
+    const newItem = await createItem({
       name: taskData.name,
       contextType,
       parentId,
       metadata: taskToItemMetadata(taskData),
     });
-  }, [createItem, items, tasks]);
+
+    // Sync time_event if schedule info provided
+    if (newItem && scheduleInfo?.date && scheduleInfo?.time) {
+      const newTask = { ...taskData, id: newItem.id, name: taskData.name } as Task;
+      await syncTaskEventWithSchedule(newTask, scheduleInfo);
+      logger.debug('addTask: time_event synced', { taskId: newItem.id });
+    }
+
+    return newItem;
+  }, [createItem, items, tasks, syncTaskEventWithSchedule]);
 
   // Remove task
   const removeTask = useCallback(async (taskId: string) => {
