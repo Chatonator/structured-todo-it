@@ -131,10 +131,12 @@ export const useTimeEventSync = () => {
         return true;
       }
 
-      // Calculer les dates à partir des infos de planification
-      const dateStr = scheduleInfo.date!.toISOString().split('T')[0];
+      // Calculer les dates à partir des infos de planification (timezone locale)
+      const dateStr = toLocalDateString(scheduleInfo.date!);
       const startsAt = new Date(`${dateStr}T${scheduleInfo.time}:00`);
-      
+      if (Number.isNaN(startsAt.getTime())) {
+        throw new Error(`Invalid schedule date/time: ${dateStr} ${scheduleInfo.time}`);
+      }
       const duration = task.duration || task.estimatedTime || 30;
       const endsAt = new Date(startsAt.getTime() + duration * 60000);
 
