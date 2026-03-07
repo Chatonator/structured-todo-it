@@ -12,6 +12,13 @@ import { itemToTask } from '@/utils/itemConverters';
 import { canAddSubTask } from '@/utils/taskValidation';
 import { logger } from '@/lib/logger';
 
+interface ScheduleInfo {
+  date?: Date;
+  time?: string;
+  isRecurring?: boolean;
+  recurrenceInterval?: string;
+}
+
 // Convert Task to Item metadata
 function taskToItemMetadata(task: Partial<Task>): Partial<ItemMetadata> {
   return {
