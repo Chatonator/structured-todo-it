@@ -5,6 +5,7 @@
 import { RecurrenceConfig, RecurrenceFrequency, TimeBlock } from '@/lib/time/types';
 import { getPriorityLevel } from '@/lib/styling';
 import { Habit } from '@/types/habit';
+import { SubTaskCategory } from '@/types/task';
 
 /** Format date as YYYY-MM-DD in local timezone (avoids UTC shift from toISOString) */
 export const toLocalDateString = (date: Date): string => {
