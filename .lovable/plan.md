@@ -1,94 +1,64 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+## Deux problemes identifies
 
-## Concept
+### 1. Noms d'utilisateurs inconnus
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+Le `display_name` dans `profiles` est `null` quand l'utilisateur ne l'a pas renseigne a l'inscription, ou quand le profil n'est pas charge correctement. Le fallback actuel dans `TeamMembersList` est juste `'Membre'`, ce qui est generique.
 
-## Architecture
+**Cause racine** : Dans `Auth.tsx`, le `display_name` est passe via `raw_user_meta_data` lors du signup, puis le trigger `handle_new_user` l'insere dans `profiles`. Mais si l'utilisateur n'a pas renseigne de nom, ou si le profil existe sans `display_name`, tout le systeme affiche "Membre" ou "?".
 
-```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
-```
+**Corrections** :
+- Dans `getDisplayName()` : fallback vers l'email de l'utilisateur (extraire la partie avant `@`) plutot que "Membre"
+- Ajouter `email` au chargement des profils dans `useTeams.loadTeamMembers()` (via `auth.users` n'est pas possible, mais on peut stocker l'email dans `profiles`)
+- Alternative plus simple : stocker l'email dans le champ `display_name` lors de la creation du profil si aucun nom n'est fourni (modifier le trigger `handle_new_user`)
 
-## Modifications
+**Solution retenue** : 
+1. Modifier le trigger `handle_new_user` pour utiliser l'email comme fallback si `display_name` est vide
+2. Ajouter une migration pour mettre a jour les profils existants sans `display_name`
+3. Adapter `getDisplayName()` pour afficher le mail tronque si `display_name` est toujours absent
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+### 2. Invitation par email au lieu du code
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+Remplacer le systeme de code d'invitation par un systeme de demande d'adhesion par email :
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+**Nouveau flux** :
+1. L'admin/owner saisit l'email d'un utilisateur a inviter
+2. Une edge function `invite-to-team` :
+   - Verifie que l'invitant est admin/owner
+   - Cherche l'utilisateur par email dans `profiles` (necessite d'ajouter un champ `email` a `profiles`)
+   - Cree une entree dans une nouvelle table `team_invitations` (status: pending)
+   - Envoie une notification in-app a l'utilisateur invite
+3. L'utilisateur invite voit la notification et peut accepter/refuser
+4. S'il accepte, il est ajoute comme membre
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+**Fichiers et changements** :
 
-### 3. `NotificationPanel.tsx` — Deja pret
+| Element | Action |
+|---------|--------|
+| Migration SQL | Ajouter `email` a `profiles`, creer table `team_invitations`, mettre a jour trigger `handle_new_user` |
+| `supabase/functions/invite-to-team/index.ts` | Nouvelle edge function : cherche user par email, cree invitation + notification |
+| `supabase/functions/respond-to-invitation/index.ts` | Nouvelle edge function : accepter/refuser une invitation |
+| `src/hooks/useTeams.ts` | Ajouter `inviteByEmail()`, `getInvitations()`, `respondToInvitation()` |
+| `src/components/team/TeamMembersList.tsx` | Remplacer le champ "code d'invitation" par un champ email |
+| `src/components/views/teams/TeamTasksView.tsx` | Adapter le bouton Inviter pour ouvrir un dialog email |
+| `src/components/team/TeamManagement.tsx` | Adapter le dialog de join pour afficher les invitations recues |
+| `src/components/notifications/NotificationPanel.tsx` | Ajouter un type de notification "invitation equipe" avec boutons Accepter/Refuser |
+| `src/contexts/TeamContext.tsx` | Exposer les nouvelles fonctions d'invitation |
 
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
-
-### 4. Outil d'insertion pour l'admin
-
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
-
-Je recommande l'**Option A** pour rester autonome.
-
-## Details techniques
-
-### Migration SQL
+**Table `team_invitations`** :
 ```sql
-CREATE TABLE public.app_updates (
+CREATE TABLE team_invitations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
+  team_id uuid NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  invited_by uuid NOT NULL,
+  invited_email text NOT NULL,
+  invited_user_id uuid,
+  status text NOT NULL DEFAULT 'pending', -- pending, accepted, declined
+  created_at timestamptz NOT NULL DEFAULT now(),
+  responded_at timestamptz
 );
 ```
 
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+**Note** : Le code d'invitation existant est conserve comme methode alternative (utile pour les liens publics), mais la methode par email devient la methode principale et recommandee dans l'UI.
 
