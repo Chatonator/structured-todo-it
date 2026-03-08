@@ -753,6 +753,7 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
             <TeamMembersList
               members={data.teamMembers}
               currentUserId={data.currentUserId}
+              currentUserRole={actions.myRole}
               memberStats={data.memberStats}
               onUpdateRole={actions.can('manage_members') ? actions.handleUpdateRole : undefined}
               onRemove={actions.can('manage_members') ? actions.handleRemoveMember : undefined}
