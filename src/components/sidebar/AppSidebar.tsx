@@ -109,7 +109,7 @@ const AppSidebar: React.FC = () => {
 
         <SidebarContent className="custom-scrollbar">
           <div className="px-2 py-2 space-y-2 border-b border-sidebar-border">
-            <SidebarQuickAdd onAddTask={onAddTask} isCollapsed={false} />
+            <SidebarQuickAdd />
             <div className="flex items-center gap-1">
               <SidebarSearchFilter
                 searchQuery={searchQuery}
