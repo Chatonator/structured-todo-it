@@ -31,12 +31,7 @@ export interface SidebarListItemProps {
   estimatedTime?: number;
 }
 
-const formatTime = (minutes: number) => {
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins ? `${hours}h${mins}` : `${hours}h`;
-};
+// Use centralized formatDuration from lib/formatters
 
 export const SidebarListItem: React.FC<SidebarListItemProps> = ({
   name,
