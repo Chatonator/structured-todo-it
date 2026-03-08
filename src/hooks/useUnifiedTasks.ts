@@ -3,6 +3,7 @@ import { Task } from '@/types/task';
 import { useTasks } from '@/hooks/useTasks';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamContext } from '@/contexts/TeamContext';
+import { mapCamelToSnake } from '@/utils/teamTaskMapper';
 
 /**
  * Hook unifiant les tâches personnelles et d'équipe
@@ -75,23 +76,7 @@ export const useUnifiedTasks = () => {
     },
     
     updateTask: async (taskId: string, updates: any) => {
-      const mappedUpdates: any = {};
-      if (updates.estimatedTime !== undefined) mappedUpdates.estimatedtime = updates.estimatedTime;
-      if (updates.scheduledDate !== undefined) mappedUpdates.scheduleddate = updates.scheduledDate ? updates.scheduledDate.toISOString().split('T')[0] : null;
-      if (updates.scheduledTime !== undefined) mappedUpdates.scheduledtime = updates.scheduledTime;
-      if (updates.startTime !== undefined) mappedUpdates.starttime = updates.startTime ? updates.startTime.toISOString() : null;
-      if (updates.isCompleted !== undefined) mappedUpdates.iscompleted = updates.isCompleted;
-      if (updates.isExpanded !== undefined) mappedUpdates.isexpanded = updates.isExpanded;
-      if (updates.isRecurring !== undefined) mappedUpdates.isrecurring = updates.isRecurring;
-      if (updates.recurrenceInterval !== undefined) mappedUpdates.recurrenceinterval = updates.recurrenceInterval;
-      if (updates.lastCompletedAt !== undefined) mappedUpdates.lastcompletedat = updates.lastCompletedAt ? updates.lastCompletedAt.toISOString() : null;
-      if (updates.parentId !== undefined) mappedUpdates.parentid = updates.parentId;
-      if (updates.subCategory !== undefined) mappedUpdates.subcategory = updates.subCategory;
-      
-      ['name', 'category', 'context', 'duration', 'level'].forEach(key => {
-        if (updates[key] !== undefined) mappedUpdates[key] = updates[key];
-      });
-      
+      const mappedUpdates = mapCamelToSnake(updates);
       await teamTasks.updateTask(taskId, mappedUpdates);
     },
   }), [teamTasks]);

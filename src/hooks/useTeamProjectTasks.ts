@@ -2,6 +2,7 @@
  * Hook pour gérer les tâches d'un projet d'équipe
  * Équivalent de useProjectTasks pour les équipes
  * Fournit les méthodes pour le Kanban (getTasksByColumns, updateTaskStatus)
+ * et expose les actions CRUD de useTeamTasks pour éviter les doubles fetches
  */
 
 import { useMemo, useCallback } from 'react';
@@ -26,11 +27,12 @@ export interface TeamProjectTasksResult {
     done: TeamTask[];
   };
   reloadTasks: () => void;
-}
-
-// Extended TeamTask with project_status field (from DB)
-interface TeamTaskWithProjectStatus {
-  projectStatus?: string;
+  // Exposed CRUD actions from useTeamTasks
+  createTask: (taskData: Partial<TeamTask>) => Promise<any>;
+  deleteTask: (taskId: string) => Promise<void>;
+  toggleComplete: (taskId: string, isCompleted: boolean) => Promise<void>;
+  updateTask: (taskId: string, updates: Partial<TeamTask>) => Promise<void>;
+  assignTask: (taskId: string, userId: string | null) => Promise<void>;
 }
 
 /**
@@ -44,8 +46,11 @@ export const useTeamProjectTasks = (
   const { 
     tasks: allTasks, 
     loading, 
+    createTask,
     updateTask,
+    deleteTask,
     toggleComplete,
+    assignTask,
     refreshTasks 
   } = useTeamTasks(teamId);
 
@@ -57,43 +62,32 @@ export const useTeamProjectTasks = (
 
   /**
    * Déterminer le statut Kanban d'une tâche
-   * Utilise project_status si défini, sinon fallback sur isCompleted
    */
-  const getTaskStatus = useCallback((task: TeamTask & TeamTaskWithProjectStatus): TeamTaskProjectStatus => {
-    // Si project_status est défini, l'utiliser
+  const getTaskStatus = useCallback((task: TeamTask): TeamTaskProjectStatus => {
     if (task.projectStatus) return task.projectStatus;
-    // Fallback sur isCompleted
     if (task.isCompleted) return 'done';
     return 'todo';
   }, []);
 
   /**
    * Grouper les tâches par colonnes pour le Kanban
-   * Supporte les colonnes personnalisées
    */
   const getTasksByColumns = useCallback((columns?: KanbanColumnConfig[]): Record<string, TeamTask[]> => {
     const columnIds = columns?.map(c => c.id) || DEFAULT_COLUMN_IDS;
     
     const result: Record<string, TeamTask[]> = {};
-    columnIds.forEach(id => {
-      result[id] = [];
-    });
+    columnIds.forEach(id => { result[id] = []; });
 
     projectTasks.forEach(task => {
       const status = getTaskStatus(task);
-      
-      // Mapper le statut aux colonnes disponibles
       if (result[status]) {
         result[status].push(task);
+      } else if (status === 'done') {
+        const lastColumn = columnIds[columnIds.length - 1];
+        result[lastColumn]?.push(task);
       } else {
-        // Fallback: done -> dernière colonne, sinon -> première colonne
-        if (status === 'done') {
-          const lastColumn = columnIds[columnIds.length - 1];
-          result[lastColumn]?.push(task);
-        } else {
-          const firstColumn = columnIds[0] || 'todo';
-          result[firstColumn]?.push(task);
-        }
+        const firstColumn = columnIds[0] || 'todo';
+        result[firstColumn]?.push(task);
       }
     });
 
@@ -110,7 +104,6 @@ export const useTeamProjectTasks = (
     const isCompleted = newStatus === 'done';
     
     try {
-      // Mise à jour directe dans Supabase avec project_status
       const { error } = await supabase
         .from('team_tasks')
         .update({
@@ -129,10 +122,10 @@ export const useTeamProjectTasks = (
     }
   }, [refreshTasks]);
 
-  // Tâches groupées par statut (format legacy pour compatibilité)
+  // Tâches groupées par statut
   const tasksByStatus = useMemo(() => ({
     todo: projectTasks.filter(t => !t.isCompleted),
-    inProgress: [], // Pas de statut intermédiaire pour l'instant
+    inProgress: [],
     done: projectTasks.filter(t => t.isCompleted)
   }), [projectTasks]);
 
@@ -142,6 +135,11 @@ export const useTeamProjectTasks = (
     getTasksByColumns,
     updateTaskStatus,
     tasksByStatus,
-    reloadTasks: refreshTasks
+    reloadTasks: refreshTasks,
+    createTask,
+    deleteTask,
+    toggleComplete,
+    updateTask,
+    assignTask,
   };
 };

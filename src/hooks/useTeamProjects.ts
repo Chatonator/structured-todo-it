@@ -101,6 +101,29 @@ export const useTeamProjects = (teamId: string | null) => {
 
   useEffect(() => {
     fetchProjects();
+
+    if (!teamId) return;
+
+    // Subscribe to team project changes (Realtime)
+    const channel = supabase
+      .channel(`team-projects-${teamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'team_projects',
+          filter: `team_id=eq.${teamId}`,
+        },
+        () => {
+          fetchProjects();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchProjects]);
 
   const createProject = useCallback(async (

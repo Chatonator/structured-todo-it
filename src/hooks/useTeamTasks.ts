@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { mapDbRowToTeamTask, mapCamelToSnake } from '@/utils/teamTaskMapper';
 import type { Task } from '@/types/task';
 
 export interface TeamTask extends Omit<Task, 'user_id' | 'projectStatus'> {
@@ -36,23 +37,7 @@ export const useTeamTasks = (teamId: string | null) => {
       if (error) throw error;
 
       // Map database columns to Task interface
-      const mappedTasks = (data || []).map(task => ({
-        ...task,
-        estimatedTime: task.estimatedtime,
-        isCompleted: task.iscompleted,
-        isExpanded: task.isexpanded,
-        isRecurring: task.isrecurring,
-        parentId: task.parentid,
-        scheduledDate: task.scheduleddate ? new Date(task.scheduleddate) : undefined,
-        startTime: task.starttime ? new Date(task.starttime) : undefined,
-        lastCompletedAt: task.lastcompletedat ? new Date(task.lastcompletedat) : undefined,
-        recurrenceInterval: task.recurrenceinterval,
-        scheduledTime: task.scheduledtime,
-        subCategory: task.subcategory,
-        createdAt: new Date(task.created_at),
-        project_id: task.project_id || null,
-        projectStatus: task.project_status || undefined,
-      })) as TeamTask[];
+      const mappedTasks = (data || []).map(mapDbRowToTeamTask) as unknown as TeamTask[];
 
       setTasks(mappedTasks);
       logger.info('Team tasks loaded', { teamId, count: data?.length });

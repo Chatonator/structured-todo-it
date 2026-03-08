@@ -9,24 +9,30 @@ interface TeamTask {
   isCompleted: boolean;
   category: string;
   estimatedTime: number;
+  assigned_to?: string | null;
 }
 
 interface SidebarTeamTasksSectionProps {
   tasks: TeamTask[];
   onToggleComplete: (taskId: string) => void;
+  currentUserId?: string;
 }
 
 export const SidebarTeamTasksSection: React.FC<SidebarTeamTasksSectionProps> = ({
   tasks,
-  onToggleComplete
+  onToggleComplete,
+  currentUserId
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Filtrer uniquement les tâches non complétées
-  const activeTasks = tasks.filter(t => !t.isCompleted);
-  const completedCount = tasks.filter(t => t.isCompleted).length;
+  // Filtrer par utilisateur courant si disponible, puis par non-complétées
+  const myTasks = currentUserId
+    ? tasks.filter(t => t.assigned_to === currentUserId)
+    : tasks;
+  const activeTasks = myTasks.filter(t => !t.isCompleted);
+  const completedCount = myTasks.filter(t => t.isCompleted).length;
 
-  if (tasks.length === 0) return null;
+  if (myTasks.length === 0) return null;
 
   return (
     <div className="border-b border-border">
@@ -38,7 +44,7 @@ export const SidebarTeamTasksSection: React.FC<SidebarTeamTasksSectionProps> = (
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Tâches d'équipe ({activeTasks.length})
+            Mes tâches d'équipe ({activeTasks.length})
           </span>
         </div>
         {isCollapsed ? (

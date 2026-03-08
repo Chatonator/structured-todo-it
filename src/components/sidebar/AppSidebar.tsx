@@ -40,7 +40,8 @@ const AppSidebar: React.FC = () => {
     sidebarShowHabits, sidebarShowTeamTasks,
     todayHabits, habitCompletions, habitStreaks, onToggleHabit,
     sidebarProjectTasks, onToggleProjectTask,
-    teamTasks, onToggleTeamTask
+    teamTasks, onToggleTeamTask,
+    currentUserId
   } = useSidebarContext();
 
   // Extracted hooks
@@ -137,7 +138,7 @@ const AppSidebar: React.FC = () => {
           )}
 
           {sidebarShowTeamTasks && teamTasks.length > 0 && onToggleTeamTask && (
-            <SidebarTeamTasksSection tasks={teamTasks} onToggleComplete={onToggleTeamTask} />
+            <SidebarTeamTasksSection tasks={teamTasks} onToggleComplete={onToggleTeamTask} currentUserId={currentUserId} />
           )}
 
           <SidebarGroup>

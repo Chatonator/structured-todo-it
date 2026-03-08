@@ -8,8 +8,8 @@ import { useState, useMemo, useCallback } from 'react';
 import { PROJECT_STATUS_CONFIG } from '@/types/project';
 import { TeamProject } from '@/hooks/useTeamProjects';
 import { useTeamProjectTasks } from '@/hooks/useTeamProjectTasks';
-import { useTeamTasks, TeamTask } from '@/hooks/useTeamTasks';
 import { useTeamProjects } from '@/hooks/useTeamProjects';
+import { TeamTask } from '@/hooks/useTeamTasks';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { priorityOptions, teamSortOptions, TeamSortOption } from '@/config/taskFilterOptions';
 import { Button } from '@/components/ui/button';
@@ -65,15 +65,12 @@ export const TeamProjectDetail = ({
     tasks: projectTasks, 
     getTasksByColumns, 
     updateTaskStatus, 
-    reloadTasks 
-  } = useTeamProjectTasks(teamId, projectProp.id);
-  
-  const { 
-    createTask, 
-    deleteTask: removeTask, 
+    reloadTasks,
+    createTask,
+    deleteTask: removeTask,
     toggleComplete,
-    updateTask
-  } = useTeamTasks(teamId);
+    updateTask,
+  } = useTeamProjectTasks(teamId, projectProp.id);
   
   const { projects, updateProject } = useTeamProjects(teamId);
   
