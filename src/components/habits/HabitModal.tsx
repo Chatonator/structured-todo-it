@@ -39,7 +39,8 @@ const HabitModal: React.FC<HabitModalProps> = ({
   onSave, 
   habit, 
   availableHabits = [],
-  isProgressionDeck = false 
+  isProgressionDeck = false,
+  defaultContext
 }) => {
   // Base
   const [name, setName] = useState('');
