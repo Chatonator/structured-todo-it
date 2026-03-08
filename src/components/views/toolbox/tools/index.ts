@@ -1,7 +1,8 @@
-import { Grid3X3, ListOrdered } from 'lucide-react';
+import { Grid3X3, ListOrdered, Timer } from 'lucide-react';
 import { ToolDefinition } from './types';
 import EisenhowerTool from './eisenhower/EisenhowerTool';
 import Rule135Tool from './rule135/Rule135Tool';
+import PomodoroTool from './pomodoro/PomodoroTool';
 
 // Tool registry - single source of truth for all available tools
 export const toolRegistry: ToolDefinition[] = [
