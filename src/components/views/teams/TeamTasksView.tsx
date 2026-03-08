@@ -433,20 +433,22 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
               </CardContent>
             </Card>
 
-            <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={actions.handleCopyInviteCode}>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Code d'invitation</p>
-                    <p className="text-lg font-mono font-bold truncate max-w-[120px]">
-                      {data.currentTeam!.invite_code}
-                    </p>
+            {actions.can('view_invite_code') && (
+              <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={actions.handleCopyInviteCode}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Code d'invitation</p>
+                      <p className="text-lg font-mono font-bold truncate max-w-[120px]">
+                        {data.currentTeam!.invite_code}
+                      </p>
+                    </div>
+                    {data.copiedCode ? <Check className="w-6 h-6 text-primary" /> : <Copy className="w-6 h-6 text-muted-foreground/50" />}
                   </div>
-                  {data.copiedCode ? <Check className="w-6 h-6 text-primary" /> : <Copy className="w-6 h-6 text-muted-foreground/50" />}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">Cliquez pour copier</p>
-              </CardContent>
-            </Card>
+                  <p className="text-xs text-muted-foreground mt-2">Cliquez pour copier</p>
+                </CardContent>
+              </Card>
+            )}
             {data.stats.overdueTasks > 0 && (
               <Card>
                 <CardContent className="pt-6">
