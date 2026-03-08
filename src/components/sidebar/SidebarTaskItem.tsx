@@ -142,7 +142,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
       <div
         className={cn(
           'w-1.5 self-stretch rounded-l-md shrink-0 z-10',
-          getCategoryColor(task.category)
+          getCategoryIndicatorColor(task.category)
         )}
       />
 
