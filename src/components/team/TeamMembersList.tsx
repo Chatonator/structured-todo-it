@@ -96,6 +96,11 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, isCurrentUser, mem
               <p className="text-xs text-muted-foreground/70">
                 Rejoint le {new Date(member.joined_at).toLocaleDateString('fr-FR')}
               </p>
+              {member.role === 'guest' && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
+                  lecture seule
+                </Badge>
+              )}
               {memberStats && memberStats.assigned > 0 && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-0.5">

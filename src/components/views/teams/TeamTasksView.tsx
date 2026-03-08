@@ -560,8 +560,8 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                         Nécessite un compte. Le rôle à l'arrivée est configurable par un admin.
                       </p>
                       <div className="flex items-center gap-2">
-                        <code className="bg-muted px-3 py-1.5 rounded font-mono text-sm font-bold tracking-wider">
-                          {data.currentTeam?.invite_code}
+                      <code className="bg-muted px-3 py-1.5 rounded font-mono text-sm font-bold tracking-wider">
+                          {data.currentTeam?.invite_code?.replace(/(.{4})(?=.)/g, '$1-')}
                         </code>
                         <Button variant="ghost" size="sm" onClick={actions.handleCopyInviteCode}>
                           {data.copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
