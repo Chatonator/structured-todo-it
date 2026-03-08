@@ -167,7 +167,8 @@ export const useTimeEventSync = () => {
         status: task.isCompleted ? 'completed' : 'scheduled',
         completed_at: task.isCompleted ? new Date().toISOString() : null,
         recurrence: recurrence as unknown as Json,
-        priority: task.subCategory ? getPriorityFromSubCategory(task.subCategory) : null
+        priority: task.subCategory ? getPriorityFromSubCategory(task.subCategory) : null,
+        time_block: getTimeBlockFromTime(scheduleInfo.time!)
       };
 
       if (existingEventId) {

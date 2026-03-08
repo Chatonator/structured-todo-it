@@ -17,7 +17,7 @@ import {
 } from '@/lib/time/types';
 import { Task } from '@/types/task';
 import { Habit } from '@/types/habit';
-import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useTimeHub = (initialRange?: DateRange) => {
   const { user } = useAuth();
