@@ -20,6 +20,7 @@ interface ScheduledEventCardProps {
 
 export const ScheduledEventCard: React.FC<ScheduledEventCardProps> = ({
   event,
+  category,
   onComplete,
   onRemove,
   onClick,
