@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamProjects } from '@/hooks/useTeamProjects';
@@ -44,6 +44,13 @@ export const useTeamViewData = () => {
     }
     return map;
   }, [tasks]);
+
+  // Auto-select team when entering view with no team selected
+  useEffect(() => {
+    if (!currentTeam && teams.length > 0) {
+      setCurrentTeam(teams[0]);
+    }
+  }, [currentTeam, teams, setCurrentTeam]);
 
   const isLoading = tasksLoading || projectsLoading;
   const hasTeam = !!currentTeam;
