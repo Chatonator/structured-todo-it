@@ -17,6 +17,8 @@ interface TeamContextType {
   removeMember: (teamId: string, targetUserId: string) => Promise<void>;
   inviteByEmail: (teamId: string, email: string) => Promise<boolean>;
   respondToInvitation: (invitationId: string, accept: boolean) => Promise<boolean>;
+  regenerateInviteCode: (teamId: string) => Promise<string | null>;
+  updateTeamSettings: (teamId: string, settings: { invite_link_enabled?: boolean; code_join_role?: string }) => Promise<void>;
   refreshTeams: () => Promise<void>;
   refreshMembers: (teamId: string) => Promise<void>;
   refreshInvitations: () => Promise<void>;
