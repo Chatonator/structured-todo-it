@@ -12,6 +12,8 @@ export interface Team {
   created_at: string;
   updated_at: string;
   invite_code: string;
+  invite_link_enabled: boolean;
+  code_join_role: string;
   permissions_config?: Record<string, any>;
 }
 
