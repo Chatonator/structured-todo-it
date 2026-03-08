@@ -85,16 +85,16 @@ const AppSidebar: React.FC = () => {
         onClick={toggleSidebar}
         className={cn(
           "fixed top-1/2 -translate-y-1/2 z-50",
-          "w-5 h-10 rounded-r-md",
-          "bg-sidebar-accent/90 hover:bg-sidebar-accent border border-l-0 border-sidebar-border",
+          "w-7 h-14 rounded-r-lg",
+          "bg-primary hover:bg-primary/90 border border-l-0 border-primary/30",
           "flex items-center justify-center",
-          "text-sidebar-foreground/60 hover:text-sidebar-foreground",
-          "transition-all duration-200 shadow-md",
+          "text-primary-foreground",
+          "transition-all duration-200 shadow-lg",
           isCollapsed ? "left-0" : "left-[16rem]"
         )}
         aria-label={isCollapsed ? "Déplier" : "Replier"}
       >
-        {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
       </button>
 
       <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
