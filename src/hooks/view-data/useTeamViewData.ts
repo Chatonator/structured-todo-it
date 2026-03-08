@@ -237,7 +237,9 @@ export const useTeamViewData = () => {
       viewState, isLoading, hasTeam, isEmpty, memberFilter, commentsLoading, myRole,
     },
     actions: {
-      handleCopyInviteCode, handleGoToTasks, handleGoToProjects, handleCreateTask,
+      handleCopyInviteCode, handleCopyInviteLink,
+      handleRegenerateCode, handleToggleInviteLink, handleSetCodeJoinRole,
+      handleGoToTasks, handleGoToProjects, handleCreateTask,
       handleUpdateRole, handleRemoveMember, handleLeaveTeam, handleSwitchTeam,
       handleAssignTask, handleAssignToMe, handleToggleComplete,
       handleRequestHelp, handleEncourage, handleBlockTask, handleUnblockTask,
