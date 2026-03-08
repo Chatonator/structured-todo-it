@@ -81,14 +81,20 @@ function phaseDuration(phase: PomodoroPhase, config: PomodoroConfig): number {
   }
 }
 
-export function usePomodoroTool(config: PomodoroConfig = DEFAULT_CONFIG) {
+export function usePomodoroTool() {
+  const [config, setConfigState] = useState<PomodoroConfig>(loadConfig);
   const [phase, setPhase] = useState<PomodoroPhase>('idle');
   const [status, setStatus] = useState<PomodoroStatus>('idle');
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(0);
-  const [cycleIndex, setCycleIndex] = useState(0); // 0-based focus count in current round
+  const [cycleIndex, setCycleIndex] = useState(0);
   const [sessionsToday, setSessionsToday] = useState(getTodaySessions);
   const [linkedTaskId, setLinkedTaskId] = useState<string | null>(null);
+
+  const setConfig = useCallback((c: PomodoroConfig) => {
+    setConfigState(c);
+    saveConfig(c);
+  }, []);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
