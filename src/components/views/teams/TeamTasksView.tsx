@@ -335,95 +335,106 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
 
         {/* Team Tasks List */}
         {!state.isEmpty && data.filteredTasks.total > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <CardTitle className="text-lg">Tâches de l'équipe</CardTitle>
-                  <CardDescription>
-                    {data.filteredTasks.total} tâche{data.filteredTasks.total > 1 ? 's' : ''} en cours
-                  </CardDescription>
-                </div>
-                <Select
-                  value={state.memberFilter || 'all'}
-                  onValueChange={(v) => actions.setMemberFilter(v === 'all' ? null : v)}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <UserCircle className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder="Filtrer par membre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les membres</SelectItem>
-                    <SelectItem value="unassigned">Non assignées</SelectItem>
-                    {data.teamMembers.map(m => (
-                      <SelectItem key={m.user_id} value={m.user_id}>
-                        {m.profiles?.display_name || 'Membre'}
-                        {m.user_id === data.currentUserId ? ' (moi)' : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* My tasks */}
-              {data.filteredTasks.myTasks.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mes tâches</p>
-                  {data.filteredTasks.myTasks.map(task => (
-                    <TeamTaskCard
-                      key={task.id}
-                      task={task}
-                      members={data.teamMembers}
-                      currentUserId={data.currentUserId}
-                      onToggleComplete={actions.handleToggleComplete}
-                      onAssign={actions.handleAssignTask}
-                      onRequestHelp={actions.handleRequestHelp}
-                      onEncourage={actions.handleEncourage}
-                    />
-                  ))}
-                </div>
-              )}
+          <Collapsible>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <CardTitle className="text-lg">Tâches de l'équipe</CardTitle>
+                        <CardDescription>
+                          {data.filteredTasks.total} tâche{data.filteredTasks.total > 1 ? 's' : ''} en cours
+                        </CardDescription>
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform [[data-state=open]_&]:rotate-180" />
+                    </div>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        value={state.memberFilter || 'all'}
+                        onValueChange={(v) => actions.setMemberFilter(v === 'all' ? null : v)}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <UserCircle className="w-4 h-4 mr-2" />
+                          <SelectValue placeholder="Filtrer par membre" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tous les membres</SelectItem>
+                          <SelectItem value="unassigned">Non assignées</SelectItem>
+                          {data.teamMembers.map(m => (
+                            <SelectItem key={m.user_id} value={m.user_id}>
+                              {m.profiles?.display_name || 'Membre'}
+                              {m.user_id === data.currentUserId ? ' (moi)' : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
+                  {/* My tasks */}
+                  {data.filteredTasks.myTasks.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mes tâches</p>
+                      {data.filteredTasks.myTasks.map(task => (
+                        <TeamTaskCard
+                          key={task.id}
+                          task={task}
+                          members={data.teamMembers}
+                          currentUserId={data.currentUserId}
+                          onToggleComplete={actions.handleToggleComplete}
+                          onAssign={actions.handleAssignTask}
+                          onRequestHelp={actions.handleRequestHelp}
+                          onEncourage={actions.handleEncourage}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-              {/* Unassigned */}
-              {data.filteredTasks.unassigned.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Non assignées</p>
-                  {data.filteredTasks.unassigned.map(task => (
-                    <TeamTaskCard
-                      key={task.id}
-                      task={task}
-                      members={data.teamMembers}
-                      currentUserId={data.currentUserId}
-                      onToggleComplete={actions.handleToggleComplete}
-                      onAssign={actions.handleAssignTask}
-                      onRequestHelp={actions.handleRequestHelp}
-                      onEncourage={actions.handleEncourage}
-                    />
-                  ))}
-                </div>
-              )}
+                  {/* Unassigned */}
+                  {data.filteredTasks.unassigned.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Non assignées</p>
+                      {data.filteredTasks.unassigned.map(task => (
+                        <TeamTaskCard
+                          key={task.id}
+                          task={task}
+                          members={data.teamMembers}
+                          currentUserId={data.currentUserId}
+                          onToggleComplete={actions.handleToggleComplete}
+                          onAssign={actions.handleAssignTask}
+                          onRequestHelp={actions.handleRequestHelp}
+                          onEncourage={actions.handleEncourage}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-              {/* Other members */}
-              {data.filteredTasks.otherTasks.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Autres membres</p>
-                  {data.filteredTasks.otherTasks.map(task => (
-                    <TeamTaskCard
-                      key={task.id}
-                      task={task}
-                      members={data.teamMembers}
-                      currentUserId={data.currentUserId}
-                      onToggleComplete={actions.handleToggleComplete}
-                      onAssign={actions.handleAssignTask}
-                      onRequestHelp={actions.handleRequestHelp}
-                      onEncourage={actions.handleEncourage}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  {/* Other members */}
+                  {data.filteredTasks.otherTasks.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Autres membres</p>
+                      {data.filteredTasks.otherTasks.map(task => (
+                        <TeamTaskCard
+                          key={task.id}
+                          task={task}
+                          members={data.teamMembers}
+                          currentUserId={data.currentUserId}
+                          onToggleComplete={actions.handleToggleComplete}
+                          onAssign={actions.handleAssignTask}
+                          onRequestHelp={actions.handleRequestHelp}
+                          onEncourage={actions.handleEncourage}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         )}
 
         {/* Quick Actions */}
