@@ -275,18 +275,9 @@ export function TeamManagement() {
                             readOnly
                             className="font-mono text-lg font-semibold bg-muted/50"
                           />
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button onClick={handleCopyInviteCode} variant="outline" size="icon">
-                                  <Copy className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Copier le code</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Button onClick={handleCopyInviteCode} variant="outline" size="icon" title="Copier le code">
+                            <Copy className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
