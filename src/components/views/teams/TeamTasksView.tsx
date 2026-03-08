@@ -24,12 +24,13 @@ import {
   Users, Plus, FolderKanban, ListTodo,
   ArrowRight, Copy, Check, Mail, Send, LogIn,
   ChevronDown, LogOut, Sparkles, Rocket, UserCircle, AlertTriangle,
-  Tag, Trash2, Pencil
+  Tag, Trash2, Pencil, Shield
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
 import { PendingInvitationsCard } from '@/components/team/PendingInvitationsCard';
+import { TeamPermissionsPanel } from '@/components/team/TeamPermissionsPanel';
 import { TeamTaskCard } from './TeamTaskCard';
 import { TeamActivityFeed } from './TeamActivityFeed';
 import { TeamWorkloadCard } from './TeamWorkloadCard';
