@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PROJECT_ICONS, PROJECT_STATUS_CONFIG } from '@/types/project';
 import { UnifiedProject } from '@/types/teamProject';
 import { Project } from '@/types/project';
 import { TaskContext, TaskCategory } from '@/types/task';
 import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
+import { EisenhowerSelector } from '@/components/common/EisenhowerSelector';
 import { useTeamContext } from '@/contexts/TeamContext';
-import { Users } from 'lucide-react';
+import { Users, Check, CalendarIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format, startOfDay } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface ProjectModalProps {
   open: boolean;
@@ -45,7 +50,7 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
   const [icon, setIcon] = useState('📚');
   const [color, setColor] = useState('#a78bfa');
   const [status, setStatus] = useState('planning');
-  const [targetDate, setTargetDate] = useState('');
+  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [context, setContext] = useState<TaskContext>('Perso');
   const [category, setCategory] = useState<TaskCategory>('Autres');
@@ -57,12 +62,10 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       setIcon(project.icon || '📚');
       setColor(project.color);
       setStatus(project.status);
-      setTargetDate(project.targetDate ? project.targetDate.toISOString().split('T')[0] : '');
+      setTargetDate(project.targetDate || undefined);
       setSelectedTeamId(null);
-      // Restore context & eisenhower from project metadata if available
       const meta = (project as any).metadata || {};
       setContext((meta.context as TaskContext) || 'Perso');
-      const flags = eisenhowerFromCategory((meta.category as TaskCategory) || 'Autres');
       setCategory((meta.category as TaskCategory) || 'Autres');
     } else {
       setName(initialName || '');
@@ -70,24 +73,23 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       setIcon('📚');
       setColor('#a78bfa');
       setStatus('planning');
-      setTargetDate('');
+      setTargetDate(undefined);
       setSelectedTeamId(teamId || currentTeam?.id || null);
       setContext(defaultContext || 'Perso');
       setCategory('Autres');
     }
   }, [project, initialName, open, teamId, currentTeam?.id]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
+    if (!name.trim()) return;
     const flags = eisenhowerFromCategory(category);
-    
     onSave({
       name,
       description: description || undefined,
       icon,
       color,
       status,
-      targetDate: targetDate ? new Date(targetDate) : undefined,
+      targetDate,
       teamId: selectedTeamId || undefined,
       context,
       category,
@@ -105,14 +107,14 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       ? "Nouveau projet d'équipe" 
       : 'Nouveau projet';
 
-  const flags = eisenhowerFromCategory(category);
+  const isValid = name.trim().length > 0;
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+    <Sheet open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+      <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col gap-0 overflow-hidden">
+        <SheetHeader className="px-5 pt-5 pb-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <DialogTitle>{modalTitle}</DialogTitle>
+            <SheetTitle className="text-base font-semibold">{modalTitle}</SheetTitle>
             {isTeamMode && (
               <Badge variant="secondary" className="gap-1">
                 <Users className="w-3 h-3" />
@@ -120,166 +122,181 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
               </Badge>
             )}
           </div>
-        </DialogHeader>
+        </SheetHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nom du projet *</Label>
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="space-y-5">
+            {/* ─── Name ─── */}
             <Input
-              id="name"
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Écrire un livre"
-              required
+              placeholder="Nom du projet *"
+              autoFocus
+              className={cn(
+                'text-base h-11 font-medium placeholder:text-muted-foreground/60 border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors',
+                !name.trim() && 'border-destructive'
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez votre projet..."
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Icône</Label>
-              <Select value={icon} onValueChange={setIcon}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROJECT_ICONS.map((i) => (
-                    <SelectItem key={i} value={i}>
-                      <span className="text-xl">{i}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* ─── Context pills ─── */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Contexte</Label>
+              <div className="flex gap-2">
+                {(['Pro', 'Perso'] as const).map((ctx) => {
+                  const isSelected = context === ctx;
+                  const isPro = ctx === 'Pro';
+                  return (
+                    <button
+                      key={ctx}
+                      type="button"
+                      onClick={() => setContext(ctx)}
+                      className={cn(
+                        'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border',
+                        isSelected
+                          ? isPro
+                            ? 'bg-context-pro/15 border-context-pro text-context-pro shadow-sm'
+                            : 'bg-context-perso/15 border-context-perso text-context-perso shadow-sm'
+                          : 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                      )}
+                    >
+                      <span>{isPro ? '💼' : '🏠'}</span>
+                      <span>{ctx}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Couleur</Label>
-              <div className="flex items-center gap-2 h-10">
+            {/* ─── Eisenhower ─── */}
+            <EisenhowerSelector
+              value={category}
+              onChange={setCategory}
+            />
+
+            {/* ─── Description ─── */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Description</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Décrivez votre projet..."
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+
+            {/* ─── Icon grid ─── */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Icône</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {PROJECT_ICONS.map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setIcon(i)}
+                    className={cn(
+                      'w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all duration-150 border',
+                      icon === i
+                        ? 'border-primary bg-primary/10 scale-110 shadow-sm'
+                        : 'border-transparent hover:bg-accent/50'
+                    )}
+                  >
+                    {i}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ─── Color ─── */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Couleur</Label>
+              <div className="flex items-center gap-3">
                 <input
                   type="color"
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  className="w-10 h-10 rounded-md border border-border cursor-pointer bg-transparent p-0.5"
+                  className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
                 />
                 <div
                   className="w-6 h-6 rounded-full border border-border shrink-0"
                   style={{ backgroundColor: color }}
                 />
-                <span className="text-xs text-muted-foreground">{color}</span>
+                <span className="text-xs text-muted-foreground font-mono">{color}</span>
+              </div>
+            </div>
+
+            {/* ─── Status (edit only) ─── */}
+            {project && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Statut</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(PROJECT_STATUS_CONFIG).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* ─── Target date (Calendar popover) ─── */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Date cible</Label>
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'flex-1 justify-start text-left font-normal',
+                        !targetDate && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {targetDate ? format(targetDate, 'PPP', { locale: fr }) : 'Sélectionner une date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={targetDate}
+                      onSelect={setTargetDate}
+                      disabled={(date) => date < startOfDay(new Date())}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                {targetDate && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={() => setTargetDate(undefined)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Contexte Pro/Perso */}
-          <div className="space-y-2">
-            <Label>Contexte</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setContext('Pro')}
-                className={cn(
-                  'flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer border',
-                  context === 'Pro'
-                    ? 'bg-primary/10 text-primary border-primary/30'
-                    : 'text-muted-foreground bg-background hover:bg-accent/50 border-border'
-                )}
-              >
-                💼 Pro
-              </button>
-              <button
-                type="button"
-                onClick={() => setContext('Perso')}
-                className={cn(
-                  'flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer border',
-                  context === 'Perso'
-                    ? 'bg-primary/10 text-primary border-primary/30'
-                    : 'text-muted-foreground bg-background hover:bg-accent/50 border-border'
-                )}
-              >
-                🏠 Perso
-              </button>
-            </div>
-          </div>
-
-          {/* Important / Urgent toggles */}
-          <div className="space-y-2">
-            <Label>Importance</Label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setCategory(categoryFromEisenhower({ ...flags, isImportant: !flags.isImportant }))}
-                className={cn(
-                  'flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer border',
-                  flags.isImportant
-                    ? 'bg-category-envie/15 text-category-envie border-category-envie/30'
-                    : 'text-muted-foreground bg-background hover:bg-accent/50 border-border'
-                )}
-              >
-                ⭐ Important
-              </button>
-              <button
-                type="button"
-                onClick={() => setCategory(categoryFromEisenhower({ ...flags, isUrgent: !flags.isUrgent }))}
-                className={cn(
-                  'flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer border',
-                  flags.isUrgent
-                    ? 'bg-category-quotidien/15 text-category-quotidien border-category-quotidien/30'
-                    : 'text-muted-foreground bg-background hover:bg-accent/50 border-border'
-                )}
-              >
-                ⚡ Urgent
-              </button>
-            </div>
-          </div>
-
-          {project && (
-            <div className="space-y-2">
-              <Label>Statut</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(PROJECT_STATUS_CONFIG).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="targetDate">Date cible (optionnelle)</Label>
-            <Input
-              id="targetDate"
-              type="date"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Annuler
-            </Button>
-            <Button type="submit" disabled={!name.trim()}>
-              {project ? 'Mettre à jour' : 'Créer'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {/* ─── Sticky footer ─── */}
+        <div className="border-t border-border p-4 bg-background">
+          <Button onClick={handleSubmit} disabled={!isValid} className="w-full">
+            <Check className="w-4 h-4 mr-2" />
+            {project ? 'Mettre à jour' : 'Créer le projet'}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
