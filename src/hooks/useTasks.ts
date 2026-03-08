@@ -110,15 +110,17 @@ export const useTasks = () => {
       ? taskData.projectId 
       : (taskData.parentId || null);
     
-    // GUARD: Check for potential duplicate (same name, same parent)
+    // GUARD: Prevent accidental double-submit (same name+parent created in last 5s)
+    const fiveSecondsAgo = new Date(Date.now() - 5000).toISOString();
     const existingTask = items.find(i => 
       i.name === taskData.name && 
       i.parentId === parentId &&
-      !i.isCompleted
+      !i.isCompleted &&
+      i.createdAt && new Date(i.createdAt).getTime() > Date.now() - 5000
     );
     
     if (existingTask) {
-      console.warn('addTask: Duplicate task detected, skipping creation', { 
+      console.warn('addTask: Duplicate task detected (double-submit guard), skipping creation', { 
         name: taskData.name, parentId, existingId: existingTask.id 
       });
       return existingTask;
