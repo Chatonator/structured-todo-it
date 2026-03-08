@@ -84,7 +84,12 @@ export const useTeams = () => {
 
       if (teamsError) throw teamsError;
 
-      setTeams((teamsData || []).map(t => ({ ...t, permissions_config: (t.permissions_config as Record<string, any>) || {} })));
+      setTeams((teamsData || []).map(t => ({
+        ...t,
+        invite_link_enabled: (t as any).invite_link_enabled ?? true,
+        code_join_role: (t as any).code_join_role ?? 'guest',
+        permissions_config: (t.permissions_config as Record<string, any>) || {},
+      })));
       logger.info('Teams loaded', { count: teamsData?.length });
     } catch (error) {
       logger.error('Error loading teams', { error });
