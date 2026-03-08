@@ -97,6 +97,32 @@ export const useTeamViewData = () => {
     }
   }, [currentTeam?.invite_code, toast]);
 
+  const handleCopyInviteLink = useCallback(() => {
+    if (currentTeam?.invite_code) {
+      const link = `${window.location.origin}${import.meta.env.BASE_URL}#/join/${currentTeam.invite_code}`;
+      navigator.clipboard.writeText(link);
+      toast({ title: "Lien copié !", description: "Le lien d'invitation a été copié." });
+    }
+  }, [currentTeam?.invite_code, toast]);
+
+  const handleRegenerateCode = useCallback(async () => {
+    if (currentTeam) {
+      await regenerateInviteCode(currentTeam.id);
+    }
+  }, [currentTeam, regenerateInviteCode]);
+
+  const handleToggleInviteLink = useCallback(async (enabled: boolean) => {
+    if (currentTeam) {
+      await updateTeamSettings(currentTeam.id, { invite_link_enabled: enabled });
+    }
+  }, [currentTeam, updateTeamSettings]);
+
+  const handleSetCodeJoinRole = useCallback(async (role: string) => {
+    if (currentTeam) {
+      await updateTeamSettings(currentTeam.id, { code_join_role: role });
+    }
+  }, [currentTeam, updateTeamSettings]);
+
   const handleGoToTasks = useCallback(() => setCurrentView('tasks'), [setCurrentView]);
   const handleGoToProjects = useCallback(() => setCurrentView('projects'), [setCurrentView]);
   const handleCreateTask = useCallback(() => setIsModalOpen(true), [setIsModalOpen]);
