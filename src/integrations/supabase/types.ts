@@ -1184,6 +1184,18 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
+      send_team_notification: {
+        Args: {
+          _message: string
+          _metadata?: Json
+          _sender_id: string
+          _target_user_id?: string
+          _team_id: string
+          _title: string
+          _type: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       team_role: "owner" | "admin" | "member"

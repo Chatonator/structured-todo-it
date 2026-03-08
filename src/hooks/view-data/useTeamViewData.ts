@@ -5,17 +5,20 @@ import { useTeamProjects } from '@/hooks/useTeamProjects';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type { ViewState } from '@/components/layout/view/ViewLayout';
 import type { TeamRole } from '@/hooks/useTeams';
+import type { TeamTask } from '@/hooks/useTeamTasks';
 
 export const useTeamViewData = () => {
   const { currentTeam, teamMembers, updateMemberRole, removeMember, leaveTeam, teams, setCurrentTeam } = useTeamContext();
   const { setCurrentView, setIsModalOpen } = useApp();
   const { user } = useAuth();
-  const { tasks, loading: tasksLoading } = useTeamTasks(currentTeam?.id ?? null);
+  const { tasks, loading: tasksLoading, assignTask, toggleComplete } = useTeamTasks(currentTeam?.id ?? null);
   const { projects, loading: projectsLoading } = useTeamProjects(currentTeam?.id ?? null);
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState(false);
+  const [memberFilter, setMemberFilter] = useState<string | null>(null);
 
   const currentUserId = user?.id ?? null;
 
@@ -25,10 +28,12 @@ export const useTeamViewData = () => {
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed').length;
     const completedProjects = projects.filter(p => p.status === 'completed').length;
+    const unassignedTasks = tasks.filter(t => !t.assigned_to && !t.isCompleted).length;
 
     return {
       totalTasks, completedTasks, completionRate,
       activeProjects, completedProjects, totalProjects: projects.length,
+      unassignedTasks,
     };
   }, [tasks, projects]);
 
@@ -44,6 +49,20 @@ export const useTeamViewData = () => {
     }
     return map;
   }, [tasks]);
+
+  // Grouped & filtered tasks
+  const filteredTasks = useMemo(() => {
+    const active = tasks.filter(t => !t.isCompleted);
+    const filtered = memberFilter
+      ? active.filter(t => memberFilter === 'unassigned' ? !t.assigned_to : t.assigned_to === memberFilter)
+      : active;
+
+    const myTasks = filtered.filter(t => t.assigned_to === currentUserId);
+    const unassigned = filtered.filter(t => !t.assigned_to);
+    const otherTasks = filtered.filter(t => t.assigned_to && t.assigned_to !== currentUserId);
+
+    return { myTasks, unassigned, otherTasks, total: filtered.length };
+  }, [tasks, currentUserId, memberFilter]);
 
   // Auto-select team when entering view with no team selected
   useEffect(() => {
@@ -89,6 +108,61 @@ export const useTeamViewData = () => {
     setCurrentTeam(team);
   }, [setCurrentTeam]);
 
+  const handleAssignTask = useCallback((taskId: string, userId: string | null) => {
+    assignTask(taskId, userId);
+  }, [assignTask]);
+
+  const handleToggleComplete = useCallback((taskId: string, completed: boolean) => {
+    toggleComplete(taskId, completed);
+  }, [toggleComplete]);
+
+  // Send team notification via DB function
+  const sendTeamNotification = useCallback(async (
+    type: string, title: string, message: string,
+    metadata: Record<string, string> = {},
+    targetUserId?: string
+  ) => {
+    if (!currentTeam || !currentUserId) return;
+    try {
+      const { error } = await supabase.rpc('send_team_notification', {
+        _team_id: currentTeam.id,
+        _sender_id: currentUserId,
+        _type: type,
+        _title: title,
+        _message: message,
+        _metadata: metadata,
+        _target_user_id: targetUserId || null,
+      });
+      if (error) throw error;
+    } catch (err) {
+      toast({ title: 'Erreur', description: "Impossible d'envoyer la notification", variant: 'destructive' });
+    }
+  }, [currentTeam, currentUserId, toast]);
+
+  const handleRequestHelp = useCallback((task: TeamTask) => {
+    const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
+    sendTeamNotification(
+      'team',
+      `🆘 ${senderName} a besoin d'aide`,
+      `Tâche : ${task.name}`,
+      { task_id: task.id, action: 'help_request' }
+    );
+    toast({ title: 'Demande envoyée', description: "Votre équipe a été notifiée" });
+  }, [sendTeamNotification, currentUserId, teamMembers, toast]);
+
+  const handleEncourage = useCallback((task: TeamTask) => {
+    if (!task.assigned_to) return;
+    const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
+    sendTeamNotification(
+      'team',
+      `💪 ${senderName} vous encourage !`,
+      `Courage pour : ${task.name}`,
+      { task_id: task.id, action: 'encouragement' },
+      task.assigned_to
+    );
+    toast({ title: 'Encouragement envoyé !', description: "Le membre a été notifié" });
+  }, [sendTeamNotification, currentUserId, teamMembers, toast]);
+
   return {
     data: {
       currentTeam,
@@ -98,12 +172,15 @@ export const useTeamViewData = () => {
       currentUserId,
       memberStats,
       teams,
+      filteredTasks,
+      tasks,
     },
     state: {
       viewState,
       isLoading,
       hasTeam,
       isEmpty,
+      memberFilter,
     },
     actions: {
       handleCopyInviteCode,
@@ -114,6 +191,11 @@ export const useTeamViewData = () => {
       handleRemoveMember,
       handleLeaveTeam,
       handleSwitchTeam,
+      handleAssignTask,
+      handleToggleComplete,
+      handleRequestHelp,
+      handleEncourage,
+      setMemberFilter,
     },
   };
 };

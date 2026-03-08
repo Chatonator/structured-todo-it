@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -14,16 +15,20 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
   Users, Plus, FolderKanban, ListTodo,
   ArrowRight, Copy, Check, Mail, Send, LogIn,
-  ChevronDown, LogOut, Sparkles, Rocket
+  ChevronDown, LogOut, Sparkles, Rocket, UserCircle
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
 import { PendingInvitationsCard } from '@/components/team/PendingInvitationsCard';
+import { TeamTaskCard } from './TeamTaskCard';
 
 interface TeamTasksViewProps {
   className?: string;
@@ -274,7 +279,14 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                   </div>
                   <ListTodo className="w-8 h-8 text-primary/20" />
                 </div>
-                <Progress value={data.stats.completionRate} className="mt-2 h-1" />
+                <div className="flex items-center gap-2 mt-2">
+                  <Progress value={data.stats.completionRate} className="h-1 flex-1" />
+                  {data.stats.unassignedTasks > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {data.stats.unassignedTasks} non assignées
+                    </Badge>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -318,6 +330,99 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Team Tasks List */}
+        {!state.isEmpty && data.filteredTasks.total > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <CardTitle className="text-lg">Tâches de l'équipe</CardTitle>
+                  <CardDescription>
+                    {data.filteredTasks.total} tâche{data.filteredTasks.total > 1 ? 's' : ''} en cours
+                  </CardDescription>
+                </div>
+                <Select
+                  value={state.memberFilter || 'all'}
+                  onValueChange={(v) => actions.setMemberFilter(v === 'all' ? null : v)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <UserCircle className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Filtrer par membre" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les membres</SelectItem>
+                    <SelectItem value="unassigned">Non assignées</SelectItem>
+                    {data.teamMembers.map(m => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.profiles?.display_name || 'Membre'}
+                        {m.user_id === data.currentUserId ? ' (moi)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* My tasks */}
+              {data.filteredTasks.myTasks.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mes tâches</p>
+                  {data.filteredTasks.myTasks.map(task => (
+                    <TeamTaskCard
+                      key={task.id}
+                      task={task}
+                      members={data.teamMembers}
+                      currentUserId={data.currentUserId}
+                      onToggleComplete={actions.handleToggleComplete}
+                      onAssign={actions.handleAssignTask}
+                      onRequestHelp={actions.handleRequestHelp}
+                      onEncourage={actions.handleEncourage}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Unassigned */}
+              {data.filteredTasks.unassigned.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Non assignées</p>
+                  {data.filteredTasks.unassigned.map(task => (
+                    <TeamTaskCard
+                      key={task.id}
+                      task={task}
+                      members={data.teamMembers}
+                      currentUserId={data.currentUserId}
+                      onToggleComplete={actions.handleToggleComplete}
+                      onAssign={actions.handleAssignTask}
+                      onRequestHelp={actions.handleRequestHelp}
+                      onEncourage={actions.handleEncourage}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Other members */}
+              {data.filteredTasks.otherTasks.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Autres membres</p>
+                  {data.filteredTasks.otherTasks.map(task => (
+                    <TeamTaskCard
+                      key={task.id}
+                      task={task}
+                      members={data.teamMembers}
+                      currentUserId={data.currentUserId}
+                      onToggleComplete={actions.handleToggleComplete}
+                      onAssign={actions.handleAssignTask}
+                      onRequestHelp={actions.handleRequestHelp}
+                      onEncourage={actions.handleEncourage}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Quick Actions */}
