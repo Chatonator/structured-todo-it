@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useViewDataContext } from '@/contexts/ViewDataContext';
-import { Task, TaskContext } from '@/types/task';
+import { Task, TaskContext, TaskCategory, SubTaskCategory } from '@/types/task';
 
 export type TaskLinkerMode = 'single' | 'multi';
 
@@ -14,23 +14,26 @@ export interface UseTaskLinkerOptions {
 export interface TaskLinkerFilters {
   search: string;
   context: TaskContext | 'all';
+  category: TaskCategory | 'all';
+  priority: SubTaskCategory | 'all' | 'none';
 }
 
 export interface UseTaskLinkerReturn {
-  // State
   selectedIds: string[];
   selectedTasks: Task[];
   filters: TaskLinkerFilters;
   filteredAvailableTasks: Task[];
+  filteredCount: number;
+  totalCount: number;
   
-  // Actions
   select: (id: string) => void;
   deselect: (id: string) => void;
   clear: () => void;
   setSearch: (search: string) => void;
   setContextFilter: (context: TaskContext | 'all') => void;
+  setCategoryFilter: (category: TaskCategory | 'all') => void;
+  setPriorityFilter: (priority: SubTaskCategory | 'all' | 'none') => void;
   
-  // Meta
   canSelectMore: boolean;
   mode: TaskLinkerMode;
 }
@@ -62,7 +65,9 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
   const { tasks } = useViewDataContext();
 
   const [selectedIds, setSelectedIds] = useState<string[]>(() => loadPersistedIds(storageKey));
-  const [filters, setFilters] = useState<TaskLinkerFilters>({ search: '', context: 'all' });
+  const [filters, setFilters] = useState<TaskLinkerFilters>({
+    search: '', context: 'all', category: 'all', priority: 'all',
+  });
 
   const updateIds = useCallback((ids: string[]) => {
     setSelectedIds(ids);
@@ -88,30 +93,32 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
 
   const clear = useCallback(() => updateIds([]), [updateIds]);
 
-  const setSearch = useCallback((search: string) => {
-    setFilters(f => ({ ...f, search }));
-  }, []);
-
-  const setContextFilter = useCallback((context: TaskContext | 'all') => {
-    setFilters(f => ({ ...f, context }));
-  }, []);
+  const setSearch = useCallback((search: string) => setFilters(f => ({ ...f, search })), []);
+  const setContextFilter = useCallback((context: TaskContext | 'all') => setFilters(f => ({ ...f, context })), []);
+  const setCategoryFilter = useCallback((category: TaskCategory | 'all') => setFilters(f => ({ ...f, category })), []);
+  const setPriorityFilter = useCallback((priority: SubTaskCategory | 'all' | 'none') => setFilters(f => ({ ...f, priority })), []);
 
   const excludeSet = useMemo(() => new Set([...excludeIds, ...selectedIds]), [excludeIds, selectedIds]);
 
+  const baseAvailable = useMemo(() => tasks.filter(t => !t.isCompleted && !excludeSet.has(t.id)), [tasks, excludeSet]);
+
   const filteredAvailableTasks = useMemo(() => {
-    let result = tasks.filter(t => !t.isCompleted && !excludeSet.has(t.id));
-    
-    if (filters.context !== 'all') {
-      result = result.filter(t => t.context === filters.context);
+    let result = baseAvailable;
+
+    if (filters.context !== 'all') result = result.filter(t => t.context === filters.context);
+    if (filters.category !== 'all') result = result.filter(t => t.category === filters.category);
+    if (filters.priority === 'none') {
+      result = result.filter(t => !t.subCategory);
+    } else if (filters.priority !== 'all') {
+      result = result.filter(t => t.subCategory === filters.priority);
     }
-    
     if (filters.search.trim()) {
       const q = filters.search.toLowerCase();
       result = result.filter(t => t.name.toLowerCase().includes(q));
     }
-    
+
     return result.slice(0, 50);
-  }, [tasks, excludeSet, filters]);
+  }, [baseAvailable, filters]);
 
   const selectedTasks = useMemo(
     () => selectedIds.map(id => tasks.find(t => t.id === id)).filter(Boolean) as Task[],
@@ -121,16 +128,11 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
   const canSelectMore = selectedIds.length < effectiveMax;
 
   return {
-    selectedIds,
-    selectedTasks,
-    filters,
-    filteredAvailableTasks,
-    select,
-    deselect,
-    clear,
-    setSearch,
-    setContextFilter,
-    canSelectMore,
-    mode,
+    selectedIds, selectedTasks, filters, filteredAvailableTasks,
+    filteredCount: filteredAvailableTasks.length,
+    totalCount: baseAvailable.length,
+    select, deselect, clear,
+    setSearch, setContextFilter, setCategoryFilter, setPriorityFilter,
+    canSelectMore, mode,
   };
 }
