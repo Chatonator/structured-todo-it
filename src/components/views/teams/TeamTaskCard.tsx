@@ -52,7 +52,7 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
   onToggleComplete, onAssign, onAssignToMe, onRequestHelp, onEncourage,
   onBlockTask, onUnblockTask, onToggleWatch, watchedByMe,
   taskLabels, allLabels, onToggleLabel, hasLabel,
-  commentCount, onOpenComments,
+  commentCount, onOpenComments, can,
 }) => {
   const [blockReason, setBlockReason] = useState('');
   const [showBlockInput, setShowBlockInput] = useState(false);
