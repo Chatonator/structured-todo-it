@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, LogIn, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Users, LogIn, Loader2, CheckCircle2, XCircle, UserPlus } from 'lucide-react';
 
 const JoinTeam = () => {
   const { code } = useParams<{ code: string }>();
@@ -14,13 +14,13 @@ const JoinTeam = () => {
   const [memberCount, setMemberCount] = useState(0);
   const [status, setStatus] = useState<'loading' | 'found' | 'joined' | 'already' | 'error' | 'disabled'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
     if (!code || authLoading) return;
 
     const resolve = async () => {
       try {
-        // Use the public endpoint — works without auth
         const { data, error } = await supabase.functions.invoke('join-team-public', {
           body: { inviteCode: code },
         });
@@ -41,8 +41,6 @@ const JoinTeam = () => {
 
         if (data.alreadyMember) {
           setStatus('already');
-        } else if (data.joined) {
-          setStatus('joined');
         } else {
           setStatus('found');
         }
@@ -55,13 +53,41 @@ const JoinTeam = () => {
     resolve();
   }, [code, authLoading, user]);
 
-  // Auto-redirect after join
+  // Auto-redirect if already member
   useEffect(() => {
-    if (status === 'joined' || status === 'already') {
+    if (status === 'already') {
       const timer = setTimeout(() => navigate('/'), 2500);
       return () => clearTimeout(timer);
     }
   }, [status, navigate]);
+
+  // Auto-redirect after successful join
+  useEffect(() => {
+    if (status === 'joined') {
+      const timer = setTimeout(() => navigate('/'), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [status, navigate]);
+
+  const handleJoin = async () => {
+    if (!code) return;
+    setJoining(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('join-team', {
+        body: { inviteCode: code },
+      });
+      if (error || data?.error) {
+        setErrorMsg(data?.error || 'Erreur lors de la connexion');
+        setStatus('error');
+      } else {
+        setStatus('joined');
+      }
+    } catch {
+      setErrorMsg('Erreur inattendue');
+      setStatus('error');
+    }
+    setJoining(false);
+  };
 
   if (authLoading || status === 'loading') {
     return (
@@ -130,10 +156,20 @@ const JoinTeam = () => {
           )}
 
           {status === 'found' && user && (
-            <p className="text-center text-sm text-muted-foreground">
-              Vous consultez cette équipe en tant qu'invité (lecture seule).
-              <br />Un superviseur ou admin peut vous promouvoir.
-            </p>
+            <div className="space-y-3 text-center">
+              <p className="text-sm text-muted-foreground">
+                {memberCount} membre{memberCount > 1 ? 's' : ''} • Vous rejoindrez en tant qu'invité (lecture seule).
+                <br />Un superviseur ou admin pourra vous promouvoir.
+              </p>
+              <Button
+                className="w-full gap-2"
+                onClick={handleJoin}
+                disabled={joining}
+              >
+                <UserPlus className="w-4 h-4" />
+                {joining ? 'Connexion...' : "Rejoindre l'équipe"}
+              </Button>
+            </div>
           )}
 
           {(status === 'joined' || status === 'already') && (

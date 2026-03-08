@@ -1,72 +1,94 @@
 
 
-# Sécurisation et amélioration du système d'invitation
+# Systeme de changelog / "Quoi de neuf" via les notifications
 
-## Problèmes identifiés
+## Concept
 
-1. **Code trop court** : 8 caractères (alphabet de 31) = ~850 milliards de combinaisons. Suffisant mais vulnérable au brute-force sans rate limiting. Passer à **12 caractères** = ~7.8 × 10^17 combinaisons.
+Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
 
-2. **`create-team` utilise `Math.random()`** au lieu de `crypto.getRandomValues()` pour générer le code initial — pas cryptographiquement sûr.
+## Architecture
 
-3. **Aucun rate limiting** sur les endpoints `join-team` et `join-team-public`. Un attaquant peut tester des codes en masse.
+```text
+app_updates (table Supabase)        useNotifications (hook existant)
+┌──────────────────────┐            ┌──────────────────────┐
+│ id, version, title,  │──inject──▶│ notifications[] avec  │
+│ message, created_at  │           │ type "update" + ✨     │
+└──────────────────────┘           └──────────────────────┘
+        ▲                                    │
+        │ INSERT (admin only)                ▼
+     Edge function               NotificationPanel (existant)
+     ou insertion SQL             affiche deja le type "update"
+```
 
-4. **Pas de distinction visuelle** entre les invités connectés et ceux sans compte dans la liste des membres (un invité via lien public sans compte n'apparaît pas du tout actuellement, ce qui est correct — mais un invité connecté n'est pas distingué d'un membre classique au-delà du badge).
+## Modifications
 
-5. **Auto-join silencieux** : `join-team-public` ajoute automatiquement l'utilisateur connecté comme guest sans confirmation explicite.
+### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
 
-## Changements proposés
+- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
+- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
 
-### 1. Codes d'invitation de 12 caractères
+### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
 
-**Fichiers** : `create-team/index.ts`, `regenerate-invite-code/index.ts`
-- Passer la longueur de génération de 8 à 12 caractères
-- `create-team` : remplacer `Math.random()` par `crypto.getRandomValues()`
-- Format d'affichage : groupé par 4 (`XXXX-XXXX-XXXX`) pour lisibilité
+- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
+- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
+- Marque ensuite l'update comme vue dans `user_seen_updates`.
+- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
 
-### 2. Rate limiting simple côté Edge Functions
+### 3. `NotificationPanel.tsx` — Deja pret
 
-**Fichiers** : `join-team/index.ts`, `join-team-public/index.ts`
-- Ajouter un compteur d'échecs par IP dans un header de réponse
-- Limiter à **5 tentatives échouées par minute par IP** via un Map en mémoire (reset au redéploiement, suffisant pour dissuader le brute-force casual)
-- Retourner HTTP 429 si dépassé
+Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
 
-### 3. Affichage amélioré des membres
+### 4. Outil d'insertion pour l'admin
 
-**Fichier** : `TeamMembersList.tsx`
-- Pour les guests : afficher une icône distincte + mention "(lecture seule)" à côté du nom
-- Ajouter la date d'arrivée (`joined_at`) en sous-texte pour identifier les invités récents
+Deux options possibles :
+- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
+- **Option B** : Inserer directement via Supabase Dashboard.
 
-### 4. Formatage du code pour l'affichage
+Je recommande l'**Option A** pour rester autonome.
 
-**Fichier** : `TeamTasksView.tsx`
-- Afficher le code groupé : `XXXX-XXXX-XXXX` au lieu de `XXXXXXXXXXXX`
-- Le copier-coller reste sans tirets (le join-team fait un `.trim().toUpperCase()` et on ajoutera un `.replace(/-/g, '')`)
+## Details techniques
 
-### 5. Nettoyage du flux join-team-public
+### Migration SQL
+```sql
+CREATE TABLE public.app_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  version text,
+  title text NOT NULL,
+  message text,
+  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
-**Fichier** : `join-team-public/index.ts`
-- Ne plus auto-join l'utilisateur connecté comme guest
-- Retourner simplement les infos de l'équipe (nom, nombre de membres)
-- L'ajout effectif se fait uniquement via le bouton explicite sur la page JoinTeam
+CREATE TABLE public.user_seen_updates (
+  user_id uuid NOT NULL,
+  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, update_id)
+);
+```
 
-**Fichier** : `JoinTeam.tsx`
-- Ajouter un bouton "Rejoindre en tant qu'invité" pour les utilisateurs connectés (au lieu de l'auto-join)
-- Appeler `join-team` (authentifié) au clic
+### Hook useAppUpdates
+```typescript
+// 1. Fetch unseen updates
+const { data: unseenUpdates } = await supabase
+  .from('app_updates')
+  .select('*')
+  .not('id', 'in', seenUpdateIds);
 
-### 6. Accepter les codes avec ou sans tirets
+// 2. For each unseen: insert notification + mark seen
+for (const update of unseenUpdates) {
+  await supabase.from('notifications').insert({
+    user_id, type: 'update',
+    title: `✨ ${update.title}`,
+    message: update.message,
+    metadata: { updateId: update.id, version: update.version }
+  });
+  await supabase.from('user_seen_updates').insert({
+    user_id, update_id: update.id
+  });
+}
+```
 
-**Fichiers** : `join-team/index.ts`, `join-team-public/index.ts`
-- Nettoyer l'input : `inviteCode.replace(/-/g, '').trim().toUpperCase()`
-
-## Résumé des fichiers
-
-| Fichier | Action |
-|---|---|
-| `supabase/functions/create-team/index.ts` | Code 12 chars + `crypto.getRandomValues` |
-| `supabase/functions/regenerate-invite-code/index.ts` | Code 12 chars |
-| `supabase/functions/join-team/index.ts` | Rate limiting + strip tirets |
-| `supabase/functions/join-team-public/index.ts` | Rate limiting + strip tirets + suppression auto-join |
-| `src/pages/JoinTeam.tsx` | Bouton "Rejoindre" explicite au lieu d'auto-join |
-| `src/components/views/teams/TeamTasksView.tsx` | Affichage formaté `XXXX-XXXX-XXXX` |
-| `src/components/team/TeamMembersList.tsx` | Date d'arrivée + mention lecture seule pour guests |
+### Admin UI (dans /admin/bugs)
+Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
 

@@ -5,24 +5,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Generate a unique 8-character invite code
+// Generate a cryptographically secure 12-character invite code
 function generateInviteCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous characters
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const arr = new Uint8Array(12);
+  crypto.getRandomValues(arr);
   let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (const byte of arr) {
+    code += chars[byte % chars.length];
   }
   return code;
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create client for auth verification (uses anon key + user token)
     const supabaseAuthClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -33,7 +33,6 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Get authenticated user
     const {
       data: { user },
       error: authError,
@@ -47,13 +46,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create admin client for database operations (bypasses RLS)
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Parse request body
     const { name } = await req.json();
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -91,14 +88,12 @@ Deno.serve(async (req) => {
     }
 
     if (!isUnique) {
-      console.error('Failed to generate unique invite code after 10 attempts');
       return new Response(
         JSON.stringify({ error: 'Failed to generate invite code. Please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create team
     const { data: team, error: teamError } = await supabaseClient
       .from('teams')
       .insert({
@@ -117,7 +112,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Add creator as owner
     const { error: memberError } = await supabaseClient
       .from('team_members')
       .insert({
@@ -128,7 +122,6 @@ Deno.serve(async (req) => {
 
     if (memberError) {
       console.error('Error adding team owner:', memberError);
-      // Rollback: delete the team
       await supabaseClient.from('teams').delete().eq('id', team.id);
       return new Response(
         JSON.stringify({ error: 'Failed to add team owner' }),
@@ -136,7 +129,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Team created successfully:', { teamId: team.id, userId: user.id, inviteCode });
+    console.log('Team created successfully:', { teamId: team.id, userId: user.id });
 
     return new Response(
       JSON.stringify({

@@ -5,9 +5,38 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+// Simple in-memory rate limiting
+const failedAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = failedAttempts.get(ip);
+  if (!entry || now > entry.resetAt) return false;
+  return entry.count >= 5;
+}
+
+function recordFailure(ip: string): void {
+  const now = Date.now();
+  const entry = failedAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    failedAttempts.set(ip, { count: 1, resetAt: now + 60_000 });
+  } else {
+    entry.count++;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+
+  if (isRateLimited(clientIp)) {
+    return new Response(
+      JSON.stringify({ error: 'Trop de tentatives. Réessayez dans une minute.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
@@ -25,14 +54,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Strip dashes and normalize
+    const cleanCode = inviteCode.replace(/-/g, '').trim().toUpperCase();
+
     // Find team
     const { data: team, error: teamError } = await supabaseClient
       .from('teams')
       .select('id, name, invite_link_enabled')
-      .eq('invite_code', inviteCode.trim().toUpperCase())
+      .eq('invite_code', cleanCode)
       .single();
 
     if (teamError || !team) {
+      recordFailure(clientIp);
       return new Response(
         JSON.stringify({ error: 'Invalid invite code' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -46,7 +79,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Try to get authenticated user (optional)
+    // Check if authenticated user (optional)
     const authHeader = req.headers.get('Authorization');
     let userId: string | null = null;
     let alreadyMember = false;
@@ -71,16 +104,12 @@ Deno.serve(async (req) => {
 
         if (existing) {
           alreadyMember = true;
-        } else {
-          // Auto-join as guest
-          await supabaseClient
-            .from('team_members')
-            .insert({ team_id: team.id, user_id: user.id, role: 'guest' });
         }
+        // NO auto-join — user must explicitly click "Rejoindre"
       }
     }
 
-    // Get member count for display
+    // Get member count
     const { count } = await supabaseClient
       .from('team_members')
       .select('id', { count: 'exact', head: true })
@@ -90,7 +119,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         team: { id: team.id, name: team.name, memberCount: count || 0 },
-        joined: userId !== null && !alreadyMember,
+        authenticated: userId !== null,
         alreadyMember,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
