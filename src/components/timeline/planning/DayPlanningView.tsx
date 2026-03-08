@@ -32,7 +32,8 @@ export const DayPlanningView: React.FC<DayPlanningViewProps> = ({
   onQuotaChange,
   onCompleteEvent,
   onRemoveEvent,
-  onEventClick
+  onEventClick,
+  taskCategoryMap
 }) => {
   const isCurrentDay = isToday(date);
   
