@@ -391,6 +391,50 @@ export const useTeams = () => {
     }
   };
 
+  // Regenerate invite code
+  const regenerateInviteCode = async (teamId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('regenerate-invite-code', {
+        body: { teamId },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      logger.info('Invite code regenerated', { teamId });
+      toast({ title: 'Code régénéré', description: 'Le nouveau code d\'invitation est actif' });
+
+      await loadTeams();
+      return data.invite_code as string;
+    } catch (error) {
+      logger.error('Error regenerating invite code', { error, teamId });
+      toast({ title: 'Erreur', description: 'Impossible de régénérer le code', variant: 'destructive' });
+      return null;
+    }
+  };
+
+  // Update team invite settings (invite_link_enabled, code_join_role)
+  const updateTeamSettings = async (teamId: string, settings: { invite_link_enabled?: boolean; code_join_role?: string }) => {
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .update(settings)
+        .eq('id', teamId);
+
+      if (error) throw error;
+
+      logger.info('Team settings updated', { teamId, settings });
+      toast({ title: 'Paramètres mis à jour' });
+      await loadTeams();
+    } catch (error) {
+      logger.error('Error updating team settings', { error, teamId });
+      toast({ title: 'Erreur', description: 'Impossible de mettre à jour les paramètres', variant: 'destructive' });
+    }
+  };
+
   useEffect(() => {
     loadTeams();
     loadPendingInvitations();
