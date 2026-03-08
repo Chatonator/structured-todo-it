@@ -15,6 +15,8 @@ import { useApp } from '@/contexts/AppContext';
 
 const HabitsView = () => {
   const { data, state, actions } = useHabitsFullViewData();
+  const { contextFilter } = useApp();
+  const habitDefaultContext = contextFilter !== 'all' ? contextFilter as 'Pro' | 'Perso' : undefined;
 
   return (
     <>
