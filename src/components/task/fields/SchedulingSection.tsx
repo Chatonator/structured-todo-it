@@ -5,7 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Clock, X } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -102,6 +102,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
             mode="single"
             selected={scheduledDate}
             onSelect={onDateChange}
+            disabled={(date) => date < startOfDay(new Date())}
             initialFocus
             className="pointer-events-auto"
           />
