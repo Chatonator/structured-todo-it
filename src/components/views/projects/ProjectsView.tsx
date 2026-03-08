@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Briefcase, FolderPlus, Users } from 'lucide-react';
 import { ViewLayout } from '@/components/layout/view';
 import { useProjectsFullViewData } from '@/hooks/view-data';
+import { useApp } from '@/contexts/AppContext';
 
 export const ProjectsView = () => {
   const { data, state, actions } = useProjectsFullViewData();
