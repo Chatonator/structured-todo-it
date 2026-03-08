@@ -107,6 +107,7 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
           onRemoveEvent={onRemoveEvent}
           onEventClick={onEventClick}
           disabled={disabled}
+          taskCategoryMap={taskCategoryMap}
         />
       ))}
     </div>
