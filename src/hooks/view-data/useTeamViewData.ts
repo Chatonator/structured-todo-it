@@ -119,7 +119,7 @@ export const useTeamViewData = () => {
   // Send team notification via DB function
   const sendTeamNotification = useCallback(async (
     type: string, title: string, message: string,
-    metadata: Record<string, unknown> = {},
+    metadata: Record<string, string> = {},
     targetUserId?: string
   ) => {
     if (!currentTeam || !currentUserId) return;
