@@ -184,7 +184,7 @@ const SubFolder: React.FC<SubFolderProps> = ({
             {group.tasks.length}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            {formatTime(group.totalTime)}
+            {formatDuration(group.totalTime)}
           </span>
         </div>
       </CollapsibleTrigger>
