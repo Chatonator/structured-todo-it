@@ -40,7 +40,8 @@ const AppSidebar: React.FC = () => {
     sidebarShowHabits, sidebarShowTeamTasks,
     todayHabits, habitCompletions, habitStreaks, onToggleHabit,
     sidebarProjectTasks, onToggleProjectTask,
-    teamTasks, onToggleTeamTask
+    teamTasks, onToggleTeamTask,
+    currentUserId
   } = useSidebarContext();
 
   // Extracted hooks
