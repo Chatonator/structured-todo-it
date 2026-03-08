@@ -1,208 +1,24 @@
-import React, { useState } from 'react';
-import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import { TaskCategory, TaskContext } from '@/types/task';
+import React from 'react';
+import { Plus } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
-import { cn } from '@/lib/utils';
-import { validateTask, sanitizeTask } from '@/utils/taskValidation';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenuButton,
-} from '@/components/ui/sidebar';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-interface SidebarQuickAddProps {
-  onAddTask: (task: any) => void;
-  isCollapsed: boolean;
-}
+const SidebarQuickAdd: React.FC = () => {
+  const { contextFilter, setIsModalOpen } = useApp();
 
-const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapsed }) => {
-  const { toast } = useToast();
-  const { contextFilter } = useApp();
-  const [isOpen, setIsOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [context, setContext] = useState<TaskContext>(contextFilter !== 'all' ? contextFilter as TaskContext : 'Perso');
-  const [category, setCategory] = useState<TaskCategory>('Autres');
-  const [estimatedTime, setEstimatedTime] = useState<number>(0);
-
-  // Sync context when filter changes
-  React.useEffect(() => {
-    if (contextFilter !== 'all') {
-      setContext(contextFilter as TaskContext);
-    }
-  }, [contextFilter]);
-
-  const handleSubmit = () => {
-    const taskData = {
-      name: name.trim(),
-      context,
-      category,
-      estimatedTime,
-      level: 0 as const,
-      isExpanded: true,
-      isCompleted: false
-    };
-
-    // Validation
-    const errors = validateTask(taskData);
-    if (errors.length > 0) {
-      toast({
-        title: "Erreur de validation",
-        description: errors[0],
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Sanitisation et création
-    const sanitized = sanitizeTask(taskData);
-    onAddTask(sanitized);
-
-    // Réinitialiser et fermer
-    setName('');
-    setIsOpen(false);
-    
-    toast({
-      title: "Tâche créée",
-      description: `${taskData.name} a été ajoutée avec succès`,
-    });
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
-  // Mode collapsed: ne rien afficher
-  if (isCollapsed) {
-    return null;
-  }
-
-  // Mode expanded: section collapsible
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <Button
-          size="sm"
-          className="w-full justify-between h-8 text-xs shadow-sm hover:shadow-md transition-all duration-200"
-        >
-          <div className="flex items-center gap-1.5">
-            <Plus className="w-3.5 h-3.5" />
-            <span className="font-medium">{
-              contextFilter === 'Perso' ? 'Tâche Perso'
-              : contextFilter === 'Pro' ? 'Tâche Pro'
-              : 'Nouvelle tâche'
-            }</span>
-          </div>
-          {isOpen ? (
-            <ChevronUp className="w-3 h-3 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-3 h-3 text-muted-foreground" />
-          )}
-        </Button>
-      </CollapsibleTrigger>
-
-        <CollapsibleContent>
-          <div className="p-2 space-y-2 bg-sidebar-accent/30 rounded-lg mt-1.5">
-            <Input
-              placeholder="Titre de la tâche..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="text-xs h-7 bg-background"
-              autoFocus
-            />
-
-            <div className="grid grid-cols-2 gap-1.5">
-              <Select value={context} onValueChange={(value) => setContext(value as TaskContext)}>
-                <SelectTrigger className="text-[10px] h-6 bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pro">💼 Pro</SelectItem>
-                  <SelectItem value="Perso">🏠 Perso</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="text-[10px] text-muted-foreground flex items-center justify-end gap-1">
-                ⏱ {estimatedTime > 0 ? (estimatedTime >= 60 ? `${Math.floor(estimatedTime/60)}h${estimatedTime%60 ? (estimatedTime%60).toString().padStart(2,'0') : ''}` : `${estimatedTime}min`) : '—'}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {[15, 30, 45, 60, 90, 120, 180, 240].map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setEstimatedTime(estimatedTime === m ? 0 : m)}
-                  className={cn(
-                    'px-1.5 py-0.5 text-[9px] rounded-md font-medium transition-colors cursor-pointer border',
-                    estimatedTime === m
-                      ? 'bg-primary/15 text-primary border-primary/30'
-                      : 'text-muted-foreground bg-background border-border hover:bg-accent/50'
-                  )}
-                >
-                  {m >= 60 ? `${Math.floor(m/60)}h${m%60 ? m%60 : ''}` : `${m}m`}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-1.5">
-              {(() => {
-                const flags = eisenhowerFromCategory(category);
-                return (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setCategory(categoryFromEisenhower({ ...flags, isImportant: !flags.isImportant }))}
-                      className={cn(
-                        'flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-medium rounded-md transition-all duration-200 cursor-pointer',
-                        flags.isImportant
-                          ? 'bg-category-envie/15 text-category-envie'
-                          : 'text-muted-foreground bg-background hover:bg-accent/50'
-                      )}
-                    >
-                      <span>⭐</span> Important
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCategory(categoryFromEisenhower({ ...flags, isUrgent: !flags.isUrgent }))}
-                      className={cn(
-                        'flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-medium rounded-md transition-all duration-200 cursor-pointer',
-                        flags.isUrgent
-                          ? 'bg-category-quotidien/15 text-category-quotidien'
-                          : 'text-muted-foreground bg-background hover:bg-accent/50'
-                      )}
-                    >
-                      <span>⚡</span> Urgent
-                    </button>
-                  </>
-                );
-              })()}
-            </div>
-
-            <Button 
-              onClick={handleSubmit}
-              className="w-full h-6 text-[10px]"
-              size="sm"
-              disabled={!name.trim()}
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              Créer
-            </Button>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+    <Button
+      size="sm"
+      className="w-full justify-start h-8 text-xs shadow-sm hover:shadow-md transition-all duration-200"
+      onClick={() => setIsModalOpen(true)}
+    >
+      <Plus className="w-3.5 h-3.5 mr-1.5" />
+      <span className="font-medium">
+        {contextFilter === 'Perso' ? 'Tâche Perso'
+          : contextFilter === 'Pro' ? 'Tâche Pro'
+          : 'Nouvelle tâche'}
+      </span>
+    </Button>
   );
 };
 
