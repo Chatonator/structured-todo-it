@@ -101,7 +101,11 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
         >
           <div className="flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5" />
-            <span className="font-medium">Nouvelle tâche</span>
+            <span className="font-medium">{
+              contextFilter === 'Perso' ? 'Tâche Perso'
+              : contextFilter === 'Pro' ? 'Tâche Pro'
+              : 'Nouvelle tâche'
+            }</span>
           </div>
           {isOpen ? (
             <ChevronUp className="w-3 h-3 text-muted-foreground" />
