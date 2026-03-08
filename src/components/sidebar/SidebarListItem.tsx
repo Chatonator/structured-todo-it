@@ -3,6 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { SidebarMenuItem } from '@/components/ui/sidebar';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDuration } from '@/lib/formatters';
 
 export interface SidebarListItemProps {
   // Content
