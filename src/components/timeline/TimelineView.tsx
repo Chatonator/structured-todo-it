@@ -18,7 +18,7 @@ import { ViewLayout } from '@/components/layout/view';
 const TimelineView: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
-
+  const isViewingToday = isSameDay(selectedDate, new Date());
   // Calculer le range selon le mode
   const dateRange = useMemo(() => {
     if (viewMode === 'day') {
