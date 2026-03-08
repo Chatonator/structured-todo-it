@@ -26,7 +26,8 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
   onCompleteEvent,
   onRemoveEvent,
   onEventClick,
-  disabled = false
+  disabled = false,
+  taskCategoryMap
 }) => {
   // Group events by time block
   const eventsByBlock = React.useMemo(() => {
