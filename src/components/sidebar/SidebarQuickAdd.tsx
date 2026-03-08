@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { TaskCategory, TaskContext } from '@/types/task';
+import { useApp } from '@/contexts/AppContext';
 import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
 import { cn } from '@/lib/utils';
 import { validateTask, sanitizeTask } from '@/utils/taskValidation';
