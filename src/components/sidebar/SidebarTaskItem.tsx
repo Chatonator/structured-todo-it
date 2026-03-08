@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { getCategoryIndicatorColor } from '@/lib/styling';
+import { formatDuration } from '@/lib/formatters';
 import {
   DropdownMenu,
   DropdownMenuContent,
