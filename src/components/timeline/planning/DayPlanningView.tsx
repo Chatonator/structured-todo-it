@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { formatDuration } from '@/lib/formatters';
 import { CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { QuotaSelector } from '@/components/timeline/QuotaSelector';
+import { TaskCategory } from '@/types/task';
 
 interface DayPlanningViewProps {
   date: Date;
@@ -17,6 +18,7 @@ interface DayPlanningViewProps {
   onCompleteEvent?: (eventId: string) => void;
   onRemoveEvent?: (eventId: string) => void;
   onEventClick?: (event: TimeEvent) => void;
+  taskCategoryMap?: Map<string, TaskCategory>;
 }
 
 /**
