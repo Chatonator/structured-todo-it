@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Clock } from 'lucide-react';
+import { CalendarIcon, Clock, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -16,51 +16,199 @@ interface SchedulingSectionProps {
   onTimeChange: (time: string) => void;
 }
 
+const HOUR_TICKS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
+const MINUTE_TICKS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+const QUICK_SLOTS = [
+  { label: '🌅 Matin', hour: 9, min: 0 },
+  { label: '☀️ Midi', hour: 12, min: 0 },
+  { label: '🌤️ Après-midi', hour: 14, min: 0 },
+  { label: '🌙 Soir', hour: 18, min: 0 },
+];
+
+function parseTime(time?: string): { hour: number; minute: number } {
+  if (!time) return { hour: 9, minute: 0 };
+  const [h, m] = time.split(':').map(Number);
+  return { hour: h || 0, minute: m || 0 };
+}
+
+function formatTime(hour: number, minute: number): string {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function displayTime(hour: number, minute: number): string {
+  if (minute === 0) return `${hour}h`;
+  return `${hour}h${String(minute).padStart(2, '0')}`;
+}
+
 export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
   scheduledDate,
   scheduledTime,
   onDateChange,
   onTimeChange
 }) => {
+  const { hour, minute } = parseTime(scheduledTime);
+  const hasTime = !!scheduledTime;
+
+  const setTime = useCallback((h: number, m: number) => {
+    onTimeChange(formatTime(h, m));
+  }, [onTimeChange]);
+
+  const handleHourSlider = useCallback((vals: number[]) => {
+    setTime(vals[0], minute);
+  }, [minute, setTime]);
+
+  const handleMinuteSlider = useCallback((vals: number[]) => {
+    setTime(hour, vals[0]);
+  }, [hour, setTime]);
+
+  const clickHour = useCallback((h: number) => {
+    setTime(h, minute);
+  }, [minute, setTime]);
+
+  const clickMinute = useCallback((m: number) => {
+    setTime(hour, m);
+  }, [hour, setTime]);
+
+  const clearTime = useCallback(() => {
+    onTimeChange('');
+  }, [onTimeChange]);
+
   return (
     <div className="space-y-3 pt-3 border-t border-border">
       <Label className="text-sm text-foreground flex items-center gap-2">
         <Clock className="w-4 h-4" />
         Planification (optionnelle)
       </Label>
-      
-      <div className="grid grid-cols-2 gap-2">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "justify-start text-left font-normal",
-                !scheduledDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {scheduledDate ? format(scheduledDate, "d MMM", { locale: fr }) : "Date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={scheduledDate}
-              onSelect={onDateChange}
-              initialFocus
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
 
-        <Input
-          type="time"
-          value={scheduledTime || ''}
-          onChange={(e) => onTimeChange(e.target.value)}
-          placeholder="HH:MM"
-          className="h-9 text-sm"
-        />
+      {/* Date picker */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !scheduledDate && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {scheduledDate ? format(scheduledDate, "EEEE d MMMM", { locale: fr }) : "Choisir une date"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={scheduledDate}
+            onSelect={onDateChange}
+            initialFocus
+            className="pointer-events-auto"
+          />
+        </PopoverContent>
+      </Popover>
+
+      {/* Time selector – visual sliders */}
+      <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+        {/* Header with display */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground uppercase tracking-wider">Heure</span>
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              'text-sm font-semibold tabular-nums transition-colors',
+              hasTime ? 'text-primary' : 'text-muted-foreground'
+            )}>
+              {hasTime ? displayTime(hour, minute) : '—'}
+            </span>
+            {hasTime && (
+              <button type="button" onClick={clearTime} className="text-muted-foreground hover:text-destructive transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick slot buttons */}
+        <div className="flex gap-1.5">
+          {QUICK_SLOTS.map((slot) => {
+            const isActive = hasTime && hour === slot.hour && minute === slot.min;
+            return (
+              <button
+                key={slot.label}
+                type="button"
+                onClick={() => setTime(slot.hour, slot.min)}
+                className={cn(
+                  'flex-1 text-[10px] py-1.5 rounded-md border transition-all',
+                  isActive
+                    ? 'bg-primary/15 border-primary text-primary font-medium'
+                    : 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                )}
+              >
+                {slot.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Hours slider */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>Heures</span>
+            <span className="tabular-nums font-medium">{hour}h</span>
+          </div>
+          <Slider
+            value={[hour]}
+            onValueChange={handleHourSlider}
+            min={0}
+            max={23}
+            step={1}
+            className="cursor-pointer"
+          />
+          <div className="flex justify-between px-0.5">
+            {HOUR_TICKS.map((h) => (
+              <button
+                key={h}
+                type="button"
+                onClick={() => clickHour(h)}
+                className={cn(
+                  'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
+                  h === hour ? 'text-primary font-semibold' : 'text-muted-foreground/50'
+                )}
+              >
+                {h}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Minutes slider */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>Minutes</span>
+            <span className="tabular-nums font-medium">{minute}min</span>
+          </div>
+          <Slider
+            value={[minute]}
+            onValueChange={handleMinuteSlider}
+            min={0}
+            max={55}
+            step={5}
+            className="cursor-pointer"
+          />
+          <div className="flex justify-between px-0.5">
+            {MINUTE_TICKS.map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => clickMinute(m)}
+                className={cn(
+                  'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
+                  m === minute ? 'text-primary font-semibold' : 'text-muted-foreground/50'
+                )}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
