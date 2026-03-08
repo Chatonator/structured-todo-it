@@ -103,7 +103,7 @@ const ObservatoryTaskRow: React.FC<ObservatoryTaskRowProps> = ({
 
       {/* Time estimate */}
       <span className="text-xs text-muted-foreground shrink-0">
-        {formatTime(task.estimatedTime)}
+        {formatDuration(task.estimatedTime)}
       </span>
 
       {/* Category badge */}
