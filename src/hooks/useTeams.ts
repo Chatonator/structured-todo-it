@@ -22,13 +22,28 @@ export interface TeamMember {
   joined_at: string;
   profiles?: {
     display_name: string | null;
+    email: string | null;
   };
+}
+
+export interface TeamInvitation {
+  id: string;
+  team_id: string;
+  invited_by: string;
+  invited_email: string;
+  invited_user_id: string | null;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  responded_at: string | null;
+  team_name?: string;
+  inviter_name?: string;
 }
 
 export const useTeams = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<TeamInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [membersLoading, setMembersLoading] = useState(false);
   const { toast } = useToast();
@@ -44,7 +59,6 @@ export const useTeams = () => {
         return;
       }
 
-      // Get teams where user is a member
       const { data: memberData, error: memberError } = await supabase
         .from('team_members')
         .select('team_id')
@@ -59,7 +73,6 @@ export const useTeams = () => {
 
       const teamIds = memberData.map(m => m.team_id);
 
-      // Get team details
       const { data: teamsData, error: teamsError } = await supabase
         .from('teams')
         .select('*')
@@ -73,8 +86,8 @@ export const useTeams = () => {
     } catch (error) {
       logger.error('Error loading teams', { error });
       toast({
-        title: 'Error',
-        description: 'Failed to load teams',
+        title: 'Erreur',
+        description: 'Impossible de charger les équipes',
         variant: 'destructive',
       });
     } finally {
@@ -94,12 +107,11 @@ export const useTeams = () => {
 
       if (error) throw error;
 
-      // Load profiles separately
       if (data && data.length > 0) {
         const userIds = data.map(m => m.user_id);
         const { data: profilesData } = await supabase
           .from('profiles')
-          .select('user_id, display_name')
+          .select('user_id, display_name, email')
           .in('user_id', userIds);
 
         const profilesMap = new Map(
@@ -108,7 +120,7 @@ export const useTeams = () => {
 
         const membersWithProfiles = data.map(member => ({
           ...member,
-          profiles: profilesMap.get(member.user_id) || { display_name: null },
+          profiles: profilesMap.get(member.user_id) || { display_name: null, email: null },
         }));
 
         setTeamMembers(membersWithProfiles);
@@ -119,8 +131,8 @@ export const useTeams = () => {
     } catch (error) {
       logger.error('Error loading team members', { error, teamId });
       toast({
-        title: 'Error',
-        description: 'Failed to load team members',
+        title: 'Erreur',
+        description: 'Impossible de charger les membres',
         variant: 'destructive',
       });
     } finally {
@@ -128,39 +140,135 @@ export const useTeams = () => {
     }
   };
 
+  // Load pending invitations for the current user
+  const loadPendingInvitations = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('team_invitations')
+        .select('*')
+        .eq('invited_user_id', user.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // Enrich with team names and inviter names
+        const teamIds = [...new Set(data.map(i => i.team_id))];
+        const inviterIds = [...new Set(data.map(i => i.invited_by))];
+
+        const [teamsRes, profilesRes] = await Promise.all([
+          supabase.from('teams').select('id, name').in('id', teamIds),
+          supabase.from('profiles').select('user_id, display_name').in('user_id', inviterIds),
+        ]);
+
+        const teamsMap = new Map((teamsRes.data || []).map(t => [t.id, t.name]));
+        const profilesMap = new Map((profilesRes.data || []).map(p => [p.user_id, p.display_name]));
+
+        const enriched: TeamInvitation[] = data.map(inv => ({
+          ...inv,
+          status: inv.status as 'pending' | 'accepted' | 'declined',
+          team_name: teamsMap.get(inv.team_id) || 'Équipe inconnue',
+          inviter_name: profilesMap.get(inv.invited_by) || 'Quelqu\'un',
+        }));
+
+        setPendingInvitations(enriched);
+      } else {
+        setPendingInvitations([]);
+      }
+    } catch (error) {
+      logger.error('Error loading invitations', { error });
+    }
+  };
+
+  // Invite by email
+  const inviteByEmail = async (teamId: string, email: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Non authentifié');
+
+      const { data, error } = await supabase.functions.invoke('invite-to-team', {
+        body: { teamId, email },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast({
+        title: 'Invitation envoyée !',
+        description: `Une invitation a été envoyée à ${email}`,
+      });
+
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Impossible d\'envoyer l\'invitation';
+      toast({
+        title: 'Erreur',
+        description: message,
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  // Respond to invitation
+  const respondToInvitation = async (invitationId: string, accept: boolean) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Non authentifié');
+
+      const { data, error } = await supabase.functions.invoke('respond-to-invitation', {
+        body: { invitationId, accept },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast({
+        title: accept ? 'Invitation acceptée !' : 'Invitation refusée',
+        description: accept ? 'Vous avez rejoint l\'équipe' : 'L\'invitation a été déclinée',
+      });
+
+      // Refresh data
+      await Promise.all([loadTeams(), loadPendingInvitations()]);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur lors de la réponse';
+      toast({
+        title: 'Erreur',
+        description: message,
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   // Create a new team
   const createTeam = async (name: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
+      if (!session) throw new Error('Not authenticated');
 
       const { data, error } = await supabase.functions.invoke('create-team', {
         body: { name },
       });
 
       if (error) throw error;
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (data.error) throw new Error(data.error);
 
       logger.info('Team created', { teamId: data.team.id });
-      
-      toast({
-        title: 'Success',
-        description: 'Team created successfully',
-      });
+      toast({ title: 'Équipe créée !', description: `L'équipe "${name}" a été créée avec succès` });
 
       await loadTeams();
       return data.team;
     } catch (error) {
       logger.error('Error creating team', { error });
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create team',
+        title: 'Erreur',
+        description: error instanceof Error ? error.message : 'Impossible de créer l\'équipe',
         variant: 'destructive',
       });
       return null;
@@ -171,35 +279,25 @@ export const useTeams = () => {
   const joinTeam = async (inviteCode: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
+      if (!session) throw new Error('Not authenticated');
 
       const { data, error } = await supabase.functions.invoke('join-team', {
         body: { inviteCode },
       });
 
       if (error) throw error;
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (data.error) throw new Error(data.error);
 
       logger.info('Joined team', { teamId: data.team.id });
-      
-      toast({
-        title: 'Success',
-        description: `You joined ${data.team.name}`,
-      });
+      toast({ title: 'Bienvenue !', description: `Vous avez rejoint ${data.team.name}` });
 
       await loadTeams();
       return data.team;
     } catch (error) {
       logger.error('Error joining team', { error });
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to join team',
+        title: 'Erreur',
+        description: error instanceof Error ? error.message : 'Impossible de rejoindre l\'équipe',
         variant: 'destructive',
       });
       return null;
@@ -210,10 +308,7 @@ export const useTeams = () => {
   const leaveTeam = async (teamId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
+      if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase
         .from('team_members')
@@ -224,24 +319,13 @@ export const useTeams = () => {
       if (error) throw error;
 
       logger.info('Left team', { teamId });
-      
-      toast({
-        title: 'Success',
-        description: 'You left the team',
-      });
+      toast({ title: 'Équipe quittée', description: 'Vous avez quitté l\'équipe' });
 
-      if (currentTeam?.id === teamId) {
-        setCurrentTeam(null);
-      }
-
+      if (currentTeam?.id === teamId) setCurrentTeam(null);
       await loadTeams();
     } catch (error) {
       logger.error('Error leaving team', { error, teamId });
-      toast({
-        title: 'Error',
-        description: 'Failed to leave team',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erreur', description: 'Impossible de quitter l\'équipe', variant: 'destructive' });
     }
   };
 
@@ -249,39 +333,24 @@ export const useTeams = () => {
   const updateMemberRole = async (teamId: string, targetUserId: string, newRole: TeamRole) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
+      if (!session) throw new Error('Not authenticated');
 
       const { data, error } = await supabase.functions.invoke('manage-team-member', {
-        body: {
-          action: 'update_role',
-          teamId,
-          targetUserId,
-          newRole,
-        },
+        body: { action: 'update_role', teamId, targetUserId, newRole },
       });
 
       if (error) throw error;
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (data.error) throw new Error(data.error);
 
       logger.info('Member role updated', { teamId, targetUserId, newRole });
-      
-      toast({
-        title: 'Success',
-        description: 'Member role updated',
-      });
+      toast({ title: 'Rôle mis à jour', description: 'Le rôle du membre a été modifié' });
 
       await loadTeamMembers(teamId);
     } catch (error) {
       logger.error('Error updating member role', { error, teamId, targetUserId });
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update member role',
+        title: 'Erreur',
+        description: error instanceof Error ? error.message : 'Impossible de modifier le rôle',
         variant: 'destructive',
       });
     }
@@ -291,38 +360,24 @@ export const useTeams = () => {
   const removeMember = async (teamId: string, targetUserId: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
+      if (!session) throw new Error('Not authenticated');
 
       const { data, error } = await supabase.functions.invoke('manage-team-member', {
-        body: {
-          action: 'remove_member',
-          teamId,
-          targetUserId,
-        },
+        body: { action: 'remove_member', teamId, targetUserId },
       });
 
       if (error) throw error;
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (data.error) throw new Error(data.error);
 
       logger.info('Member removed', { teamId, targetUserId });
-      
-      toast({
-        title: 'Success',
-        description: 'Member removed from team',
-      });
+      toast({ title: 'Membre retiré', description: 'Le membre a été retiré de l\'équipe' });
 
       await loadTeamMembers(teamId);
     } catch (error) {
       logger.error('Error removing member', { error, teamId, targetUserId });
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to remove member',
+        title: 'Erreur',
+        description: error instanceof Error ? error.message : 'Impossible de retirer le membre',
         variant: 'destructive',
       });
     }
@@ -330,37 +385,16 @@ export const useTeams = () => {
 
   useEffect(() => {
     loadTeams();
+    loadPendingInvitations();
 
-    // Subscribe to team changes
     const channel = supabase
       .channel('teams-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'teams',
-        },
-        () => {
-          loadTeams();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'team_members',
-        },
-        () => {
-          loadTeams();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, () => loadTeams())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, () => loadTeams())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_invitations' }, () => loadPendingInvitations())
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   // Load members when current team changes
@@ -377,6 +411,7 @@ export const useTeams = () => {
     currentTeam,
     setCurrentTeam,
     teamMembers,
+    pendingInvitations,
     loading,
     membersLoading,
     createTeam,
@@ -384,7 +419,10 @@ export const useTeams = () => {
     leaveTeam,
     updateMemberRole,
     removeMember,
+    inviteByEmail,
+    respondToInvitation,
     refreshTeams: loadTeams,
     refreshMembers: (teamId: string) => loadTeamMembers(teamId),
+    refreshInvitations: loadPendingInvitations,
   };
 };
