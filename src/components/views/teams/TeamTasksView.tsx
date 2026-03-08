@@ -25,7 +25,7 @@ import {
   Users, Plus, FolderKanban, ListTodo,
   ArrowRight, Copy, Check, Mail, Send, LogIn,
   ChevronDown, LogOut, Sparkles, Rocket, UserCircle, AlertTriangle,
-  Tag, Trash2, Pencil, Shield
+  Tag, Trash2, Pencil, Shield, Link2, RefreshCw, KeyRound
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { useTeamContext } from '@/contexts/TeamContext';
