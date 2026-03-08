@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 
+import {
   ChevronRight, 
   ChevronDown, 
   FolderKanban, 
@@ -12,10 +12,10 @@ import {
   Tag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { 
-  Collapsible, 
-  CollapsibleContent, 
-  CollapsibleTrigger 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
 } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +25,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { CategoryBadge } from '@/components/primitives/badges/CategoryBadge';
+import { ContextBadge } from '@/components/primitives/badges/ContextBadge';
+import { formatDuration } from '@/lib/formatters';
 import { EnrichedTask } from '@/hooks/view-data/useObservatoryViewData';
 import { TaskCategory } from '@/types/task';
 
@@ -48,31 +51,10 @@ interface TaskFoldersProps {
 }
 
 // ============= Helpers =============
-const formatTime = (minutes: number): string => {
-  if (minutes < 60) return `${minutes}min`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins > 0 ? `${hours}h${mins}` : `${hours}h`;
-};
+// Use centralized formatDuration and badge components
 
-const getCategoryColor = (category: TaskCategory): string => {
-  const colors: Record<TaskCategory, string> = {
-    'Obligation': 'bg-destructive/10 text-destructive',
-    'Quotidien': 'bg-primary/10 text-primary',
-    'Envie': 'bg-accent/30 text-accent-foreground',
-    'Autres': 'bg-muted text-muted-foreground',
-  };
-  return colors[category] || colors['Autres'];
-};
-
-const getContextColor = (context: string): string => {
-  return context === 'Pro' 
-    ? 'bg-secondary text-secondary-foreground'
-    : 'bg-accent/30 text-accent-foreground';
-};
-
-// ============= TaskRow Component =============
-interface TaskRowProps {
+// ============= TaskRow Component (Observatory-specific) =============
+interface ObservatoryTaskRowProps {
   task: EnrichedTask;
   onComplete: (taskId: string) => void;
   onDelete: (taskId: string) => void;
@@ -80,7 +62,7 @@ interface TaskRowProps {
   onClick?: (task: EnrichedTask) => void;
 }
 
-const TaskRow: React.FC<TaskRowProps> = ({ 
+const ObservatoryTaskRow: React.FC<ObservatoryTaskRowProps> = ({ 
   task, 
   onComplete, 
   onDelete, 
@@ -121,24 +103,12 @@ const TaskRow: React.FC<TaskRowProps> = ({
 
       {/* Time estimate */}
       <span className="text-xs text-muted-foreground shrink-0">
-        {formatTime(task.estimatedTime)}
+        {formatDuration(task.estimatedTime)}
       </span>
 
-      {/* Category badge */}
-      <Badge 
-        variant="secondary" 
-        className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", getCategoryColor(task.category))}
-      >
-        {task.category.slice(0, 3)}
-      </Badge>
+      <CategoryBadge category={task.category} size="sm" />
 
-      {/* Context badge */}
-      <Badge 
-        variant="secondary" 
-        className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", getContextColor(task.context))}
-      >
-        {task.context}
-      </Badge>
+      <ContextBadge context={task.context} size="sm" showLabel={false} />
 
       {/* Age indicator for zombies */}
       {task.isZombie && (
@@ -214,14 +184,14 @@ const SubFolder: React.FC<SubFolderProps> = ({
             {group.tasks.length}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            {formatTime(group.totalTime)}
+            {formatDuration(group.totalTime)}
           </span>
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="ml-5 border-l border-border/50 pl-2 mt-1">
           {group.tasks.map(task => (
-            <TaskRow
+            <ObservatoryTaskRow
               key={task.id}
               task={task}
               onComplete={onComplete}
@@ -283,7 +253,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
               )}
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="w-3 h-3" />
-                {formatTime(group.totalTime)}
+                {formatDuration(group.totalTime)}
               </div>
             </div>
           </div>
@@ -306,7 +276,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
             ) : (
               // Render tasks directly
               group.tasks.map(task => (
-                <TaskRow
+                <ObservatoryTaskRow
                   key={task.id}
                   task={task}
                   onComplete={onComplete}

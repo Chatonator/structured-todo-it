@@ -12,6 +12,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { formatDuration } from '@/lib/formatters';
+import { getCategoryIndicatorColor } from '@/lib/styling';
 import { cn } from '@/lib/utils';
 import { ToolProps } from '../types';
 import { useRule135Tool, TaskSlot } from './useRule135Tool';
@@ -56,7 +57,7 @@ interface TaskItemProps {
   onRemove: (id: string, slot: TaskSlot) => void;
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove }) => {
+const SlotTaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove }) => {
   const config = SLOT_CONFIG[slot];
   
   return (
@@ -66,6 +67,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove }) =
       config.borderColor,
       task.isCompleted && "opacity-60"
     )}>
+      <div className={cn("w-1 self-stretch rounded-full shrink-0", getCategoryIndicatorColor(task.category))} />
       <Checkbox
         checked={task.isCompleted}
         onCheckedChange={() => onToggle(task.id)}
@@ -151,7 +153,7 @@ const SlotSection: React.FC<SlotSectionProps> = ({
       </CardHeader>
       <CardContent className="p-4 space-y-3">
         {tasks.map(task => (
-          <TaskItem
+          <SlotTaskItem
             key={task.id}
             task={task}
             slot={slot}
@@ -166,13 +168,19 @@ const SlotSection: React.FC<SlotSectionProps> = ({
             max={config.max - slotInfo.current}
             selectedTasks={[]}
             filteredAvailableTasks={linker.filteredAvailableTasks}
+            filteredCount={linker.filteredCount}
+            totalCount={linker.totalCount}
             search={linker.filters.search}
             contextFilter={linker.filters.context}
+            categoryFilter={linker.filters.category}
+            priorityFilter={linker.filters.priority}
             canSelectMore={!slotInfo.filled}
             onSelect={handleSelect}
             onDeselect={() => {}}
             onSearchChange={linker.setSearch}
             onContextFilterChange={linker.setContextFilter}
+            onCategoryFilterChange={linker.setCategoryFilter}
+            onPriorityFilterChange={linker.setPriorityFilter}
             placeholder="Ajouter une tâche..."
             variant="popover"
           />

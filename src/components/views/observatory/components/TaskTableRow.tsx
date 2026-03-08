@@ -13,6 +13,7 @@ import {
 import { EnrichedTask } from '@/hooks/view-data/useObservatoryViewData';
 import { CATEGORY_DISPLAY_NAMES, CONTEXT_CONFIG } from '@/types/task';
 import { formatDuration } from '@/lib/formatters';
+import { getCategoryClasses } from '@/lib/styling';
 import { cn } from '@/lib/utils';
 
 interface TaskTableRowProps {
@@ -25,18 +26,7 @@ interface TaskTableRowProps {
   onRestore: (taskId: string) => void;
 }
 
-const getCategoryBadgeClass = (category: string): string => {
-  switch (category) {
-    case 'Obligation':
-      return 'bg-category-obligation/10 text-category-obligation border-category-obligation/30';
-    case 'Quotidien':
-      return 'bg-category-quotidien/10 text-category-quotidien border-category-quotidien/30';
-    case 'Envie':
-      return 'bg-category-envie/10 text-category-envie border-category-envie/30';
-    default:
-      return 'bg-category-autres/10 text-category-autres border-category-autres/30';
-  }
-};
+// Use centralized getCategoryClasses from lib/styling
 
 export const TaskTableRow: React.FC<TaskTableRowProps> = ({
   task,
@@ -80,7 +70,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       <div className="col-span-2 hidden sm:block">
         <Badge 
           variant="outline" 
-          className={cn("text-[10px] px-1.5 py-0", getCategoryBadgeClass(task.category))}
+          className={cn("text-[10px] px-1.5 py-0", getCategoryClasses(task.category, 'badge'))}
         >
           {CATEGORY_DISPLAY_NAMES[task.category]}
         </Badge>

@@ -3,6 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { SidebarMenuItem } from '@/components/ui/sidebar';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDuration } from '@/lib/formatters';
 
 export interface SidebarListItemProps {
   // Content
@@ -30,12 +31,7 @@ export interface SidebarListItemProps {
   estimatedTime?: number;
 }
 
-const formatTime = (minutes: number) => {
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins ? `${hours}h${mins}` : `${hours}h`;
-};
+// Use centralized formatDuration from lib/formatters
 
 export const SidebarListItem: React.FC<SidebarListItemProps> = ({
   name,
@@ -110,7 +106,7 @@ export const SidebarListItem: React.FC<SidebarListItemProps> = ({
           {estimatedTime !== undefined && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
               <Clock className="w-3 h-3" />
-              <span>{formatTime(estimatedTime)}</span>
+              <span>{formatDuration(estimatedTime)}</span>
             </div>
           )}
 

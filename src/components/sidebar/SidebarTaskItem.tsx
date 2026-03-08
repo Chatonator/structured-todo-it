@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { getCategoryIndicatorColor } from '@/lib/styling';
+import { formatDuration } from '@/lib/formatters';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,27 +76,7 @@ interface SidebarTaskItemProps {
   onScheduleTask?: (taskId: string, date: Date, time: string) => void;
 }
 
-const getCategoryColor = (category: Task['category']) => {
-  switch (category) {
-    case 'Obligation':
-      return 'bg-category-obligation';
-    case 'Quotidien':
-      return 'bg-category-quotidien';
-    case 'Envie':
-      return 'bg-category-envie';
-    case 'Autres':
-      return 'bg-category-autres';
-    default:
-      return 'bg-muted';
-  }
-};
-
-const formatTime = (minutes: number) => {
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins ? `${hours}h${mins}` : `${hours}h`;
-};
+// Use centralized utilities instead of local duplicates
 
 const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   task,
@@ -160,7 +142,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
       <div
         className={cn(
           'w-1.5 self-stretch rounded-l-md shrink-0 z-10',
-          getCategoryColor(task.category)
+          getCategoryIndicatorColor(task.category)
         )}
       />
 
@@ -216,7 +198,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           {/* Temps estimé */}
           <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
             <Clock className="w-3 h-3" />
-            <span>{formatTime(totalTime)}</span>
+            <span>{formatDuration(totalTime)}</span>
           </div>
 
           {/* Badge sous-tâches */}
