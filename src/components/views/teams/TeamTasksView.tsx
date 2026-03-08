@@ -636,8 +636,8 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
               members={data.teamMembers}
               currentUserId={data.currentUserId}
               memberStats={data.memberStats}
-              onUpdateRole={actions.handleUpdateRole}
-              onRemove={actions.handleRemoveMember}
+              onUpdateRole={actions.can('manage_members') ? actions.handleUpdateRole : undefined}
+              onRemove={actions.can('manage_members') ? actions.handleRemoveMember : undefined}
             />
           </CardContent>
         </Card>
