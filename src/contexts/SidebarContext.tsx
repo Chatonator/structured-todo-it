@@ -4,7 +4,6 @@ import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/task';
-import { Task } from '@/types/task';
 import { Habit } from '@/types/habit';
 import { Project } from '@/types/project';
 
