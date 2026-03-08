@@ -26,9 +26,9 @@ import {
   CheckCircle,
   ListTodo,
   CalendarDays,
-  Plus
+  Home
 } from 'lucide-react';
-import { format, addDays, startOfDay, endOfDay, startOfWeek } from 'date-fns';
+import { format, addDays, startOfDay, endOfDay, startOfWeek, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { 
@@ -41,7 +41,8 @@ import { DayPlanningView, WeekPlanningView } from '@/components/timeline/plannin
 import { useTimelineScheduling } from '@/hooks/useTimelineScheduling';
 import { useDayPlanning } from '@/hooks/useDayPlanning';
 import { useProjects } from '@/hooks/useProjects';
-import { Task } from '@/types/task';
+import { useTasks } from '@/hooks/useTasks';
+import { Task, TaskCategory } from '@/types/task';
 import { TimeEvent, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
 import { formatDuration } from '@/lib/formatters';
 import TaskModal from '@/components/task/TaskModal';
@@ -99,6 +100,16 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
   } = useDayPlanning();
 
   const { projects } = useProjects();
+  const { tasks: allTasks } = useTasks();
+
+  // Build category map: entityId → TaskCategory
+  const taskCategoryMap = useMemo(() => {
+    const map = new Map<string, TaskCategory>();
+    allTasks.forEach(t => map.set(t.id, t.category as TaskCategory));
+    return map;
+  }, [allTasks]);
+
+  const isViewingToday = isSameDay(selectedDate, new Date());
 
   // Load planning configs when date range changes
   useEffect(() => {
@@ -329,7 +340,13 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               
-              <Button variant="ghost" size="sm" onClick={handleToday} className="min-w-[180px]">
+              <Button 
+                variant={isViewingToday ? "ghost" : "default"} 
+                size="sm" 
+                onClick={handleToday} 
+                className={cn("min-w-[180px]", !isViewingToday && "animate-pulse")}
+              >
+                {!isViewingToday && <Home className="w-4 h-4 mr-1" />}
                 {format(selectedDate, viewMode === 'day' ? 'EEEE d MMMM' : "'Sem.' w - MMMM yyyy", { locale: fr })}
               </Button>
               
@@ -358,7 +375,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
             <div className="flex-1 min-w-0">
               {/* Day view */}
               {viewMode === 'day' && (
-                <DayPlanningView
+              <DayPlanningView
                   date={selectedDate}
                   events={eventsByDay.get(format(selectedDate, 'yyyy-MM-dd')) || []}
                   quota={getQuotaForDate(selectedDate)}
@@ -366,18 +383,20 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
                   onCompleteEvent={handleCompleteEvent}
                   onRemoveEvent={handleUnscheduleEvent}
                   onEventClick={handleEventClick}
+                  taskCategoryMap={taskCategoryMap}
                 />
               )}
 
               {/* Week view */}
               {viewMode === 'week' && (
-                <WeekPlanningView
+              <WeekPlanningView
                   startDate={weekStart}
                   eventsByDay={eventsByDay}
                   quotaByDay={quotaByDay}
                   defaultQuota={240}
                   onEventClick={handleEventClick}
                   onCompleteEvent={handleCompleteEvent}
+                  taskCategoryMap={taskCategoryMap}
                 />
               )}
             </div>

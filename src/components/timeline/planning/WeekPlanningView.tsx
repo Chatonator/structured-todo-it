@@ -4,6 +4,7 @@ import { format, addDays, isSameDay, startOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { TimeEvent } from '@/lib/time/types';
 import { CompactDayColumn } from './CompactDayColumn';
+import { TaskCategory } from '@/types/task';
 
 interface WeekPlanningViewProps {
   startDate: Date;
@@ -12,6 +13,7 @@ interface WeekPlanningViewProps {
   defaultQuota?: number;
   onEventClick?: (event: TimeEvent) => void;
   onCompleteEvent?: (eventId: string) => void;
+  taskCategoryMap?: Map<string, TaskCategory>;
 }
 
 /**
@@ -26,7 +28,8 @@ export const WeekPlanningView: React.FC<WeekPlanningViewProps> = ({
   quotaByDay,
   defaultQuota = 240, // 4 hours default
   onEventClick,
-  onCompleteEvent
+  onCompleteEvent,
+  taskCategoryMap
 }) => {
   // Generate 7 days starting from startDate
   const weekDays = React.useMemo(() => {
@@ -63,6 +66,7 @@ export const WeekPlanningView: React.FC<WeekPlanningViewProps> = ({
               quota={dayQuota}
               onEventClick={onEventClick}
               onCompleteEvent={onCompleteEvent}
+              taskCategoryMap={taskCategoryMap}
             />
           );
         })}

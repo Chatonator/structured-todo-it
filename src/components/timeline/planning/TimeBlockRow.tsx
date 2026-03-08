@@ -4,6 +4,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { TimeEvent, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
 import { ScheduledEventCard } from '../ScheduledEventCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { TaskCategory } from '@/types/task';
 
 interface TimeBlockRowProps {
   date: Date;
@@ -12,6 +13,7 @@ interface TimeBlockRowProps {
   onRemoveEvent?: (eventId: string) => void;
   onEventClick?: (event: TimeEvent) => void;
   disabled?: boolean;
+  taskCategoryMap?: Map<string, TaskCategory>;
 }
 
 /**
@@ -24,7 +26,8 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
   onCompleteEvent,
   onRemoveEvent,
   onEventClick,
-  disabled = false
+  disabled = false,
+  taskCategoryMap
 }) => {
   // Group events by time block
   const eventsByBlock = React.useMemo(() => {
@@ -104,6 +107,7 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
           onRemoveEvent={onRemoveEvent}
           onEventClick={onEventClick}
           disabled={disabled}
+          taskCategoryMap={taskCategoryMap}
         />
       ))}
     </div>
@@ -118,6 +122,7 @@ interface TimeBlockColumnProps {
   onRemoveEvent?: (eventId: string) => void;
   onEventClick?: (event: TimeEvent) => void;
   disabled?: boolean;
+  taskCategoryMap?: Map<string, TaskCategory>;
 }
 
 const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
@@ -127,7 +132,8 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
   onCompleteEvent,
   onRemoveEvent,
   onEventClick,
-  disabled
+  disabled,
+  taskCategoryMap
 }) => {
   const blockConfig = TIME_BLOCKS[block];
   const droppableId = `block-${date.toISOString().split('T')[0]}-${block}`;
@@ -186,6 +192,7 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
               <ScheduledEventCard
                 key={event.id}
                 event={event}
+                category={taskCategoryMap?.get(event.entityId)}
                 onComplete={() => onCompleteEvent?.(event.id)}
                 onRemove={() => onRemoveEvent?.(event.id)}
                 onClick={() => onEventClick?.(event)}

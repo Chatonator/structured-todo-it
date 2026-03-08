@@ -7,6 +7,8 @@ import { TimeEvent } from '@/lib/time/types';
 import { Progress } from '@/components/ui/progress';
 import { formatDuration } from '@/lib/formatters';
 import { Check, Clock } from 'lucide-react';
+import { TaskCategory } from '@/types/task';
+import { getCategoryIndicatorColor } from '@/lib/styling';
 
 interface CompactDayColumnProps {
   date: Date;
@@ -14,6 +16,7 @@ interface CompactDayColumnProps {
   quota: number; // in minutes
   onEventClick?: (event: TimeEvent) => void;
   onCompleteEvent?: (eventId: string) => void;
+  taskCategoryMap?: Map<string, TaskCategory>;
 }
 
 /**
@@ -27,7 +30,8 @@ export const CompactDayColumn: React.FC<CompactDayColumnProps> = ({
   events,
   quota,
   onEventClick,
-  onCompleteEvent
+  onCompleteEvent,
+  taskCategoryMap
 }) => {
   const isCurrentDay = isToday(date);
   const isPastDay = isPast(date) && !isCurrentDay;
@@ -115,6 +119,7 @@ export const CompactDayColumn: React.FC<CompactDayColumnProps> = ({
               <CompactEventItem
                 key={event.id}
                 event={event}
+                category={taskCategoryMap?.get(event.entityId)}
                 onClick={() => onEventClick?.(event)}
                 onComplete={() => onCompleteEvent?.(event.id)}
               />
@@ -127,16 +132,19 @@ export const CompactDayColumn: React.FC<CompactDayColumnProps> = ({
 
 interface CompactEventItemProps {
   event: TimeEvent;
+  category?: TaskCategory;
   onClick?: () => void;
   onComplete?: () => void;
 }
 
 const CompactEventItem: React.FC<CompactEventItemProps> = ({
   event,
+  category,
   onClick,
   onComplete
 }) => {
   const isCompleted = event.status === 'completed';
+  const categoryColor = category ? getCategoryIndicatorColor(category) : 'bg-primary';
 
   return (
     <div
@@ -148,6 +156,11 @@ const CompactEventItem: React.FC<CompactEventItemProps> = ({
       )}
       onClick={onClick}
     >
+      {/* Category indicator */}
+      <div className={cn(
+        "w-1 self-stretch rounded-full shrink-0",
+        isCompleted ? "bg-muted" : categoryColor
+      )} />
       {/* Complete button */}
       <button
         className={cn(

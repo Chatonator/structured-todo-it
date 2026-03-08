@@ -11,6 +11,7 @@ import { TaskCategory } from '@/types/task';
 
 interface ScheduledEventCardProps {
   event: TimeEvent;
+  category?: TaskCategory;
   onComplete?: () => void;
   onRemove?: () => void;
   onClick?: () => void;
@@ -19,6 +20,7 @@ interface ScheduledEventCardProps {
 
 export const ScheduledEventCard: React.FC<ScheduledEventCardProps> = ({
   event,
+  category,
   onComplete,
   onRemove,
   onClick,
@@ -45,8 +47,6 @@ export const ScheduledEventCard: React.FC<ScheduledEventCardProps> = ({
   const isProjectTask = event.description?.includes('project:');
   const isTeamTask = event.description?.includes('team:');
 
-  // Get category from event metadata if available
-  const category = (event as any).category as TaskCategory | undefined;
   const categoryColor = category ? getCategoryIndicatorColor(category) : 'bg-primary';
 
   return (
