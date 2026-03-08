@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TaskContext } from '@/types/task';
 import { useTeamContext } from '@/contexts/TeamContext';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { cn } from '@/lib/utils';
 
 interface ContextPillsProps {
@@ -21,6 +22,7 @@ const ContextPills: React.FC<ContextPillsProps> = ({
   onContextFilterChange
 }) => {
   const { teams, currentTeam, setCurrentTeam } = useTeamContext();
+  const { preferences } = useUserPreferences();
 
   const handleContextClick = (context: TaskContext | 'all') => {
     setCurrentTeam(null);
@@ -43,11 +45,16 @@ const ContextPills: React.FC<ContextPillsProps> = ({
     return !currentTeam && contextFilter === value;
   };
 
-  const contexts = [
+  const allContexts = [
     { key: 'all', label: 'Toutes', icon: CheckSquare },
     { key: 'Perso', label: 'Perso', icon: Home },
     { key: 'Pro', label: 'Pro', icon: Briefcase },
   ] as const;
+
+  const contexts = allContexts.filter(ctx => {
+    if (ctx.key === 'Pro' && !preferences.showProContext) return false;
+    return true;
+  });
 
   return (
     <div className="flex items-center gap-1">

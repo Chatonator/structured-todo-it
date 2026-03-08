@@ -3,6 +3,7 @@ import { CheckSquare, Users, Briefcase, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TaskContext } from '@/types/task';
 import { useTeamContext } from '@/contexts/TeamContext';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 interface UnifiedContextSelectorProps {
   contextFilter: TaskContext | 'all';
@@ -14,6 +15,7 @@ const UnifiedContextSelector: React.FC<UnifiedContextSelectorProps> = ({
   onContextFilterChange
 }) => {
   const { teams, currentTeam, setCurrentTeam } = useTeamContext();
+  const { preferences } = useUserPreferences();
 
   const handleContextClick = (context: TaskContext | 'all') => {
     setCurrentTeam(null);
@@ -58,15 +60,17 @@ const UnifiedContextSelector: React.FC<UnifiedContextSelectorProps> = ({
         Perso
       </Button>
       
-      <Button
-        variant={isActive('Pro') ? 'default' : 'ghost'}
-        size="sm"
-        onClick={() => handleContextClick('Pro')}
-        className="h-8 px-3"
-      >
-        <Briefcase className="w-4 h-4 mr-1.5" />
-        Pro
-      </Button>
+      {preferences.showProContext && (
+        <Button
+          variant={isActive('Pro') ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => handleContextClick('Pro')}
+          className="h-8 px-3"
+        >
+          <Briefcase className="w-4 h-4 mr-1.5" />
+          Pro
+        </Button>
+      )}
 
       {teams.map((team) => (
         <Button

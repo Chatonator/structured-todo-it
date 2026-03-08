@@ -63,6 +63,11 @@ export interface UserPreferences {
 
   // Timeline
   timelineDefaultQuota: number; // en minutes (défaut: 240 = 4h)
+
+  // Filtres contextuels
+  showProContext: boolean;
+  allFilterIncludeTeams: boolean;
+  allFilterTeamIds: string[]; // vide = toutes les équipes
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -125,4 +130,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
 
   // Timeline
   timelineDefaultQuota: 240,
+
+  // Filtres contextuels
+  showProContext: true,
+  allFilterIncludeTeams: true,
+  allFilterTeamIds: [],
 };
