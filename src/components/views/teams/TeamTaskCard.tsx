@@ -18,6 +18,7 @@ import { fr } from 'date-fns/locale';
 import type { TeamTask } from '@/hooks/useTeamTasks';
 import type { TeamMember } from '@/hooks/useTeams';
 import type { TeamLabel } from '@/hooks/useTeamLabels';
+import type { TeamPermission } from '@/lib/teamPermissions';
 
 interface TeamTaskCardProps {
   task: TeamTask;
