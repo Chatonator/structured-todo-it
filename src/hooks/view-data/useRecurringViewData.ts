@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useRecurringTasks } from '@/hooks/useRecurringTasks';
 import { useTimeEventSync } from '@/hooks/useTimeEventSync';
+import { useRepairSync } from '@/hooks/time-sync';
 import { Task } from '@/types/task';
 
 interface TaskSchedule {
