@@ -76,14 +76,8 @@ export const UnscheduledTasksPanel: React.FC<UnscheduledTasksPanelProps> = ({
     result.sort((a, b) => {
       switch (sortBy) {
         case 'priority': {
-          const priorityMap = {
-            'Le plus important': 4,
-            'Important': 3,
-            'Peut attendre': 2,
-            "Si j'ai le temps": 1
-          };
-          const aPriority = a.subCategory ? priorityMap[a.subCategory] || 0 : 0;
-          const bPriority = b.subCategory ? priorityMap[b.subCategory] || 0 : 0;
+          const aPriority = getPriorityLevel(a.subCategory);
+          const bPriority = getPriorityLevel(b.subCategory);
           return bPriority - aPriority;
         }
         case 'duration':
