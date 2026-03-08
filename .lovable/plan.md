@@ -1,94 +1,44 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+## Améliorations globales de la gestion d'équipe
 
-## Concept
+### 1. Liste des tâches d'équipe avec assignation directe
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+La vue équipe actuelle est un dashboard sans liste de tâches. On ajoute une section "Tâches de l'équipe" directement dans la vue avec :
+- Liste des tâches actives (non complétées), groupées par assignation (Mes tâches / Non assignées / Autres membres)
+- **Assignation rapide** via un dropdown avatar sur chaque tâche (sélection parmi les membres)
+- Toggle de complétion inline
+- Badge du membre assigné sur chaque ligne
 
-## Architecture
+Le hook `useTeamTasks` expose déjà `assignTask(taskId, userId)` et `toggleComplete`. Le composant `AssignmentSelector` existe déjà.
 
-```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
-```
+### 2. Boutons "Demander de l'aide" et "Encourager"
 
-## Modifications
+Sur chaque tâche d'équipe, deux petits boutons :
+- **🆘 Demander de l'aide** : envoie une notification au reste de l'équipe ("X a besoin d'aide sur : [nom tâche]")
+- **💪 Encourager** : sur les tâches des *autres* membres, envoie une notification d'encouragement au membre assigné
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+Utilise la table `notifications` existante avec un INSERT pour chaque membre concerné. Pas besoin de migration DB, le schéma supporte déjà les métadonnées JSON.
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+### 3. Améliorations globales du dashboard
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+- **Section tâches récentes** : affiche les 10 dernières tâches non complétées avec assignation inline
+- **Filtre par membre** : dropdown pour filtrer les tâches par membre dans la liste
+- **Compteur "Non assignées"** dans les stats (nouvelle card ou badge dans la card existante)
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+---
 
-### 3. `NotificationPanel.tsx` — Deja pret
+### Fichiers modifiés
 
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+| Fichier | Changement |
+|---------|-----------|
+| `src/components/views/teams/TeamTasksView.tsx` | Ajout section liste de tâches avec assignation, boutons aide/encouragement, filtre par membre |
+| `src/hooks/view-data/useTeamViewData.ts` | Exposer `tasks`, `assignTask`, `toggleComplete`, fonctions d'envoi de notifications |
+| `src/components/views/teams/TeamTaskCard.tsx` | **Nouveau** — Composant carte tâche d'équipe avec assignation rapide + boutons aide/encourager |
 
-### 4. Outil d'insertion pour l'admin
+### Détails techniques
 
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
-
-Je recommande l'**Option A** pour rester autonome.
-
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+- L'assignation utilise `useTeamTasks.assignTask(taskId, userId)` existant
+- Les notifications sont insérées via `supabase.from('notifications').insert(...)` — la RLS exige `auth.uid() = user_id`, donc on utilisera une edge function ou on insérera côté destinataire via une fonction SQL `SECURITY DEFINER`
+- **Migration DB nécessaire** : une fonction SQL `send_team_notification` en `SECURITY DEFINER` pour insérer des notifications pour d'autres utilisateurs (la RLS actuelle ne permet d'insérer que pour soi-même)
 
