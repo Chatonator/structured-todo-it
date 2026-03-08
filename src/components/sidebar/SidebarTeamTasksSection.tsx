@@ -32,7 +32,7 @@ export const SidebarTeamTasksSection: React.FC<SidebarTeamTasksSectionProps> = (
   const activeTasks = myTasks.filter(t => !t.isCompleted);
   const completedCount = myTasks.filter(t => t.isCompleted).length;
 
-  if (tasks.length === 0) return null;
+  if (myTasks.length === 0) return null;
 
   return (
     <div className="border-b border-border">
