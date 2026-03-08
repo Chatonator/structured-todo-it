@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useViewData, ViewDataReturn } from '@/hooks/useViewData';
 import { useApp } from '@/contexts/AppContext';
+import { useAllTeamTasks } from '@/hooks/useAllTeamTasks';
 
 const ViewDataContext = createContext<ViewDataReturn | undefined>(undefined);
 
