@@ -11,9 +11,12 @@ import HabitModal from '@/components/habits/HabitModal';
 import DeckManagement from '@/components/habits/DeckManagement';
 import { ViewLayout } from '@/components/layout/view';
 import { useHabitsFullViewData } from '@/hooks/view-data';
+import { useApp } from '@/contexts/AppContext';
 
 const HabitsView = () => {
   const { data, state, actions } = useHabitsFullViewData();
+  const { contextFilter } = useApp();
+  const habitDefaultContext = contextFilter !== 'all' ? contextFilter as 'Pro' | 'Perso' : undefined;
 
   return (
     <>
@@ -124,6 +127,7 @@ const HabitsView = () => {
             onClose={actions.handleCloseHabitModal}
             onSave={actions.handleHabitSave}
             habit={data.editingHabit}
+            defaultContext={habitDefaultContext}
           />
         </div>
       </ViewLayout>

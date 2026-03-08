@@ -7,9 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Briefcase, FolderPlus, Users } from 'lucide-react';
 import { ViewLayout } from '@/components/layout/view';
 import { useProjectsFullViewData } from '@/hooks/view-data';
+import { useApp } from '@/contexts/AppContext';
 
 export const ProjectsView = () => {
   const { data, state, actions } = useProjectsFullViewData();
+  const { contextFilter } = useApp();
+  const projectDefaultContext = contextFilter !== 'all' ? contextFilter as 'Pro' | 'Perso' : undefined;
 
   if (data.detailProject) {
     return (
@@ -113,6 +116,7 @@ export const ProjectsView = () => {
         onSave={data.selectedProject ? actions.handleUpdateProject : actions.handleCreateProject}
         project={data.selectedProject}
         teamId={data.teamId ?? undefined}
+        defaultContext={projectDefaultContext}
       />
     </>
   );

@@ -34,9 +34,10 @@ interface ProjectModalProps {
   project?: Project | UnifiedProject | null;
   initialName?: string;
   teamId?: string;
+  defaultContext?: TaskContext;
 }
 
-export const ProjectModal = ({ open, onClose, onSave, project, initialName, teamId }: ProjectModalProps) => {
+export const ProjectModal = ({ open, onClose, onSave, project, initialName, teamId, defaultContext }: ProjectModalProps) => {
   const { teams, currentTeam } = useTeamContext();
   
   const [name, setName] = useState('');
@@ -71,7 +72,7 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       setStatus('planning');
       setTargetDate('');
       setSelectedTeamId(teamId || currentTeam?.id || null);
-      setContext('Perso');
+      setContext(defaultContext || 'Perso');
       setCategory('Autres');
     }
   }, [project, initialName, open, teamId, currentTeam?.id]);

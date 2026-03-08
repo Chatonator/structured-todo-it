@@ -28,6 +28,7 @@ interface HabitModalProps {
   habit?: Habit | null;
   availableHabits?: Habit[]; // Pour sélectionner l'habitude prérequise
   isProgressionDeck?: boolean; // Si le deck est en mode progression
+  defaultContext?: 'Pro' | 'Perso';
 }
 
 const EMOJI_OPTIONS = ['💪', '🏃', '📚', '🧘', '💧', '🥗', '😴', '🎯', '✍️', '🎨', '🎵', '🧠', '🚀', '💼', '🏋️', '🧹'];
@@ -38,7 +39,8 @@ const HabitModal: React.FC<HabitModalProps> = ({
   onSave, 
   habit, 
   availableHabits = [],
-  isProgressionDeck = false 
+  isProgressionDeck = false,
+  defaultContext
 }) => {
   // Base
   const [name, setName] = useState('');
@@ -109,7 +111,7 @@ const HabitModal: React.FC<HabitModalProps> = ({
       userId: '',
       name,
       category: 'Quotidien',
-      context: 'Perso',
+      context: defaultContext || 'Perso',
       estimatedTime: 15,
       description: description || undefined,
       deckId: habit?.deckId || '',
