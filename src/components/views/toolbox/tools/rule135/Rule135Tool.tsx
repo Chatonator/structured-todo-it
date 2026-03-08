@@ -12,6 +12,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { formatDuration } from '@/lib/formatters';
+import { getCategoryIndicatorColor } from '@/lib/styling';
 import { cn } from '@/lib/utils';
 import { ToolProps } from '../types';
 import { useRule135Tool, TaskSlot } from './useRule135Tool';
