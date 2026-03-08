@@ -6,7 +6,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from '@/types/task';
 import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
 import { TaskDraft, isTaskDraftValid } from '@/utils/taskValidationByType';
-import { CONTEXT_CONFIG } from '@/types/item';
 import {
   PrioritySelector,
   SchedulingSection,
@@ -77,7 +76,7 @@ const TaskDraftForm: React.FC<TaskDraftFormProps> = ({
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground uppercase tracking-wider">Contexte</Label>
           <div className="flex gap-2">
-            {Object.entries(CONTEXT_CONFIG).map(([ctx, cfg]) => {
+            {(['Pro', 'Perso'] as const).map((ctx) => {
               const isSelected = draft.context === ctx;
               const isPro = ctx === 'Pro';
               return (
@@ -95,7 +94,7 @@ const TaskDraftForm: React.FC<TaskDraftFormProps> = ({
                   )}
                 >
                   <span>{isPro ? '💼' : '🏠'}</span>
-                  <span>{cfg.label}</span>
+                  <span>{ctx}</span>
                 </button>
               );
             })}
