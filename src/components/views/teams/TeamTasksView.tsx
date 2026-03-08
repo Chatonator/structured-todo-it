@@ -548,13 +548,20 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
           </Collapsible>
         )}
 
-        {/* Label Management */}
-        {!state.isEmpty && (
+        {!state.isEmpty && actions.can('manage_labels') && (
           <LabelManagement
             labels={data.labels}
             onCreate={actions.createLabel}
             onUpdate={actions.updateLabel}
             onDelete={actions.deleteLabel}
+          />
+        )}
+
+        {/* Permissions Panel (owner/admin only) */}
+        {!state.isEmpty && (state.myRole === 'owner' || state.myRole === 'admin') && (
+          <TeamPermissionsPanel
+            config={data.permissionsConfig}
+            onUpdate={actions.updatePermissionsConfig}
           />
         )}
 
