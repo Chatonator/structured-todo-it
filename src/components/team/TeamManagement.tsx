@@ -8,9 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Users, UserPlus, LogOut, Copy, Trash2, ArrowLeft } from 'lucide-react';
+import { Users, UserPlus, LogOut, Copy, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
 import type { TeamRole } from '@/hooks/useTeams';
