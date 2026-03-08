@@ -59,7 +59,7 @@ const Auth = () => {
           title: "Email confirmé !",
           description: "Votre compte a été activé avec succès.",
         });
-        window.location.href = import.meta.env.BASE_URL || '/';
+        window.location.href = getPostAuthUrl();
       }
     });
 
