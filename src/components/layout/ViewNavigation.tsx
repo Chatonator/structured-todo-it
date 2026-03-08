@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MoreHorizontal, Home, Telescope, Wrench, Calendar, FolderKanban, Repeat, Trophy } from 'lucide-react';
+import { MoreHorizontal, Home, Telescope, Wrench, Calendar, FolderKanban, Repeat, Trophy, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
