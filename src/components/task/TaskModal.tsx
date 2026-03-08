@@ -47,7 +47,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   
   const createEmptyDraft = (): TaskDraft => ({
     name: '', category: parentTask ? parentTask.category : (defaults.category || ''),
-    subCategory: defaults.subCategory || '',
+    subCategory: parentTask?.subCategory || defaults.subCategory || '',
     context: parentTask ? parentTask.context : (defaultContext || defaults.context || ''),
     estimatedTime: '', isRecurring: false, assignedTo: null
   });
@@ -171,7 +171,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
           name: draft.name.trim(),
           category: parentTask ? parentTask.category : (draft.category || config.defaults.category || 'Quotidien') as TaskCategory,
           subCategory: draft.subCategory ? draft.subCategory as SubTaskCategory : undefined,
-          context: (draft.context || config.defaults.context || 'Pro') as TaskContext,
+          context: parentTask ? parentTask.context as TaskContext : (draft.context || config.defaults.context || 'Pro') as TaskContext,
           estimatedTime: Number(draft.estimatedTime), parentId: parentTask?.id, level,
           isExpanded: true, isCompleted: false, projectId, projectStatus: projectId ? 'todo' : undefined,
         };
