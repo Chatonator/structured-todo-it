@@ -166,16 +166,11 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {data.teamMembers.map((member) => (
-                <MemberRow
-                  key={member.id}
-                  member={member}
-                  onUpdateRole={(role) => actions.handleUpdateRole(member.user_id, role)}
-                  onRemove={() => actions.handleRemoveMember(member.user_id)}
-                />
-              ))}
-            </div>
+            <TeamMembersList
+              members={data.teamMembers}
+              onUpdateRole={actions.handleUpdateRole}
+              onRemove={actions.handleRemoveMember}
+            />
           </CardContent>
         </Card>
       </div>
