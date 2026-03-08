@@ -1,94 +1,60 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+# Granularité des droits d'équipe
 
-## Concept
+## Situation actuelle
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+3 rôles (owner, admin, member) avec des droits implicites dans le code :
+- **Owner** : tout, y compris supprimer l'équipe et transférer ownership
+- **Admin** : gérer membres, inviter, supprimer labels
+- **Member** : tout le reste (créer tâches, assigner, commenter, labels, bloquer...)
 
-## Architecture
+Pas de panneau de gestion des droits visible. Les permissions sont codées en dur.
 
-```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
-```
+## Proposition
 
-## Modifications
+### 1. Système de permissions par rôle (frontend)
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+Créer un mapping de permissions configurable côté frontend, applicable par rôle. Permissions granulaires :
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+| Permission | Owner | Admin | Member (défaut) |
+|---|---|---|---|
+| `manage_members` (inviter, retirer, changer rôles) | ✓ | ✓ | ✗ |
+| `manage_labels` (créer, supprimer labels) | ✓ | ✓ | ✗ |
+| `create_tasks` | ✓ | ✓ | ✓ |
+| `assign_tasks` (assigner à n'importe qui) | ✓ | ✓ | ✗ |
+| `assign_self` (s'auto-attribuer) | ✓ | ✓ | ✓ |
+| `complete_any_task` (compléter les tâches des autres) | ✓ | ✓ | ✗ |
+| `complete_own_task` | ✓ | ✓ | ✓ |
+| `block_tasks` | ✓ | ✓ | ✓ |
+| `manage_projects` (créer/supprimer projets) | ✓ | ✓ | ✗ |
+| `view_invite_code` | ✓ | ✓ | ✗ |
+| `delete_comments` (supprimer les commentaires des autres) | ✓ | ✓ | ✗ |
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+### 2. Panneau de gestion des droits dans la vue équipe
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+Nouvelle section pliable "Gestion des droits" (visible uniquement pour owner/admin) dans `TeamTasksView.tsx` :
+- Affiche un tableau rôle × permission avec des toggles
+- Les permissions owner ne sont pas modifiables (toujours tout)
+- Stocké dans la table `teams` via une colonne `permissions_config` (jsonb)
 
-### 3. `NotificationPanel.tsx` — Deja pret
+### 3. Changements
 
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+| Fichier | Action |
+|---|---|
+| Migration SQL | Ajouter colonne `permissions_config jsonb DEFAULT '{}'` à `teams` |
+| `src/lib/teamPermissions.ts` (nouveau) | Helper `getPermission(role, config, permission) → boolean`, constantes par défaut |
+| `src/hooks/useTeamPermissions.ts` (nouveau) | Hook qui expose `can(permission)` basé sur le rôle du user courant + config de l'équipe |
+| `TeamTasksView.tsx` | Conditionner les boutons (inviter, créer tâche, labels) avec `can()`. Ajouter section "Gestion des droits" |
+| `TeamTaskCard.tsx` | Conditionner assign, block, complete avec `can()` |
+| `TeamMembersList.tsx` | Conditionner le menu rôle/retirer avec `can('manage_members')` |
+| `useTeamViewData.ts` | Intégrer `useTeamPermissions`, exposer `can` dans les actions |
 
-### 4. Outil d'insertion pour l'admin
+### 4. Section UI "Gestion des droits"
 
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
-
-Je recommande l'**Option A** pour rester autonome.
-
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+Composant `TeamPermissionsPanel.tsx` :
+- Tableau 3 colonnes (Permission, Admin, Membre) avec des Switch pour chaque permission
+- Owner a tout verrouillé (grisé)
+- Sauvegarde auto dans `teams.permissions_config`
+- Visible uniquement si `role === 'owner'` ou `role === 'admin'`
 
