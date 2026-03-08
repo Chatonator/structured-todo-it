@@ -7,6 +7,8 @@ import { TimeEvent } from '@/lib/time/types';
 import { Progress } from '@/components/ui/progress';
 import { formatDuration } from '@/lib/formatters';
 import { Check, Clock } from 'lucide-react';
+import { TaskCategory } from '@/types/task';
+import { getCategoryIndicatorColor } from '@/lib/styling';
 
 interface CompactDayColumnProps {
   date: Date;
@@ -14,6 +16,7 @@ interface CompactDayColumnProps {
   quota: number; // in minutes
   onEventClick?: (event: TimeEvent) => void;
   onCompleteEvent?: (eventId: string) => void;
+  taskCategoryMap?: Map<string, TaskCategory>;
 }
 
 /**
