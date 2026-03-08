@@ -52,9 +52,6 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
     onTimeChange(formatTime(h, m));
   }, [onTimeChange]);
 
-  const handleHourSlider = useCallback((vals: number[]) => {
-    setTime(vals[0], minute);
-  }, [minute, setTime]);
 
   const handleMinuteSlider = useCallback((vals: number[]) => {
     setTime(hour, vals[0]);
