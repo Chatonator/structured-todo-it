@@ -32,11 +32,18 @@ export const useTeamViewData = () => {
     const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed').length;
     const completedProjects = projects.filter(p => p.status === 'completed').length;
     const unassignedTasks = tasks.filter(t => !t.assigned_to && !t.isCompleted).length;
+    const today = startOfDay(new Date());
+    const overdueTasks = tasks.filter(t =>
+      !t.isCompleted && t.scheduledDate && isBefore(
+        t.scheduledDate instanceof Date ? t.scheduledDate : new Date(String(t.scheduledDate) + 'T00:00:00'),
+        today
+      )
+    ).length;
 
     return {
       totalTasks, completedTasks, completionRate,
       activeProjects, completedProjects, totalProjects: projects.length,
-      unassignedTasks,
+      unassignedTasks, overdueTasks,
     };
   }, [tasks, projects]);
 
