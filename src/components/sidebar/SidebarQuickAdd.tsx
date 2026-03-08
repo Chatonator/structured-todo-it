@@ -28,11 +28,19 @@ interface SidebarQuickAddProps {
 
 const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapsed }) => {
   const { toast } = useToast();
+  const { contextFilter } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
-  const [context, setContext] = useState<TaskContext>('Perso');
+  const [context, setContext] = useState<TaskContext>(contextFilter !== 'all' ? contextFilter as TaskContext : 'Perso');
   const [category, setCategory] = useState<TaskCategory>('Autres');
   const [estimatedTime, setEstimatedTime] = useState<string>('30');
+
+  // Sync context when filter changes
+  React.useEffect(() => {
+    if (contextFilter !== 'all') {
+      setContext(contextFilter as TaskContext);
+    }
+  }, [contextFilter]);
 
   const handleSubmit = () => {
     const taskData = {
