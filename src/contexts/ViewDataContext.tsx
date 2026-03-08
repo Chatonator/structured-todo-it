@@ -16,11 +16,32 @@ interface ViewDataProviderProps {
 export const ViewDataProvider: React.FC<ViewDataProviderProps> = ({ children }) => {
   const viewData = useViewData();
   const { contextFilter } = useApp();
+  const { allTeamTasks } = useAllTeamTasks();
 
   // Filtrer les tâches selon le contexte global
   const filteredViewData = useMemo<ViewDataReturn>(() => {
     if (contextFilter === 'all') {
-      return viewData;
+      // Fusionner tâches personnelles + tâches d'équipe, en évitant les doublons
+      const personalTaskIds = new Set(viewData.tasks.map(t => t.id));
+      const uniqueTeamTasks = allTeamTasks.filter(t => !personalTaskIds.has(t.id));
+      const mergedTasks = [...viewData.tasks, ...uniqueTeamTasks];
+      const mergedMainTasks = [...viewData.mainTasks, ...uniqueTeamTasks.filter(t => t.level === 0)];
+
+      return {
+        ...viewData,
+        tasks: mergedTasks,
+        mainTasks: mergedMainTasks,
+        getFilteredTasks: (additionalFilter = 'all') => {
+          const activeTasks = mergedTasks.filter(t => !t.isCompleted);
+          if (additionalFilter === 'all') return activeTasks;
+          return activeTasks.filter(t => t.context === additionalFilter);
+        },
+        getCompletedTasks: (additionalFilter = 'all') => {
+          const completedTasks = mergedTasks.filter(t => t.isCompleted);
+          if (additionalFilter === 'all') return completedTasks;
+          return completedTasks.filter(t => t.context === additionalFilter);
+        }
+      };
     }
 
     // Appliquer le filtre de contexte aux tâches
@@ -31,24 +52,21 @@ export const ViewDataProvider: React.FC<ViewDataProviderProps> = ({ children }) 
       ...viewData,
       tasks: filteredTasks,
       mainTasks: filteredMainTasks,
-      // Garder les pinnedTasks qui correspondent aux tâches filtrées
       pinnedTasks: viewData.pinnedTasks.filter(id => 
         filteredTasks.some(t => t.id === id)
       ),
-      // Mettre à jour getFilteredTasks pour respecter le filtre global
       getFilteredTasks: (additionalFilter = 'all') => {
         const activeTasks = filteredTasks.filter(t => !t.isCompleted);
         if (additionalFilter === 'all') return activeTasks;
         return activeTasks.filter(t => t.context === additionalFilter);
       },
-      // Mettre à jour getCompletedTasks pour respecter le filtre global
       getCompletedTasks: (additionalFilter = 'all') => {
         const completedTasks = filteredTasks.filter(t => t.isCompleted);
         if (additionalFilter === 'all') return completedTasks;
         return completedTasks.filter(t => t.context === additionalFilter);
       }
     };
-  }, [viewData, contextFilter]);
+  }, [viewData, contextFilter, allTeamTasks]);
   
   return (
     <ViewDataContext.Provider value={filteredViewData}>
