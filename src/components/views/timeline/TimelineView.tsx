@@ -28,7 +28,7 @@ import {
   CalendarDays,
   Plus
 } from 'lucide-react';
-import { format, addDays, startOfDay, endOfDay, startOfWeek } from 'date-fns';
+import { format, addDays, startOfDay, endOfDay, startOfWeek, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { 
