@@ -85,57 +85,18 @@ export function TeamManagement() {
     }
   };
 
-  const handleRoleChange = async (memberId: string, newRole: TeamRole) => {
+  const handleRoleChange = async (userId: string, newRole: TeamRole) => {
     if (!currentTeam) return;
-    await updateMemberRole(currentTeam.id, memberId, newRole);
+    await updateMemberRole(currentTeam.id, userId, newRole);
   };
 
-  const handleRemoveMember = async (memberId: string, memberName: string) => {
+  const handleRemoveMember = async (userId: string) => {
     if (!currentTeam) return;
-    
+    const member = teamMembers.find(m => m.user_id === userId);
+    const memberName = member?.profiles?.display_name || 'ce membre';
     if (confirm(`Êtes-vous sûr de vouloir retirer ${memberName} de l'équipe ?`)) {
-      await removeMember(currentTeam.id, memberId);
+      await removeMember(currentTeam.id, userId);
     }
-  };
-
-  const getRoleBadge = (role: TeamRole) => {
-    const roleConfig = {
-      owner: {
-        icon: Crown,
-        label: 'Propriétaire',
-        className: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400'
-      },
-      admin: {
-        icon: Shield,
-        label: 'Admin',
-        className: 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-400'
-      },
-      member: {
-        icon: User,
-        label: 'Membre',
-        className: 'bg-muted text-muted-foreground border-border'
-      }
-    };
-
-    const config = roleConfig[role];
-    const Icon = config.icon;
-
-    return (
-      <Badge variant="outline" className={`${config.className} gap-1`}>
-        <Icon className="w-3 h-3" />
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const getInitials = (name?: string) => {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   if (loading) {
