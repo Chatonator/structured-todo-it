@@ -28,6 +28,7 @@ interface TaskModalProps {
   projectId?: string;
   taskType?: TaskType;
   teamMembers?: TeamMemberOption[];
+  defaultContext?: TaskContext;
 }
 
 interface ScheduleInfo {
