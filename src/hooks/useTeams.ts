@@ -474,6 +474,8 @@ export const useTeams = () => {
     removeMember,
     inviteByEmail,
     respondToInvitation,
+    regenerateInviteCode,
+    updateTeamSettings,
     refreshTeams: loadTeams,
     refreshMembers: (teamId: string) => loadTeamMembers(teamId),
     refreshInvitations: loadPendingInvitations,
