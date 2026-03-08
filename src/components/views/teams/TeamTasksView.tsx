@@ -331,6 +331,7 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
       hasLabel={actions.hasTaskLabel}
       commentCount={actions.getCommentCount(task.id)}
       onOpenComments={(t) => setCommentTask(t)}
+      can={actions.can}
     />
   );
 
