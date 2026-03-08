@@ -121,7 +121,7 @@ const Auth = () => {
         });
         
         // Force page reload for clean state
-        window.location.href = import.meta.env.BASE_URL || '/';
+        window.location.href = getPostAuthUrl();
       }
     } catch (error: any) {
       setError('An unexpected error occurred. Please try again.');
