@@ -30,6 +30,7 @@ const iconMap: Record<string, React.ElementType> = {
   projects: FolderKanban,
   habits: Repeat,
   rewards: Trophy,
+  team: Users,
 };
 
 const ViewNavigation: React.FC<ViewNavigationProps> = ({

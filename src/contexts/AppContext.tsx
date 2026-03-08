@@ -58,6 +58,7 @@ const allNavigationItems: NavigationItem[] = [
   { key: 'projects', title: 'Projets', icon: '💼' },
   { key: 'habits', title: 'Habitudes', icon: '💪' },
   { key: 'rewards', title: 'Récompenses', icon: '🏆' },
+  { key: 'team', title: 'Équipe', icon: '👥' },
 ];
 
 export const AppProvider: React.FC<AppProviderProps> = ({ 

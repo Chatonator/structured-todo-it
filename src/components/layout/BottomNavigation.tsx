@@ -32,7 +32,8 @@ const iconMap: Record<string, React.ReactNode> = {
   projects: <Briefcase className="w-5 h-5 text-project" />,
   habits: <Heart className="w-5 h-5 text-habit" />,
   rewards: <Award className="w-5 h-5 text-reward" />,
-  completed: <CheckCircle2 className="w-5 h-5" />
+  completed: <CheckCircle2 className="w-5 h-5" />,
+  team: <Users className="w-5 h-5" />
 };
 
 /**
