@@ -82,7 +82,7 @@ const TaskDraftForm: React.FC<TaskDraftFormProps> = ({
 
       <TimeEstimateSelector value={draft.estimatedTime} onChange={(v) => onUpdate(index, 'estimatedTime', v)} hasError={!draft.estimatedTime} />
 
-      {config.showScheduling && (
+      {config.showScheduling && !parentTask && (
         <SchedulingSection
           scheduledDate={draft.scheduledDate}
           scheduledTime={draft.scheduledTime}
@@ -91,7 +91,7 @@ const TaskDraftForm: React.FC<TaskDraftFormProps> = ({
         />
       )}
 
-      {config.showRecurrence && (
+      {config.showRecurrence && !parentTask && (
         <RecurrenceSection
           isRecurring={draft.isRecurring || false}
           recurrenceInterval={draft.recurrenceInterval as RecurrenceInterval | undefined}
