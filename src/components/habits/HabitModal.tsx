@@ -184,26 +184,7 @@ const HabitModal: React.FC<HabitModalProps> = ({
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Icône</Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {EMOJI_OPTIONS.map(emoji => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => setIcon(emoji)}
-                        className={cn(
-                          'w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all duration-150 border',
-                          icon === emoji
-                            ? 'border-primary bg-primary/10 scale-110 shadow-sm'
-                            : 'border-transparent hover:bg-accent/50'
-                        )}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <EmojiGrid value={icon} onChange={setIcon} options={EMOJI_OPTIONS} />
               </TabsContent>
 
               {/* Tab Fréquence */}
