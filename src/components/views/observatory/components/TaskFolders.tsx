@@ -53,8 +53,8 @@ interface TaskFoldersProps {
 // ============= Helpers =============
 // Use centralized formatDuration and badge components
 
-// ============= TaskRow Component =============
-interface TaskRowProps {
+// ============= TaskRow Component (Observatory-specific) =============
+interface ObservatoryTaskRowProps {
   task: EnrichedTask;
   onComplete: (taskId: string) => void;
   onDelete: (taskId: string) => void;
