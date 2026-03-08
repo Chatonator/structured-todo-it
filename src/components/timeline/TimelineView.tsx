@@ -10,10 +10,9 @@ import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle } from 'lucide-react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { isSameDay as isSameDayFn } from 'date-fns';
+import { TimeOccurrence } from '@/lib/time/types';
 import { ViewLayout } from '@/components/layout/view';
 
 const TimelineView: React.FC = () => {
