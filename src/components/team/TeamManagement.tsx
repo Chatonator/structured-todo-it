@@ -317,92 +317,11 @@ export function TeamManagement() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>
                     ) : (
-                      <div className="grid gap-3">
-                        <TooltipProvider>
-                          {teamMembers.map((member) => (
-                            <Card key={member.user_id} className="overflow-hidden border-border/50">
-                              <CardContent className="p-4">
-                                <div className="flex items-center gap-4">
-                                  {/* Avatar */}
-                                  <Avatar className="h-12 w-12 border-2 border-border">
-                                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary font-semibold">
-                                      {getInitials(member.profiles?.display_name)}
-                                    </AvatarFallback>
-                                  </Avatar>
-
-                                  {/* Informations du membre */}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <p className="font-semibold text-foreground truncate">
-                                        {member.profiles?.display_name || 'Utilisateur inconnu'}
-                                      </p>
-                                      {getRoleBadge(member.role)}
-                                    </div>
-                                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                      <Mail className="w-3 h-3" />
-                                      Membre depuis {new Date(member.joined_at).toLocaleDateString('fr-FR')}
-                                    </p>
-                                  </div>
-
-                                  {/* Actions */}
-                                  {member.role !== 'owner' && (
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <Select
-                                        value={member.role}
-                                        onValueChange={(value) =>
-                                          handleRoleChange(member.user_id, value as TeamRole)
-                                        }
-                                      >
-                                        <SelectTrigger className="w-32 h-9">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-background">
-                                          <SelectItem value="member">
-                                            <div className="flex items-center gap-2">
-                                              <User className="w-3 h-3" />
-                                              Membre
-                                            </div>
-                                          </SelectItem>
-                                          <SelectItem value="admin">
-                                            <div className="flex items-center gap-2">
-                                              <Shield className="w-3 h-3" />
-                                              Admin
-                                            </div>
-                                          </SelectItem>
-                                          <SelectItem value="owner">
-                                            <div className="flex items-center gap-2">
-                                              <Crown className="w-3 h-3" />
-                                              Propriétaire
-                                            </div>
-                                          </SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            onClick={() => handleRemoveMember(
-                                              member.user_id,
-                                              member.profiles?.display_name || 'ce membre'
-                                            )}
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>Retirer de l'équipe</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </div>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </TooltipProvider>
-                      </div>
+                      <TeamMembersList
+                        members={teamMembers}
+                        onUpdateRole={handleRoleChange}
+                        onRemove={handleRemoveMember}
+                      />
                     )}
                   </CardContent>
                 </Card>
