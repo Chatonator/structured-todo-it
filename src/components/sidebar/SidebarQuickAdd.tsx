@@ -95,9 +95,8 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
         <Button
-          variant="ghost"
           size="sm"
-          className="w-full justify-between h-8 text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 font-semibold"
+          className="w-full justify-between h-8 text-xs shadow-sm hover:shadow-md transition-all duration-200"
         >
           <div className="flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5" />
