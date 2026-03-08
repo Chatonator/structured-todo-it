@@ -23,13 +23,15 @@ import { Label } from '@/components/ui/label';
 import {
   Users, Plus, FolderKanban, ListTodo,
   ArrowRight, Copy, Check, Mail, Send, LogIn,
-  ChevronDown, LogOut, Sparkles, Rocket, UserCircle
+  ChevronDown, LogOut, Sparkles, Rocket, UserCircle, AlertTriangle
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
 import { PendingInvitationsCard } from '@/components/team/PendingInvitationsCard';
 import { TeamTaskCard } from './TeamTaskCard';
+import { TeamActivityFeed } from './TeamActivityFeed';
+import { TeamWorkloadCard } from './TeamWorkloadCard';
 
 interface TeamTasksViewProps {
   className?: string;
