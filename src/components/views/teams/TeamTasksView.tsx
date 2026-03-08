@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import {
   Users, Plus, FolderKanban, ListTodo,
-  ArrowRight, UserPlus, Copy, Check, Mail, Send
+  ArrowRight, UserPlus, Copy, Check, Mail, Send, LogIn
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { useTeamContext } from '@/contexts/TeamContext';
@@ -21,10 +21,16 @@ interface TeamTasksViewProps {
 
 const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
   const { data, state, actions } = useTeamViewData();
-  const { inviteByEmail, pendingInvitations, respondToInvitation } = useTeamContext();
+  const { teams, createTeam, joinTeam, inviteByEmail, pendingInvitations, respondToInvitation, setCurrentTeam } = useTeamContext();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+
+  // Create/Join team state
+  const [newTeamName, setNewTeamName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   const handleInviteByEmail = async () => {
     if (!inviteEmail.trim() || !data.currentTeam) return;
@@ -37,24 +43,112 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
     setInviteLoading(false);
   };
 
+  const handleCreateTeam = async () => {
+    if (!newTeamName.trim()) return;
+    setCreating(true);
+    await createTeam(newTeamName.trim());
+    setNewTeamName('');
+    setCreating(false);
+  };
+
+  const handleJoinTeam = async () => {
+    if (!joinCode.trim()) return;
+    setJoining(true);
+    await joinTeam(joinCode.trim());
+    setJoinCode('');
+    setJoining(false);
+  };
+
+  // No team selected — show create/join or team picker
   if (!state.hasTeam) {
     return (
       <ViewLayout
-        header={{ title: "Équipe", subtitle: "Gérez votre équipe", icon: <Users className="w-5 h-5" /> }}
-        state="empty"
-        emptyProps={{
-          title: "Aucune équipe sélectionnée",
-          description: "Sélectionnez une équipe depuis le sélecteur de contexte pour voir son tableau de bord.",
-          icon: <Users className="w-12 h-12" />
-        }}
+        header={{ title: "Équipe", subtitle: "Collaborez avec votre équipe", icon: <Users className="w-5 h-5" /> }}
+        state="success"
         className={className}
       >
-        {pendingInvitations.length > 0 && (
-          <div className="p-6">
+        <div className="space-y-6">
+          {/* Pending invitations */}
+          {pendingInvitations.length > 0 && (
             <PendingInvitationsCard invitations={pendingInvitations} onRespond={respondToInvitation} />
-          </div>
-        )}
-        <div />
+          )}
+
+          {/* If user has multiple teams, show team picker */}
+          {teams.length > 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Vos équipes</CardTitle>
+                <CardDescription>Sélectionnez une équipe pour accéder à son tableau de bord</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {teams.map(team => (
+                  <Button
+                    key={team.id}
+                    variant="outline"
+                    className="w-full justify-start gap-3 h-auto py-3"
+                    onClick={() => setCurrentTeam(team)}
+                  >
+                    <Users className="w-5 h-5 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium">{team.name}</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 ml-auto text-muted-foreground" />
+                  </Button>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* No teams at all — Create or Join */}
+          {teams.length === 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <div className="p-3 rounded-xl bg-primary/10 w-fit">
+                    <Plus className="w-6 h-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg">Créer une équipe</CardTitle>
+                  <CardDescription>Démarrez un nouveau groupe de travail collaboratif</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Input
+                    placeholder="Nom de l'équipe"
+                    value={newTeamName}
+                    onChange={e => setNewTeamName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleCreateTeam()}
+                  />
+                  <Button onClick={handleCreateTeam} className="w-full gap-2" disabled={creating || !newTeamName.trim()}>
+                    <Plus className="w-4 h-4" />
+                    {creating ? 'Création...' : 'Créer l\'équipe'}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="p-3 rounded-xl bg-accent w-fit">
+                    <LogIn className="w-6 h-6 text-accent-foreground" />
+                  </div>
+                  <CardTitle className="text-lg">Rejoindre une équipe</CardTitle>
+                  <CardDescription>Utilisez un code d'invitation pour rejoindre une équipe existante</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Input
+                    placeholder="Code d'invitation"
+                    value={joinCode}
+                    onChange={e => setJoinCode(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleJoinTeam()}
+                    className="font-mono"
+                  />
+                  <Button onClick={handleJoinTeam} variant="secondary" className="w-full gap-2" disabled={joining || !joinCode.trim()}>
+                    <LogIn className="w-4 h-4" />
+                    {joining ? 'Connexion...' : 'Rejoindre'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </ViewLayout>
     );
   }
