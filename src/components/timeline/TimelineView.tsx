@@ -113,13 +113,18 @@ const TimelineView: React.FC = () => {
 
     const isCompleted = occurrence.status === 'completed';
     const duration = Math.round((occurrence.endsAt.getTime() - occurrence.startsAt.getTime()) / 60000);
+    
+    // Use task category color (same as sidebar) for task events
+    const borderClass = event.entityType === 'task' 
+      ? getCategoryBorderClass(taskCategoryMap.get(event.entityId))
+      : event.color ? `border-l-[${event.color}]` : 'border-l-primary';
 
     return (
       <Card
         key={occurrence.id}
         className={cn(
           "p-4 mb-2 border-l-4 hover:shadow-md transition-all cursor-pointer",
-          event.color || "border-l-primary"
+          borderClass
         )}
       >
         <div className="flex items-start justify-between gap-4">
