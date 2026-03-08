@@ -47,7 +47,7 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
       name: name.trim(),
       context,
       category,
-      estimatedTime: parseInt(estimatedTime),
+      estimatedTime,
       level: 0 as const,
       isExpanded: true,
       isCompleted: false
