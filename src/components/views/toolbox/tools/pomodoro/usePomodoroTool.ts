@@ -1,6 +1,28 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
 export type PomodoroPhase = 'idle' | 'focus' | 'shortBreak' | 'longBreak';
+
+/** Play a short beep using Web Audio API */
+function playBeep(frequency = 880, durationMs = 200, count = 2) {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    for (let i = 0; i < count; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = frequency;
+      osc.type = 'sine';
+      const start = ctx.currentTime + i * (durationMs / 1000 + 0.1);
+      gain.gain.setValueAtTime(0.3, start);
+      gain.gain.exponentialRampToValueAtTime(0.01, start + durationMs / 1000);
+      osc.start(start);
+      osc.stop(start + durationMs / 1000);
+    }
+  } catch {
+    // Audio not available
+  }
+}
 export type PomodoroStatus = 'idle' | 'running' | 'paused';
 
 interface PomodoroConfig {
@@ -83,6 +105,9 @@ export function usePomodoroTool(config: PomodoroConfig = DEFAULT_CONFIG) {
   // Phase completed when running and secondsLeft hits 0
   useEffect(() => {
     if (status !== 'running' || secondsLeft > 0 || phase === 'idle') return;
+
+    // 🔔 Beep on phase transition
+    playBeep(phase === 'focus' ? 880 : 660, 200, phase === 'focus' ? 3 : 2);
 
     if (phase === 'focus') {
       const newSessions = sessionsToday + 1;
