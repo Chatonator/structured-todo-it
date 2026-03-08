@@ -8,7 +8,6 @@ import { validateTask, sanitizeTask } from '@/utils/taskValidation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import DurationPicker from '@/components/task/fields/DurationPicker';
 import {
   SidebarGroup,
   SidebarGroupContent,
