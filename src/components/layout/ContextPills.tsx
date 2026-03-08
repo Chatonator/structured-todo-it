@@ -23,7 +23,10 @@ const ContextPills: React.FC<ContextPillsProps> = ({
   const { teams, currentTeam, setCurrentTeam } = useTeamContext();
 
   const handleContextClick = (context: TaskContext | 'all') => {
-    setCurrentTeam(null);
+    // Only deselect team when picking Pro/Perso; "Tous" keeps everything
+    if (context !== 'all') {
+      setCurrentTeam(null);
+    }
     onContextFilterChange(context);
   };
 

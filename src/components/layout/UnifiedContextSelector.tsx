@@ -16,7 +16,9 @@ const UnifiedContextSelector: React.FC<UnifiedContextSelectorProps> = ({
   const { teams, currentTeam, setCurrentTeam } = useTeamContext();
 
   const handleContextClick = (context: TaskContext | 'all') => {
-    setCurrentTeam(null);
+    if (context !== 'all') {
+      setCurrentTeam(null);
+    }
     onContextFilterChange(context);
   };
 
