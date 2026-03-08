@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const validRoles: TeamRole[] = ['owner', 'admin', 'member'];
+      const validRoles: TeamRole[] = ['owner', 'admin', 'supervisor', 'member', 'guest'];
       if (!validRoles.includes(newRole)) {
         return new Response(
           JSON.stringify({ error: 'Invalid role. Must be owner, admin, or member.' }),

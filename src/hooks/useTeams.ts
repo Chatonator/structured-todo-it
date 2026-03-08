@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 
-export type TeamRole = 'owner' | 'admin' | 'member';
+export type TeamRole = 'owner' | 'admin' | 'supervisor' | 'member' | 'guest';
 
 export interface Team {
   id: string;

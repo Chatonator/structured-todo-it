@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { ChevronDown, Shield } from 'lucide-react';
 import {
-  ALL_PERMISSIONS, PERMISSION_LABELS, hasPermission,
+  ALL_PERMISSIONS, PERMISSION_LABELS, CONFIGURABLE_ROLES, ROLE_LABELS, hasPermission,
   type PermissionsConfig, type TeamPermission,
 } from '@/lib/teamPermissions';
 
@@ -14,7 +14,7 @@ interface TeamPermissionsPanelProps {
 }
 
 export const TeamPermissionsPanel: React.FC<TeamPermissionsPanelProps> = ({ config, onUpdate }) => {
-  const toggle = (role: 'admin' | 'member', perm: TeamPermission) => {
+  const toggle = (role: 'admin' | 'supervisor' | 'member' | 'guest', perm: TeamPermission) => {
     const current = hasPermission(role, perm, config);
     const newConfig: PermissionsConfig = {
       ...config,
@@ -48,26 +48,25 @@ export const TeamPermissionsPanel: React.FC<TeamPermissionsPanelProps> = ({ conf
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Permission</th>
-                    <th className="text-center py-2 px-4 font-medium text-muted-foreground">Admin</th>
-                    <th className="text-center py-2 px-4 font-medium text-muted-foreground">Membre</th>
+                    {CONFIGURABLE_ROLES.map((role) => (
+                      <th key={role} className="text-center py-2 px-3 font-medium text-muted-foreground">
+                        {ROLE_LABELS[role]}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {ALL_PERMISSIONS.map((perm) => (
                     <tr key={perm} className="border-b last:border-0">
                       <td className="py-2.5 pr-4">{PERMISSION_LABELS[perm]}</td>
-                      <td className="text-center py-2.5 px-4">
-                        <Switch
-                          checked={hasPermission('admin', perm, config)}
-                          onCheckedChange={() => toggle('admin', perm)}
-                        />
-                      </td>
-                      <td className="text-center py-2.5 px-4">
-                        <Switch
-                          checked={hasPermission('member', perm, config)}
-                          onCheckedChange={() => toggle('member', perm)}
-                        />
-                      </td>
+                      {CONFIGURABLE_ROLES.map((role) => (
+                        <td key={role} className="text-center py-2.5 px-3">
+                          <Switch
+                            checked={hasPermission(role, perm, config)}
+                            onCheckedChange={() => toggle(role, perm)}
+                          />
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
