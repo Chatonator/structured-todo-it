@@ -216,6 +216,11 @@ const ChangelogAdmin: React.FC = () => {
     setLoadingHistory(true);
     const { data } = await supabase.from('app_updates').select('*').order('created_at', { ascending: false });
     setHistory(data ?? []);
+    // Pre-fill version from last published entry
+    if (data && data.length > 0 && !version) {
+      const lastVersion = data[0].version;
+      if (lastVersion) setVersion(lastVersion);
+    }
     setLoadingHistory(false);
   };
 
