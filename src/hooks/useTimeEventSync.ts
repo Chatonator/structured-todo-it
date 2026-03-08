@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Task, RecurrenceInterval } from '@/types/task';
 import { Habit } from '@/types/habit';
-import { TimeEvent, RecurrenceConfig, RecurrenceFrequency } from '@/lib/time/types';
+import { TimeEvent, RecurrenceConfig, RecurrenceFrequency, TimeBlock } from '@/lib/time/types';
 import { logger } from '@/lib/logger';
 import { Json } from '@/integrations/supabase/types';
 
