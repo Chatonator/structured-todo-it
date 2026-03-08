@@ -37,7 +37,7 @@ export const useTeamTasks = (teamId: string | null) => {
       if (error) throw error;
 
       // Map database columns to Task interface
-      const mappedTasks = (data || []).map(mapDbRowToTeamTask) as TeamTask[];
+      const mappedTasks = (data || []).map(mapDbRowToTeamTask) as unknown as TeamTask[];
 
       setTasks(mappedTasks);
       logger.info('Team tasks loaded', { teamId, count: data?.length });
