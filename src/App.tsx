@@ -163,6 +163,7 @@ const App = () => (
                       </PublicRoute>
                     } 
                   />
+                  <Route path="/join/:code" element={<JoinTeam />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </HashRouter>
