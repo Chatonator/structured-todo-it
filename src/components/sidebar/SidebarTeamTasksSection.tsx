@@ -44,7 +44,7 @@ export const SidebarTeamTasksSection: React.FC<SidebarTeamTasksSectionProps> = (
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Tâches d'équipe ({activeTasks.length})
+            Mes tâches d'équipe ({activeTasks.length})
           </span>
         </div>
         {isCollapsed ? (

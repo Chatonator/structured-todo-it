@@ -65,15 +65,12 @@ export const TeamProjectDetail = ({
     tasks: projectTasks, 
     getTasksByColumns, 
     updateTaskStatus, 
-    reloadTasks 
-  } = useTeamProjectTasks(teamId, projectProp.id);
-  
-  const { 
-    createTask, 
-    deleteTask: removeTask, 
+    reloadTasks,
+    createTask,
+    deleteTask: removeTask,
     toggleComplete,
-    updateTask
-  } = useTeamTasks(teamId);
+    updateTask,
+  } = useTeamProjectTasks(teamId, projectProp.id);
   
   const { projects, updateProject } = useTeamProjects(teamId);
   
