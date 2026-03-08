@@ -7,7 +7,8 @@
 import { TimeEvent, TimeEventRow, RecurrenceConfig, RecurrenceFrequency, TimeBlock } from './types';
 import { Task, RecurrenceInterval } from '@/types/task';
 import { Habit } from '@/types/habit';
-import { CATEGORY_CONFIG } from '@/types/task';
+import { CATEGORY_CONFIG, SubTaskCategory } from '@/types/task';
+import { getPriorityLevel } from '@/lib/styling';
 
 export class EventNormalizer {
   /**
