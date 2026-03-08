@@ -2,16 +2,10 @@ import React from 'react';
 import { ViewLayout } from '@/components/layout/view';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger, DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
-import {
-  Users, Plus, MoreVertical, FolderKanban, ListTodo,
-  ArrowRight, UserPlus, Crown, Shield, Copy, Check
+  Users, Plus, FolderKanban, ListTodo,
+  ArrowRight, UserPlus, Copy, Check
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
