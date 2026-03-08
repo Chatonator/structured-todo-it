@@ -128,14 +128,16 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({ children }) =>
     
     // Équipe
     teamTasks: viewData.teamTasks as any,
-    onToggleTeamTask: viewData.onToggleTeamTask
+    onToggleTeamTask: viewData.onToggleTeamTask,
+    currentUserId: user?.id,
   }), [
     viewData,
     preferences.sidebarShowHabits,
     preferences.sidebarShowProjects,
     preferences.sidebarShowTeamTasks,
     selectedItems,
-    toggleSelection
+    toggleSelection,
+    user?.id
   ]);
 
   return (
