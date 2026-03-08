@@ -28,7 +28,8 @@ export const WeekPlanningView: React.FC<WeekPlanningViewProps> = ({
   quotaByDay,
   defaultQuota = 240, // 4 hours default
   onEventClick,
-  onCompleteEvent
+  onCompleteEvent,
+  taskCategoryMap
 }) => {
   // Generate 7 days starting from startDate
   const weekDays = React.useMemo(() => {
