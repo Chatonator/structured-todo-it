@@ -11,6 +11,7 @@ import { TaskCategory } from '@/types/task';
 
 interface ScheduledEventCardProps {
   event: TimeEvent;
+  category?: TaskCategory;
   onComplete?: () => void;
   onRemove?: () => void;
   onClick?: () => void;
