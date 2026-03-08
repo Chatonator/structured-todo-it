@@ -30,7 +30,8 @@ export const CompactDayColumn: React.FC<CompactDayColumnProps> = ({
   events,
   quota,
   onEventClick,
-  onCompleteEvent
+  onCompleteEvent,
+  taskCategoryMap
 }) => {
   const isCurrentDay = isToday(date);
   const isPastDay = isPast(date) && !isCurrentDay;
