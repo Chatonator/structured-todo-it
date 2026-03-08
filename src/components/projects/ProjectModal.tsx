@@ -14,6 +14,8 @@ import { Project } from '@/types/project';
 import { TaskContext, TaskCategory } from '@/types/task';
 import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
 import { EisenhowerSelector } from '@/components/common/EisenhowerSelector';
+import { ContextPillSelector } from '@/components/common/ContextPillSelector';
+import { EmojiGrid } from '@/components/common/EmojiGrid';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { Users, Check, CalendarIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
