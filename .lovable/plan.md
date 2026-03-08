@@ -1,69 +1,94 @@
 
 
-## Refonte : Panel latéral pour création/édition de tâches
+# Systeme de changelog / "Quoi de neuf" via les notifications
 
-### Concept
-Remplacer la modale `Dialog` par un **Sheet (slide-over)** qui glisse depuis la droite. L'utilisateur garde le contexte de sa liste de tâches visible à gauche pendant qu'il crée ou modifie une tâche.
+## Concept
 
-Design moderne avec :
-- Champs organisés en sections progressives (essentiels visibles, options en accordéon)
-- Visuels plus soignés (icônes colorées, badges, animations)
-- Largeur fixe ~420px desktop, plein écran mobile
+Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+
+## Architecture
 
 ```text
-┌──────────────────────┬─────────────────┐
-│                      │  ✕  Nouvelle    │
-│  Liste des tâches    │     tâche       │
-│  (reste visible)     │                 │
-│                      │  [Titre...    ] │
-│                      │                 │
-│                      │  🏠 Perso  💼 Pro│
-│                      │                 │
-│                      │  ⭐ Important    │
-│                      │  ⚡ Urgent       │
-│                      │                 │
-│                      │  ⏱ 30min  ▾    │
-│                      │                 │
-│                      │  ▸ Planification│
-│                      │  ▸ Récurrence   │
-│                      │                 │
-│                      │  [  Créer  ]    │
-└──────────────────────┴─────────────────┘
+app_updates (table Supabase)        useNotifications (hook existant)
+┌──────────────────────┐            ┌──────────────────────┐
+│ id, version, title,  │──inject──▶│ notifications[] avec  │
+│ message, created_at  │           │ type "update" + ✨     │
+└──────────────────────┘           └──────────────────────┘
+        ▲                                    │
+        │ INSERT (admin only)                ▼
+     Edge function               NotificationPanel (existant)
+     ou insertion SQL             affiche deja le type "update"
 ```
 
-### Fichiers modifiés
+## Modifications
 
-| Fichier | Changement |
-|---------|-----------|
-| `TaskModal.tsx` | Remplacer `Dialog` par `Sheet` (slide-over droite). Reorganiser le layout : titre auto-focus, champs essentiels (nom, contexte, catégorie, temps) toujours visibles, planification et récurrence en `Collapsible`. Design soigné avec séparateurs, icônes, espacement aéré. Supprimer le mode multi-drafts (grille) — on garde un seul formulaire fluide dans le panel |
-| `TaskDraftForm.tsx` | Refonte visuelle : sections avec icônes et labels inline, boutons contexte/catégorie en pills colorées, time estimate en chips cliquables au lieu d'un select, espacement généreux. Ajouter un mode `compact` pour le panel |
-| `sheet.tsx` | Élargir la variante `right` à `sm:max-w-md` (448px) pour le panel tâche |
-| `Index.tsx` | Aucun changement structurel — `TaskModal` utilise déjà `isOpen/onClose`, le Sheet s'y substitue directement |
+### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
 
-### Design détaillé du panel
+- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
+- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
 
-**En-tête** : Titre dynamique ("Nouvelle tâche" / "Modifier X") + bouton fermer intégré au Sheet
+### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
 
-**Section 1 — Essentiel** (toujours visible)
-- Input titre : plus grand (`text-base`), placeholder engageant, auto-focus
-- Contexte : 2 pills côte à côte (Pro/Perso) avec couleurs vives, sélection visuelle forte
-- Catégorie Eisenhower : les 2 toggles Important/Urgent (déjà bien designés)
-- Temps estimé : chips horizontaux cliquables (15m, 30m, 1h, 2h, 3h, 4h) au lieu d'un dropdown
+- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
+- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
+- Marque ensuite l'update comme vue dans `user_seen_updates`.
+- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
 
-**Section 2 — Options** (en Collapsible, fermé par défaut)
-- Planification (date + heure)
-- Récurrence
-- Priorité (pour projets)
-- Assignation (pour équipes)
+### 3. `NotificationPanel.tsx` — Deja pret
 
-**Footer sticky** : Bouton créer/modifier pleine largeur
+Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
 
-### Mode édition
-Même panel, pré-rempli avec les données de la tâche existante. Le titre change en "Modifier [nom]".
+### 4. Outil d'insertion pour l'admin
 
-### Mode sous-tâches
-Le panel affiche le badge "Contexte hérité" et masque les sections héritées (comme actuellement).
+Deux options possibles :
+- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
+- **Option B** : Inserer directement via Supabase Dashboard.
 
-### Mode multi-création
-Le bouton "Ajouter une autre tâche" reste disponible sous le bouton créer. Quand on clique, le formulaire se réinitialise après création et le panel reste ouvert (au lieu de se fermer). Un compteur "3 tâches créées" s'affiche en feedback.
+Je recommande l'**Option A** pour rester autonome.
+
+## Details techniques
+
+### Migration SQL
+```sql
+CREATE TABLE public.app_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  version text,
+  title text NOT NULL,
+  message text,
+  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.user_seen_updates (
+  user_id uuid NOT NULL,
+  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, update_id)
+);
+```
+
+### Hook useAppUpdates
+```typescript
+// 1. Fetch unseen updates
+const { data: unseenUpdates } = await supabase
+  .from('app_updates')
+  .select('*')
+  .not('id', 'in', seenUpdateIds);
+
+// 2. For each unseen: insert notification + mark seen
+for (const update of unseenUpdates) {
+  await supabase.from('notifications').insert({
+    user_id, type: 'update',
+    title: `✨ ${update.title}`,
+    message: update.message,
+    metadata: { updateId: update.id, version: update.version }
+  });
+  await supabase.from('user_seen_updates').insert({
+    user_id, update_id: update.id
+  });
+}
+```
+
+### Admin UI (dans /admin/bugs)
+Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
 
