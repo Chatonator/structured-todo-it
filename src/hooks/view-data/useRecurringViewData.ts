@@ -17,6 +17,7 @@ interface TaskSchedule {
 export const useRecurringViewData = (tasks: Task[]) => {
   const { ensureRecurringTaskHasEvent, processRecurringTasks } = useRecurringTasks();
   const { deleteEntityEvent, syncTaskEventWithSchedule } = useTimeEventSync();
+  const { repairUnsyncedTasks } = useRepairSync();
 
   // État local pour récurrence et planification
   const [recurringTaskIds, setRecurringTaskIds] = useState<string[]>([]);
