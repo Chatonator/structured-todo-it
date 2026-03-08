@@ -4,6 +4,7 @@ import { format, addDays, isSameDay, startOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { TimeEvent } from '@/lib/time/types';
 import { CompactDayColumn } from './CompactDayColumn';
+import { TaskCategory } from '@/types/task';
 
 interface WeekPlanningViewProps {
   startDate: Date;
@@ -12,6 +13,7 @@ interface WeekPlanningViewProps {
   defaultQuota?: number;
   onEventClick?: (event: TimeEvent) => void;
   onCompleteEvent?: (eventId: string) => void;
+  taskCategoryMap?: Map<string, TaskCategory>;
 }
 
 /**
