@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type TeamRole = 'owner' | 'admin' | 'member';
+type TeamRole = 'owner' | 'admin' | 'supervisor' | 'member' | 'guest';
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
