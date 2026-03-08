@@ -17,6 +17,7 @@ import {
 } from '@/lib/time/types';
 import { Task } from '@/types/task';
 import { Habit } from '@/types/habit';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
 export const useTimeHub = (initialRange?: DateRange) => {
@@ -207,6 +208,31 @@ export const useTimeHub = (initialRange?: DateRange) => {
   useEffect(() => {
     loadEvents();
   }, [loadEvents]);
+
+  // Keep timeline in sync when events are modified from other hooks (ex: sidebar scheduling)
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`time-events-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'time_events',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          loadEvents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, loadEvents]);
 
   return {
     // Data

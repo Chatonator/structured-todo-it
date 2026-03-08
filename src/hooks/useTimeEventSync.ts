@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Task, RecurrenceInterval } from '@/types/task';
 import { Habit } from '@/types/habit';
-import { TimeEvent, RecurrenceConfig, RecurrenceFrequency } from '@/lib/time/types';
+import { TimeEvent, RecurrenceConfig, RecurrenceFrequency, TimeBlock } from '@/lib/time/types';
 import { logger } from '@/lib/logger';
 import { Json } from '@/integrations/supabase/types';
 
@@ -26,6 +26,16 @@ const toLocalDateString = (date: Date): string => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+// Détermine le créneau horaire à partir d'une heure HH:mm
+const getTimeBlockFromTime = (time: string): TimeBlock => {
+  const hour = Number.parseInt(time.split(':')[0], 10);
+
+  if (Number.isNaN(hour)) return 'morning';
+  if (hour >= 18) return 'evening';
+  if (hour >= 12) return 'afternoon';
+  return 'morning';
 };
 
 // Map task recurrence to TimeEvent recurrence
@@ -157,7 +167,8 @@ export const useTimeEventSync = () => {
         status: task.isCompleted ? 'completed' : 'scheduled',
         completed_at: task.isCompleted ? new Date().toISOString() : null,
         recurrence: recurrence as unknown as Json,
-        priority: task.subCategory ? getPriorityFromSubCategory(task.subCategory) : null
+        priority: task.subCategory ? getPriorityFromSubCategory(task.subCategory) : null,
+        time_block: getTimeBlockFromTime(scheduleInfo.time!)
       };
 
       if (existingEventId) {
