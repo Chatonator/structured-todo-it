@@ -202,6 +202,9 @@ const UsersManagement: React.FC = () => {
 };
 
 // ─── Changelog Admin ───
+const typeEmoji: Record<string, string> = { feature: '✨', fix: '🔧', improvement: '⚡' };
+const typeLabels: Record<string, string> = { feature: 'Nouveautés', fix: 'Corrections', improvement: 'Améliorations' };
+
 const ChangelogAdmin: React.FC = () => {
   const { toast } = useToast();
   const [version, setVersion] = useState('');
@@ -212,11 +215,16 @@ const ChangelogAdmin: React.FC = () => {
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
+  // Selection & compilation
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [compiledReport, setCompiledReport] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState('all');
+  const [filterRange, setFilterRange] = useState('all');
+
   const fetchHistory = async () => {
     setLoadingHistory(true);
     const { data } = await supabase.from('app_updates').select('*').order('created_at', { ascending: false });
     setHistory(data ?? []);
-    // Pre-fill version from last published entry
     if (data && data.length > 0 && !version) {
       const lastVersion = data[0].version;
       if (lastVersion) setVersion(lastVersion);
@@ -248,10 +256,84 @@ const ChangelogAdmin: React.FC = () => {
   const handleDelete = async (id: string) => {
     await supabase.from('app_updates').delete().eq('id', id);
     setHistory(prev => prev.filter(u => u.id !== id));
+    setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
     toast({ title: 'Supprimé' });
   };
 
-  const typeEmoji: Record<string, string> = { feature: '✨', fix: '🔧', improvement: '⚡' };
+  // Filtered history
+  const filteredHistory = history.filter(u => {
+    if (filterType !== 'all' && u.update_type !== filterType) return false;
+    if (filterRange !== 'all') {
+      const d = new Date(u.created_at);
+      const now = new Date();
+      if (filterRange === 'month') {
+        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
+      } else if (filterRange === '3months') {
+        const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        if (d < threeMonthsAgo) return false;
+      }
+    }
+    return true;
+  });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredHistory.length && filteredHistory.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredHistory.map(u => u.id)));
+    }
+  };
+
+  const generateReport = () => {
+    const selected = history.filter(u => selectedIds.has(u.id)).sort((a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    if (selected.length === 0) return;
+
+    const versions = selected.map(u => u.version).filter(Boolean);
+    const minV = versions[0] || '?';
+    const maxV = versions[versions.length - 1] || '?';
+    const dateStr = format(new Date(), 'dd MMMM yyyy', { locale: fr });
+
+    const grouped: Record<string, typeof selected> = {};
+    for (const u of selected) {
+      const t = u.update_type || 'feature';
+      if (!grouped[t]) grouped[t] = [];
+      grouped[t].push(u);
+    }
+
+    let report = `# 📋 Rapport de mise à jour v${minV} → v${maxV}\n`;
+    report += `> Généré le ${dateStr}\n\n`;
+
+    for (const type of ['feature', 'fix', 'improvement']) {
+      const items = grouped[type];
+      if (!items?.length) continue;
+      report += `## ${typeEmoji[type]} ${typeLabels[type]}\n`;
+      for (const item of items) {
+        report += `- ${item.title}`;
+        if (item.version) report += ` (v${item.version})`;
+        if (item.message) report += `\n  ${item.message}`;
+        report += '\n';
+      }
+      report += '\n';
+    }
+
+    setCompiledReport(report.trim());
+  };
+
+  const copyReport = async () => {
+    if (!compiledReport) return;
+    await navigator.clipboard.writeText(compiledReport);
+    toast({ title: 'Copié dans le presse-papier 📋' });
+  };
 
   return (
     <div className="space-y-4">
@@ -283,19 +365,93 @@ const ChangelogAdmin: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Compiled Report */}
+      {compiledReport !== null && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">📋 Rapport compilé</CardTitle>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={copyReport}>
+                  Copier
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompiledReport(null)}>
+                  Fermer
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={compiledReport}
+              onChange={e => setCompiledReport(e.target.value)}
+              rows={Math.min(20, compiledReport.split('\n').length + 2)}
+              className="font-mono text-xs bg-background"
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Historique</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Historique</CardTitle>
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">{selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}</Badge>
+                <Button size="sm" className="h-7 text-xs gap-1.5" onClick={generateReport}>
+                  Générer le rapport
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                  Désélectionner
+                </Button>
+              </div>
+            )}
+          </div>
+          {/* Filters */}
+          <div className="flex gap-2 flex-wrap pt-2">
+            <div className="flex gap-1 items-center">
+              <span className="text-xs text-muted-foreground mr-1">Type :</span>
+              {[{ v: 'all', l: 'Tous' }, { v: 'feature', l: '✨' }, { v: 'fix', l: '🔧' }, { v: 'improvement', l: '⚡' }].map(({ v, l }) => (
+                <Button key={v} variant={filterType === v ? 'secondary' : 'ghost'} size="sm" className="h-6 text-xs px-2" onClick={() => setFilterType(v)}>{l}</Button>
+              ))}
+            </div>
+            <div className="flex gap-1 items-center">
+              <span className="text-xs text-muted-foreground mr-1">Période :</span>
+              {[{ v: 'all', l: 'Tout' }, { v: 'month', l: 'Ce mois' }, { v: '3months', l: '3 mois' }].map(({ v, l }) => (
+                <Button key={v} variant={filterRange === v ? 'secondary' : 'ghost'} size="sm" className="h-6 text-xs px-2" onClick={() => setFilterRange(v)}>{l}</Button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loadingHistory ? (
             <p className="text-sm text-muted-foreground">Chargement…</p>
-          ) : history.length === 0 ? (
+          ) : filteredHistory.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucune publication.</p>
           ) : (
-            <div className="space-y-2">
-              {history.map(u => (
-                <div key={u.id} className="flex items-start gap-3 p-3 rounded-lg border border-border">
+            <div className="space-y-1">
+              <button
+                onClick={toggleSelectAll}
+                className="text-xs text-muted-foreground hover:text-foreground mb-2 underline-offset-2 hover:underline"
+              >
+                {selectedIds.size === filteredHistory.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+              </button>
+              {filteredHistory.map(u => (
+                <div
+                  key={u.id}
+                  className={cn(
+                    "flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
+                    selectedIds.has(u.id) ? "border-primary/40 bg-primary/5" : "border-border hover:bg-muted/50"
+                  )}
+                  onClick={() => toggleSelect(u.id)}
+                >
+                  <Checkbox
+                    checked={selectedIds.has(u.id)}
+                    onCheckedChange={() => toggleSelect(u.id)}
+                    onClick={e => e.stopPropagation()}
+                    className="mt-0.5"
+                  />
                   <span className="text-lg">{typeEmoji[u.update_type] ?? '📋'}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -305,7 +461,7 @@ const ChangelogAdmin: React.FC = () => {
                     {u.message && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{u.message}</p>}
                     <p className="text-[11px] text-muted-foreground/70 mt-1">{format(new Date(u.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}</p>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0" onClick={() => handleDelete(u.id)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0" onClick={e => { e.stopPropagation(); handleDelete(u.id); }}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
