@@ -11,6 +11,8 @@ import { useApp } from '@/contexts/AppContext';
 
 export const ProjectsView = () => {
   const { data, state, actions } = useProjectsFullViewData();
+  const { contextFilter } = useApp();
+  const projectDefaultContext = contextFilter !== 'all' ? contextFilter as 'Pro' | 'Perso' : undefined;
 
   if (data.detailProject) {
     return (
