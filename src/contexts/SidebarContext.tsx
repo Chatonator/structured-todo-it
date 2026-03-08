@@ -78,6 +78,7 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({ children }) =>
   const viewData = useViewDataContext();
   const { preferences } = useUserPreferences();
   const { selectedItems, toggleSelection } = useApp();
+  const { user } = useAuth();
 
   const sidebarData = useMemo<SidebarData>(() => ({
     // Tâches filtrées (actives uniquement)
