@@ -5,6 +5,8 @@ import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamProjects } from '@/hooks/useTeamProjects';
 import { useTeamActivity } from '@/hooks/useTeamActivity';
 import { useTaskWatchers } from '@/hooks/useTaskWatchers';
+import { useTeamLabels } from '@/hooks/useTeamLabels';
+import { useTeamComments } from '@/hooks/useTeamComments';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +23,8 @@ export const useTeamViewData = () => {
   const { projects, loading: projectsLoading } = useTeamProjects(currentTeam?.id ?? null);
   const { activities, loading: activityLoading } = useTeamActivity(currentTeam?.id ?? null);
   const { isWatching, toggleWatch } = useTaskWatchers(currentTeam?.id ?? null, user?.id ?? null);
+  const { labels, createLabel, updateLabel, deleteLabel, toggleTaskLabel, getTaskLabels, hasTaskLabel } = useTeamLabels(currentTeam?.id ?? null);
+  const { comments, loading: commentsLoading, loadTaskComments, addComment, deleteComment, getCommentCount } = useTeamComments(currentTeam?.id ?? null);
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState(false);
   const [memberFilter, setMemberFilter] = useState<string | null>(null);
@@ -86,10 +90,7 @@ export const useTeamViewData = () => {
     if (currentTeam?.invite_code) {
       navigator.clipboard.writeText(currentTeam.invite_code);
       setCopiedCode(true);
-      toast({
-        title: "Code copié !",
-        description: "Le code d'invitation a été copié dans le presse-papier.",
-      });
+      toast({ title: "Code copié !", description: "Le code d'invitation a été copié dans le presse-papier." });
       setTimeout(() => setCopiedCode(false), 2000);
     }
   }, [currentTeam?.invite_code, toast]);
@@ -158,8 +159,7 @@ export const useTeamViewData = () => {
     assignTask(taskId, currentUserId);
     const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
     sendTeamNotification(
-      'team',
-      `🙋 ${senderName} s'est attribué une tâche`,
+      'team', `🙋 ${senderName} s'est attribué une tâche`,
       `Tâche : ${tasks.find(t => t.id === taskId)?.name || ''}`,
       { task_id: taskId, action: 'self_assign' }
     );
@@ -169,8 +169,7 @@ export const useTeamViewData = () => {
     blockTask(taskId, reason);
     const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
     sendTeamNotification(
-      'team',
-      `🚧 ${senderName} a signalé un blocage`,
+      'team', `🚧 ${senderName} a signalé un blocage`,
       `Tâche : ${tasks.find(t => t.id === taskId)?.name || ''} — ${reason}`,
       { task_id: taskId, action: 'blocked', reason }
     );
@@ -178,67 +177,47 @@ export const useTeamViewData = () => {
 
   const handleRequestHelp = useCallback((task: TeamTask) => {
     const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
-    sendTeamNotification(
-      'team',
-      `🆘 ${senderName} a besoin d'aide`,
-      `Tâche : ${task.name}`,
-      { task_id: task.id, action: 'help_request' }
-    );
+    sendTeamNotification('team', `🆘 ${senderName} a besoin d'aide`, `Tâche : ${task.name}`, { task_id: task.id, action: 'help_request' });
     toast({ title: 'Demande envoyée', description: "Votre équipe a été notifiée" });
   }, [sendTeamNotification, currentUserId, teamMembers, toast]);
 
   const handleEncourage = useCallback((task: TeamTask) => {
     if (!task.assigned_to) return;
     const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
-    sendTeamNotification(
-      'team',
-      `💪 ${senderName} vous encourage !`,
-      `Courage pour : ${task.name}`,
-      { task_id: task.id, action: 'encouragement' },
-      task.assigned_to
-    );
+    sendTeamNotification('team', `💪 ${senderName} vous encourage !`, `Courage pour : ${task.name}`, { task_id: task.id, action: 'encouragement' }, task.assigned_to);
     toast({ title: 'Encouragement envoyé !', description: "Le membre a été notifié" });
   }, [sendTeamNotification, currentUserId, teamMembers, toast]);
 
+  // Comment with notification
+  const handleAddComment = useCallback(async (taskId: string, content: string) => {
+    const ok = await addComment(taskId, content);
+    if (ok) {
+      const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
+      const taskName = tasks.find(t => t.id === taskId)?.name || '';
+      sendTeamNotification('team', `💬 ${senderName} a commenté`, `${taskName} : ${content.slice(0, 100)}`, { task_id: taskId, action: 'comment' });
+    }
+    return ok;
+  }, [addComment, teamMembers, currentUserId, tasks, sendTeamNotification]);
+
   return {
     data: {
-      currentTeam,
-      teamMembers,
-      stats,
-      copiedCode,
-      currentUserId,
-      memberStats,
-      teams,
-      filteredTasks,
-      tasks,
-      activities,
+      currentTeam, teamMembers, stats, copiedCode, currentUserId,
+      memberStats, teams, filteredTasks, tasks, activities,
+      labels, comments,
     },
     state: {
-      viewState,
-      isLoading,
-      hasTeam,
-      isEmpty,
-      memberFilter,
+      viewState, isLoading, hasTeam, isEmpty, memberFilter, commentsLoading,
     },
     actions: {
-      handleCopyInviteCode,
-      handleGoToTasks,
-      handleGoToProjects,
-      handleCreateTask,
-      handleUpdateRole,
-      handleRemoveMember,
-      handleLeaveTeam,
-      handleSwitchTeam,
-      handleAssignTask,
-      handleAssignToMe,
-      handleToggleComplete,
-      handleRequestHelp,
-      handleEncourage,
-      handleBlockTask,
-      handleUnblockTask,
-      handleToggleWatch,
-      isWatching,
-      setMemberFilter,
+      handleCopyInviteCode, handleGoToTasks, handleGoToProjects, handleCreateTask,
+      handleUpdateRole, handleRemoveMember, handleLeaveTeam, handleSwitchTeam,
+      handleAssignTask, handleAssignToMe, handleToggleComplete,
+      handleRequestHelp, handleEncourage, handleBlockTask, handleUnblockTask,
+      handleToggleWatch, isWatching, setMemberFilter,
+      // Labels
+      createLabel, updateLabel, deleteLabel, toggleTaskLabel, getTaskLabels, hasTaskLabel,
+      // Comments
+      loadTaskComments, handleAddComment, deleteComment, getCommentCount,
     },
   };
 };
