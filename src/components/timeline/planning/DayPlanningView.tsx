@@ -144,6 +144,7 @@ export const DayPlanningView: React.FC<DayPlanningViewProps> = ({
         onCompleteEvent={onCompleteEvent}
         onRemoveEvent={onRemoveEvent}
         onEventClick={onEventClick}
+        taskCategoryMap={taskCategoryMap}
       />
     </div>
   );

@@ -66,6 +66,7 @@ export const WeekPlanningView: React.FC<WeekPlanningViewProps> = ({
               quota={dayQuota}
               onEventClick={onEventClick}
               onCompleteEvent={onCompleteEvent}
+              taskCategoryMap={taskCategoryMap}
             />
           );
         })}

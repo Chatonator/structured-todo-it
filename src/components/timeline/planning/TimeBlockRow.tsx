@@ -192,6 +192,7 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
               <ScheduledEventCard
                 key={event.id}
                 event={event}
+                category={taskCategoryMap?.get(event.entityId)}
                 onComplete={() => onCompleteEvent?.(event.id)}
                 onRemove={() => onRemoveEvent?.(event.id)}
                 onClick={() => onEventClick?.(event)}

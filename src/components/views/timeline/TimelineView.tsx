@@ -389,13 +389,14 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
 
               {/* Week view */}
               {viewMode === 'week' && (
-                <WeekPlanningView
+              <WeekPlanningView
                   startDate={weekStart}
                   eventsByDay={eventsByDay}
                   quotaByDay={quotaByDay}
                   defaultQuota={240}
                   onEventClick={handleEventClick}
                   onCompleteEvent={handleCompleteEvent}
+                  taskCategoryMap={taskCategoryMap}
                 />
               )}
             </div>

@@ -132,16 +132,19 @@ export const CompactDayColumn: React.FC<CompactDayColumnProps> = ({
 
 interface CompactEventItemProps {
   event: TimeEvent;
+  category?: TaskCategory;
   onClick?: () => void;
   onComplete?: () => void;
 }
 
 const CompactEventItem: React.FC<CompactEventItemProps> = ({
   event,
+  category,
   onClick,
   onComplete
 }) => {
   const isCompleted = event.status === 'completed';
+  const categoryColor = category ? getCategoryIndicatorColor(category) : 'bg-primary';
 
   return (
     <div
@@ -153,6 +156,11 @@ const CompactEventItem: React.FC<CompactEventItemProps> = ({
       )}
       onClick={onClick}
     >
+      {/* Category indicator */}
+      <div className={cn(
+        "w-1 self-stretch rounded-full shrink-0",
+        isCompleted ? "bg-muted" : categoryColor
+      )} />
       {/* Complete button */}
       <button
         className={cn(
