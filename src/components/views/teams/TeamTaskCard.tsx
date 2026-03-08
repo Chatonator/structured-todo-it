@@ -7,8 +7,11 @@ import {
   DropdownMenuSubTrigger, DropdownMenuSubContent
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { MoreHorizontal, HelpCircle, Heart, UserCircle, Clock, UserPlus } from 'lucide-react';
+import { MoreHorizontal, HelpCircle, Heart, UserCircle, Clock, UserPlus, AlertTriangle, CalendarClock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { formatDuration } from '@/lib/formatters';
+import { format, isToday, isBefore, startOfDay } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import type { TeamTask } from '@/hooks/useTeamTasks';
 import type { TeamMember } from '@/hooks/useTeams';
 
