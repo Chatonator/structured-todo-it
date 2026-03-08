@@ -73,16 +73,18 @@ const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange, hasErr
           step={1}
           className="cursor-pointer"
         />
-        <div className="flex justify-between" style={{ paddingLeft: 8, paddingRight: 8 }}>
+        <div className="relative h-4">
           {HOUR_TICKS.map((h) => (
             <button
               key={h}
               type="button"
               onClick={() => clickHour(h)}
               className={cn(
-                'text-[9px] tabular-nums cursor-pointer transition-colors rounded hover:text-primary',
+                'absolute top-0 text-[9px] tabular-nums cursor-pointer transition-colors rounded hover:text-primary leading-none',
+                h === 0 ? 'left-0 translate-x-0' : h === 8 ? 'right-0 translate-x-0' : '-translate-x-1/2',
                 h === hours ? 'text-primary font-semibold' : 'text-muted-foreground/50'
               )}
+              style={h === 0 || h === 8 ? undefined : { left: `${(h / 8) * 100}%` }}
             >
               {h}
             </button>
@@ -104,16 +106,18 @@ const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange, hasErr
           step={5}
           className="cursor-pointer"
         />
-        <div className="flex justify-between" style={{ paddingLeft: 8, paddingRight: 8 }}>
+        <div className="relative h-4">
           {MINUTE_TICKS.map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => clickMinute(m)}
               className={cn(
-                'text-[9px] tabular-nums cursor-pointer transition-colors rounded hover:text-primary',
+                'absolute top-0 text-[9px] tabular-nums cursor-pointer transition-colors rounded hover:text-primary leading-none',
+                m === 0 ? 'left-0 translate-x-0' : m === 55 ? 'right-0 translate-x-0' : '-translate-x-1/2',
                 m === minutes ? 'text-primary font-semibold' : 'text-muted-foreground/50'
               )}
+              style={m === 0 || m === 55 ? undefined : { left: `${(m / 55) * 100}%` }}
             >
               {m}
             </button>
