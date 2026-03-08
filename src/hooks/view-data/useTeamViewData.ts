@@ -184,6 +184,7 @@ export const useTeamViewData = () => {
       teams,
       filteredTasks,
       tasks,
+      activities,
     },
     state: {
       viewState,
