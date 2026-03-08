@@ -17,7 +17,7 @@ import type { TeamRole } from '@/hooks/useTeams';
 import type { TeamTask } from '@/hooks/useTeamTasks';
 
 export const useTeamViewData = () => {
-  const { currentTeam, teamMembers, updateMemberRole, removeMember, leaveTeam, teams, setCurrentTeam } = useTeamContext();
+  const { currentTeam, teamMembers, updateMemberRole, removeMember, leaveTeam, teams, setCurrentTeam, regenerateInviteCode, updateTeamSettings } = useTeamContext();
   const { setCurrentView, setIsModalOpen } = useApp();
   const { user } = useAuth();
   const { tasks, loading: tasksLoading, assignTask, toggleComplete, blockTask, unblockTask } = useTeamTasks(currentTeam?.id ?? null);
