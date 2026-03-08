@@ -3,6 +3,7 @@
  */
 
 import { RecurrenceConfig, RecurrenceFrequency, TimeBlock } from '@/lib/time/types';
+import { getPriorityLevel } from '@/lib/styling';
 import { Habit } from '@/types/habit';
 
 /** Format date as YYYY-MM-DD in local timezone (avoids UTC shift from toISOString) */

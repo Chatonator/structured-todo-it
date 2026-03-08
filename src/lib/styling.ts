@@ -125,6 +125,19 @@ export function getPriorityLevel(priority: SubTaskCategory | undefined): number 
   return priority ? levels[priority] ?? 0 : 0;
 }
 
+/**
+ * Retourne les classes CSS pour un événement timeline selon le niveau de priorité
+ */
+export function getPriorityEventClasses(level: number): string {
+  const classes: Record<number, string> = {
+    4: 'bg-priority-highest/20 border-l-priority-highest',
+    3: 'bg-priority-high/20 border-l-priority-high',
+    2: 'bg-priority-medium/20 border-l-priority-medium',
+    1: 'bg-priority-low/20 border-l-priority-low',
+  };
+  return classes[level] || 'bg-primary/20 border-l-primary';
+}
+
 // ===== CONTEXTES =====
 
 export type ContextStyleVariant = 'badge' | 'text' | 'icon';

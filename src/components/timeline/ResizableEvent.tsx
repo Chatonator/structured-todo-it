@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { CheckCircle, GripVertical, Clock, MoreVertical } from 'lucide-react';
 import { TimeEvent } from '@/lib/time/types';
 import { formatDuration } from '@/lib/formatters';
+import { getPriorityEventClasses } from '@/lib/styling';
 import { EventContextMenu } from './EventContextMenu';
 
 interface ResizableEventProps {

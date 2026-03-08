@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { CheckCircle, GripVertical, Clock } from 'lucide-react';
 import { TimeEvent } from '@/lib/time/types';
 import { formatDuration } from '@/lib/formatters';
+import { getPriorityEventClasses } from '@/lib/styling';
 
 interface ScheduledEventProps {
   event: TimeEvent;
