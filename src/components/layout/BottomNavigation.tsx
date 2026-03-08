@@ -8,7 +8,8 @@ import {
   Award,
   Briefcase,
   Home,
-  Clock
+  Clock,
+  Users
 } from 'lucide-react';
 
 interface NavigationItem {
