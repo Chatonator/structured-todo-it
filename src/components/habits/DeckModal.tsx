@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { EmojiGrid } from '@/components/common/EmojiGrid';
 import { Deck } from '@/types/habit';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
