@@ -54,6 +54,31 @@ export const toolRegistry: ToolDefinition[] = [
       "Si vous ne finissez pas tout, ce n'est pas grave — l'important est d'avoir avancé sur le 'Big'"
     ],
     learnMoreUrl: "https://www.themuse.com/advice/a-better-todo-list-the-135-rule"
+  },
+  {
+    id: 'pomodoro',
+    name: 'Pomodoro',
+    description: 'Timer focus par cycles de 25 min',
+    icon: Timer,
+    color: 'text-red-500',
+    bgColor: 'bg-red-500/10',
+    category: 'focus',
+    isNew: true,
+    component: PomodoroTool,
+    longDescription: "La technique Pomodoro est une méthode de gestion du temps qui alterne des sessions de travail concentré de 25 minutes (« pomodori ») avec des pauses courtes de 5 minutes. Après quatre sessions, vous prenez une pause longue de 15 à 30 minutes. Ce rythme maintient votre concentration tout en prévenant l'épuisement mental.",
+    benefits: [
+      "Maintenir une concentration profonde sans fatigue",
+      "Réduire la procrastination grâce à des sessions courtes",
+      "Mesurer objectivement votre temps de travail effectif",
+      "Prévenir l'épuisement avec des pauses régulières"
+    ],
+    origin: "Inventée par Francesco Cirillo à la fin des années 1980, cette technique tire son nom du minuteur de cuisine en forme de tomate (« pomodoro » en italien) qu'il utilisait pendant ses études.",
+    tips: [
+      "Pendant un focus, ignorez toute distraction — notez-la pour plus tard",
+      "Utilisez les pauses pour bouger, pas pour scroller",
+      "Liez une tâche à votre session pour rester centré sur un objectif"
+    ],
+    learnMoreUrl: "https://fr.wikipedia.org/wiki/Technique_Pomodoro"
   }
 ];
 
