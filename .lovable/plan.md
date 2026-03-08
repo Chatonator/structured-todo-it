@@ -1,38 +1,94 @@
 
 
-# Nettoyage et factorisation du code
+# Systeme de changelog / "Quoi de neuf" via les notifications
 
-## Constat
+## Concept
 
-Après analyse complète, voici les zones de code mort et de nettoyage identifiées :
+Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
 
-### 1. Composants morts (à supprimer)
+## Architecture
 
-| Fichier | Raison |
-|---------|--------|
-| `src/components/task/QuickAddTask.tsx` | Ancien formulaire de création rapide, jamais importé (remplacé par le Sheet) |
-| `src/components/common/TimeEstimateSelector.tsx` | Ancien select de durée, jamais utilisé (remplacé par `DurationPicker`) |
-| `src/components/common/CategorySelector.tsx` | Simple wrapper passthrough vers `EisenhowerSelector`, jamais importé directement |
-| `src/components/common/ContextSelector.tsx` | Ancien sélecteur de contexte, jamais utilisé (remplacé par `ContextPillSelector`) |
+```text
+app_updates (table Supabase)        useNotifications (hook existant)
+┌──────────────────────┐            ┌──────────────────────┐
+│ id, version, title,  │──inject──▶│ notifications[] avec  │
+│ message, created_at  │           │ type "update" + ✨     │
+└──────────────────────┘           └──────────────────────┘
+        ▲                                    │
+        │ INSERT (admin only)                ▼
+     Edge function               NotificationPanel (existant)
+     ou insertion SQL             affiche deja le type "update"
+```
 
-### 2. Barrel exports à nettoyer
+## Modifications
 
-| Fichier | Action |
-|---------|--------|
-| `src/components/common/index.ts` | Retirer `CategorySelector`, `ContextSelector`, `TimeEstimateSelector` |
-| `src/components/task/fields/index.ts` | Retirer les ré-exports morts (`CategorySelector`, `ContextSelector`, `TimeEstimateSelector`) |
-| `src/components/task/index.ts` | Retirer l'export de `QuickAddTask` |
-| `src/components/routing/index.ts` | Barrel jamais importé — conserver par cohérence mais noter qu'il est inutilisé |
+### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
 
-### 3. Nettoyage mineur
+- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
+- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
 
-- **`src/types/index.ts`** : Barrel jamais utilisé (tous les imports vont directement vers `@/types/task`, `@/types/project`, etc.) — conserver comme documentation mais pas de nettoyage bloquant.
+### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
 
-### Plan d'exécution
+- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
+- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
+- Marque ensuite l'update comme vue dans `user_seen_updates`.
+- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
 
-1. Supprimer les 4 fichiers morts
-2. Nettoyer les 3 barrel exports
-3. Vérifier qu'aucun import cassé ne subsiste
+### 3. `NotificationPanel.tsx` — Deja pret
 
-Pas de changement fonctionnel — uniquement du ménage.
+Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+
+### 4. Outil d'insertion pour l'admin
+
+Deux options possibles :
+- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
+- **Option B** : Inserer directement via Supabase Dashboard.
+
+Je recommande l'**Option A** pour rester autonome.
+
+## Details techniques
+
+### Migration SQL
+```sql
+CREATE TABLE public.app_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  version text,
+  title text NOT NULL,
+  message text,
+  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.user_seen_updates (
+  user_id uuid NOT NULL,
+  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, update_id)
+);
+```
+
+### Hook useAppUpdates
+```typescript
+// 1. Fetch unseen updates
+const { data: unseenUpdates } = await supabase
+  .from('app_updates')
+  .select('*')
+  .not('id', 'in', seenUpdateIds);
+
+// 2. For each unseen: insert notification + mark seen
+for (const update of unseenUpdates) {
+  await supabase.from('notifications').insert({
+    user_id, type: 'update',
+    title: `✨ ${update.title}`,
+    message: update.message,
+    metadata: { updateId: update.id, version: update.version }
+  });
+  await supabase.from('user_seen_updates').insert({
+    user_id, update_id: update.id
+  });
+}
+```
+
+### Admin UI (dans /admin/bugs)
+Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
 
