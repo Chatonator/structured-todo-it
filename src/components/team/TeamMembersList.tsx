@@ -15,6 +15,16 @@ import { Users, MoreVertical, Crown, Shield, CheckCircle2, ListTodo, Eye, UserCh
 import { cn } from '@/lib/utils';
 import type { TeamMember, TeamRole } from '@/hooks/useTeams';
 
+// ─── Role hierarchy ───
+
+const ROLE_LEVEL: Record<TeamRole, number> = {
+  owner: 4,
+  admin: 3,
+  supervisor: 2,
+  member: 1,
+  guest: 0,
+};
+
 // ─── Shared helpers ───
 
 export const getDisplayName = (member: TeamMember): string =>
@@ -47,7 +57,7 @@ export const RoleBadge = ({ role }: { role: TeamRole }) => {
 };
 
 // ─── Role change options (non-owner roles) ───
-const ROLE_OPTIONS: { role: TeamRole; label: string }[] = [
+const ALL_ROLE_OPTIONS: { role: TeamRole; label: string }[] = [
   { role: 'admin', label: 'Promouvoir admin' },
   { role: 'supervisor', label: 'Promouvoir superviseur' },
   { role: 'member', label: 'Définir comme membre' },
@@ -59,15 +69,31 @@ const ROLE_OPTIONS: { role: TeamRole; label: string }[] = [
 interface MemberRowProps {
   member: TeamMember;
   isCurrentUser?: boolean;
+  currentUserRole?: TeamRole;
+  showEmail?: boolean;
   memberStats?: { assigned: number; completed: number };
   onUpdateRole?: (userId: string, role: TeamRole) => void;
   onRemove?: (userId: string) => void;
 }
 
-export const MemberRow: React.FC<MemberRowProps> = ({ member, isCurrentUser, memberStats, onUpdateRole, onRemove }) => {
+export const MemberRow: React.FC<MemberRowProps> = ({
+  member, isCurrentUser, currentUserRole = 'member', showEmail = false,
+  memberStats, onUpdateRole, onRemove
+}) => {
   const displayName = getDisplayName(member);
   const initials = getMemberInitials(displayName);
   const [confirmRemove, setConfirmRemove] = useState(false);
+
+  const currentLevel = ROLE_LEVEL[currentUserRole] ?? 0;
+  const memberLevel = ROLE_LEVEL[member.role] ?? 0;
+
+  // Can only act on members with strictly lower rank
+  const canActOnMember = currentLevel > memberLevel && member.role !== 'owner';
+
+  // Filter role options: only roles strictly below current user's rank, excluding member's current role
+  const availableRoleOptions = ALL_ROLE_OPTIONS.filter(
+    o => o.role !== member.role && ROLE_LEVEL[o.role] < currentLevel
+  );
 
   return (
     <>
@@ -89,7 +115,7 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, isCurrentUser, mem
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Vous</Badge>
               )}
             </div>
-            {member.profiles?.email && member.profiles.email !== displayName && (
+            {showEmail && member.profiles?.email && member.profiles.email !== displayName && (
               <p className="text-xs text-muted-foreground">{member.profiles.email}</p>
             )}
             <div className="flex items-center gap-3 mt-0.5">
@@ -118,7 +144,7 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, isCurrentUser, mem
         </div>
         <div className="flex items-center gap-2">
           <RoleBadge role={member.role} />
-          {member.role !== 'owner' && (onUpdateRole || onRemove) && (
+          {canActOnMember && (onUpdateRole || onRemove) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -126,7 +152,7 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, isCurrentUser, mem
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {onUpdateRole && ROLE_OPTIONS.filter(o => o.role !== member.role).map((option) => {
+                {onUpdateRole && availableRoleOptions.map((option) => {
                   const Icon = ROLE_CONFIG[option.role].icon;
                   return (
                     <DropdownMenuItem key={option.role} onClick={() => onUpdateRole(member.user_id, option.role)}>
@@ -177,24 +203,33 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, isCurrentUser, mem
 interface TeamMembersListProps {
   members: TeamMember[];
   currentUserId?: string | null;
+  currentUserRole?: TeamRole;
   memberStats?: Map<string, { assigned: number; completed: number }>;
   onUpdateRole?: (userId: string, role: TeamRole) => void;
   onRemove?: (userId: string) => void;
 }
 
-export const TeamMembersList: React.FC<TeamMembersListProps> = ({ members, currentUserId, memberStats, onUpdateRole, onRemove }) => (
-  <div className="space-y-3">
-    {members.map((member) => (
-      <MemberRow
-        key={member.id}
-        member={member}
-        isCurrentUser={currentUserId === member.user_id}
-        memberStats={memberStats?.get(member.user_id)}
-        onUpdateRole={onUpdateRole}
-        onRemove={onRemove}
-      />
-    ))}
-  </div>
-);
+export const TeamMembersList: React.FC<TeamMembersListProps> = ({
+  members, currentUserId, currentUserRole = 'member', memberStats, onUpdateRole, onRemove
+}) => {
+  const showEmail = currentUserRole === 'owner' || currentUserRole === 'admin';
+
+  return (
+    <div className="space-y-3">
+      {members.map((member) => (
+        <MemberRow
+          key={member.id}
+          member={member}
+          isCurrentUser={currentUserId === member.user_id}
+          currentUserRole={currentUserRole}
+          showEmail={showEmail}
+          memberStats={memberStats?.get(member.user_id)}
+          onUpdateRole={onUpdateRole}
+          onRemove={onRemove}
+        />
+      ))}
+    </div>
+  );
+};
 
 export default TeamMembersList;

@@ -7,14 +7,20 @@ const corsHeaders = {
 
 type TeamRole = 'owner' | 'admin' | 'supervisor' | 'member' | 'guest';
 
+const ROLE_LEVEL: Record<TeamRole, number> = {
+  owner: 4,
+  admin: 3,
+  supervisor: 2,
+  member: 1,
+  guest: 0,
+};
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create client for auth verification (uses anon key + user token)
     const supabaseAuthClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -25,27 +31,23 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Get authenticated user
     const {
       data: { user },
       error: authError,
     } = await supabaseAuthClient.auth.getUser();
 
     if (authError || !user) {
-      console.error('Authentication error:', authError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create admin client for database operations (bypasses RLS)
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Parse request body
     const { action, teamId, targetUserId, newRole } = await req.json();
 
     if (!action || !teamId) {
@@ -55,7 +57,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if current user is admin or owner
+    // Get current user's role
     const { data: currentMember } = await supabaseClient
       .from('team_members')
       .select('role')
@@ -63,18 +65,27 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (!currentMember || (currentMember.role !== 'owner' && currentMember.role !== 'admin')) {
+    if (!currentMember) {
       return new Response(
-        JSON.stringify({ error: 'Insufficient permissions. Only admins and owners can manage members.' }),
+        JSON.stringify({ error: 'You are not a member of this team' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Handle different actions
+    const currentLevel = ROLE_LEVEL[currentMember.role as TeamRole] ?? 0;
+
+    // Must be at least admin level to manage members
+    if (currentLevel < ROLE_LEVEL.admin) {
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions. Only admins and above can manage members.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'update_role') {
       if (!targetUserId || !newRole) {
         return new Response(
-          JSON.stringify({ error: 'targetUserId and newRole are required for update_role action' }),
+          JSON.stringify({ error: 'targetUserId and newRole are required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -82,12 +93,11 @@ Deno.serve(async (req) => {
       const validRoles: TeamRole[] = ['owner', 'admin', 'supervisor', 'member', 'guest'];
       if (!validRoles.includes(newRole)) {
         return new Response(
-          JSON.stringify({ error: 'Invalid role. Must be owner, admin, or member.' }),
+          JSON.stringify({ error: 'Invalid role.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Get target member info
       const { data: targetMember } = await supabaseClient
         .from('team_members')
         .select('role')
@@ -102,17 +112,25 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Only owner can change owner role or promote to owner
-      if (targetMember.role === 'owner' || newRole === 'owner') {
-        if (currentMember.role !== 'owner') {
-          return new Response(
-            JSON.stringify({ error: 'Only the owner can change owner role' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
+      const targetLevel = ROLE_LEVEL[targetMember.role as TeamRole] ?? 0;
+      const newRoleLevel = ROLE_LEVEL[newRole as TeamRole] ?? 0;
+
+      // Rule: can only act on members with STRICTLY lower rank
+      if (currentLevel <= targetLevel) {
+        return new Response(
+          JSON.stringify({ error: 'You can only modify members with a lower rank than yours.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      // Update role
+      // Rule: can only promote up to STRICTLY below own rank
+      if (newRoleLevel >= currentLevel) {
+        return new Response(
+          JSON.stringify({ error: 'You can only assign roles strictly below your own rank.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { error: updateError } = await supabaseClient
         .from('team_members')
         .update({ role: newRole })
@@ -136,12 +154,11 @@ Deno.serve(async (req) => {
     } else if (action === 'remove_member') {
       if (!targetUserId) {
         return new Response(
-          JSON.stringify({ error: 'targetUserId is required for remove_member action' }),
+          JSON.stringify({ error: 'targetUserId is required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Get target member info
       const { data: targetMember } = await supabaseClient
         .from('team_members')
         .select('role')
@@ -156,15 +173,17 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Only owner can remove owner
-      if (targetMember.role === 'owner' && currentMember.role !== 'owner') {
+      const targetLevel = ROLE_LEVEL[targetMember.role as TeamRole] ?? 0;
+
+      // Rule: can only remove members with STRICTLY lower rank
+      if (currentLevel <= targetLevel) {
         return new Response(
-          JSON.stringify({ error: 'Only the owner can remove the owner' }),
+          JSON.stringify({ error: 'You can only remove members with a lower rank than yours.' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Cannot remove yourself as owner (must transfer ownership first)
+      // Cannot remove yourself as owner
       if (targetUserId === user.id && currentMember.role === 'owner') {
         return new Response(
           JSON.stringify({ error: 'Owner cannot remove themselves. Transfer ownership first.' }),
@@ -172,7 +191,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Remove member
       const { error: removeError } = await supabaseClient
         .from('team_members')
         .delete()
