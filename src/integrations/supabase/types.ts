@@ -966,6 +966,7 @@ export type Database = {
           id: string
           invite_code: string
           name: string
+          permissions_config: Json
           updated_at: string
         }
         Insert: {
@@ -974,6 +975,7 @@ export type Database = {
           id?: string
           invite_code: string
           name: string
+          permissions_config?: Json
           updated_at?: string
         }
         Update: {
@@ -982,6 +984,7 @@ export type Database = {
           id?: string
           invite_code?: string
           name?: string
+          permissions_config?: Json
           updated_at?: string
         }
         Relationships: []

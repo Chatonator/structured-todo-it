@@ -1,0 +1,1 @@
+ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS permissions_config jsonb NOT NULL DEFAULT '{}'::jsonb;
