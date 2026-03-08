@@ -40,6 +40,7 @@ interface TeamTaskCardProps {
   // Comments
   commentCount: number;
   onOpenComments: (task: TeamTask) => void;
+  can: (permission: TeamPermission) => boolean;
 }
 
 const getInitials = (name: string | null | undefined): string => {
