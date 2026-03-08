@@ -168,13 +168,19 @@ const SlotSection: React.FC<SlotSectionProps> = ({
             max={config.max - slotInfo.current}
             selectedTasks={[]}
             filteredAvailableTasks={linker.filteredAvailableTasks}
+            filteredCount={linker.filteredCount}
+            totalCount={linker.totalCount}
             search={linker.filters.search}
             contextFilter={linker.filters.context}
+            categoryFilter={linker.filters.category}
+            priorityFilter={linker.filters.priority}
             canSelectMore={!slotInfo.filled}
             onSelect={handleSelect}
             onDeselect={() => {}}
             onSearchChange={linker.setSearch}
             onContextFilterChange={linker.setContextFilter}
+            onCategoryFilterChange={linker.setCategoryFilter}
+            onPriorityFilterChange={linker.setPriorityFilter}
             placeholder="Ajouter une tâche..."
             variant="popover"
           />
