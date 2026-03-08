@@ -16,14 +16,12 @@ interface SchedulingSectionProps {
   onTimeChange: (time: string) => void;
 }
 
-const HOUR_TICKS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
 const MINUTE_TICKS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-const QUICK_SLOTS = [
-  { label: '🌅 Matin', hour: 9, min: 0 },
-  { label: '☀️ Midi', hour: 12, min: 0 },
-  { label: '🌤️ Après-midi', hour: 14, min: 0 },
-  { label: '🌙 Soir', hour: 18, min: 0 },
+const TIME_BLOCKS = [
+  { label: '🌅 Matin', hours: [6, 7, 8, 9, 10, 11] },
+  { label: '☀️ Après-midi', hours: [12, 13, 14, 15, 16, 17] },
+  { label: '🌙 Soir', hours: [18, 19, 20, 21] },
 ];
 
 function parseTime(time?: string): { hour: number; minute: number } {
