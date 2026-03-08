@@ -397,6 +397,13 @@ export const useTeams = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Auto-select single team
+  useEffect(() => {
+    if (!currentTeam && teams.length === 1) {
+      setCurrentTeam(teams[0]);
+    }
+  }, [teams, currentTeam]);
+
   // Load members when current team changes
   useEffect(() => {
     if (currentTeam) {
