@@ -7,6 +7,7 @@ import { useTeamActivity } from '@/hooks/useTeamActivity';
 import { useTaskWatchers } from '@/hooks/useTaskWatchers';
 import { useTeamLabels } from '@/hooks/useTeamLabels';
 import { useTeamComments } from '@/hooks/useTeamComments';
+import { useTeamPermissions } from '@/hooks/useTeamPermissions';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +27,7 @@ export const useTeamViewData = () => {
   const { labels, createLabel, updateLabel, deleteLabel, toggleTaskLabel, getTaskLabels, hasTaskLabel } = useTeamLabels(currentTeam?.id ?? null);
   const { comments, loading: commentsLoading, loadTaskComments, addComment, deleteComment, getCommentCount } = useTeamComments(currentTeam?.id ?? null);
   const { toast } = useToast();
+  const { can, myRole, permissionsConfig, updatePermissionsConfig } = useTeamPermissions();
   const [copiedCode, setCopiedCode] = useState(false);
   const [memberFilter, setMemberFilter] = useState<string | null>(null);
 
@@ -203,10 +205,10 @@ export const useTeamViewData = () => {
     data: {
       currentTeam, teamMembers, stats, copiedCode, currentUserId,
       memberStats, teams, filteredTasks, tasks, activities,
-      labels, comments,
+      labels, comments, permissionsConfig,
     },
     state: {
-      viewState, isLoading, hasTeam, isEmpty, memberFilter, commentsLoading,
+      viewState, isLoading, hasTeam, isEmpty, memberFilter, commentsLoading, myRole,
     },
     actions: {
       handleCopyInviteCode, handleGoToTasks, handleGoToProjects, handleCreateTask,
@@ -218,6 +220,8 @@ export const useTeamViewData = () => {
       createLabel, updateLabel, deleteLabel, toggleTaskLabel, getTaskLabels, hasTaskLabel,
       // Comments
       loadTaskComments, handleAddComment, deleteComment, getCommentCount,
+      // Permissions
+      can, updatePermissionsConfig,
     },
   };
 };

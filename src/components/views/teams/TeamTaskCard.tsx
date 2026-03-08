@@ -18,6 +18,7 @@ import { fr } from 'date-fns/locale';
 import type { TeamTask } from '@/hooks/useTeamTasks';
 import type { TeamMember } from '@/hooks/useTeams';
 import type { TeamLabel } from '@/hooks/useTeamLabels';
+import type { TeamPermission } from '@/lib/teamPermissions';
 
 interface TeamTaskCardProps {
   task: TeamTask;
@@ -40,6 +41,7 @@ interface TeamTaskCardProps {
   // Comments
   commentCount: number;
   onOpenComments: (task: TeamTask) => void;
+  can: (permission: TeamPermission) => boolean;
 }
 
 const getInitials = (name: string | null | undefined): string => {
@@ -52,7 +54,7 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
   onToggleComplete, onAssign, onAssignToMe, onRequestHelp, onEncourage,
   onBlockTask, onUnblockTask, onToggleWatch, watchedByMe,
   taskLabels, allLabels, onToggleLabel, hasLabel,
-  commentCount, onOpenComments,
+  commentCount, onOpenComments, can,
 }) => {
   const [blockReason, setBlockReason] = useState('');
   const [showBlockInput, setShowBlockInput] = useState(false);
@@ -80,6 +82,7 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
         checked={task.isCompleted}
         onCheckedChange={(checked) => onToggleComplete(task.id, !!checked)}
         className="flex-shrink-0"
+        disabled={!(isAssignedToMe ? can('complete_own_task') : can('complete_any_task'))}
       />
 
       <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
@@ -139,7 +142,7 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
       )}
 
       {/* Self-assign button for unassigned tasks */}
-      {isUnassigned && !task.isCompleted && (
+      {isUnassigned && !task.isCompleted && can('assign_self') && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -250,48 +253,53 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
           <DropdownMenuSeparator />
 
           {/* Assign */}
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <UserPlus className="w-4 h-4 mr-2 text-muted-foreground" />
-              Assigner à…
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem onClick={() => onAssign(task.id, null)}>
-                <UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />
-                Non assigné
-              </DropdownMenuItem>
+          {can('assign_tasks') && (
+            <>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <UserPlus className="w-4 h-4 mr-2 text-muted-foreground" />
+                  Assigner à…
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => onAssign(task.id, null)}>
+                    <UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />
+                    Non assigné
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {members.map(m => (
+                    <DropdownMenuItem
+                      key={m.user_id}
+                      onClick={() => onAssign(task.id, m.user_id)}
+                      className={cn(task.assigned_to === m.user_id && "bg-accent")}
+                    >
+                      <Avatar className="h-4 w-4 mr-2">
+                        <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
+                          {getInitials(m.profiles?.display_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {m.profiles?.display_name || 'Membre'}
+                      {m.user_id === currentUserId && <span className="ml-1 text-xs text-muted-foreground">(moi)</span>}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuSeparator />
-              {members.map(m => (
-                <DropdownMenuItem
-                  key={m.user_id}
-                  onClick={() => onAssign(task.id, m.user_id)}
-                  className={cn(task.assigned_to === m.user_id && "bg-accent")}
-                >
-                  <Avatar className="h-4 w-4 mr-2">
-                    <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
-                      {getInitials(m.profiles?.display_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {m.profiles?.display_name || 'Membre'}
-                  {m.user_id === currentUserId && <span className="ml-1 text-xs text-muted-foreground">(moi)</span>}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-
-          <DropdownMenuSeparator />
+            </>
+          )}
 
           {/* Block / Unblock */}
-          {!task.is_blocked ? (
-            <DropdownMenuItem onClick={(e) => { e.preventDefault(); setShowBlockInput(true); }}>
-              <ShieldAlert className="w-4 h-4 mr-2 text-destructive" />
-              Signaler un blocage
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem onClick={() => onUnblockTask(task.id)}>
-              <ShieldCheck className="w-4 h-4 mr-2 text-primary" />
-              Débloquer
-            </DropdownMenuItem>
+          {can('block_tasks') && (
+            !task.is_blocked ? (
+              <DropdownMenuItem onClick={(e) => { e.preventDefault(); setShowBlockInput(true); }}>
+                <ShieldAlert className="w-4 h-4 mr-2 text-destructive" />
+                Signaler un blocage
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onUnblockTask(task.id)}>
+                <ShieldCheck className="w-4 h-4 mr-2 text-primary" />
+                Débloquer
+              </DropdownMenuItem>
+            )
           )}
 
           {/* Watch */}

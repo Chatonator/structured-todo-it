@@ -24,12 +24,13 @@ import {
   Users, Plus, FolderKanban, ListTodo,
   ArrowRight, Copy, Check, Mail, Send, LogIn,
   ChevronDown, LogOut, Sparkles, Rocket, UserCircle, AlertTriangle,
-  Tag, Trash2, Pencil
+  Tag, Trash2, Pencil, Shield
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
 import { PendingInvitationsCard } from '@/components/team/PendingInvitationsCard';
+import { TeamPermissionsPanel } from '@/components/team/TeamPermissionsPanel';
 import { TeamTaskCard } from './TeamTaskCard';
 import { TeamActivityFeed } from './TeamActivityFeed';
 import { TeamWorkloadCard } from './TeamWorkloadCard';
@@ -330,6 +331,7 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
       hasLabel={actions.hasTaskLabel}
       commentCount={actions.getCommentCount(task.id)}
       onOpenComments={(t) => setCommentTask(t)}
+      can={actions.can}
     />
   );
 
@@ -353,10 +355,12 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      <Button onClick={actions.handleCreateTask} size="sm" className="gap-2">
-        <Plus className="w-4 h-4" />
-        Nouvelle tâche
-      </Button>
+      {actions.can('create_tasks') && (
+        <Button onClick={actions.handleCreateTask} size="sm" className="gap-2">
+          <Plus className="w-4 h-4" />
+          Nouvelle tâche
+        </Button>
+      )}
     </div>
   );
 
@@ -429,20 +433,22 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
               </CardContent>
             </Card>
 
-            <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={actions.handleCopyInviteCode}>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Code d'invitation</p>
-                    <p className="text-lg font-mono font-bold truncate max-w-[120px]">
-                      {data.currentTeam!.invite_code}
-                    </p>
+            {actions.can('view_invite_code') && (
+              <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={actions.handleCopyInviteCode}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Code d'invitation</p>
+                      <p className="text-lg font-mono font-bold truncate max-w-[120px]">
+                        {data.currentTeam!.invite_code}
+                      </p>
+                    </div>
+                    {data.copiedCode ? <Check className="w-6 h-6 text-primary" /> : <Copy className="w-6 h-6 text-muted-foreground/50" />}
                   </div>
-                  {data.copiedCode ? <Check className="w-6 h-6 text-primary" /> : <Copy className="w-6 h-6 text-muted-foreground/50" />}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">Cliquez pour copier</p>
-              </CardContent>
-            </Card>
+                  <p className="text-xs text-muted-foreground mt-2">Cliquez pour copier</p>
+                </CardContent>
+              </Card>
+            )}
             {data.stats.overdueTasks > 0 && (
               <Card>
                 <CardContent className="pt-6">
@@ -542,13 +548,20 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
           </Collapsible>
         )}
 
-        {/* Label Management */}
-        {!state.isEmpty && (
+        {!state.isEmpty && actions.can('manage_labels') && (
           <LabelManagement
             labels={data.labels}
             onCreate={actions.createLabel}
             onUpdate={actions.updateLabel}
             onDelete={actions.deleteLabel}
+          />
+        )}
+
+        {/* Permissions Panel (owner/admin only) */}
+        {!state.isEmpty && (state.myRole === 'owner' || state.myRole === 'admin') && (
+          <TeamPermissionsPanel
+            config={data.permissionsConfig}
+            onUpdate={actions.updatePermissionsConfig}
           />
         )}
 
@@ -580,40 +593,42 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                   {data.teamMembers.length} membre{data.teamMembers.length > 1 ? 's' : ''}
                 </CardDescription>
               </div>
-              <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Mail className="w-4 h-4" />
-                    Inviter par email
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-background">
-                  <DialogHeader>
-                    <DialogTitle>Inviter un membre</DialogTitle>
-                    <DialogDescription>
-                      Entrez l'adresse email d'un utilisateur inscrit pour l'inviter à rejoindre l'équipe.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="invite-email">Adresse email</Label>
-                      <Input
-                        id="invite-email"
-                        type="email"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                        placeholder="membre@email.com"
-                        className="mt-1.5"
-                        onKeyDown={(e) => e.key === 'Enter' && handleInviteByEmail()}
-                      />
-                    </div>
-                    <Button onClick={handleInviteByEmail} className="w-full gap-2" disabled={inviteLoading || !inviteEmail.trim()}>
-                      <Send className="w-4 h-4" />
-                      {inviteLoading ? 'Envoi...' : "Envoyer l'invitation"}
+              {actions.can('manage_members') && (
+                <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Mail className="w-4 h-4" />
+                      Inviter par email
                     </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent className="bg-background">
+                    <DialogHeader>
+                      <DialogTitle>Inviter un membre</DialogTitle>
+                      <DialogDescription>
+                        Entrez l'adresse email d'un utilisateur inscrit pour l'inviter à rejoindre l'équipe.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="invite-email">Adresse email</Label>
+                        <Input
+                          id="invite-email"
+                          type="email"
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                          placeholder="membre@email.com"
+                          className="mt-1.5"
+                          onKeyDown={(e) => e.key === 'Enter' && handleInviteByEmail()}
+                        />
+                      </div>
+                      <Button onClick={handleInviteByEmail} className="w-full gap-2" disabled={inviteLoading || !inviteEmail.trim()}>
+                        <Send className="w-4 h-4" />
+                        {inviteLoading ? 'Envoi...' : "Envoyer l'invitation"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -621,8 +636,8 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
               members={data.teamMembers}
               currentUserId={data.currentUserId}
               memberStats={data.memberStats}
-              onUpdateRole={actions.handleUpdateRole}
-              onRemove={actions.handleRemoveMember}
+              onUpdateRole={actions.can('manage_members') ? actions.handleUpdateRole : undefined}
+              onRemove={actions.can('manage_members') ? actions.handleRemoveMember : undefined}
             />
           </CardContent>
         </Card>

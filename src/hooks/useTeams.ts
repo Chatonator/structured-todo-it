@@ -12,6 +12,7 @@ export interface Team {
   created_at: string;
   updated_at: string;
   invite_code: string;
+  permissions_config?: Record<string, any>;
 }
 
 export interface TeamMember {
@@ -81,7 +82,7 @@ export const useTeams = () => {
 
       if (teamsError) throw teamsError;
 
-      setTeams(teamsData || []);
+      setTeams((teamsData || []).map(t => ({ ...t, permissions_config: (t.permissions_config as Record<string, any>) || {} })));
       logger.info('Teams loaded', { count: teamsData?.length });
     } catch (error) {
       logger.error('Error loading teams', { error });
