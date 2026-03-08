@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type TeamRole = 'owner' | 'admin' | 'member';
+type TeamRole = 'owner' | 'admin' | 'supervisor' | 'member' | 'guest';
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const validRoles: TeamRole[] = ['owner', 'admin', 'member'];
+      const validRoles: TeamRole[] = ['owner', 'admin', 'supervisor', 'member', 'guest'];
       if (!validRoles.includes(newRole)) {
         return new Response(
           JSON.stringify({ error: 'Invalid role. Must be owner, admin, or member.' }),

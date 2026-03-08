@@ -11,7 +11,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-import { Users, MoreVertical, Crown, Shield, CheckCircle2, ListTodo } from 'lucide-react';
+import { Users, MoreVertical, Crown, Shield, CheckCircle2, ListTodo, Eye, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TeamMember, TeamRole } from '@/hooks/useTeams';
 
@@ -27,12 +27,16 @@ export const getMemberInitials = (name?: string): string => {
 
 // ─── RoleBadge ───
 
+const ROLE_CONFIG: Record<TeamRole, { label: string; icon: React.ElementType; className: string }> = {
+  owner: { label: 'Propriétaire', icon: Crown, className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200' },
+  admin: { label: 'Admin', icon: Shield, className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' },
+  supervisor: { label: 'Superviseur', icon: UserCheck, className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200' },
+  member: { label: 'Membre', icon: Users, className: 'bg-muted text-muted-foreground' },
+  guest: { label: 'Invité', icon: Eye, className: 'bg-slate-100 text-slate-500 dark:bg-slate-800/30 dark:text-slate-400' },
+};
+
 export const RoleBadge = ({ role }: { role: TeamRole }) => {
-  const config = {
-    owner: { label: 'Propriétaire', icon: Crown, className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200' },
-    admin: { label: 'Admin', icon: Shield, className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' },
-    member: { label: 'Membre', icon: Users, className: 'bg-muted text-muted-foreground' },
-  }[role];
+  const config = ROLE_CONFIG[role];
   const Icon = config.icon;
   return (
     <Badge variant="outline" className={cn('gap-1 text-xs', config.className)}>
@@ -41,6 +45,14 @@ export const RoleBadge = ({ role }: { role: TeamRole }) => {
     </Badge>
   );
 };
+
+// ─── Role change options (non-owner roles) ───
+const ROLE_OPTIONS: { role: TeamRole; label: string }[] = [
+  { role: 'admin', label: 'Promouvoir admin' },
+  { role: 'supervisor', label: 'Promouvoir superviseur' },
+  { role: 'member', label: 'Définir comme membre' },
+  { role: 'guest', label: 'Définir comme invité' },
+];
 
 // ─── MemberRow ───
 
@@ -109,18 +121,15 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, isCurrentUser, mem
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {onUpdateRole && member.role !== 'admin' && (
-                  <DropdownMenuItem onClick={() => onUpdateRole(member.user_id, 'admin')}>
-                    <Shield className="w-4 h-4 mr-2" />
-                    Promouvoir admin
-                  </DropdownMenuItem>
-                )}
-                {onUpdateRole && member.role === 'admin' && (
-                  <DropdownMenuItem onClick={() => onUpdateRole(member.user_id, 'member')}>
-                    <Users className="w-4 h-4 mr-2" />
-                    Rétrograder en membre
-                  </DropdownMenuItem>
-                )}
+                {onUpdateRole && ROLE_OPTIONS.filter(o => o.role !== member.role).map((option) => {
+                  const Icon = ROLE_CONFIG[option.role].icon;
+                  return (
+                    <DropdownMenuItem key={option.role} onClick={() => onUpdateRole(member.user_id, option.role)}>
+                      <Icon className="w-4 h-4 mr-2" />
+                      {option.label}
+                    </DropdownMenuItem>
+                  );
+                })}
                 {onRemove && (
                   <>
                     <DropdownMenuSeparator />
