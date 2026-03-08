@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { isBefore, startOfDay } from 'date-fns';
+import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamProjects } from '@/hooks/useTeamProjects';
+import { useTeamActivity } from '@/hooks/useTeamActivity';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
