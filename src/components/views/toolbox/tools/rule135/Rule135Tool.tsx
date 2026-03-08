@@ -153,7 +153,7 @@ const SlotSection: React.FC<SlotSectionProps> = ({
       </CardHeader>
       <CardContent className="p-4 space-y-3">
         {tasks.map(task => (
-          <TaskItem
+          <SlotTaskItem
             key={task.id}
             task={task}
             slot={slot}
