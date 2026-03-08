@@ -61,6 +61,7 @@ export interface SidebarData {
   // Équipe
   teamTasks: any[];
   onToggleTeamTask: (taskId: string) => void;
+  currentUserId?: string;
 }
 
 const SidebarContext = createContext<SidebarData | undefined>(undefined);
