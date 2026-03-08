@@ -33,7 +33,7 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
   const [name, setName] = useState('');
   const [context, setContext] = useState<TaskContext>(contextFilter !== 'all' ? contextFilter as TaskContext : 'Perso');
   const [category, setCategory] = useState<TaskCategory>('Autres');
-  const [estimatedTime, setEstimatedTime] = useState<string>('30');
+  const [estimatedTime, setEstimatedTime] = useState<number>(30);
 
   // Sync context when filter changes
   React.useEffect(() => {
