@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from '@/types/task';
 import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
 import { TaskDraft, isTaskDraftValid } from '@/utils/taskValidationByType';
