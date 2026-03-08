@@ -26,6 +26,9 @@ export const useRecurringViewData = (tasks: Task[]) => {
   // Charger les données de récurrence au montage
   useEffect(() => {
     const initRecurringTasks = async () => {
+      // Repair old unsynced tasks (runs once per user)
+      await repairUnsyncedTasks();
+      
       const reactivatedCount = await processRecurringTasks();
       if (reactivatedCount > 0) {
         console.log(`${reactivatedCount} tâche(s) récurrente(s) réactivée(s)`);
