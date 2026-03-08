@@ -593,40 +593,42 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                   {data.teamMembers.length} membre{data.teamMembers.length > 1 ? 's' : ''}
                 </CardDescription>
               </div>
-              <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Mail className="w-4 h-4" />
-                    Inviter par email
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-background">
-                  <DialogHeader>
-                    <DialogTitle>Inviter un membre</DialogTitle>
-                    <DialogDescription>
-                      Entrez l'adresse email d'un utilisateur inscrit pour l'inviter à rejoindre l'équipe.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="invite-email">Adresse email</Label>
-                      <Input
-                        id="invite-email"
-                        type="email"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                        placeholder="membre@email.com"
-                        className="mt-1.5"
-                        onKeyDown={(e) => e.key === 'Enter' && handleInviteByEmail()}
-                      />
-                    </div>
-                    <Button onClick={handleInviteByEmail} className="w-full gap-2" disabled={inviteLoading || !inviteEmail.trim()}>
-                      <Send className="w-4 h-4" />
-                      {inviteLoading ? 'Envoi...' : "Envoyer l'invitation"}
+              {actions.can('manage_members') && (
+                <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Mail className="w-4 h-4" />
+                      Inviter par email
                     </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent className="bg-background">
+                    <DialogHeader>
+                      <DialogTitle>Inviter un membre</DialogTitle>
+                      <DialogDescription>
+                        Entrez l'adresse email d'un utilisateur inscrit pour l'inviter à rejoindre l'équipe.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="invite-email">Adresse email</Label>
+                        <Input
+                          id="invite-email"
+                          type="email"
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                          placeholder="membre@email.com"
+                          className="mt-1.5"
+                          onKeyDown={(e) => e.key === 'Enter' && handleInviteByEmail()}
+                        />
+                      </div>
+                      <Button onClick={handleInviteByEmail} className="w-full gap-2" disabled={inviteLoading || !inviteEmail.trim()}>
+                        <Send className="w-4 h-4" />
+                        {inviteLoading ? 'Envoi...' : "Envoyer l'invitation"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           </CardHeader>
           <CardContent>
