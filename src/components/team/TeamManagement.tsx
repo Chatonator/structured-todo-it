@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Users, UserPlus, LogOut, Copy, Trash2, Crown, Shield, User, ArrowLeft, Mail } from 'lucide-react';
+import { Users, UserPlus, LogOut, Copy, Trash2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { TeamMembersList } from '@/components/team/TeamMembersList';
 import type { TeamRole } from '@/hooks/useTeams';
 
 export function TeamManagement() {
