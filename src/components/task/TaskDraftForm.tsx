@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from '@/types/task';
 import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
 import { TaskDraft, isTaskDraftValid } from '@/utils/taskValidationByType';
-import { CONTEXT_CONFIG } from '@/types/item';
+import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
 import {
   PrioritySelector,
   SchedulingSection,
