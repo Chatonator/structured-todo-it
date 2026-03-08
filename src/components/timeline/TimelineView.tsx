@@ -5,6 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useTimeHub } from '@/hooks/useTimeHub';
+import { useTasks } from '@/hooks/useTasks';
 import { format, startOfDay, endOfDay, addDays, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,17 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle
 import { cn } from '@/lib/utils';
 import { TimeOccurrence } from '@/lib/time/types';
 import { ViewLayout } from '@/components/layout/view';
+import { TaskCategory } from '@/types/task';
+
+const getCategoryBorderClass = (category?: TaskCategory): string => {
+  switch (category) {
+    case 'Obligation': return 'border-l-category-obligation';
+    case 'Quotidien': return 'border-l-category-quotidien';
+    case 'Envie': return 'border-l-category-envie';
+    case 'Autres': return 'border-l-category-autres';
+    default: return 'border-l-primary';
+  }
+};
 
 const TimelineView: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -35,6 +47,14 @@ const TimelineView: React.FC = () => {
   }, [selectedDate, viewMode]);
 
   const { occurrences, events, loading, completeEvent, totalBusyTime, totalFreeTime } = useTimeHub(dateRange);
+  const { tasks } = useTasks();
+
+  // Map task ID → category for color matching with sidebar
+  const taskCategoryMap = useMemo(() => {
+    const map = new Map<string, TaskCategory>();
+    tasks.forEach(t => map.set(t.id, t.category));
+    return map;
+  }, [tasks]);
 
   // Grouper les occurrences par jour
   const occurrencesByDay = useMemo(() => {
@@ -93,13 +113,18 @@ const TimelineView: React.FC = () => {
 
     const isCompleted = occurrence.status === 'completed';
     const duration = Math.round((occurrence.endsAt.getTime() - occurrence.startsAt.getTime()) / 60000);
+    
+    // Use task category color (same as sidebar) for task events
+    const borderClass = event.entityType === 'task' 
+      ? getCategoryBorderClass(taskCategoryMap.get(event.entityId))
+      : event.color ? `border-l-[${event.color}]` : 'border-l-primary';
 
     return (
       <Card
         key={occurrence.id}
         className={cn(
           "p-4 mb-2 border-l-4 hover:shadow-md transition-all cursor-pointer",
-          event.color || "border-l-primary"
+          borderClass
         )}
       >
         <div className="flex items-start justify-between gap-4">
