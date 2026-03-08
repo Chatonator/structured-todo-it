@@ -28,6 +28,7 @@ interface HabitModalProps {
   habit?: Habit | null;
   availableHabits?: Habit[]; // Pour sélectionner l'habitude prérequise
   isProgressionDeck?: boolean; // Si le deck est en mode progression
+  defaultContext?: 'Pro' | 'Perso';
 }
 
 const EMOJI_OPTIONS = ['💪', '🏃', '📚', '🧘', '💧', '🥗', '😴', '🎯', '✍️', '🎨', '🎵', '🧠', '🚀', '💼', '🏋️', '🧹'];
