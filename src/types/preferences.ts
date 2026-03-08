@@ -130,4 +130,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
 
   // Timeline
   timelineDefaultQuota: 240,
+
+  // Filtres contextuels
+  showProContext: true,
+  allFilterIncludeTeams: true,
+  allFilterTeamIds: [],
 };
