@@ -34,6 +34,7 @@ interface ProjectModalProps {
   project?: Project | UnifiedProject | null;
   initialName?: string;
   teamId?: string;
+  defaultContext?: TaskContext;
 }
 
 export const ProjectModal = ({ open, onClose, onSave, project, initialName, teamId }: ProjectModalProps) => {
