@@ -26,18 +26,7 @@ interface TaskTableRowProps {
   onRestore: (taskId: string) => void;
 }
 
-const getCategoryBadgeClass = (category: string): string => {
-  switch (category) {
-    case 'Obligation':
-      return 'bg-category-obligation/10 text-category-obligation border-category-obligation/30';
-    case 'Quotidien':
-      return 'bg-category-quotidien/10 text-category-quotidien border-category-quotidien/30';
-    case 'Envie':
-      return 'bg-category-envie/10 text-category-envie border-category-envie/30';
-    default:
-      return 'bg-category-autres/10 text-category-autres border-category-autres/30';
-  }
-};
+// Use centralized getCategoryClasses from lib/styling
 
 export const TaskTableRow: React.FC<TaskTableRowProps> = ({
   task,
