@@ -1,57 +1,94 @@
 
 
-# Labels/Tags + Commentaires sur les tâches d'équipe
+# Systeme de changelog / "Quoi de neuf" via les notifications
 
-## 1. Labels/Tags personnalisés
+## Concept
 
-### Base de données
-Nouvelle table `team_labels` :
-- `id` uuid PK
-- `team_id` uuid FK → teams
-- `name` text (ex: "frontend", "urgent-client")
-- `color` text (couleur hex, défaut "#6366f1")
-- `created_by` uuid
-- `created_at` timestamptz
+Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
 
-Table de jonction `team_task_labels` :
-- `id` uuid PK
-- `task_id` uuid FK → team_tasks
-- `label_id` uuid FK → team_labels
+## Architecture
 
-RLS via `is_team_member` pour les deux tables.
+```text
+app_updates (table Supabase)        useNotifications (hook existant)
+┌──────────────────────┐            ┌──────────────────────┐
+│ id, version, title,  │──inject──▶│ notifications[] avec  │
+│ message, created_at  │           │ type "update" + ✨     │
+└──────────────────────┘           └──────────────────────┘
+        ▲                                    │
+        │ INSERT (admin only)                ▼
+     Edge function               NotificationPanel (existant)
+     ou insertion SQL             affiche deja le type "update"
+```
 
-### Code
-- **`useTeamLabels.ts`** : Hook pour CRUD labels + association task↔label. Charge les labels de l'équipe et les associations.
-- **`TeamTaskCard.tsx`** : Afficher les labels sous forme de petits badges colorés inline après le nom. Dans le menu contextuel, sous-menu "Labels" avec checkboxes pour ajouter/retirer.
-- **`TeamTasksView.tsx`** : Section de gestion des labels dans les paramètres d'équipe (créer, renommer, supprimer, changer couleur).
+## Modifications
 
-## 2. Commentaires sur les tâches
+### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
 
-### Base de données
-Nouvelle table `team_task_comments` :
-- `id` uuid PK
-- `task_id` uuid FK → team_tasks
-- `user_id` uuid
-- `content` text
-- `created_at` timestamptz
+- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
+- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
 
-RLS : lecture/écriture pour les membres de l'équipe (via `is_watcher_team_member` ou similaire pour vérifier que le user est membre de l'équipe de la tâche).
+### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
 
-### Code
-- **`useTeamComments.ts`** : Hook pour charger/ajouter des commentaires sur une tâche. Realtime subscription pour mise à jour instantanée.
-- **`TeamTaskCard.tsx`** : Petit compteur de commentaires (icône bulle + nombre) cliquable pour ouvrir un panneau/dialog.
-- **`TeamCommentThread.tsx`** : Nouveau composant — liste des commentaires + input pour en ajouter. Affiche avatar, nom, date, contenu. Dialog ou collapsible sous la carte.
-- Notification à l'équipe quand un commentaire est ajouté (via `send_team_notification`).
+- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
+- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
+- Marque ensuite l'update comme vue dans `user_seen_updates`.
+- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
 
-## Résumé des fichiers
+### 3. `NotificationPanel.tsx` — Deja pret
 
-| Étape | Fichier |
-|-------|---------|
-| 1 | Migration SQL : tables labels, task_labels, comments + RLS |
-| 2 | `useTeamLabels.ts` : CRUD labels + associations |
-| 3 | `useTeamComments.ts` : CRUD commentaires + realtime |
-| 4 | `TeamCommentThread.tsx` : UI fil de commentaires |
-| 5 | `TeamTaskCard.tsx` : badges labels + compteur commentaires + menu labels |
-| 6 | `TeamTasksView.tsx` : gestion des labels d'équipe |
-| 7 | `useTeamViewData.ts` : intégrer les nouveaux hooks |
+Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+
+### 4. Outil d'insertion pour l'admin
+
+Deux options possibles :
+- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
+- **Option B** : Inserer directement via Supabase Dashboard.
+
+Je recommande l'**Option A** pour rester autonome.
+
+## Details techniques
+
+### Migration SQL
+```sql
+CREATE TABLE public.app_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  version text,
+  title text NOT NULL,
+  message text,
+  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.user_seen_updates (
+  user_id uuid NOT NULL,
+  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, update_id)
+);
+```
+
+### Hook useAppUpdates
+```typescript
+// 1. Fetch unseen updates
+const { data: unseenUpdates } = await supabase
+  .from('app_updates')
+  .select('*')
+  .not('id', 'in', seenUpdateIds);
+
+// 2. For each unseen: insert notification + mark seen
+for (const update of unseenUpdates) {
+  await supabase.from('notifications').insert({
+    user_id, type: 'update',
+    title: `✨ ${update.title}`,
+    message: update.message,
+    metadata: { updateId: update.id, version: update.version }
+  });
+  await supabase.from('user_seen_updates').insert({
+    user_id, update_id: update.id
+  });
+}
+```
+
+### Admin UI (dans /admin/bugs)
+Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
 

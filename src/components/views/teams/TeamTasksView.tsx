@@ -23,7 +23,8 @@ import { Label } from '@/components/ui/label';
 import {
   Users, Plus, FolderKanban, ListTodo,
   ArrowRight, Copy, Check, Mail, Send, LogIn,
-  ChevronDown, LogOut, Sparkles, Rocket, UserCircle, AlertTriangle
+  ChevronDown, LogOut, Sparkles, Rocket, UserCircle, AlertTriangle,
+  Tag, Trash2, Pencil
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { useTeamContext } from '@/contexts/TeamContext';
@@ -32,6 +33,8 @@ import { PendingInvitationsCard } from '@/components/team/PendingInvitationsCard
 import { TeamTaskCard } from './TeamTaskCard';
 import { TeamActivityFeed } from './TeamActivityFeed';
 import { TeamWorkloadCard } from './TeamWorkloadCard';
+import { TeamCommentThread } from './TeamCommentThread';
+import type { TeamTask } from '@/hooks/useTeamTasks';
 
 interface TeamTasksViewProps {
   className?: string;
@@ -182,6 +185,89 @@ const EmptyOnboarding: React.FC<{ onCreateTask: () => void; onGoToProjects: () =
   </Card>
 );
 
+// ─── Label management section ───
+const LabelManagement: React.FC<{
+  labels: { id: string; name: string; color: string }[];
+  onCreate: (name: string, color: string) => void;
+  onUpdate: (id: string, updates: { name?: string; color?: string }) => void;
+  onDelete: (id: string) => void;
+}> = ({ labels, onCreate, onUpdate, onDelete }) => {
+  const [newName, setNewName] = useState('');
+  const [newColor, setNewColor] = useState('#6366f1');
+
+  const handleCreate = () => {
+    if (!newName.trim()) return;
+    onCreate(newName.trim(), newColor);
+    setNewName('');
+    setNewColor('#6366f1');
+  };
+
+  return (
+    <Collapsible>
+      <Card>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-3">
+              <Tag className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <CardTitle className="text-lg">Labels d'équipe</CardTitle>
+                <CardDescription>{labels.length} label{labels.length > 1 ? 's' : ''}</CardDescription>
+              </div>
+              <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto transition-transform [[data-state=open]_&]:rotate-180" />
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="space-y-3">
+            {/* Create new label */}
+            <div className="flex gap-2 items-center">
+              <Input
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                placeholder="Nouveau label…"
+                className="text-sm h-8 flex-1"
+                onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              />
+              <input
+                type="color"
+                value={newColor}
+                onChange={e => setNewColor(e.target.value)}
+                className="w-8 h-8 rounded border border-border cursor-pointer"
+              />
+              <Button size="sm" className="h-8" onClick={handleCreate} disabled={!newName.trim()}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Existing labels */}
+            {labels.map(label => (
+              <div key={label.id} className="flex items-center gap-2 group">
+                <span
+                  className="w-4 h-4 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: label.color }}
+                />
+                <span className="text-sm flex-1">{label.name}</span>
+                <input
+                  type="color"
+                  value={label.color}
+                  onChange={e => onUpdate(label.id, { color: e.target.value })}
+                  className="w-6 h-6 rounded border border-border cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                />
+                <button
+                  onClick={() => onDelete(label.id)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </button>
+              </div>
+            ))}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+};
+
 // ─── Main view ───
 const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
   const { data, state, actions } = useTeamViewData();
@@ -194,6 +280,9 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
   const [joinCode, setJoinCode] = useState('');
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
+
+  // Comment thread state
+  const [commentTask, setCommentTask] = useState<TeamTask | null>(null);
 
   const handleInviteByEmail = async () => {
     if (!inviteEmail.trim() || !data.currentTeam) return;
@@ -220,9 +309,32 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
     );
   }
 
+  const renderTaskCard = (task: TeamTask) => (
+    <TeamTaskCard
+      key={task.id}
+      task={task}
+      members={data.teamMembers}
+      currentUserId={data.currentUserId}
+      onToggleComplete={actions.handleToggleComplete}
+      onAssign={actions.handleAssignTask}
+      onAssignToMe={actions.handleAssignToMe}
+      onRequestHelp={actions.handleRequestHelp}
+      onEncourage={actions.handleEncourage}
+      onBlockTask={actions.handleBlockTask}
+      onUnblockTask={actions.handleUnblockTask}
+      onToggleWatch={actions.handleToggleWatch}
+      watchedByMe={actions.isWatching(task.id)}
+      taskLabels={actions.getTaskLabels(task.id)}
+      allLabels={data.labels}
+      onToggleLabel={actions.toggleTaskLabel}
+      hasLabel={actions.hasTaskLabel}
+      commentCount={actions.getCommentCount(task.id)}
+      onOpenComments={(t) => setCommentTask(t)}
+    />
+  );
+
   const headerActions = (
     <div className="flex items-center gap-2">
-      {/* Team switcher dropdown */}
       {data.teams.length > 1 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -265,12 +377,11 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
           <PendingInvitationsCard invitations={pendingInvitations} onRespond={respondToInvitation} />
         )}
 
-        {/* Empty onboarding state */}
         {state.isEmpty && !state.isLoading && (
           <EmptyOnboarding onCreateTask={actions.handleCreateTask} onGoToProjects={actions.handleGoToProjects} />
         )}
 
-        {/* Stats Overview — only when there's data */}
+        {/* Stats Overview */}
         {!state.isEmpty && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <Card>
@@ -364,6 +475,8 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
             />
           </div>
         )}
+
+        {/* Tasks */}
         {!state.isEmpty && data.filteredTasks.total > 0 && (
           <Collapsible>
             <Card>
@@ -405,81 +518,38 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent className="space-y-4">
-                  {/* My tasks */}
                   {data.filteredTasks.myTasks.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mes tâches</p>
-                      {data.filteredTasks.myTasks.map(task => (
-                         <TeamTaskCard
-                          key={task.id}
-                          task={task}
-                          members={data.teamMembers}
-                          currentUserId={data.currentUserId}
-                          onToggleComplete={actions.handleToggleComplete}
-                          onAssign={actions.handleAssignTask}
-                          onAssignToMe={actions.handleAssignToMe}
-                          onRequestHelp={actions.handleRequestHelp}
-                          onEncourage={actions.handleEncourage}
-                          onBlockTask={actions.handleBlockTask}
-                          onUnblockTask={actions.handleUnblockTask}
-                          onToggleWatch={actions.handleToggleWatch}
-                          watchedByMe={actions.isWatching(task.id)}
-                        />
-                      ))}
+                      {data.filteredTasks.myTasks.map(renderTaskCard)}
                     </div>
                   )}
-
-                  {/* Unassigned */}
                   {data.filteredTasks.unassigned.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Non assignées</p>
-                      {data.filteredTasks.unassigned.map(task => (
-                        <TeamTaskCard
-                          key={task.id}
-                          task={task}
-                          members={data.teamMembers}
-                          currentUserId={data.currentUserId}
-                          onToggleComplete={actions.handleToggleComplete}
-                          onAssign={actions.handleAssignTask}
-                          onAssignToMe={actions.handleAssignToMe}
-                          onRequestHelp={actions.handleRequestHelp}
-                          onEncourage={actions.handleEncourage}
-                          onBlockTask={actions.handleBlockTask}
-                          onUnblockTask={actions.handleUnblockTask}
-                          onToggleWatch={actions.handleToggleWatch}
-                          watchedByMe={actions.isWatching(task.id)}
-                        />
-                      ))}
+                      {data.filteredTasks.unassigned.map(renderTaskCard)}
                     </div>
                   )}
-
-                  {/* Other members */}
                   {data.filteredTasks.otherTasks.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Autres membres</p>
-                      {data.filteredTasks.otherTasks.map(task => (
-                        <TeamTaskCard
-                          key={task.id}
-                          task={task}
-                          members={data.teamMembers}
-                          currentUserId={data.currentUserId}
-                          onToggleComplete={actions.handleToggleComplete}
-                          onAssign={actions.handleAssignTask}
-                          onAssignToMe={actions.handleAssignToMe}
-                          onRequestHelp={actions.handleRequestHelp}
-                          onEncourage={actions.handleEncourage}
-                          onBlockTask={actions.handleBlockTask}
-                          onUnblockTask={actions.handleUnblockTask}
-                          onToggleWatch={actions.handleToggleWatch}
-                          watchedByMe={actions.isWatching(task.id)}
-                        />
-                      ))}
+                      {data.filteredTasks.otherTasks.map(renderTaskCard)}
                     </div>
                   )}
                 </CardContent>
               </CollapsibleContent>
             </Card>
           </Collapsible>
+        )}
+
+        {/* Label Management */}
+        {!state.isEmpty && (
+          <LabelManagement
+            labels={data.labels}
+            onCreate={actions.createLabel}
+            onUpdate={actions.updateLabel}
+            onDelete={actions.deleteLabel}
+          />
         )}
 
         {/* Quick Actions */}
@@ -557,9 +627,8 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
           </CardContent>
         </Card>
 
-        {/* Footer actions: Create/Join another team + Leave */}
+        {/* Footer actions */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
-          {/* Create/Join another team */}
           <Dialog open={isCreateJoinOpen} onOpenChange={setIsCreateJoinOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
@@ -645,7 +714,6 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
             </DialogContent>
           </Dialog>
 
-          {/* Leave team with confirmation */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
@@ -673,6 +741,23 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
           </AlertDialog>
         </div>
       </div>
+
+      {/* Comment Thread Dialog */}
+      {commentTask && (
+        <TeamCommentThread
+          open={!!commentTask}
+          onOpenChange={(open) => { if (!open) setCommentTask(null); }}
+          taskId={commentTask.id}
+          taskName={commentTask.name}
+          comments={data.comments}
+          loading={state.commentsLoading}
+          members={data.teamMembers}
+          currentUserId={data.currentUserId}
+          onLoadComments={actions.loadTaskComments}
+          onAddComment={actions.handleAddComment}
+          onDeleteComment={actions.deleteComment}
+        />
+      )}
     </ViewLayout>
   );
 };
