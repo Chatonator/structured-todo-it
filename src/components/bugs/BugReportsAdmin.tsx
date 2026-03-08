@@ -699,7 +699,7 @@ const BugReportsAdmin: React.FC = () => {
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+          <Button variant="outline" size="icon" onClick={() => navigate('/')} className="border-border hover:bg-accent">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
