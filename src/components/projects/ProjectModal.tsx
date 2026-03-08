@@ -12,7 +12,7 @@ import { PROJECT_ICONS, PROJECT_STATUS_CONFIG } from '@/types/project';
 import { UnifiedProject } from '@/types/teamProject';
 import { Project } from '@/types/project';
 import { TaskContext, TaskCategory } from '@/types/task';
-import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
+import { eisenhowerFromCategory } from '@/types/item';
 import { EisenhowerSelector } from '@/components/common/EisenhowerSelector';
 import { ContextPillSelector } from '@/components/common/ContextPillSelector';
 import { EmojiGrid } from '@/components/common/EmojiGrid';
