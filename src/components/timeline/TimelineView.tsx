@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TimeOccurrence } from '@/lib/time/types';
+import { isSameDay as isSameDayFn } from 'date-fns';
 import { ViewLayout } from '@/components/layout/view';
 
 const TimelineView: React.FC = () => {
