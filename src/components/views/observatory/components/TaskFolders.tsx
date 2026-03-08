@@ -276,7 +276,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
             ) : (
               // Render tasks directly
               group.tasks.map(task => (
-                <TaskRow
+                <ObservatoryTaskRow
                   key={task.id}
                   task={task}
                   onComplete={onComplete}
