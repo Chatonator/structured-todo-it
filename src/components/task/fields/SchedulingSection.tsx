@@ -102,6 +102,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
             mode="single"
             selected={scheduledDate}
             onSelect={onDateChange}
+            disabled={(date) => date < startOfDay(new Date())}
             initialFocus
             className="pointer-events-auto"
           />
