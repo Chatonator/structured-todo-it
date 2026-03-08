@@ -16,9 +16,7 @@ const UnifiedContextSelector: React.FC<UnifiedContextSelectorProps> = ({
   const { teams, currentTeam, setCurrentTeam } = useTeamContext();
 
   const handleContextClick = (context: TaskContext | 'all') => {
-    if (context !== 'all') {
-      setCurrentTeam(null);
-    }
+    setCurrentTeam(null);
     onContextFilterChange(context);
   };
 
@@ -35,7 +33,6 @@ const UnifiedContextSelector: React.FC<UnifiedContextSelectorProps> = ({
       const teamId = value.replace('team-', '');
       return currentTeam?.id === teamId;
     }
-    if (value === 'all') return contextFilter === 'all';
     return !currentTeam && contextFilter === value;
   };
 
