@@ -102,36 +102,12 @@ const TaskDraftForm: React.FC<TaskDraftFormProps> = ({
         <PrioritySelector value={draft.subCategory} onChange={(v) => onUpdate(index, 'subCategory', v)} label="Priorité" />
       ) : null}
 
-      {/* ─── Time estimate chips ─── */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-          <Timer className="w-3.5 h-3.5" />
-          Durée estimée
-        </Label>
-        <div className="flex gap-1.5 flex-wrap">
-          {TIME_CHIPS.map((chip) => {
-            const isSelected = Number(draft.estimatedTime) === chip.value;
-            return (
-              <button
-                key={chip.value}
-                type="button"
-                onClick={() => onUpdate(index, 'estimatedTime', chip.value)}
-                className={cn(
-                  'px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
-                  isSelected
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'
-                )}
-              >
-                {chip.label}
-              </button>
-            );
-          })}
-        </div>
-        {!draft.estimatedTime && (
-          <p className="text-[10px] text-destructive">Requis</p>
-        )}
-      </div>
+      {/* ─── Duration picker ─── */}
+      <DurationPicker
+        value={draft.estimatedTime}
+        onChange={(v) => onUpdate(index, 'estimatedTime', v)}
+        hasError={!draft.estimatedTime}
+      />
 
       {/* ─── Assignment (teams) ─── */}
       {config.showAssignment && teamMembers && teamMembers.length > 0 && (
