@@ -27,6 +27,7 @@ export const useTeamViewData = () => {
   const { labels, createLabel, updateLabel, deleteLabel, toggleTaskLabel, getTaskLabels, hasTaskLabel } = useTeamLabels(currentTeam?.id ?? null);
   const { comments, loading: commentsLoading, loadTaskComments, addComment, deleteComment, getCommentCount } = useTeamComments(currentTeam?.id ?? null);
   const { toast } = useToast();
+  const { can, myRole, permissionsConfig, updatePermissionsConfig } = useTeamPermissions();
   const [copiedCode, setCopiedCode] = useState(false);
   const [memberFilter, setMemberFilter] = useState<string | null>(null);
 
