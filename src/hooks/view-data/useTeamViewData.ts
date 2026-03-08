@@ -4,6 +4,7 @@ import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamProjects } from '@/hooks/useTeamProjects';
 import { useTeamActivity } from '@/hooks/useTeamActivity';
+import { useTaskWatchers } from '@/hooks/useTaskWatchers';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
