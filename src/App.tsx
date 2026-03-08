@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import JoinTeam from "./pages/JoinTeam";
 import { TeamManagement } from "./components/team/TeamManagement";
 import BugReportsAdmin from "./components/bugs/BugReportsAdmin";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
