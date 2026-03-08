@@ -28,6 +28,16 @@ const toLocalDateString = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+// Détermine le créneau horaire à partir d'une heure HH:mm
+const getTimeBlockFromTime = (time: string): TimeBlock => {
+  const hour = Number.parseInt(time.split(':')[0], 10);
+
+  if (Number.isNaN(hour)) return 'morning';
+  if (hour >= 18) return 'evening';
+  if (hour >= 12) return 'afternoon';
+  return 'morning';
+};
+
 // Map task recurrence to TimeEvent recurrence
 const mapTaskRecurrence = (interval: string): RecurrenceConfig => {
   const frequencyMap: Record<string, RecurrenceFrequency> = {
