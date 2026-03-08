@@ -3,6 +3,7 @@ import { Task } from '@/types/task';
 import { useTasks } from '@/hooks/useTasks';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamContext } from '@/contexts/TeamContext';
+import { mapCamelToSnake } from '@/utils/teamTaskMapper';
 
 /**
  * Hook unifiant les tâches personnelles et d'équipe
