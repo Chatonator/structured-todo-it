@@ -1,94 +1,57 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+# Ajout de l'outil Pomodoro à la boîte à outils
 
 ## Concept
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+Un timer Pomodoro interactif : 25 min de travail, 5 min de pause courte, 15 min de pause longue après 4 cycles. L'utilisateur peut lier une tâche existante à sa session en cours.
 
-## Architecture
+## Fichiers à créer/modifier
+
+### 1. `src/components/views/toolbox/tools/pomodoro/usePomodoroTool.ts`
+Hook custom gérant :
+- Timer avec `setInterval` (countdown en secondes)
+- États : `idle | focus | shortBreak | longBreak`
+- Compteur de cycles (pause longue après 4 focus)
+- Actions : `start`, `pause`, `resume`, `skip`, `reset`
+- Sélection optionnelle d'une tâche depuis `useViewDataContext`
+- Persistance du compteur de sessions complétées dans `localStorage`
+
+### 2. `src/components/views/toolbox/tools/pomodoro/PomodoroTool.tsx`
+Composant principal :
+- Grand cercle de progression avec le temps restant (mm:ss)
+- Indicateur de phase (Focus / Pause courte / Pause longue)
+- Boutons Play/Pause, Skip, Reset
+- Sélecteur de tâche optionnel (Popover comme Rule135)
+- Compteur de sessions Pomodoro complétées aujourd'hui
+- Indicateur des 4 cycles (dots)
+
+### 3. `src/components/views/toolbox/tools/index.ts`
+Ajouter l'entrée Pomodoro au `toolRegistry` :
+- `id: 'pomodoro'`, `icon: Timer`, `category: 'focus'`, `isNew: true`
+- Métadonnées : description longue, avantages, origine (Francesco Cirillo), conseils
+
+## Design du timer
 
 ```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
+┌─────────────────────────────┐
+│  🍅 Pomodoro  ●●●○ (3/4)   │
+│                             │
+│      ┌───────────┐          │
+│      │  24:37    │  cercle  │
+│      │  FOCUS    │  progrès │
+│      └───────────┘          │
+│                             │
+│   [⏸ Pause]  [⏭ Skip]     │
+│                             │
+│  📋 Tâche liée : Rédiger...│
+│  🔥 4 sessions aujourd'hui  │
+└─────────────────────────────┘
 ```
 
-## Modifications
-
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
-
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
-
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
-
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
-
-### 3. `NotificationPanel.tsx` — Deja pret
-
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
-
-### 4. Outil d'insertion pour l'admin
-
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
-
-Je recommande l'**Option A** pour rester autonome.
-
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+## Durées par défaut
+- Focus : 25 min
+- Pause courte : 5 min  
+- Pause longue : 15 min
+- Pause longue après : 4 focus
 
