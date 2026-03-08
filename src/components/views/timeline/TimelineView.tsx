@@ -340,7 +340,13 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               
-              <Button variant="ghost" size="sm" onClick={handleToday} className="min-w-[180px]">
+              <Button 
+                variant={isViewingToday ? "ghost" : "default"} 
+                size="sm" 
+                onClick={handleToday} 
+                className={cn("min-w-[180px]", !isViewingToday && "animate-pulse")}
+              >
+                {!isViewingToday && <Home className="w-4 h-4 mr-1" />}
                 {format(selectedDate, viewMode === 'day' ? 'EEEE d MMMM' : "'Sem.' w - MMMM yyyy", { locale: fr })}
               </Button>
               
