@@ -13,6 +13,7 @@ import {
 import { EnrichedTask } from '@/hooks/view-data/useObservatoryViewData';
 import { CATEGORY_DISPLAY_NAMES, CONTEXT_CONFIG } from '@/types/task';
 import { formatDuration } from '@/lib/formatters';
+import { getCategoryClasses } from '@/lib/styling';
 import { cn } from '@/lib/utils';
 
 interface TaskTableRowProps {
