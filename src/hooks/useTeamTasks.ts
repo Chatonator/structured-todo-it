@@ -297,6 +297,8 @@ export const useTeamTasks = (teamId: string | null) => {
     deleteTask,
     toggleComplete,
     assignTask,
+    blockTask,
+    unblockTask,
     refreshTasks: loadTasks,
   };
 };

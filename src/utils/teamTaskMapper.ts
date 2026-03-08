@@ -20,6 +20,8 @@ export const mapDbRowToTeamTask = (row: Record<string, any>) => ({
   createdAt: new Date(row.created_at),
   project_id: row.project_id || null,
   projectStatus: row.project_status || undefined,
+  is_blocked: row.is_blocked ?? false,
+  blocked_reason: row.blocked_reason ?? null,
 });
 
 /** camelCase partial updates → snake_case DB columns */
