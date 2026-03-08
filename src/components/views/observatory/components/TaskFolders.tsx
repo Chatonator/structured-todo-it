@@ -62,7 +62,7 @@ interface ObservatoryTaskRowProps {
   onClick?: (task: EnrichedTask) => void;
 }
 
-const TaskRow: React.FC<TaskRowProps> = ({ 
+const ObservatoryTaskRow: React.FC<ObservatoryTaskRowProps> = ({ 
   task, 
   onComplete, 
   onDelete, 
