@@ -14,7 +14,9 @@ interface DurationPickerProps {
 const PRESETS = [
   { value: 15, label: '15m' },
   { value: 30, label: '30m' },
+  { value: 45, label: '45m' },
   { value: 60, label: '1h' },
+  { value: 90, label: '1h30' },
   { value: 120, label: '2h' },
 ];
 
