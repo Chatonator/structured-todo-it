@@ -1,94 +1,46 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+# Amélioration UI des TeamTaskCard
 
-## Concept
+## Probleme
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+Les cartes de taches d'equipe (`TeamTaskCard`) prennent trop de place et les boutons d'action (aide, encourager, assignation) ne sont pas intuitifs -- trop de boutons visibles en permanence.
 
-## Architecture
+## Solution
+
+Rendre les cartes plus compactes et regrouper les actions dans un menu contextuel, a l'image des `TaskItem` personnels.
+
+### Modifications
+
+**`src/components/views/teams/TeamTaskCard.tsx`** -- Refonte compacte :
+
+- Reduire le padding de `p-3` a `p-2`
+- Integrer l'avatar d'assignation inline a cote du nom (petit avatar 5x5 sans bouton), au lieu d'un bouton dropdown separe
+- Regrouper les actions (assigner, aide, encourager) dans un **unique DropdownMenu** via une icone `MoreHorizontal` qui apparait au hover uniquement (comme les taches perso)
+- Retirer les boutons Help et Heart visibles en permanence
+- Afficher la duree et la categorie sur la meme ligne que le nom quand l'espace le permet
+
+**Structure visuelle cible :**
 
 ```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
+┌─────────────────────────────────────────────────┐
+│ [✓] Nom de la tâche          [AB] 30m  [⋯]     │
+└─────────────────────────────────────────────────┘
 ```
 
-## Modifications
+- `[✓]` = checkbox
+- `[AB]` = petit avatar initiales de l'assigne (ou icone grise si non assigne)
+- `30m` = duree compacte
+- `[⋯]` = menu contextuel au hover avec : Assigner a..., Demander de l'aide, Encourager
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+### Details techniques
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+1. Remplacer le dropdown d'assignation + les boutons Help/Heart par un seul `DropdownMenu` avec `MoreHorizontal`
+2. Le menu contient : sous-menu assignation (liste membres), separateur, action aide (si ma tache), action encourager (si tache d'un autre)
+3. L'avatar d'assignation reste visible en lecture seule (indicateur, pas bouton)
+4. Le `[⋯]` n'apparait qu'au `group-hover`
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
-
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
-
-### 3. `NotificationPanel.tsx` — Deja pret
-
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
-
-### 4. Outil d'insertion pour l'admin
-
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
-
-Je recommande l'**Option A** pour rester autonome.
-
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+| Fichier | Action |
+|---------|--------|
+| `src/components/views/teams/TeamTaskCard.tsx` | Refonte compacte avec menu contextuel unifie |
 
