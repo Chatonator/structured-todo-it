@@ -41,7 +41,8 @@ import { DayPlanningView, WeekPlanningView } from '@/components/timeline/plannin
 import { useTimelineScheduling } from '@/hooks/useTimelineScheduling';
 import { useDayPlanning } from '@/hooks/useDayPlanning';
 import { useProjects } from '@/hooks/useProjects';
-import { Task } from '@/types/task';
+import { useTasks } from '@/hooks/useTasks';
+import { Task, TaskCategory } from '@/types/task';
 import { TimeEvent, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
 import { formatDuration } from '@/lib/formatters';
 import TaskModal from '@/components/task/TaskModal';
