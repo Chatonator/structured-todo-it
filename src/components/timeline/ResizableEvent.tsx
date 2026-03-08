@@ -93,6 +93,7 @@ export const ResizableEvent: React.FC<ResizableEventProps> = ({
     height: `${Math.max(isResizing ? resizeHeight : height, 24)}px`,
   };
 
+  const isCompleted = event.status === 'completed';
   const colorClass = event.priority 
     ? getPriorityEventClasses(event.priority)
     : 'bg-primary/20 border-l-primary';
