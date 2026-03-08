@@ -57,7 +57,7 @@ interface TaskItemProps {
   onRemove: (id: string, slot: TaskSlot) => void;
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove }) => {
+const SlotTaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove }) => {
   const config = SLOT_CONFIG[slot];
   
   return (
@@ -67,6 +67,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove }) =
       config.borderColor,
       task.isCompleted && "opacity-60"
     )}>
+      <div className={cn("w-1 self-stretch rounded-full shrink-0", getCategoryIndicatorColor(task.category))} />
       <Checkbox
         checked={task.isCompleted}
         onCheckedChange={() => onToggle(task.id)}
