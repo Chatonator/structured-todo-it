@@ -3,11 +3,15 @@ import { SettingsSection } from '../common/SettingsSection';
 import { SettingsToggle } from '../common/SettingsToggle';
 import { SettingsColorPicker } from '../common/SettingsColorPicker';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { useTeamContext } from '@/contexts/TeamContext';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react';
 
 export const InterfaceSettings: React.FC = () => {
   const { preferences, updatePreferences } = useUserPreferences();
+  const { teams } = useTeamContext();
 
   const moveCategoryUp = (index: number) => {
     if (index === 0) return;
@@ -31,8 +35,64 @@ export const InterfaceSettings: React.FC = () => {
     updatePreferences({ categoryOrder: newOrder });
   };
 
+  const toggleTeamInAllFilter = (teamId: string) => {
+    const current = preferences.allFilterTeamIds;
+    const updated = current.includes(teamId)
+      ? current.filter(id => id !== teamId)
+      : [...current, teamId];
+    updatePreferences({ allFilterTeamIds: updated });
+  };
+
   return (
     <div className="space-y-6">
+      <SettingsSection
+        title="Filtres contextuels"
+        description="Personnalisez les filtres de contexte visibles dans l'application"
+      >
+        <SettingsToggle
+          id="showProContext"
+          label="Afficher le contexte Pro"
+          description="Désactivez si vous utilisez l'app uniquement pour le perso"
+          checked={preferences.showProContext}
+          onCheckedChange={(checked) => updatePreferences({ showProContext: checked })}
+        />
+        <SettingsToggle
+          id="allFilterIncludeTeams"
+          label="Inclure les équipes dans « Toutes »"
+          description="Le filtre global « Toutes » affichera aussi les tâches d'équipe"
+          checked={preferences.allFilterIncludeTeams}
+          onCheckedChange={(checked) => updatePreferences({ allFilterIncludeTeams: checked })}
+        />
+        {preferences.allFilterIncludeTeams && teams.length > 0 && (
+          <div className="ml-4 space-y-2 pt-1">
+            <p className="text-sm text-muted-foreground">Équipes incluses dans « Toutes » :</p>
+            {teams.map((team) => {
+              const isIncluded = preferences.allFilterTeamIds.length === 0 || preferences.allFilterTeamIds.includes(team.id);
+              return (
+                <div key={team.id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`team-filter-${team.id}`}
+                    checked={isIncluded}
+                    onCheckedChange={() => {
+                      if (preferences.allFilterTeamIds.length === 0) {
+                        // Passer de "toutes" à "toutes sauf celle-ci"
+                        const allExceptThis = teams.filter(t => t.id !== team.id).map(t => t.id);
+                        updatePreferences({ allFilterTeamIds: allExceptThis });
+                      } else {
+                        toggleTeamInAllFilter(team.id);
+                      }
+                    }}
+                  />
+                  <Label htmlFor={`team-filter-${team.id}`} className="text-sm cursor-pointer">
+                    {team.name}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </SettingsSection>
+
       <SettingsSection
         title="Modules visibles"
         description="Choisissez quels modules afficher dans l'application"
