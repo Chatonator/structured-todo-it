@@ -32,12 +32,24 @@ interface PomodoroConfig {
   cyclesBeforeLong: number;
 }
 
-const DEFAULT_CONFIG: PomodoroConfig = {
-  focusMinutes: 25,
-  shortBreakMinutes: 5,
-  longBreakMinutes: 15,
-  cyclesBeforeLong: 4,
+export const PRESETS: Record<string, PomodoroConfig & { label: string; description: string }> = {
+  classic: { label: 'Classique', description: '25 / 5 / 15 min', focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15, cyclesBeforeLong: 4 },
+  sprint: { label: 'Sprint', description: '15 / 3 / 10 min', focusMinutes: 15, shortBreakMinutes: 3, longBreakMinutes: 10, cyclesBeforeLong: 4 },
 };
+
+const CONFIG_KEY = 'pomodoro_config';
+
+function loadConfig(): PomodoroConfig {
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return PRESETS.classic;
+}
+
+function saveConfig(c: PomodoroConfig) {
+  try { localStorage.setItem(CONFIG_KEY, JSON.stringify(c)); } catch {}
+}
 
 const SESSIONS_KEY = 'pomodoro_sessions_today';
 const SESSIONS_DATE_KEY = 'pomodoro_sessions_date';
@@ -69,14 +81,20 @@ function phaseDuration(phase: PomodoroPhase, config: PomodoroConfig): number {
   }
 }
 
-export function usePomodoroTool(config: PomodoroConfig = DEFAULT_CONFIG) {
+export function usePomodoroTool() {
+  const [config, setConfigState] = useState<PomodoroConfig>(loadConfig);
   const [phase, setPhase] = useState<PomodoroPhase>('idle');
   const [status, setStatus] = useState<PomodoroStatus>('idle');
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(0);
-  const [cycleIndex, setCycleIndex] = useState(0); // 0-based focus count in current round
+  const [cycleIndex, setCycleIndex] = useState(0);
   const [sessionsToday, setSessionsToday] = useState(getTodaySessions);
   const [linkedTaskId, setLinkedTaskId] = useState<string | null>(null);
+
+  const setConfig = useCallback((c: PomodoroConfig) => {
+    setConfigState(c);
+    saveConfig(c);
+  }, []);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -185,6 +203,8 @@ export function usePomodoroTool(config: PomodoroConfig = DEFAULT_CONFIG) {
     sessionsToday,
     linkedTaskId,
     setLinkedTaskId,
+    config,
+    setConfig,
     start,
     pause,
     resume,

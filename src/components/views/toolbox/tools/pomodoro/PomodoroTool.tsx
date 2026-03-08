@@ -1,9 +1,10 @@
-import React from 'react';
-import { Play, Pause, SkipForward, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, Pause, SkipForward, RotateCcw, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { ToolProps } from '../types';
-import { usePomodoroTool, PomodoroPhase } from './usePomodoroTool';
+import { usePomodoroTool, PomodoroPhase, PRESETS } from './usePomodoroTool';
 import { TaskLinker } from '../../shared/TaskLinker';
 import { useTaskLinker } from '../../shared/useTaskLinker';
 
@@ -27,19 +28,28 @@ function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
+function getActivePreset(config: { focusMinutes: number; shortBreakMinutes: number; longBreakMinutes: number; cyclesBeforeLong: number }): string | null {
+  for (const [key, preset] of Object.entries(PRESETS)) {
+    if (preset.focusMinutes === config.focusMinutes && preset.shortBreakMinutes === config.shortBreakMinutes && preset.longBreakMinutes === config.longBreakMinutes && preset.cyclesBeforeLong === config.cyclesBeforeLong) return key;
+  }
+  return null;
+}
+
 const PomodoroTool: React.FC<ToolProps> = () => {
   const pomo = usePomodoroTool();
   const linker = useTaskLinker({ mode: 'single', storageKey: 'pomodoro' });
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Sync linked task id to pomodoro hook
   React.useEffect(() => {
     pomo.setLinkedTaskId(linker.selectedIds[0] ?? null);
   }, [linker.selectedIds]);
 
-  // SVG circle constants
+  const activePreset = getActivePreset(pomo.config);
+
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (pomo.progress / 100) * circumference;
+  const idleDisplay = `${pomo.config.focusMinutes.toString().padStart(2, '0')}:00`;
 
   return (
     <div className="flex flex-col items-center gap-6 max-w-md mx-auto py-4">
@@ -79,7 +89,7 @@ const PomodoroTool: React.FC<ToolProps> = () => {
         </svg>
         <div className="flex flex-col items-center z-10">
           <span className="text-4xl font-mono font-bold text-foreground tabular-nums">
-            {pomo.phase === 'idle' ? '25:00' : formatTime(pomo.secondsLeft)}
+            {pomo.phase === 'idle' ? idleDisplay : formatTime(pomo.secondsLeft)}
           </span>
           <span className={cn(
             'text-sm font-medium mt-1',
@@ -93,10 +103,15 @@ const PomodoroTool: React.FC<ToolProps> = () => {
       {/* Controls */}
       <div className="flex items-center gap-3">
         {pomo.status === 'idle' ? (
-          <Button onClick={pomo.start} size="lg" className="gap-2 rounded-full px-8">
-            <Play className="w-5 h-5" />
-            Démarrer
-          </Button>
+          <>
+            <Button onClick={() => setShowSettings(s => !s)} variant="ghost" size="icon" className="rounded-full h-12 w-12">
+              <Settings2 className="w-5 h-5" />
+            </Button>
+            <Button onClick={pomo.start} size="lg" className="gap-2 rounded-full px-8">
+              <Play className="w-5 h-5" />
+              Démarrer
+            </Button>
+          </>
         ) : (
           <>
             {pomo.status === 'running' ? (
@@ -118,7 +133,49 @@ const PomodoroTool: React.FC<ToolProps> = () => {
         )}
       </div>
 
-      {/* Linked task via TaskLinker */}
+      {/* Settings panel (idle only) */}
+      {pomo.status === 'idle' && showSettings && (
+        <div className="w-full rounded-lg border border-border bg-card p-4 space-y-4">
+          {/* Presets */}
+          <div className="flex gap-2">
+            {Object.entries(PRESETS).map(([key, preset]) => (
+              <Button
+                key={key}
+                variant={activePreset === key ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1"
+                onClick={() => pomo.setConfig({ focusMinutes: preset.focusMinutes, shortBreakMinutes: preset.shortBreakMinutes, longBreakMinutes: preset.longBreakMinutes, cyclesBeforeLong: preset.cyclesBeforeLong })}
+              >
+                <div className="flex flex-col items-center">
+                  <span className="font-medium">{preset.label}</span>
+                  <span className="text-[10px] opacity-70">{preset.description}</span>
+                </div>
+              </Button>
+            ))}
+            <Button
+              variant={activePreset === null ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1"
+              onClick={() => pomo.setConfig({ ...pomo.config })}
+              disabled={activePreset === null}
+            >
+              <div className="flex flex-col items-center">
+                <span className="font-medium">Perso</span>
+                <span className="text-[10px] opacity-70">Libre</span>
+              </div>
+            </Button>
+          </div>
+
+          {/* Sliders */}
+          <div className="space-y-3">
+            <SliderRow label="Focus" value={pomo.config.focusMinutes} min={5} max={60} onChange={v => pomo.setConfig({ ...pomo.config, focusMinutes: v })} />
+            <SliderRow label="Pause courte" value={pomo.config.shortBreakMinutes} min={1} max={15} onChange={v => pomo.setConfig({ ...pomo.config, shortBreakMinutes: v })} />
+            <SliderRow label="Pause longue" value={pomo.config.longBreakMinutes} min={5} max={30} onChange={v => pomo.setConfig({ ...pomo.config, longBreakMinutes: v })} />
+          </div>
+        </div>
+      )}
+
+      {/* Linked task */}
       <div className="w-full">
         <TaskLinker
           mode="single"
@@ -144,5 +201,15 @@ const PomodoroTool: React.FC<ToolProps> = () => {
     </div>
   );
 };
+
+function SliderRow({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-sm text-muted-foreground w-28 shrink-0">{label}</span>
+      <Slider value={[value]} min={min} max={max} step={1} onValueChange={([v]) => onChange(v)} className="flex-1" />
+      <span className="text-sm font-mono text-foreground w-12 text-right">{value} min</span>
+    </div>
+  );
+}
 
 export default PomodoroTool;
