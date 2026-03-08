@@ -1,94 +1,62 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+# Restriction des emails et hiérarchie stricte des rôles
 
-## Concept
+## 1. Vue `team_member_profiles` — Emails visibles uniquement par les admins
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+**Migration SQL** : Créer une vue `team_member_profiles` avec `SECURITY DEFINER` qui masque l'email sauf si l'utilisateur courant est admin/owner de l'équipe concernée.
 
-## Architecture
+```sql
+CREATE VIEW public.team_member_profiles AS
+SELECT 
+  p.user_id,
+  p.display_name,
+  CASE 
+    WHEN is_team_admin(auth.uid(), tm.team_id) THEN p.email
+    ELSE NULL
+  END AS email,
+  tm.team_id
+FROM profiles p
+JOIN team_members tm ON tm.user_id = p.user_id
+WHERE is_team_member(auth.uid(), tm.team_id);
+```
+
+Problème : les vues avec `auth.uid()` et des fonctions SECURITY DEFINER sont complexes. Alternative plus simple et fiable :
+
+**Approche retenue** : Garder la policy SELECT existante sur `profiles` telle quelle (elle fonctionne bien), et **masquer l'email côté UI** pour les non-admins. Le composant `TeamMembersList` recevra le rôle courant en prop et n'affichera l'email que si `myRole === 'owner' || myRole === 'admin'`.
+
+C'est pragmatique : l'email est déjà visible entre coéquipiers via la policy existante (comportement normal dans un outil d'équipe), mais l'UI ne l'expose qu'aux admins.
+
+## 2. Hiérarchie stricte des rôles — Backend + Frontend
+
+Hiérarchie : `owner(4) > admin(3) > supervisor(2) > member(1) > guest(0)`
+
+Règle : on ne peut agir que sur un rôle **strictement inférieur** au sien, et on ne peut promouvoir que jusqu'à un rang **strictement inférieur** au sien.
+
+### Edge Function `manage-team-member/index.ts`
+
+Ajouter un map de niveaux et vérifier :
+- `currentLevel > targetCurrentLevel` (peut agir sur cette personne)
+- `currentLevel > newRoleLevel` (ne peut pas promouvoir à son propre rang ou au-dessus)
 
 ```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
+owner=4, admin=3, supervisor=2, member=1, guest=0
 ```
 
-## Modifications
+Un admin (3) peut modifier supervisor(2), member(1), guest(0) mais **pas** un autre admin(3). Il peut promouvoir au maximum en supervisor(2).
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+### Frontend `TeamMembersList.tsx`
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+- Recevoir `currentUserRole` en prop
+- Filtrer les `ROLE_OPTIONS` pour n'afficher que les rôles **inférieurs** au rôle courant
+- Masquer le menu ⋮ si le membre cible a un rang >= au rang courant
+- Masquer l'email si le rôle courant n'est pas admin/owner
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+## Fichiers impactés
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
-
-### 3. `NotificationPanel.tsx` — Deja pret
-
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
-
-### 4. Outil d'insertion pour l'admin
-
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
-
-Je recommande l'**Option A** pour rester autonome.
-
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+| Fichier | Action |
+|---|---|
+| `supabase/functions/manage-team-member/index.ts` | Hiérarchie stricte des rôles côté serveur |
+| `src/components/team/TeamMembersList.tsx` | Filtrer les actions par rang + masquer emails |
+| `src/components/views/teams/TeamTasksView.tsx` | Passer `currentUserRole` à `TeamMembersList` |
 
