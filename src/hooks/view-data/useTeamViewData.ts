@@ -7,6 +7,7 @@ import { useTeamActivity } from '@/hooks/useTeamActivity';
 import { useTaskWatchers } from '@/hooks/useTaskWatchers';
 import { useTeamLabels } from '@/hooks/useTeamLabels';
 import { useTeamComments } from '@/hooks/useTeamComments';
+import { useTeamPermissions } from '@/hooks/useTeamPermissions';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
