@@ -11,13 +11,7 @@ import { ItemMetadata } from '@/types/item';
 import { itemToTask } from '@/utils/itemConverters';
 import { canAddSubTask } from '@/utils/taskValidation';
 import { logger } from '@/lib/logger';
-
-interface ScheduleInfo {
-  date?: Date;
-  time?: string;
-  isRecurring?: boolean;
-  recurrenceInterval?: string;
-}
+import type { ScheduleInfo } from '@/hooks/time-sync';
 
 // Convert Task to Item metadata
 function taskToItemMetadata(task: Partial<Task>): Partial<ItemMetadata> {
