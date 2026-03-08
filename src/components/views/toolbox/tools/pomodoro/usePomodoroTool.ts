@@ -106,6 +106,9 @@ export function usePomodoroTool(config: PomodoroConfig = DEFAULT_CONFIG) {
   useEffect(() => {
     if (status !== 'running' || secondsLeft > 0 || phase === 'idle') return;
 
+    // 🔔 Beep on phase transition
+    playBeep(phase === 'focus' ? 880 : 660, 200, phase === 'focus' ? 3 : 2);
+
     if (phase === 'focus') {
       const newSessions = sessionsToday + 1;
       setSessionsToday(newSessions);
