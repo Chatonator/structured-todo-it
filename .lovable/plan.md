@@ -1,94 +1,107 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+# Système d'invitation multi-canaux pour les équipes
 
-## Concept
+## Résumé
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+3 modes d'invitation distincts, chacun avec un rôle d'arrivée différent :
 
-## Architecture
+| Canal | Rôle attribué | Auth requise | Configurable |
+|---|---|---|---|
+| **Email personnel** | `member` | Oui (inscription si pas de compte) | Non |
+| **Lien générique** | `guest` | Non (lecture seule sans compte) | Non |
+| **Code d'invitation** | `guest` par défaut (configurable → `member`) | Oui | Oui (admin) |
 
-```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
+## Changements
+
+### 1. Base de données (migration SQL)
+
+Ajouter des colonnes à la table `teams` :
+- `invite_link_enabled boolean DEFAULT true` — permet de désactiver le lien/code
+- `code_join_role text DEFAULT 'guest'` — rôle attribué quand quelqu'un rejoint via code (`guest` ou `member`)
+
+### 2. Edge Function `join-team` (mise à jour)
+
+- Lire `invite_link_enabled` : si `false`, refuser l'accès via code
+- Lire `code_join_role` : attribuer ce rôle au lieu de `'member'` en dur
+- Reste : authentification requise (inchangé)
+
+### 3. Edge Function `join-team-public` (nouveau)
+
+Nouvelle Edge Function pour le lien générique :
+- Prend un `inviteCode` dans l'URL (query param ou body)
+- **Pas d'authentification requise** — retourne les données de l'équipe (nom, tâches, projets) en lecture seule
+- Si l'utilisateur est authentifié, l'ajoute automatiquement comme `guest`
+- Si `invite_link_enabled === false`, refuse
+
+### 4. Edge Function `regenerate-invite-code` (nouveau)
+
+- Accessible aux admins/owners
+- Génère un nouveau code et met à jour la table `teams`
+
+### 5. `src/hooks/useTeams.ts`
+
+- Ajouter `invite_link_enabled` et `code_join_role` à l'interface `Team`
+- Nouvelle fonction `regenerateInviteCode(teamId)` → appelle la nouvelle Edge Function
+- Nouvelle fonction `updateTeamSettings(teamId, settings)` → update `invite_link_enabled`, `code_join_role` via Supabase direct (admin RLS)
+
+### 6. `src/lib/teamPermissions.ts`
+
+- Rien à changer structurellement
+
+### 7. `src/components/views/teams/TeamTasksView.tsx`
+
+Remplacer la carte "Code d'invitation" par une section plus riche **"Invitations & Accès"** (collapsible, visible si `can('manage_members')` ou `can('view_invite_code')`) :
+
+**Sous-sections :**
+
+1. **Invitation par email** (si `can('manage_members')`) : dialog existant, inchangé. Mention "rejoint en tant que Membre".
+
+2. **Lien partageable** (si `can('view_invite_code')`) :
+   - Bouton "Copier le lien" → génère `{origin}/#/join/{invite_code}`
+   - Mention "Les visiteurs peuvent consulter sans compte"
+   - Toggle "Autoriser les nouvelles inscriptions via lien/code" → `invite_link_enabled`
+
+3. **Code d'invitation** (si `can('view_invite_code')`) :
+   - Affichage du code + bouton copier
+   - Bouton "Régénérer le code" (avec confirmation)
+   - Sélecteur du rôle d'arrivée : Invité (défaut) / Membre
+   - Mention "Nécessite un compte"
+
+### 8. Route publique `/join/:code` (nouveau)
+
+- Nouvelle page `src/pages/JoinTeam.tsx`
+- Si non authentifié : affiche le nom de l'équipe + bouton "Se connecter / S'inscrire pour rejoindre" → redirige vers `/auth` avec un `?redirect=/join/{code}`
+- Si authentifié : appelle `join-team` automatiquement et redirige vers la vue équipe
+- Route ajoutée dans `App.tsx` (publique, pas de `ProtectedRoute`)
+
+### 9. Page Auth — gestion du redirect
+
+- Modifier `Auth.tsx` pour lire un `?redirect=` dans l'URL et rediriger après connexion/inscription vers cette URL au lieu de `/`
+
+### 10. `supabase/config.toml`
+
+Ajouter les nouvelles Edge Functions :
+```toml
+[functions.regenerate-invite-code]
+verify_jwt = false
+
+[functions.join-team-public]
+verify_jwt = false
 ```
 
-## Modifications
+## Fichiers impactés
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
-
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
-
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
-
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
-
-### 3. `NotificationPanel.tsx` — Deja pret
-
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
-
-### 4. Outil d'insertion pour l'admin
-
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
-
-Je recommande l'**Option A** pour rester autonome.
-
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+| Fichier | Action |
+|---|---|
+| Migration SQL | `invite_link_enabled`, `code_join_role` sur `teams` |
+| `supabase/functions/join-team/index.ts` | Lire config, refuser si désactivé, rôle dynamique |
+| `supabase/functions/regenerate-invite-code/index.ts` | Nouveau — régénère le code |
+| `src/pages/JoinTeam.tsx` | Nouveau — page d'accueil pour liens d'invitation |
+| `src/App.tsx` | Ajouter route `/join/:code` |
+| `src/pages/Auth.tsx` | Support `?redirect=` |
+| `src/hooks/useTeams.ts` | `regenerateInviteCode`, `updateTeamSettings`, interface `Team` |
+| `src/components/views/teams/TeamTasksView.tsx` | Section "Invitations & Accès" refaite |
+| `src/hooks/view-data/useTeamViewData.ts` | Exposer les nouvelles actions |
+| `supabase/config.toml` | Nouvelles fonctions |
 
