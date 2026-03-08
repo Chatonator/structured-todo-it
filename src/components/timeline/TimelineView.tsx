@@ -210,7 +210,13 @@ const TimelineView: React.FC = () => {
           <Button variant="outline" size="sm" onClick={handlePrevious}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleToday}>
+          <Button 
+            variant={isViewingToday ? "outline" : "default"} 
+            size="sm" 
+            onClick={handleToday}
+            className={cn(!isViewingToday && "animate-pulse shadow-md")}
+          >
+            <Home className="w-4 h-4 mr-1" />
             Aujourd'hui
           </Button>
           <Button variant="outline" size="sm" onClick={handleNext}>
