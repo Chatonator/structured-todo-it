@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Search, Clock, ListTodo, ChevronDown, ChevronUp, Folder, User, Users } from 'lucide-react';
 import { Task, TaskCategory } from '@/types/task';
+import { getPriorityLevel } from '@/lib/styling';
 import { DraggableTask } from './DraggableTask';
 import { formatDuration } from '@/lib/formatters';
 import { Project } from '@/types/project';
