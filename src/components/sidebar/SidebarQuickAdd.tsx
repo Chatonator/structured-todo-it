@@ -97,7 +97,7 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-between h-7 text-xs hover:bg-sidebar-accent"
+          className="w-full justify-between h-8 text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 font-semibold"
         >
           <div className="flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5" />
