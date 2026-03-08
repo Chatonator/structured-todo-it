@@ -5,6 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useTimeHub } from '@/hooks/useTimeHub';
+import { useTasks } from '@/hooks/useTasks';
 import { format, startOfDay, endOfDay, addDays, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,17 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle
 import { cn } from '@/lib/utils';
 import { TimeOccurrence } from '@/lib/time/types';
 import { ViewLayout } from '@/components/layout/view';
+import { TaskCategory } from '@/types/task';
+
+const getCategoryBorderClass = (category?: TaskCategory): string => {
+  switch (category) {
+    case 'Obligation': return 'border-l-category-obligation';
+    case 'Quotidien': return 'border-l-category-quotidien';
+    case 'Envie': return 'border-l-category-envie';
+    case 'Autres': return 'border-l-category-autres';
+    default: return 'border-l-primary';
+  }
+};
 
 const TimelineView: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
