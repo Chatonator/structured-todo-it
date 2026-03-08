@@ -279,7 +279,14 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                   </div>
                   <ListTodo className="w-8 h-8 text-primary/20" />
                 </div>
-                <Progress value={data.stats.completionRate} className="mt-2 h-1" />
+                <div className="flex items-center gap-2 mt-2">
+                  <Progress value={data.stats.completionRate} className="h-1 flex-1" />
+                  {data.stats.unassignedTasks > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {data.stats.unassignedTasks} non assignées
+                    </Badge>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
