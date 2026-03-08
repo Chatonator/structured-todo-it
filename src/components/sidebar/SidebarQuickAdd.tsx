@@ -8,7 +8,6 @@ import { validateTask, sanitizeTask } from '@/utils/taskValidation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import DurationPicker from '@/components/task/fields/DurationPicker';
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -34,7 +33,7 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
   const [name, setName] = useState('');
   const [context, setContext] = useState<TaskContext>(contextFilter !== 'all' ? contextFilter as TaskContext : 'Perso');
   const [category, setCategory] = useState<TaskCategory>('Autres');
-  const [estimatedTime, setEstimatedTime] = useState<number>(30);
+  const [estimatedTime, setEstimatedTime] = useState<number>(0);
 
   // Sync context when filter changes
   React.useEffect(() => {
@@ -126,20 +125,37 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
               autoFocus
             />
 
-            <Select value={context} onValueChange={(value) => setContext(value as TaskContext)}>
-              <SelectTrigger className="text-[10px] h-6 bg-background">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pro">💼 Pro</SelectItem>
-                <SelectItem value="Perso">🏠 Perso</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <DurationPicker
-              value={estimatedTime}
-              onChange={setEstimatedTime}
-            />
+            <div className="grid grid-cols-2 gap-1.5">
+              <Select value={context} onValueChange={(value) => setContext(value as TaskContext)}>
+                <SelectTrigger className="text-[10px] h-6 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pro">💼 Pro</SelectItem>
+                  <SelectItem value="Perso">🏠 Perso</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="text-[10px] text-muted-foreground flex items-center justify-end gap-1">
+                ⏱ {estimatedTime > 0 ? (estimatedTime >= 60 ? `${Math.floor(estimatedTime/60)}h${estimatedTime%60 ? (estimatedTime%60).toString().padStart(2,'0') : ''}` : `${estimatedTime}min`) : '—'}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {[15, 30, 45, 60, 90, 120, 180, 240].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setEstimatedTime(estimatedTime === m ? 0 : m)}
+                  className={cn(
+                    'px-1.5 py-0.5 text-[9px] rounded-md font-medium transition-colors cursor-pointer border',
+                    estimatedTime === m
+                      ? 'bg-primary/15 text-primary border-primary/30'
+                      : 'text-muted-foreground bg-background border-border hover:bg-accent/50'
+                  )}
+                >
+                  {m >= 60 ? `${Math.floor(m/60)}h${m%60 ? m%60 : ''}` : `${m}m`}
+                </button>
+              ))}
+            </div>
 
             <div className="flex gap-1.5">
               {(() => {
