@@ -1,76 +1,94 @@
 
 
-# Système partagé de liaison tâches-outils
+# Systeme de changelog / "Quoi de neuf" via les notifications
 
-## Problème actuel
+## Concept
 
-Chaque outil implémente sa propre logique de sélection de tâches (Popover + liste basique dans Pomodoro, Popover + ScrollArea dans Rule135). Le résultat est incohérent, peu intuitif, et non réutilisable.
+Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
 
-## Solution : un composant `TaskLinker` partagé
-
-Créer un composant et un hook réutilisables que tout outil (existant ou futur) peut intégrer en une ligne.
-
-### Composant `TaskLinker`
-
-Un sélecteur de tâches riche avec :
-- **Recherche** par nom (filtre en temps réel)
-- **Filtres rapides** : par contexte (Pro/Perso), par projet, par priorité
-- **Affichage enrichi** : nom + projet + temps estimé + badges priorité/contexte
-- **Mode single** (Pomodoro : 1 tâche liée) ou **mode multi** (Rule135, futurs outils)
-- **Tâches sélectionnées** affichées avec chip amovible
-- **Rendu via Popover** (compact) ou **inline** (intégré dans l'outil)
-
-### Hook `useTaskLinker`
+## Architecture
 
 ```text
-useTaskLinker({ mode, maxSelection?, storageKey? })
-  → selectedIds, selectedTasks, search, filters
-  → select, deselect, clear, setSearch, setFilter
-  → filteredAvailableTasks (search + filters appliqués)
+app_updates (table Supabase)        useNotifications (hook existant)
+┌──────────────────────┐            ┌──────────────────────┐
+│ id, version, title,  │──inject──▶│ notifications[] avec  │
+│ message, created_at  │           │ type "update" + ✨     │
+└──────────────────────┘           └──────────────────────┘
+        ▲                                    │
+        │ INSERT (admin only)                ▼
+     Edge function               NotificationPanel (existant)
+     ou insertion SQL             affiche deja le type "update"
 ```
 
-- Persistance optionnelle dans localStorage (par outil + par jour)
-- Accès aux tâches via `useViewDataContext`
+## Modifications
 
-### Intégration
+### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
 
-```text
-src/components/views/toolbox/shared/
-├── TaskLinker.tsx          ← Composant UI réutilisable
-├── useTaskLinker.ts        ← Hook logique
-└── index.ts
+- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
+- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+
+### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+
+- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
+- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
+- Marque ensuite l'update comme vue dans `user_seen_updates`.
+- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+
+### 3. `NotificationPanel.tsx` — Deja pret
+
+Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+
+### 4. Outil d'insertion pour l'admin
+
+Deux options possibles :
+- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
+- **Option B** : Inserer directement via Supabase Dashboard.
+
+Je recommande l'**Option A** pour rester autonome.
+
+## Details techniques
+
+### Migration SQL
+```sql
+CREATE TABLE public.app_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  version text,
+  title text NOT NULL,
+  message text,
+  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.user_seen_updates (
+  user_id uuid NOT NULL,
+  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, update_id)
+);
 ```
 
-### Refactoring des outils existants
+### Hook useAppUpdates
+```typescript
+// 1. Fetch unseen updates
+const { data: unseenUpdates } = await supabase
+  .from('app_updates')
+  .select('*')
+  .not('id', 'in', seenUpdateIds);
 
-| Outil | Avant | Après |
-|---|---|---|
-| **Pomodoro** | Popover custom avec liste brute | `<TaskLinker mode="single" />` |
-| **Rule135** | TaskSelector custom par slot | `<TaskLinker mode="multi" max={N} />` pour chaque slot |
-| **Eisenhower** | Pas de liaison | Prêt pour l'avenir |
-
-### API du composant
-
-```text
-<TaskLinker
-  mode="single" | "multi"
-  max?={number}
-  selectedIds={string[]}
-  onSelect={(id) => void}
-  onDeselect={(id) => void}
-  excludeIds?={string[]}
-  placeholder?="Lier une tâche..."
-  variant?="popover" | "inline"
-/>
+// 2. For each unseen: insert notification + mark seen
+for (const update of unseenUpdates) {
+  await supabase.from('notifications').insert({
+    user_id, type: 'update',
+    title: `✨ ${update.title}`,
+    message: update.message,
+    metadata: { updateId: update.id, version: update.version }
+  });
+  await supabase.from('user_seen_updates').insert({
+    user_id, update_id: update.id
+  });
+}
 ```
 
-### Fichiers impactés
-
-| Fichier | Action |
-|---|---|
-| `src/components/views/toolbox/shared/useTaskLinker.ts` | Nouveau hook |
-| `src/components/views/toolbox/shared/TaskLinker.tsx` | Nouveau composant |
-| `src/components/views/toolbox/shared/index.ts` | Barrel export |
-| `src/components/views/toolbox/tools/pomodoro/PomodoroTool.tsx` | Remplacer le Popover custom par `TaskLinker` |
-| `src/components/views/toolbox/tools/rule135/Rule135Tool.tsx` | Remplacer `TaskSelector` par `TaskLinker` |
+### Admin UI (dans /admin/bugs)
+Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
 

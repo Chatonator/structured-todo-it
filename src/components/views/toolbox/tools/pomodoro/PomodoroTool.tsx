@@ -1,12 +1,11 @@
-import React, { useMemo } from 'react';
-import { Play, Pause, SkipForward, RotateCcw, LinkIcon, X } from 'lucide-react';
+import React from 'react';
+import { Play, Pause, SkipForward, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useViewDataContext } from '@/contexts/ViewDataContext';
 import { cn } from '@/lib/utils';
 import { ToolProps } from '../types';
 import { usePomodoroTool, PomodoroPhase } from './usePomodoroTool';
+import { TaskLinker } from '../../shared/TaskLinker';
+import { useTaskLinker } from '../../shared/useTaskLinker';
 
 const PHASE_LABELS: Record<PomodoroPhase, string> = {
   idle: 'Prêt',
@@ -30,17 +29,12 @@ function formatTime(seconds: number): string {
 
 const PomodoroTool: React.FC<ToolProps> = () => {
   const pomo = usePomodoroTool();
-  const { tasks } = useViewDataContext();
+  const linker = useTaskLinker({ mode: 'single', storageKey: 'pomodoro' });
 
-  const activeTasks = useMemo(
-    () => tasks.filter(t => !t.isCompleted).slice(0, 30),
-    [tasks]
-  );
-
-  const linkedTask = useMemo(
-    () => (pomo.linkedTaskId ? tasks.find(t => t.id === pomo.linkedTaskId) : null),
-    [pomo.linkedTaskId, tasks]
-  );
+  // Sync linked task id to pomodoro hook
+  React.useEffect(() => {
+    pomo.setLinkedTaskId(linker.selectedIds[0] ?? null);
+  }, [linker.selectedIds]);
 
   // SVG circle constants
   const radius = 90;
@@ -72,12 +66,7 @@ const PomodoroTool: React.FC<ToolProps> = () => {
       {/* Timer circle */}
       <div className="relative w-56 h-56 flex items-center justify-center">
         <svg className="absolute inset-0 -rotate-90" viewBox="0 0 200 200">
-          <circle
-            cx="100" cy="100" r={radius}
-            fill="none"
-            className="stroke-muted"
-            strokeWidth="6"
-          />
+          <circle cx="100" cy="100" r={radius} fill="none" className="stroke-muted" strokeWidth="6" />
           <circle
             cx="100" cy="100" r={radius}
             fill="none"
@@ -129,52 +118,22 @@ const PomodoroTool: React.FC<ToolProps> = () => {
         )}
       </div>
 
-      {/* Linked task */}
-      <div className="w-full rounded-lg border bg-card p-3">
-        {linkedTask ? (
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <LinkIcon className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm truncate">{linkedTask.name}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => pomo.setLinkedTaskId(null)}
-            >
-              <X className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        ) : (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full gap-2 text-muted-foreground">
-                <LinkIcon className="w-4 h-4" />
-                Lier une tâche (optionnel)
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 p-0" align="center">
-              <ScrollArea className="max-h-60">
-                <div className="p-1">
-                  {activeTasks.length === 0 ? (
-                    <p className="text-sm text-muted-foreground p-3 text-center">Aucune tâche</p>
-                  ) : (
-                    activeTasks.map(task => (
-                      <button
-                        key={task.id}
-                        onClick={() => pomo.setLinkedTaskId(task.id)}
-                        className="w-full text-left text-sm px-3 py-2 rounded-md hover:bg-accent truncate"
-                      >
-                        {task.name}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-            </PopoverContent>
-          </Popover>
-        )}
+      {/* Linked task via TaskLinker */}
+      <div className="w-full">
+        <TaskLinker
+          mode="single"
+          selectedTasks={linker.selectedTasks}
+          filteredAvailableTasks={linker.filteredAvailableTasks}
+          search={linker.filters.search}
+          contextFilter={linker.filters.context}
+          canSelectMore={linker.canSelectMore}
+          onSelect={linker.select}
+          onDeselect={linker.deselect}
+          onSearchChange={linker.setSearch}
+          onContextFilterChange={linker.setContextFilter}
+          placeholder="Lier une tâche (optionnel)"
+          variant="popover"
+        />
       </div>
 
       {/* Sessions today */}
