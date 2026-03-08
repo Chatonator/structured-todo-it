@@ -124,57 +124,33 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
           </div>
         </div>
 
-        {/* Quick slot buttons */}
-        <div className="flex gap-1.5">
-          {QUICK_SLOTS.map((slot) => {
-            const isActive = hasTime && hour === slot.hour && minute === slot.min;
-            return (
-              <button
-                key={slot.label}
-                type="button"
-                onClick={() => setTime(slot.hour, slot.min)}
-                className={cn(
-                  'flex-1 text-[10px] py-1.5 rounded-md border transition-all',
-                  isActive
-                    ? 'bg-primary/15 border-primary text-primary font-medium'
-                    : 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                )}
-              >
-                {slot.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Hours slider */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>Heures</span>
-            <span className="tabular-nums font-medium">{hour}h</span>
-          </div>
-          <Slider
-            value={[hour]}
-            onValueChange={handleHourSlider}
-            min={0}
-            max={23}
-            step={1}
-            className="cursor-pointer"
-          />
-          <div className="flex justify-between px-0.5">
-            {HOUR_TICKS.map((h) => (
-              <button
-                key={h}
-                type="button"
-                onClick={() => clickHour(h)}
-                className={cn(
-                  'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
-                  h === hour ? 'text-primary font-semibold' : 'text-muted-foreground/50'
-                )}
-              >
-                {h}
-              </button>
-            ))}
-          </div>
+        {/* Time blocks */}
+        <div className="space-y-2">
+          {TIME_BLOCKS.map((block) => (
+            <div key={block.label} className="space-y-1">
+              <span className="text-[10px] text-muted-foreground">{block.label}</span>
+              <div className="flex gap-1">
+                {block.hours.map((h) => {
+                  const isActive = hasTime && hour === h;
+                  return (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => clickHour(h)}
+                      className={cn(
+                        'flex-1 text-xs py-1.5 rounded-md border transition-all tabular-nums',
+                        isActive
+                          ? 'bg-primary/15 border-primary text-primary font-semibold'
+                          : 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                      )}
+                    >
+                      {h}h
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Minutes slider */}
