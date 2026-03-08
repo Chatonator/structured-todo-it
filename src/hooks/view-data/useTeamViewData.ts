@@ -17,9 +17,10 @@ export const useTeamViewData = () => {
   const { currentTeam, teamMembers, updateMemberRole, removeMember, leaveTeam, teams, setCurrentTeam } = useTeamContext();
   const { setCurrentView, setIsModalOpen } = useApp();
   const { user } = useAuth();
-  const { tasks, loading: tasksLoading, assignTask, toggleComplete } = useTeamTasks(currentTeam?.id ?? null);
+  const { tasks, loading: tasksLoading, assignTask, toggleComplete, blockTask, unblockTask } = useTeamTasks(currentTeam?.id ?? null);
   const { projects, loading: projectsLoading } = useTeamProjects(currentTeam?.id ?? null);
   const { activities, loading: activityLoading } = useTeamActivity(currentTeam?.id ?? null);
+  const { isWatching, toggleWatch } = useTaskWatchers(currentTeam?.id ?? null, user?.id ?? null);
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState(false);
   const [memberFilter, setMemberFilter] = useState<string | null>(null);
