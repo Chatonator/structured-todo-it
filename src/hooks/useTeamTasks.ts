@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { mapDbRowToTeamTask, mapCamelToSnake } from '@/utils/teamTaskMapper';
 import type { Task } from '@/types/task';
 
 export interface TeamTask extends Omit<Task, 'user_id' | 'projectStatus'> {
