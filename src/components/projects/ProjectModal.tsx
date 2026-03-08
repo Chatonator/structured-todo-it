@@ -163,26 +163,7 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
             </div>
 
             {/* ─── Icon grid ─── */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Icône</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {PROJECT_ICONS.map((i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setIcon(i)}
-                    className={cn(
-                      'w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all duration-150 border',
-                      icon === i
-                        ? 'border-primary bg-primary/10 scale-110 shadow-sm'
-                        : 'border-transparent hover:bg-accent/50'
-                    )}
-                  >
-                    {i}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <EmojiGrid value={icon} onChange={setIcon} options={PROJECT_ICONS} />
 
             {/* ─── Color ─── */}
             <div className="space-y-1.5">
