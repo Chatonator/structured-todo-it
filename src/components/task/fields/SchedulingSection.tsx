@@ -16,14 +16,12 @@ interface SchedulingSectionProps {
   onTimeChange: (time: string) => void;
 }
 
-const HOUR_TICKS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
 const MINUTE_TICKS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-const QUICK_SLOTS = [
-  { label: '🌅 Matin', hour: 9, min: 0 },
-  { label: '☀️ Midi', hour: 12, min: 0 },
-  { label: '🌤️ Après-midi', hour: 14, min: 0 },
-  { label: '🌙 Soir', hour: 18, min: 0 },
+const TIME_BLOCKS = [
+  { label: '🌅 Matin', hours: [6, 7, 8, 9, 10, 11] },
+  { label: '☀️ Après-midi', hours: [12, 13, 14, 15, 16, 17] },
+  { label: '🌙 Soir', hours: [18, 19, 20, 21] },
 ];
 
 function parseTime(time?: string): { hour: number; minute: number } {
@@ -54,9 +52,6 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
     onTimeChange(formatTime(h, m));
   }, [onTimeChange]);
 
-  const handleHourSlider = useCallback((vals: number[]) => {
-    setTime(vals[0], minute);
-  }, [minute, setTime]);
 
   const handleMinuteSlider = useCallback((vals: number[]) => {
     setTime(hour, vals[0]);
@@ -126,57 +121,33 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
           </div>
         </div>
 
-        {/* Quick slot buttons */}
-        <div className="flex gap-1.5">
-          {QUICK_SLOTS.map((slot) => {
-            const isActive = hasTime && hour === slot.hour && minute === slot.min;
-            return (
-              <button
-                key={slot.label}
-                type="button"
-                onClick={() => setTime(slot.hour, slot.min)}
-                className={cn(
-                  'flex-1 text-[10px] py-1.5 rounded-md border transition-all',
-                  isActive
-                    ? 'bg-primary/15 border-primary text-primary font-medium'
-                    : 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                )}
-              >
-                {slot.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Hours slider */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>Heures</span>
-            <span className="tabular-nums font-medium">{hour}h</span>
-          </div>
-          <Slider
-            value={[hour]}
-            onValueChange={handleHourSlider}
-            min={0}
-            max={23}
-            step={1}
-            className="cursor-pointer"
-          />
-          <div className="flex justify-between px-0.5">
-            {HOUR_TICKS.map((h) => (
-              <button
-                key={h}
-                type="button"
-                onClick={() => clickHour(h)}
-                className={cn(
-                  'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
-                  h === hour ? 'text-primary font-semibold' : 'text-muted-foreground/50'
-                )}
-              >
-                {h}
-              </button>
-            ))}
-          </div>
+        {/* Time blocks */}
+        <div className="space-y-2">
+          {TIME_BLOCKS.map((block) => (
+            <div key={block.label} className="space-y-1">
+              <span className="text-[10px] text-muted-foreground">{block.label}</span>
+              <div className="flex gap-1">
+                {block.hours.map((h) => {
+                  const isActive = hasTime && hour === h;
+                  return (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => clickHour(h)}
+                      className={cn(
+                        'flex-1 text-xs py-1.5 rounded-md border transition-all tabular-nums',
+                        isActive
+                          ? 'bg-primary/15 border-primary text-primary font-semibold'
+                          : 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                      )}
+                    >
+                      {h}h
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Minutes slider */}
