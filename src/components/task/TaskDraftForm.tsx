@@ -16,17 +16,8 @@ import { EisenhowerSelector } from '@/components/common/EisenhowerSelector';
 import type { TeamMemberOption } from '@/components/task/fields/AssignmentSelector';
 import type { Task } from '@/types/task';
 import { cn } from '@/lib/utils';
-import { Clock, CalendarDays, RefreshCw, Settings2, Users, Timer } from 'lucide-react';
-
-// Time chips for quick selection
-const TIME_CHIPS = [
-  { value: 15, label: '15m' },
-  { value: 30, label: '30m' },
-  { value: 60, label: '1h' },
-  { value: 120, label: '2h' },
-  { value: 180, label: '3h' },
-  { value: 240, label: '4h' },
-];
+import { Settings2 } from 'lucide-react';
+import DurationPicker from '@/components/task/fields/DurationPicker';
 
 interface TaskDraftFormProps {
   draft: TaskDraft;
