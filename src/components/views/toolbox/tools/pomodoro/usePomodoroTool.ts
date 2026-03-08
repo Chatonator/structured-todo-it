@@ -203,10 +203,14 @@ export function usePomodoroTool() {
     sessionsToday,
     linkedTaskId,
     setLinkedTaskId,
+    config,
+    setConfig,
     start,
     pause,
     resume,
     skip,
     reset,
+  };
+}
   };
 }
