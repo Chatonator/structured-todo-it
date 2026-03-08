@@ -46,7 +46,7 @@ const Auth = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate(import.meta.env.BASE_URL || '/');
+        navigate(redirectTo);
       }
     };
     
