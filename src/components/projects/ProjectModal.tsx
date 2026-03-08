@@ -37,7 +37,7 @@ interface ProjectModalProps {
   defaultContext?: TaskContext;
 }
 
-export const ProjectModal = ({ open, onClose, onSave, project, initialName, teamId }: ProjectModalProps) => {
+export const ProjectModal = ({ open, onClose, onSave, project, initialName, teamId, defaultContext }: ProjectModalProps) => {
   const { teams, currentTeam } = useTeamContext();
   
   const [name, setName] = useState('');
