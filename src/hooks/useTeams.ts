@@ -397,14 +397,6 @@ export const useTeams = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Auto-select single team only on initial load
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
-  useEffect(() => {
-    if (!hasAutoSelected && !currentTeam && teams.length === 1) {
-      setCurrentTeam(teams[0]);
-      setHasAutoSelected(true);
-    }
-  }, [teams, currentTeam, hasAutoSelected]);
 
   // Load members when current team changes
   useEffect(() => {
