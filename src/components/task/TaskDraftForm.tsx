@@ -13,6 +13,7 @@ import {
   AssignmentSelector
 } from '@/components/task/fields';
 import { EisenhowerSelector } from '@/components/common/EisenhowerSelector';
+import { ContextPillSelector } from '@/components/common/ContextPillSelector';
 import type { TeamMemberOption } from '@/components/task/fields/AssignmentSelector';
 import type { Task } from '@/types/task';
 import { cn } from '@/lib/utils';
