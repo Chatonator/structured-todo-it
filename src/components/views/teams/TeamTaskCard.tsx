@@ -253,48 +253,53 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
           <DropdownMenuSeparator />
 
           {/* Assign */}
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <UserPlus className="w-4 h-4 mr-2 text-muted-foreground" />
-              Assigner à…
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem onClick={() => onAssign(task.id, null)}>
-                <UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />
-                Non assigné
-              </DropdownMenuItem>
+          {can('assign_tasks') && (
+            <>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <UserPlus className="w-4 h-4 mr-2 text-muted-foreground" />
+                  Assigner à…
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => onAssign(task.id, null)}>
+                    <UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />
+                    Non assigné
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {members.map(m => (
+                    <DropdownMenuItem
+                      key={m.user_id}
+                      onClick={() => onAssign(task.id, m.user_id)}
+                      className={cn(task.assigned_to === m.user_id && "bg-accent")}
+                    >
+                      <Avatar className="h-4 w-4 mr-2">
+                        <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
+                          {getInitials(m.profiles?.display_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {m.profiles?.display_name || 'Membre'}
+                      {m.user_id === currentUserId && <span className="ml-1 text-xs text-muted-foreground">(moi)</span>}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuSeparator />
-              {members.map(m => (
-                <DropdownMenuItem
-                  key={m.user_id}
-                  onClick={() => onAssign(task.id, m.user_id)}
-                  className={cn(task.assigned_to === m.user_id && "bg-accent")}
-                >
-                  <Avatar className="h-4 w-4 mr-2">
-                    <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
-                      {getInitials(m.profiles?.display_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {m.profiles?.display_name || 'Membre'}
-                  {m.user_id === currentUserId && <span className="ml-1 text-xs text-muted-foreground">(moi)</span>}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-
-          <DropdownMenuSeparator />
+            </>
+          )}
 
           {/* Block / Unblock */}
-          {!task.is_blocked ? (
-            <DropdownMenuItem onClick={(e) => { e.preventDefault(); setShowBlockInput(true); }}>
-              <ShieldAlert className="w-4 h-4 mr-2 text-destructive" />
-              Signaler un blocage
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem onClick={() => onUnblockTask(task.id)}>
-              <ShieldCheck className="w-4 h-4 mr-2 text-primary" />
-              Débloquer
-            </DropdownMenuItem>
+          {can('block_tasks') && (
+            !task.is_blocked ? (
+              <DropdownMenuItem onClick={(e) => { e.preventDefault(); setShowBlockInput(true); }}>
+                <ShieldAlert className="w-4 h-4 mr-2 text-destructive" />
+                Signaler un blocage
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onUnblockTask(task.id)}>
+                <ShieldCheck className="w-4 h-4 mr-2 text-primary" />
+                Débloquer
+              </DropdownMenuItem>
+            )
           )}
 
           {/* Watch */}
