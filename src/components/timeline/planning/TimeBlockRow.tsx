@@ -122,6 +122,7 @@ interface TimeBlockColumnProps {
   onRemoveEvent?: (eventId: string) => void;
   onEventClick?: (event: TimeEvent) => void;
   disabled?: boolean;
+  taskCategoryMap?: Map<string, TaskCategory>;
 }
 
 const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
@@ -131,7 +132,8 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
   onCompleteEvent,
   onRemoveEvent,
   onEventClick,
-  disabled
+  disabled,
+  taskCategoryMap
 }) => {
   const blockConfig = TIME_BLOCKS[block];
   const droppableId = `block-${date.toISOString().split('T')[0]}-${block}`;
