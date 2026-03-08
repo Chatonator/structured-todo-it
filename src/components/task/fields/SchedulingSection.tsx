@@ -41,6 +41,12 @@ function displayTime(hour: number, minute: number): string {
   return `${hour}h${String(minute).padStart(2, '0')}`;
 }
 
+function getBlockLabel(hour: number): string {
+  if (hour < 12) return '🌅 Matin';
+  if (hour < 18) return '☀️ Après-midi';
+  return '🌙 Soir';
+}
+
 export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
   scheduledDate,
   scheduledTime,
@@ -54,16 +60,13 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
     onTimeChange(formatTime(h, m));
   }, [onTimeChange]);
 
-
   const handleHourSlider = useCallback((vals: number[]) => {
     setTime(vals[0], minute);
   }, [minute, setTime]);
+
+  const handleMinuteSlider = useCallback((vals: number[]) => {
     setTime(hour, vals[0]);
   }, [hour, setTime]);
-
-  const clickHour = useCallback((h: number) => {
-    setTime(h, minute);
-  }, [minute, setTime]);
 
   const clickMinute = useCallback((m: number) => {
     setTime(hour, m);
@@ -105,7 +108,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
         </PopoverContent>
       </Popover>
 
-      {/* Time selector – visual sliders */}
+      {/* Time selector */}
       <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
         {/* Header with display */}
         <div className="flex items-center justify-between">
@@ -115,7 +118,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
               'text-sm font-semibold tabular-nums transition-colors',
               hasTime ? 'text-primary' : 'text-muted-foreground'
             )}>
-              {hasTime ? displayTime(hour, minute) : '—'}
+              {hasTime ? `${displayTime(hour, minute)} · ${getBlockLabel(hour)}` : '—'}
             </span>
             {hasTime && (
               <button type="button" onClick={clearTime} className="text-muted-foreground hover:text-destructive transition-colors">
@@ -125,33 +128,31 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
           </div>
         </div>
 
-        {/* Time blocks */}
-        <div className="space-y-2">
-          {TIME_BLOCKS.map((block) => (
-            <div key={block.label} className="space-y-1">
-              <span className="text-[10px] text-muted-foreground">{block.label}</span>
-              <div className="flex gap-1">
-                {block.hours.map((h) => {
-                  const isActive = hasTime && hour === h;
-                  return (
-                    <button
-                      key={h}
-                      type="button"
-                      onClick={() => clickHour(h)}
-                      className={cn(
-                        'flex-1 text-xs py-1.5 rounded-md border transition-all tabular-nums',
-                        isActive
-                          ? 'bg-primary/15 border-primary text-primary font-semibold'
-                          : 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                      )}
-                    >
-                      {h}h
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        {/* Hours slider with landmarks */}
+        <div className="space-y-1">
+          <Slider
+            value={[hour]}
+            onValueChange={handleHourSlider}
+            min={6}
+            max={22}
+            step={1}
+            className="cursor-pointer"
+          />
+          <div className="flex justify-between px-0.5">
+            {HOUR_LANDMARKS.map((lm) => (
+              <button
+                key={lm.hour}
+                type="button"
+                onClick={() => setTime(lm.hour, minute)}
+                className={cn(
+                  'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
+                  lm.hour === hour ? 'text-primary font-semibold' : 'text-muted-foreground/50'
+                )}
+              >
+                {lm.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Minutes slider */}
