@@ -253,7 +253,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
               )}
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="w-3 h-3" />
-                {formatTime(group.totalTime)}
+                {formatDuration(group.totalTime)}
               </div>
             </div>
           </div>
