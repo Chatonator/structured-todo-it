@@ -104,14 +104,14 @@ const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange, hasErr
           step={5}
           className="cursor-pointer"
         />
-        <div className="flex justify-between px-0.5">
+        <div className="flex justify-between" style={{ paddingLeft: 10, paddingRight: 10 }}>
           {MINUTE_TICKS.map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => clickMinute(m)}
               className={cn(
-                'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
+                'text-[9px] tabular-nums cursor-pointer transition-colors rounded hover:text-primary',
                 m === minutes ? 'text-primary font-semibold' : 'text-muted-foreground/50'
               )}
             >
