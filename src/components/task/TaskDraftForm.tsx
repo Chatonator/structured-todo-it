@@ -46,7 +46,7 @@ const TaskDraftForm: React.FC<TaskDraftFormProps> = ({
           type="text"
           value={draft.name}
           onChange={(e) => onUpdate(index, 'name', e.target.value)}
-          placeholder={isEditing ? 'Nom de la tâche...' : 'Que dois-tu faire ?'}
+          placeholder="Titre"
           autoFocus
           className={cn(
             'text-base h-11 font-medium placeholder:text-muted-foreground/60 border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors',
