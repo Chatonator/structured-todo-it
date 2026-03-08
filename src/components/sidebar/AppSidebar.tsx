@@ -89,9 +89,10 @@ const AppSidebar: React.FC = () => {
           "bg-primary hover:bg-primary/90 border border-l-0 border-primary/30",
           "flex items-center justify-center",
           "text-primary-foreground",
-          "transition-all duration-200 shadow-lg",
-          isCollapsed ? "left-0" : "left-[16rem]"
+          "shadow-lg",
+          "transition-[left] duration-200 ease-linear"
         )}
+        style={{ left: isCollapsed ? 0 : 'var(--sidebar-width, 16rem)' }}
         aria-label={isCollapsed ? "Déplier" : "Replier"}
       >
         {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
