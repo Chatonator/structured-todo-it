@@ -104,7 +104,7 @@ const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange, hasErr
           step={5}
           className="cursor-pointer"
         />
-        <div className="flex justify-between" style={{ paddingLeft: 10, paddingRight: 10 }}>
+        <div className="flex justify-between" style={{ paddingLeft: 8, paddingRight: 8 }}>
           {MINUTE_TICKS.map((m) => (
             <button
               key={m}
