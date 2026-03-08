@@ -1,50 +1,111 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, Suspense } from 'react';
 import { ViewLayout } from '@/components/layout/view';
-import { Wrench } from 'lucide-react';
+import { Wrench, ArrowLeft } from 'lucide-react';
 import { toolRegistry, getToolById } from './tools';
 import ToolCatalog from './components/ToolCatalog';
-import ToolModal, { ToolModalMode, getLaunchedTools } from './components/ToolModal';
+import ToolDetailView from './components/ToolDetailView';
+import { getLaunchedTools, markToolLaunched } from './components/toolLaunchHelpers';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 
 interface ToolboxViewProps {
   className?: string;
 }
 
-const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
-  const [modalState, setModalState] = useState<{
-    toolId: string | null;
-    mode: ToolModalMode;
-  }>({ toolId: null, mode: 'detail' });
+const ToolLoadingFallback: React.FC = () => (
+  <div className="space-y-4 p-4">
+    <Skeleton className="h-8 w-48" />
+    <div className="grid grid-cols-2 gap-4">
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+    </div>
+  </div>
+);
 
+const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
+  const [activeToolId, setActiveToolId] = useState<string | null>(null);
+  const [sheetToolId, setSheetToolId] = useState<string | null>(null);
   const [launchedTools, setLaunchedTools] = useState<string[]>([]);
 
-  // Load launched tools from localStorage on mount
   useEffect(() => {
     setLaunchedTools(getLaunchedTools());
   }, []);
 
-  // Refresh launched tools when modal closes
-  useEffect(() => {
-    if (modalState.toolId === null) {
-      setLaunchedTools(getLaunchedTools());
-    }
-  }, [modalState.toolId]);
-  
-  const selectedTool = modalState.toolId ? getToolById(modalState.toolId) : null;
+  const activeTool = activeToolId ? getToolById(activeToolId) : null;
+  const sheetTool = sheetToolId ? getToolById(sheetToolId) : null;
 
-  // Open in detail mode (default click on card)
+  // Click on card → open Sheet with details
   const handleSelectTool = useCallback((toolId: string) => {
-    setModalState({ toolId, mode: 'detail' });
+    setSheetToolId(toolId);
   }, []);
 
-  // Open directly in tool mode (quick launch)
+  // Quick launch → go directly to inline tool
   const handleQuickLaunch = useCallback((toolId: string) => {
-    setModalState({ toolId, mode: 'tool' });
+    markToolLaunched(toolId);
+    setLaunchedTools(getLaunchedTools());
+    setActiveToolId(toolId);
   }, []);
 
-  const handleCloseTool = useCallback(() => {
-    setModalState({ toolId: null, mode: 'detail' });
+  // Launch from Sheet detail view
+  const handleLaunchFromSheet = useCallback(() => {
+    if (sheetToolId) {
+      markToolLaunched(sheetToolId);
+      setLaunchedTools(getLaunchedTools());
+      setActiveToolId(sheetToolId);
+      setSheetToolId(null);
+    }
+  }, [sheetToolId]);
+
+  // Back to catalog
+  const handleBackToCatalog = useCallback(() => {
+    setActiveToolId(null);
   }, []);
 
+  // Render active tool inline
+  if (activeTool) {
+    const ToolComponent = activeTool.component;
+    const Icon = activeTool.icon;
+
+    return (
+      <ViewLayout
+        header={{
+          title: activeTool.name,
+          subtitle: "En cours d'utilisation",
+          icon: <Icon className={cn("w-5 h-5", activeTool.color)} />,
+        }}
+        className={className}
+      >
+        <div>
+          <div className="mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackToCatalog}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Retour à la boîte à outils
+            </Button>
+          </div>
+          <Suspense fallback={<ToolLoadingFallback />}>
+            <ToolComponent onClose={handleBackToCatalog} />
+          </Suspense>
+        </div>
+      </ViewLayout>
+    );
+  }
+
+  // Render catalog + Sheet
   return (
     <ViewLayout
       header={{
@@ -80,13 +141,18 @@ const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
           groupByCategory={toolRegistry.length > 4}
         />
 
-        {/* Tool modal */}
-        <ToolModal
-          tool={selectedTool}
-          open={modalState.toolId !== null}
-          onClose={handleCloseTool}
-          initialMode={modalState.mode}
-        />
+        {/* Detail Sheet */}
+        <Sheet open={sheetToolId !== null} onOpenChange={(open) => !open && setSheetToolId(null)}>
+          <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+            <SheetHeader className="sr-only">
+              <SheetTitle>{sheetTool?.name ?? 'Détails'}</SheetTitle>
+              <SheetDescription>{sheetTool?.description ?? ''}</SheetDescription>
+            </SheetHeader>
+            {sheetTool && (
+              <ToolDetailView tool={sheetTool} onLaunch={handleLaunchFromSheet} />
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </ViewLayout>
   );
