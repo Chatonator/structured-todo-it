@@ -1,7 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from '@/types/task';
 import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
