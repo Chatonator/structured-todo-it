@@ -1,94 +1,51 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+# Audit d'unification — duplications restantes
 
-## Concept
+## 1. `priorityMap` dupliqué 3 fois
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+Le mapping priorité → niveau numérique est défini localement dans **3 fichiers** alors que `getPriorityLevel()` existe déjà dans `lib/styling.ts` :
 
-## Architecture
+| Fichier | Code dupliqué |
+|---|---|
+| `UnscheduledTasksPanel.tsx` | `const priorityMap = { 'Le plus important': 4, ... }` |
+| `time-sync/helpers.ts` | `const priorityMap = { 'Le plus important': 4, ... }` |
+| `lib/time/EventNormalizer.ts` | `const priorityMap = { 'Le plus important': 4, ... }` |
 
-```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
-```
+**Action** : Remplacer par `import { getPriorityLevel } from '@/lib/styling'`.
 
-## Modifications
+## 2. `priorityColors` dupliqué dans ResizableEvent et ScheduledEvent
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+Le mapping identique `{ 4: 'bg-priority-highest/20 border-l-priority-highest', ... }` est copié-collé dans :
+- `ResizableEvent.tsx`
+- `ScheduledEvent.tsx`
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+**Action** : Centraliser dans `lib/styling.ts` via une nouvelle fonction `getPriorityEventClasses(level: number)`.
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+## 3. Tri par priorité reconstruit dans `UnscheduledTasksPanel`
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+`UnscheduledTasksPanel.tsx` implémente manuellement un système de filtre + tri (search, sort, source filter) alors que `useTaskFilters` existe déjà et est utilisé par `ProjectDetail` et `TeamProjectDetail`.
 
-### 3. `NotificationPanel.tsx` — Deja pret
+**Action** : Migrer vers `useTaskFilters` pour éliminer la logique de tri/filtre locale (≈30 lignes).
 
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+## 4. `SchedulingSection.formatTime` — faux positif
 
-### 4. Outil d'insertion pour l'admin
+La fonction `formatTime(hour, minute)` dans `SchedulingSection.tsx` formate des heures HH:MM (pas des durées). Ce n'est **pas** une duplication de `formatDuration` — c'est un usage différent. Pas d'action.
 
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
+---
 
-Je recommande l'**Option A** pour rester autonome.
+## Fichiers impactés
 
-## Details techniques
+| Fichier | Action |
+|---|---|
+| `src/lib/styling.ts` | Ajouter `getPriorityEventClasses()` |
+| `src/components/timeline/UnscheduledTasksPanel.tsx` | Remplacer `priorityMap` par `getPriorityLevel`, envisager `useTaskFilters` |
+| `src/components/timeline/ResizableEvent.tsx` | Utiliser `getPriorityEventClasses` |
+| `src/components/timeline/ScheduledEvent.tsx` | Utiliser `getPriorityEventClasses` |
+| `src/hooks/time-sync/helpers.ts` | Remplacer `priorityMap` par `getPriorityLevel` |
+| `src/lib/time/EventNormalizer.ts` | Remplacer `priorityMap` par `getPriorityLevel` |
 
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+## Estimation
 
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+6 fichiers modifiés, ~50 lignes supprimées, 1 fonction ajoutée. Refactorisation pure sans impact fonctionnel.
 
