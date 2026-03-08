@@ -8,6 +8,7 @@ import { validateTask, sanitizeTask } from '@/utils/taskValidation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import DurationPicker from '@/components/task/fields/DurationPicker';
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -33,7 +34,7 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
   const [name, setName] = useState('');
   const [context, setContext] = useState<TaskContext>(contextFilter !== 'all' ? contextFilter as TaskContext : 'Perso');
   const [category, setCategory] = useState<TaskCategory>('Autres');
-  const [estimatedTime, setEstimatedTime] = useState<string>('30');
+  const [estimatedTime, setEstimatedTime] = useState<number>(30);
 
   // Sync context when filter changes
   React.useEffect(() => {
@@ -47,7 +48,7 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
       name: name.trim(),
       context,
       category,
-      estimatedTime: parseInt(estimatedTime),
+      estimatedTime,
       level: 0 as const,
       isExpanded: true,
       isCompleted: false
@@ -125,33 +126,20 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
               autoFocus
             />
 
-            <div className="grid grid-cols-2 gap-1.5">
-              <Select value={context} onValueChange={(value) => setContext(value as TaskContext)}>
-                <SelectTrigger className="text-[10px] h-6 bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pro">💼 Pro</SelectItem>
-                  <SelectItem value="Perso">🏠 Perso</SelectItem>
-                </SelectContent>
-              </Select>
+            <Select value={context} onValueChange={(value) => setContext(value as TaskContext)}>
+              <SelectTrigger className="text-[10px] h-6 bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Pro">💼 Pro</SelectItem>
+                <SelectItem value="Perso">🏠 Perso</SelectItem>
+              </SelectContent>
+            </Select>
 
-              <Select value={estimatedTime} onValueChange={setEstimatedTime}>
-                <SelectTrigger className="text-[10px] h-6 bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 min</SelectItem>
-                  <SelectItem value="30">30 min</SelectItem>
-                  <SelectItem value="45">45 min</SelectItem>
-                  <SelectItem value="60">1h</SelectItem>
-                  <SelectItem value="90">1h30</SelectItem>
-                  <SelectItem value="120">2h</SelectItem>
-                  <SelectItem value="180">3h</SelectItem>
-                  <SelectItem value="240">4h</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <DurationPicker
+              value={estimatedTime}
+              onChange={setEstimatedTime}
+            />
 
             <div className="flex gap-1.5">
               {(() => {
