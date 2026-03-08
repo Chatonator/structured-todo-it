@@ -10,7 +10,7 @@ import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, Circle, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TimeOccurrence } from '@/lib/time/types';
 import { ViewLayout } from '@/components/layout/view';
@@ -18,7 +18,7 @@ import { ViewLayout } from '@/components/layout/view';
 const TimelineView: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
-
+  const isViewingToday = isSameDay(selectedDate, new Date());
   // Calculer le range selon le mode
   const dateRange = useMemo(() => {
     if (viewMode === 'day') {
@@ -210,7 +210,13 @@ const TimelineView: React.FC = () => {
           <Button variant="outline" size="sm" onClick={handlePrevious}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleToday}>
+          <Button 
+            variant={isViewingToday ? "outline" : "default"} 
+            size="sm" 
+            onClick={handleToday}
+            className={cn(!isViewingToday && "animate-pulse shadow-md")}
+          >
+            <Home className="w-4 h-4 mr-1" />
             Aujourd'hui
           </Button>
           <Button variant="outline" size="sm" onClick={handleNext}>
