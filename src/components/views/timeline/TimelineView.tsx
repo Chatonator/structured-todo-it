@@ -100,6 +100,16 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
   } = useDayPlanning();
 
   const { projects } = useProjects();
+  const { tasks: allTasks } = useTasks();
+
+  // Build category map: entityId → TaskCategory
+  const taskCategoryMap = useMemo(() => {
+    const map = new Map<string, TaskCategory>();
+    allTasks.forEach(t => map.set(t.id, t.category as TaskCategory));
+    return map;
+  }, [allTasks]);
+
+  const isViewingToday = isSameDay(selectedDate, new Date());
 
   // Load planning configs when date range changes
   useEffect(() => {
