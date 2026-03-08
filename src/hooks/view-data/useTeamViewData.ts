@@ -124,32 +124,9 @@ export const useTeamViewData = () => {
     assignTask(taskId, userId);
   }, [assignTask]);
 
-  const handleAssignToMe = useCallback((taskId: string) => {
-    if (!currentUserId) return;
-    assignTask(taskId, currentUserId);
-    const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
-    sendTeamNotification(
-      'team',
-      `🙋 ${senderName} s'est attribué une tâche`,
-      `Tâche : ${tasks.find(t => t.id === taskId)?.name || ''}`,
-      { task_id: taskId, action: 'self_assign' }
-    );
-  }, [assignTask, currentUserId, teamMembers, sendTeamNotification, tasks]);
-
   const handleToggleComplete = useCallback((taskId: string, completed: boolean) => {
     toggleComplete(taskId, completed);
   }, [toggleComplete]);
-
-  const handleBlockTask = useCallback((taskId: string, reason: string) => {
-    blockTask(taskId, reason);
-    const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
-    sendTeamNotification(
-      'team',
-      `🚧 ${senderName} a signalé un blocage`,
-      `Tâche : ${tasks.find(t => t.id === taskId)?.name || ''} — ${reason}`,
-      { task_id: taskId, action: 'blocked', reason }
-    );
-  }, [blockTask, currentUserId, teamMembers, sendTeamNotification, tasks]);
 
   const handleUnblockTask = useCallback((taskId: string) => {
     unblockTask(taskId);
@@ -181,6 +158,29 @@ export const useTeamViewData = () => {
       toast({ title: 'Erreur', description: "Impossible d'envoyer la notification", variant: 'destructive' });
     }
   }, [currentTeam, currentUserId, toast]);
+
+  const handleAssignToMe = useCallback((taskId: string) => {
+    if (!currentUserId) return;
+    assignTask(taskId, currentUserId);
+    const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
+    sendTeamNotification(
+      'team',
+      `🙋 ${senderName} s'est attribué une tâche`,
+      `Tâche : ${tasks.find(t => t.id === taskId)?.name || ''}`,
+      { task_id: taskId, action: 'self_assign' }
+    );
+  }, [assignTask, currentUserId, teamMembers, sendTeamNotification, tasks]);
+
+  const handleBlockTask = useCallback((taskId: string, reason: string) => {
+    blockTask(taskId, reason);
+    const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
+    sendTeamNotification(
+      'team',
+      `🚧 ${senderName} a signalé un blocage`,
+      `Tâche : ${tasks.find(t => t.id === taskId)?.name || ''} — ${reason}`,
+      { task_id: taskId, action: 'blocked', reason }
+    );
+  }, [blockTask, currentUserId, teamMembers, sendTeamNotification, tasks]);
 
   const handleRequestHelp = useCallback((task: TeamTask) => {
     const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
