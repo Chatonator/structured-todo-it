@@ -106,7 +106,7 @@ export const SidebarListItem: React.FC<SidebarListItemProps> = ({
           {estimatedTime !== undefined && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
               <Clock className="w-3 h-3" />
-              <span>{formatTime(estimatedTime)}</span>
+              <span>{formatDuration(estimatedTime)}</span>
             </div>
           )}
 

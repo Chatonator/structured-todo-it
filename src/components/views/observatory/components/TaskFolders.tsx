@@ -110,14 +110,6 @@ const ObservatoryTaskRow: React.FC<ObservatoryTaskRowProps> = ({
 
       <ContextBadge context={task.context} size="sm" showLabel={false} />
 
-      {/* Context badge */}
-      <Badge 
-        variant="secondary" 
-        className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", getContextColor(task.context))}
-      >
-        {task.context}
-      </Badge>
-
       {/* Age indicator for zombies */}
       {task.isZombie && (
         <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5 shrink-0">

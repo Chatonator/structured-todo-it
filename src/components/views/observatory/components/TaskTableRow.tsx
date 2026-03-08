@@ -70,7 +70,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       <div className="col-span-2 hidden sm:block">
         <Badge 
           variant="outline" 
-          className={cn("text-[10px] px-1.5 py-0", getCategoryBadgeClass(task.category))}
+          className={cn("text-[10px] px-1.5 py-0", getCategoryClasses(task.category, 'badge'))}
         >
           {CATEGORY_DISPLAY_NAMES[task.category]}
         </Badge>
