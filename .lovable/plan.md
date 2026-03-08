@@ -1,94 +1,62 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+## Diagnostic : Mauvais fichier edite
 
-## Concept
+Toutes les modifications precedentes (couleurs de categorie, bouton "Aujourd'hui" visible) ont ete appliquees au fichier **`src/components/timeline/TimelineView.tsx`** (ancien composant orphelin).
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+L'application charge en realite **`src/components/views/timeline/TimelineView.tsx`** via le `viewRegistry`. C'est un composant completement different, avec drag-and-drop, TaskDeckPanel, blocs Matin/Apres-midi/Soir.
 
-## Architecture
+Les corrections n'ont donc jamais ete visibles.
+
+## Mapping de la vue Timeline reelle
 
 ```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
+viewRegistry.ts
+  └─ src/components/views/timeline/TimelineView.tsx   ← COMPOSANT ACTIF
+       ├─ useTimelineScheduling (hook principal)
+       ├─ useDayPlanning (quotas)
+       ├─ TaskDeckPanel (panneau gauche : taches non planifiees)
+       │    └─ TaskDeckItem (carte dans le deck)
+       ├─ DayPlanningView (zone droite en mode jour)
+       │    └─ TimeBlockRow (3 colonnes : Matin | Apres-midi | Soir)
+       │         └─ ScheduledEventCard  ← CARTE DE TACHE PLANIFIEE
+       └─ WeekPlanningView (mode semaine)
+            └─ CompactDayColumn
 ```
 
-## Modifications
+## Probleme des couleurs
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+`ScheduledEventCard` (ligne 49) fait `(event as any).category` pour obtenir la couleur. Mais `TimeEvent` ne contient pas de champ `category` — il n'est jamais stocke ni transmis. Donc `categoryColor` vaut toujours `'bg-primary'` (couleur par defaut).
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+**Solution** : enrichir `ScheduledEventCard` en lui fournissant la categorie de la tache source. Deux approches possibles, la plus simple et performante :
+- Dans `TimelineView`, creer un `taskCategoryMap` (comme fait dans l'ancien fichier) et passer la categorie comme prop a `DayPlanningView` → `TimeBlockRow` → `ScheduledEventCard`.
+- Alternative : faire le lookup directement dans `ScheduledEventCard` via `useTasks` (mais plus lourd).
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+Je propose l'approche par map qui descend via props.
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+## Probleme du bouton "Aujourd'hui"
 
-### 3. `NotificationPanel.tsx` — Deja pret
+Le bouton actuel (ligne 332) est un simple `variant="ghost"` sans distinction visuelle quand on n'est pas sur le jour actuel. Il faut le rendre visible comme dans l'ancien correctif : style accentue + icone Home quand `selectedDate` n'est pas aujourd'hui.
 
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+## Plan d'implementation
 
-### 4. Outil d'insertion pour l'admin
+### 1. Bouton "Aujourd'hui" visible (`src/components/views/timeline/TimelineView.tsx`)
 
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
+- Ajouter `isSameDay` import et `isViewingToday` variable
+- Modifier le bouton de navigation pour qu'il soit `variant="default"` avec `animate-pulse` quand on n'est pas sur aujourd'hui, `variant="ghost"` sinon
 
-Je recommande l'**Option A** pour rester autonome.
+### 2. Couleurs de categorie dans les cartes planifiees
 
-## Details techniques
+**Fichiers touches** :
+- `src/components/views/timeline/TimelineView.tsx` : creer `taskCategoryMap` via `useTasks`, passer aux composants enfants
+- `src/components/timeline/planning/DayPlanningView.tsx` : accepter et transmettre `taskCategoryMap`
+- `src/components/timeline/planning/TimeBlockRow.tsx` : accepter et transmettre `taskCategoryMap`
+- `src/components/timeline/ScheduledEventCard.tsx` : accepter `category?: TaskCategory` en prop, l'utiliser au lieu du cast `(event as any).category`
+- `src/components/timeline/planning/WeekPlanningView.tsx` : meme pattern pour la vue semaine
 
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+Le `taskCategoryMap` associe `entityId → TaskCategory` pour que chaque `ScheduledEventCard` affiche la bonne couleur de barre laterale.
 
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
+### 3. Nettoyage de l'ancien fichier
 
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+- Supprimer `src/components/timeline/TimelineView.tsx` (orphelin, jamais utilise par l'app)
 
