@@ -76,27 +76,7 @@ interface SidebarTaskItemProps {
   onScheduleTask?: (taskId: string, date: Date, time: string) => void;
 }
 
-const getCategoryColor = (category: Task['category']) => {
-  switch (category) {
-    case 'Obligation':
-      return 'bg-category-obligation';
-    case 'Quotidien':
-      return 'bg-category-quotidien';
-    case 'Envie':
-      return 'bg-category-envie';
-    case 'Autres':
-      return 'bg-category-autres';
-    default:
-      return 'bg-muted';
-  }
-};
-
-const formatTime = (minutes: number) => {
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins ? `${hours}h${mins}` : `${hours}h`;
-};
+// Use centralized utilities instead of local duplicates
 
 const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   task,
