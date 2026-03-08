@@ -49,7 +49,7 @@ const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange, hasErr
       <div className="flex items-center justify-between">
         <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           <Timer className="w-3.5 h-3.5" />
-          Durée estimée
+          Durée estimée <span className="text-destructive">*</span>
         </Label>
         <span className={cn(
           'text-sm font-semibold tabular-nums transition-colors',
