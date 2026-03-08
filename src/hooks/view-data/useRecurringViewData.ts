@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useRecurringTasks } from '@/hooks/useRecurringTasks';
 import { useTimeEventSync } from '@/hooks/useTimeEventSync';
+import { useRepairSync } from '@/hooks/time-sync';
 import { Task } from '@/types/task';
 
 interface TaskSchedule {
@@ -16,6 +17,7 @@ interface TaskSchedule {
 export const useRecurringViewData = (tasks: Task[]) => {
   const { ensureRecurringTaskHasEvent, processRecurringTasks } = useRecurringTasks();
   const { deleteEntityEvent, syncTaskEventWithSchedule } = useTimeEventSync();
+  const { repairUnsyncedTasks } = useRepairSync();
 
   // État local pour récurrence et planification
   const [recurringTaskIds, setRecurringTaskIds] = useState<string[]>([]);
@@ -24,6 +26,9 @@ export const useRecurringViewData = (tasks: Task[]) => {
   // Charger les données de récurrence au montage
   useEffect(() => {
     const initRecurringTasks = async () => {
+      // Repair old unsynced tasks (runs once per user)
+      await repairUnsyncedTasks();
+      
       const reactivatedCount = await processRecurringTasks();
       if (reactivatedCount > 0) {
         console.log(`${reactivatedCount} tâche(s) récurrente(s) réactivée(s)`);
