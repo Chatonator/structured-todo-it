@@ -12,6 +12,7 @@ export interface Team {
   created_at: string;
   updated_at: string;
   invite_code: string;
+  permissions_config?: Record<string, any>;
 }
 
 export interface TeamMember {

@@ -205,10 +205,10 @@ export const useTeamViewData = () => {
     data: {
       currentTeam, teamMembers, stats, copiedCode, currentUserId,
       memberStats, teams, filteredTasks, tasks, activities,
-      labels, comments,
+      labels, comments, permissionsConfig,
     },
     state: {
-      viewState, isLoading, hasTeam, isEmpty, memberFilter, commentsLoading,
+      viewState, isLoading, hasTeam, isEmpty, memberFilter, commentsLoading, myRole,
     },
     actions: {
       handleCopyInviteCode, handleGoToTasks, handleGoToProjects, handleCreateTask,
@@ -220,6 +220,8 @@ export const useTeamViewData = () => {
       createLabel, updateLabel, deleteLabel, toggleTaskLabel, getTaskLabels, hasTaskLabel,
       // Comments
       loadTaskComments, handleAddComment, deleteComment, getCommentCount,
+      // Permissions
+      can, updatePermissionsConfig,
     },
   };
 };
