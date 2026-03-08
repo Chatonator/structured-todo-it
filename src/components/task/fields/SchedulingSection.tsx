@@ -17,11 +17,13 @@ interface SchedulingSectionProps {
 }
 
 const MINUTE_TICKS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-
-const TIME_BLOCKS = [
-  { label: '🌅 Matin', hours: [6, 7, 8, 9, 10, 11] },
-  { label: '☀️ Après-midi', hours: [12, 13, 14, 15, 16, 17] },
-  { label: '🌙 Soir', hours: [18, 19, 20, 21] },
+const HOUR_LANDMARKS = [
+  { hour: 6, label: '6h' },
+  { hour: 9, label: '9h' },
+  { hour: 12, label: '12h' },
+  { hour: 14, label: '14h' },
+  { hour: 18, label: '18h' },
+  { hour: 21, label: '21h' },
 ];
 
 function parseTime(time?: string): { hour: number; minute: number } {
