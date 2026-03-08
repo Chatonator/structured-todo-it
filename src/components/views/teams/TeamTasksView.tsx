@@ -13,31 +13,12 @@ import {
   Users, Plus, MoreVertical, FolderKanban, ListTodo,
   ArrowRight, UserPlus, Crown, Shield, Copy, Check
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useTeamViewData } from '@/hooks/view-data';
-import type { TeamMember, TeamRole } from '@/hooks/useTeams';
+import { TeamMembersList } from '@/components/team/TeamMembersList';
 
 interface TeamTasksViewProps {
   className?: string;
 }
-
-const getDisplayName = (member: TeamMember): string =>
-  member.profiles?.display_name || 'Membre';
-
-const RoleBadge = ({ role }: { role: TeamRole }) => {
-  const config = {
-    owner: { label: 'Propriétaire', icon: Crown, className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200' },
-    admin: { label: 'Admin', icon: Shield, className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' },
-    member: { label: 'Membre', icon: Users, className: 'bg-muted text-muted-foreground' },
-  }[role];
-  const Icon = config.icon;
-  return (
-    <Badge variant="outline" className={cn('gap-1 text-xs', config.className)}>
-      <Icon className="w-3 h-3" />
-      {config.label}
-    </Badge>
-  );
-};
 
 const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
   const { data, state, actions } = useTeamViewData();
