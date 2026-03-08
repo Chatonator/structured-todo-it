@@ -106,13 +106,9 @@ const ObservatoryTaskRow: React.FC<ObservatoryTaskRowProps> = ({
         {formatDuration(task.estimatedTime)}
       </span>
 
-      {/* Category badge */}
-      <Badge 
-        variant="secondary" 
-        className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", getCategoryColor(task.category))}
-      >
-        {task.category.slice(0, 3)}
-      </Badge>
+      <CategoryBadge category={task.category} size="sm" />
+
+      <ContextBadge context={task.context} size="sm" showLabel={false} />
 
       {/* Context badge */}
       <Badge 
