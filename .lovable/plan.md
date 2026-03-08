@@ -1,94 +1,39 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+# Paramètres de filtres : masquer Pro + configurer "Toutes"
 
-## Concept
+## Fonctionnalités
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+1. **Mode "Perso only"** : Un toggle qui masque complètement le pill "Pro" des filtres contextuels. Si le filtre actif est "Pro" au moment de l'activation, on bascule sur "all". Activé = Pro visible (défaut).
+2. **Filtre "Toutes" : inclure les équipes** : Un toggle + sélecteur d'équipes pour contrôler si le filtre "Toutes" inclut aussi les tâches d'équipe, et lesquelles. Par défaut : tout inclus.
 
-## Architecture
+## Changements
 
-```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
-```
+### `src/types/preferences.ts`
+Ajouter dans `UserPreferences` :
+- `showProContext: boolean` (défaut `true`) — affiche/masque le pill Pro
+- `allFilterIncludeTeams: boolean` (défaut `true`) — "Toutes" inclut les équipes
+- `allFilterTeamIds: string[]` (défaut `[]` = toutes) — liste des équipes incluses (vide = toutes)
 
-## Modifications
+Mettre à jour `DEFAULT_PREFERENCES`.
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+### `src/components/settings/sections/InterfaceSettings.tsx`
+Nouvelle section "Filtres contextuels" avec :
+- Toggle "Afficher le contexte Pro" (description : "Désactivez si vous utilisez l'app uniquement pour le perso")
+- Toggle "Inclure les équipes dans 'Toutes'" 
+- Si activé : liste des équipes avec checkboxes pour choisir lesquelles (nécessite `useTeamContext`)
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+### `src/components/layout/ContextPills.tsx`
+- Lire `preferences.showProContext` : si `false`, filtrer le pill "Pro" hors du tableau `contexts`
+- Lire `preferences.allFilterIncludeTeams` : potentiellement masquer le dropdown équipes quand on est sur "Toutes" si désactivé
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+### `src/components/layout/UnifiedContextSelector.tsx`
+- Même logique : masquer le bouton "Pro" si `showProContext === false`
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
-
-### 3. `NotificationPanel.tsx` — Deja pret
-
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
-
-### 4. Outil d'insertion pour l'admin
-
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
-
-Je recommande l'**Option A** pour rester autonome.
-
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+| Etape | Fichier |
+|-------|---------|
+| 1 | `preferences.ts` : nouveaux champs |
+| 2 | `InterfaceSettings.tsx` : nouvelle section filtres |
+| 3 | `ContextPills.tsx` : conditionner Pro + équipes |
+| 4 | `UnifiedContextSelector.tsx` : conditionner Pro |
 
