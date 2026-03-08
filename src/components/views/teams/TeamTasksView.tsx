@@ -355,10 +355,12 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      <Button onClick={actions.handleCreateTask} size="sm" className="gap-2">
-        <Plus className="w-4 h-4" />
-        Nouvelle tâche
-      </Button>
+      {actions.can('create_tasks') && (
+        <Button onClick={actions.handleCreateTask} size="sm" className="gap-2">
+          <Plus className="w-4 h-4" />
+          Nouvelle tâche
+        </Button>
+      )}
     </div>
   );
 
