@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ViewLayout } from '@/components/layout/view';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import {
   Users, Plus, FolderKanban, ListTodo,
-  ArrowRight, UserPlus, Copy, Check
+  ArrowRight, UserPlus, Copy, Check, Mail, Send
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
+import { useTeamContext } from '@/contexts/TeamContext';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
+import { PendingInvitationsCard } from '@/components/team/PendingInvitationsCard';
 
 interface TeamTasksViewProps {
   className?: string;
@@ -16,6 +21,21 @@ interface TeamTasksViewProps {
 
 const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
   const { data, state, actions } = useTeamViewData();
+  const { inviteByEmail, pendingInvitations, respondToInvitation } = useTeamContext();
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+
+  const handleInviteByEmail = async () => {
+    if (!inviteEmail.trim() || !data.currentTeam) return;
+    setInviteLoading(true);
+    const success = await inviteByEmail(data.currentTeam.id, inviteEmail.trim());
+    if (success) {
+      setInviteEmail('');
+      setIsInviteDialogOpen(false);
+    }
+    setInviteLoading(false);
+  };
 
   if (!state.hasTeam) {
     return (
@@ -29,6 +49,11 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
         }}
         className={className}
       >
+        {pendingInvitations.length > 0 && (
+          <div className="p-6">
+            <PendingInvitationsCard invitations={pendingInvitations} onRespond={respondToInvitation} />
+          </div>
+        )}
         <div />
       </ViewLayout>
     );
@@ -52,6 +77,11 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
       className={className}
     >
       <div className="space-y-6">
+        {/* Pending Invitations */}
+        {pendingInvitations.length > 0 && (
+          <PendingInvitationsCard invitations={pendingInvitations} onRespond={respondToInvitation} />
+        )}
+
         {/* Stats Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
@@ -153,10 +183,40 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                   {data.teamMembers.length} membre{data.teamMembers.length > 1 ? 's' : ''}
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="gap-2" onClick={actions.handleCopyInviteCode}>
-                <UserPlus className="w-4 h-4" />
-                Inviter
-              </Button>
+              <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Mail className="w-4 h-4" />
+                    Inviter par email
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-background">
+                  <DialogHeader>
+                    <DialogTitle>Inviter un membre</DialogTitle>
+                    <DialogDescription>
+                      Entrez l'adresse email d'un utilisateur inscrit pour l'inviter à rejoindre l'équipe.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="invite-email">Adresse email</Label>
+                      <Input
+                        id="invite-email"
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="membre@email.com"
+                        className="mt-1.5"
+                        onKeyDown={(e) => e.key === 'Enter' && handleInviteByEmail()}
+                      />
+                    </div>
+                    <Button onClick={handleInviteByEmail} className="w-full gap-2" disabled={inviteLoading || !inviteEmail.trim()}>
+                      <Send className="w-4 h-4" />
+                      {inviteLoading ? 'Envoi...' : 'Envoyer l\'invitation'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardHeader>
           <CardContent>
@@ -171,6 +231,5 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
     </ViewLayout>
   );
 };
-
 
 export default TeamTasksView;

@@ -13,7 +13,7 @@ import type { TeamMember, TeamRole } from '@/hooks/useTeams';
 // ─── Shared helpers ───
 
 export const getDisplayName = (member: TeamMember): string =>
-  member.profiles?.display_name || 'Membre';
+  member.profiles?.display_name || member.profiles?.email?.split('@')[0] || 'Membre';
 
 export const getMemberInitials = (name?: string): string => {
   if (!name) return '?';
@@ -57,7 +57,10 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, onUpdateRole, onRe
         </Avatar>
         <div>
           <p className="font-medium">{displayName}</p>
-          <p className="text-xs text-muted-foreground">
+          {member.profiles?.email && member.profiles.email !== displayName && (
+            <p className="text-xs text-muted-foreground">{member.profiles.email}</p>
+          )}
+          <p className="text-xs text-muted-foreground/70">
             Rejoint le {new Date(member.joined_at).toLocaleDateString('fr-FR')}
           </p>
         </div>

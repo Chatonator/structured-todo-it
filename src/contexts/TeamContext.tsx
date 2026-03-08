@@ -1,12 +1,13 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { useTeams } from '@/hooks/useTeams';
-import type { Team, TeamMember, TeamRole } from '@/hooks/useTeams';
+import type { Team, TeamMember, TeamRole, TeamInvitation } from '@/hooks/useTeams';
 
 interface TeamContextType {
   teams: Team[];
   currentTeam: Team | null;
   setCurrentTeam: (team: Team | null) => void;
   teamMembers: TeamMember[];
+  pendingInvitations: TeamInvitation[];
   loading: boolean;
   membersLoading: boolean;
   createTeam: (name: string) => Promise<void>;
@@ -14,8 +15,11 @@ interface TeamContextType {
   leaveTeam: (teamId: string) => Promise<void>;
   updateMemberRole: (teamId: string, targetUserId: string, newRole: TeamRole) => Promise<void>;
   removeMember: (teamId: string, targetUserId: string) => Promise<void>;
+  inviteByEmail: (teamId: string, email: string) => Promise<boolean>;
+  respondToInvitation: (invitationId: string, accept: boolean) => Promise<boolean>;
   refreshTeams: () => Promise<void>;
   refreshMembers: (teamId: string) => Promise<void>;
+  refreshInvitations: () => Promise<void>;
 }
 
 const TeamContext = createContext<TeamContextType | undefined>(undefined);

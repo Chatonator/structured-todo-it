@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNotifications, type Notification } from '@/hooks/useNotifications';
+import { useTeamContext } from '@/contexts/TeamContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Bell, Check, CheckCheck, Trash2, Info, Users, Sparkles, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, Info, Users, Sparkles, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -22,12 +23,26 @@ const NotificationItem: React.FC<{
   notification: Notification;
   onMarkRead: (id: string) => void;
   onDelete: (id: string) => void;
-}> = ({ notification, onMarkRead, onDelete }) => {
+  onRespondInvitation?: (invitationId: string, accept: boolean) => Promise<boolean>;
+}> = ({ notification, onMarkRead, onDelete, onRespondInvitation }) => {
   const [expanded, setExpanded] = useState(false);
+  const [responding, setResponding] = useState(false);
   const hasLongMessage = (notification.message?.length ?? 0) > MESSAGE_PREVIEW_LENGTH;
   const displayMessage = expanded
     ? notification.message
     : notification.message?.slice(0, MESSAGE_PREVIEW_LENGTH);
+
+  const metadata = notification.metadata as Record<string, unknown> | null;
+  const isTeamInvitation = metadata?.action === 'team_invitation';
+  const invitationId = metadata?.invitation_id as string | undefined;
+
+  const handleRespond = async (accept: boolean) => {
+    if (!invitationId || !onRespondInvitation) return;
+    setResponding(true);
+    await onRespondInvitation(invitationId, accept);
+    onMarkRead(notification.id);
+    setResponding(false);
+  };
 
   return (
     <div
@@ -63,6 +78,30 @@ const NotificationItem: React.FC<{
             )}
           </div>
         )}
+        {/* Inline invitation actions */}
+        {isTeamInvitation && !notification.is_read && invitationId && onRespondInvitation && (
+          <div className="flex items-center gap-2 mt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+              onClick={() => handleRespond(false)}
+              disabled={responding}
+            >
+              <X className="w-3 h-3" />
+              Refuser
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={() => handleRespond(true)}
+              disabled={responding}
+            >
+              <Check className="w-3 h-3" />
+              Accepter
+            </Button>
+          </div>
+        )}
         <p className="text-[11px] text-muted-foreground/70 mt-1">
           {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: fr })}
         </p>
@@ -83,6 +122,7 @@ const NotificationItem: React.FC<{
 
 export const NotificationPanel: React.FC = () => {
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+  const { respondToInvitation } = useTeamContext();
 
   return (
     <Popover>
@@ -135,6 +175,7 @@ export const NotificationPanel: React.FC = () => {
                   notification={n}
                   onMarkRead={markAsRead}
                   onDelete={deleteNotification}
+                  onRespondInvitation={respondToInvitation}
                 />
               ))}
             </div>

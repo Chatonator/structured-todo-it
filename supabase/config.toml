@@ -1,13 +1,19 @@
 project_id = "dqctsbahpxeosufvapln"
 
 [functions.create-team]
-verify_jwt = true
+verify_jwt = false
 
 [functions.join-team]
-verify_jwt = true
+verify_jwt = false
 
 [functions.manage-team-member]
-verify_jwt = true
+verify_jwt = false
 
 [functions.migrate-to-unified-time]
-verify_jwt = true
+verify_jwt = false
+
+[functions.invite-to-team]
+verify_jwt = false
+
+[functions.respond-to-invitation]
+verify_jwt = false
