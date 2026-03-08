@@ -54,14 +54,19 @@ const TaskDraftForm: React.FC<TaskDraftFormProps> = ({
 
       <NameField value={draft.name} onChange={(v) => onUpdate(index, 'name', v)} hasError={!draft.name.trim()} />
 
-      {config.showContextSelector && (
+      {parentTask ? (
+        <div>
+          <span className="text-sm text-muted-foreground">Contexte hérité :</span>
+          <Badge variant="secondary" className="ml-2">{draft.context || parentTask.context}</Badge>
+        </div>
+      ) : config.showContextSelector ? (
         <ContextSelector
           value={draft.context}
           onChange={(v) => onUpdate(index, 'context', v)}
           hasError={!draft.context}
           required={config.requiredFields.includes('context')}
         />
-      )}
+      ) : null}
 
       {parentTask ? (
         <PrioritySelector value={draft.subCategory} onChange={(v) => onUpdate(index, 'subCategory', v)} hasError={!draft.subCategory} />
