@@ -22,7 +22,18 @@ const Auth = () => {
   const [awaitingEmailConfirmation, setAwaitingEmailConfirmation] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState('');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const redirectTo = searchParams.get('redirect') || '/';
+
+  const getPostAuthUrl = () => {
+    const base = import.meta.env.BASE_URL || '/';
+    if (redirectTo && redirectTo !== '/') {
+      return `${window.location.origin}${base}#${redirectTo}`;
+    }
+    return `${window.location.origin}${base}`;
+  };
 
   const getRedirectUrl = (path: string = '') => {
     const publicUrl = import.meta.env.VITE_PUBLIC_URL;
