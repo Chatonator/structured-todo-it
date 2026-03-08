@@ -25,9 +25,12 @@ export const SidebarTeamTasksSection: React.FC<SidebarTeamTasksSectionProps> = (
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Filtrer uniquement les tâches non complétées
-  const activeTasks = tasks.filter(t => !t.isCompleted);
-  const completedCount = tasks.filter(t => t.isCompleted).length;
+  // Filtrer par utilisateur courant si disponible, puis par non-complétées
+  const myTasks = currentUserId
+    ? tasks.filter(t => t.assigned_to === currentUserId)
+    : tasks;
+  const activeTasks = myTasks.filter(t => !t.isCompleted);
+  const completedCount = myTasks.filter(t => t.isCompleted).length;
 
   if (tasks.length === 0) return null;
 
