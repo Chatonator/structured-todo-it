@@ -18,6 +18,7 @@ export const useTeamViewData = () => {
   const { user } = useAuth();
   const { tasks, loading: tasksLoading, assignTask, toggleComplete } = useTeamTasks(currentTeam?.id ?? null);
   const { projects, loading: projectsLoading } = useTeamProjects(currentTeam?.id ?? null);
+  const { activities, loading: activityLoading } = useTeamActivity(currentTeam?.id ?? null);
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState(false);
   const [memberFilter, setMemberFilter] = useState<string | null>(null);
