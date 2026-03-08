@@ -1,94 +1,93 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+# Unification de l'affichage des tâches et enrichissement du TaskLinker
 
-## Concept
+## Constat : duplications identifiées
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+L'audit révèle **3 catégories de duplications** systématiques :
 
-## Architecture
+### 1. Fonctions utilitaires dupliquées localement
+| Fonction | Fichiers dupliqués | Alternative centralisée existante |
+|---|---|---|
+| `getCategoryColor()` (switch) | `SidebarTaskItem`, `TaskFolders` | `getCategoryIndicatorColor()` dans `lib/styling` |
+| `getCategoryBadgeClass()` (switch) | `TaskTableRow` | `getCategoryClasses()` dans `lib/styling` |
+| `formatTime()` (minutes→string) | `SidebarTaskItem`, `SidebarListItem`, `TaskFolders` | `formatDuration()` dans `lib/formatters` |
+
+### 2. Lignes de tâche reconstruites partout
+Chaque endroit qui affiche une tâche reconstruit : nom + barre catégorie + durée + badge contexte + badge priorité. On a au moins **6 variantes** : `TaskCard`, `TaskDeckItem`, `SidebarTaskItem`, `TaskTableRow`, `TaskRow` (TaskLinker), `TaskItem` (Rule135).
+
+### 3. TaskLinker trop basique
+Le TaskLinker actuel n'a que 2 filtres (recherche + contexte Pro/Perso) et un affichage minimal. Il n'utilise pas les badges primitives existantes (`PriorityBadge`, `CategoryBadge`) de façon cohérente.
+
+---
+
+## Plan de refactorisation
+
+### Phase 1 — Supprimer les duplications utilitaires
+
+**Fichiers modifiés** : `SidebarTaskItem.tsx`, `SidebarListItem.tsx`, `TaskFolders.tsx`, `TaskTableRow.tsx`
+
+- Supprimer les fonctions locales `getCategoryColor`, `getCategoryBadgeClass`, `formatTime`
+- Remplacer par les imports centralisés : `getCategoryIndicatorColor`, `getCategoryClasses`, `formatDuration`
+
+### Phase 2 — Créer un composant `TaskRow` primitif
+
+**Nouveau fichier** : `src/components/primitives/cards/TaskRow.tsx`
+
+Un composant d'affichage de ligne de tâche unifié avec variantes, réutilisable dans le TaskLinker, les listes, les outils :
 
 ```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
+<TaskRow
+  task={task}
+  variant="compact" | "default" | "chip"
+  showCategory={true}
+  showPriority={true}
+  showContext={true}
+  showDuration={true}
+  onClick / onSelect / onRemove
+  actionSlot={ReactNode}
+/>
 ```
 
-## Modifications
+- Utilise `CategoryBadge`, `PriorityBadge`, `ContextBadge` des primitives
+- Barre de couleur catégorie via `getCategoryIndicatorColor`
+- Durée via `formatDuration`
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+### Phase 3 — Enrichir le TaskLinker
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+**Fichiers modifiés** : `useTaskLinker.ts`, `TaskLinker.tsx`
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+**Nouveaux filtres dans le hook** :
+- Filtre par **catégorie** (Obligation/Quotidien/Envie/Autres)
+- Filtre par **priorité** (Le plus important → Si j'ai le temps)
+- Import des options depuis `config/taskFilterOptions.ts` (déjà existant)
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+**Améliorations UI** :
+- Utiliser le nouveau `TaskRow` au lieu du `TaskRow` interne
+- Chips de filtres catégorie avec couleurs du design system
+- Chips de filtres priorité avec couleurs
+- Les chips sélectionnés (`SelectedChip`) affichent barre catégorie + badges complets
+- Compteur de résultats filtrés
 
-### 3. `NotificationPanel.tsx` — Deja pret
+### Phase 4 — Migrer les outils existants
 
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+**Fichiers modifiés** : `Rule135Tool.tsx` (son `TaskItem` interne → `TaskRow` primitif)
 
-### 4. Outil d'insertion pour l'admin
+Le `TaskRow` dans le TaskLinker sera automatiquement mis à jour pour tous les outils qui l'utilisent (Pomodoro, Rule135).
 
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
+---
 
-Je recommande l'**Option A** pour rester autonome.
+## Fichiers impactés
 
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+| Fichier | Action |
+|---|---|
+| `src/components/primitives/cards/TaskRow.tsx` | **Nouveau** — ligne de tâche réutilisable |
+| `src/components/primitives/cards/index.ts` | Export `TaskRow` |
+| `src/components/views/toolbox/shared/useTaskLinker.ts` | Ajouter filtres catégorie + priorité |
+| `src/components/views/toolbox/shared/TaskLinker.tsx` | Enrichir UI, utiliser `TaskRow`, ajouter filtres |
+| `src/components/views/toolbox/tools/rule135/Rule135Tool.tsx` | Utiliser `TaskRow` au lieu du `TaskItem` local |
+| `src/components/sidebar/SidebarTaskItem.tsx` | Supprimer `getCategoryColor` et `formatTime` locaux |
+| `src/components/sidebar/SidebarListItem.tsx` | Supprimer `formatTime` local |
+| `src/components/views/observatory/components/TaskTableRow.tsx` | Supprimer `getCategoryBadgeClass` local, utiliser `CategoryBadge` |
+| `src/components/views/observatory/components/TaskFolders.tsx` | Supprimer `getCategoryColor` et `formatTime` locaux |
 
