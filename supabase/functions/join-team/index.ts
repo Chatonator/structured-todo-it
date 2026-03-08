@@ -5,9 +5,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+// Simple in-memory rate limiting (resets on redeploy)
+const failedAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = failedAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    return false;
+  }
+  return entry.count >= 5;
+}
+
+function recordFailure(ip: string): void {
+  const now = Date.now();
+  const entry = failedAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    failedAttempts.set(ip, { count: 1, resetAt: now + 60_000 });
+  } else {
+    entry.count++;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+
+  if (isRateLimited(clientIp)) {
+    return new Response(
+      JSON.stringify({ error: 'Trop de tentatives. Réessayez dans une minute.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
@@ -47,21 +78,24 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Strip dashes and normalize
+    const cleanCode = inviteCode.replace(/-/g, '').trim().toUpperCase();
+
     // Find team by invite code
     const { data: team, error: teamError } = await supabaseClient
       .from('teams')
       .select('id, name, created_by, invite_link_enabled, code_join_role')
-      .eq('invite_code', inviteCode.trim().toUpperCase())
+      .eq('invite_code', cleanCode)
       .single();
 
     if (teamError || !team) {
+      recordFailure(clientIp);
       return new Response(
         JSON.stringify({ error: 'Invalid invite code' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if invitations via code are enabled
     if (!team.invite_link_enabled) {
       return new Response(
         JSON.stringify({ error: 'Les inscriptions via code sont désactivées pour cette équipe' }),
@@ -84,7 +118,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use the configurable role (default: 'guest')
     const joinRole = team.code_join_role || 'guest';
 
     const { error: memberError } = await supabaseClient

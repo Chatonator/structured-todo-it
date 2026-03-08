@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-function generateCode(length = 8): string {
+function generateCode(length = 12): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   const arr = new Uint8Array(length);
@@ -58,7 +58,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check caller is admin or owner
     const { data: member } = await supabaseClient
       .from('team_members')
       .select('role')
