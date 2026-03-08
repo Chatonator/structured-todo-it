@@ -3,7 +3,9 @@
  */
 
 import { RecurrenceConfig, RecurrenceFrequency, TimeBlock } from '@/lib/time/types';
+import { getPriorityLevel } from '@/lib/styling';
 import { Habit } from '@/types/habit';
+import { SubTaskCategory } from '@/types/task';
 
 /** Format date as YYYY-MM-DD in local timezone (avoids UTC shift from toISOString) */
 export const toLocalDateString = (date: Date): string => {
@@ -69,13 +71,7 @@ export const mapHabitRecurrence = (habit: Habit): RecurrenceConfig => {
 
 /** Map subCategory to priority number */
 export const getPriorityFromSubCategory = (subCategory: string): number => {
-  const priorityMap: Record<string, number> = {
-    'Le plus important': 4,
-    'Important': 3,
-    'Peut attendre': 2,
-    "Si j'ai le temps": 1
-  };
-  return priorityMap[subCategory] || 0;
+  return getPriorityLevel(subCategory as SubTaskCategory);
 };
 
 /** Schedule info interface shared across sync hooks */

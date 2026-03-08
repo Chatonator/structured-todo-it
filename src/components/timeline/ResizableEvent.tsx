@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { CheckCircle, GripVertical, Clock, MoreVertical } from 'lucide-react';
 import { TimeEvent } from '@/lib/time/types';
 import { formatDuration } from '@/lib/formatters';
+import { getPriorityEventClasses } from '@/lib/styling';
 import { EventContextMenu } from './EventContextMenu';
 
 interface ResizableEventProps {
@@ -93,15 +94,8 @@ export const ResizableEvent: React.FC<ResizableEventProps> = ({
   };
 
   const isCompleted = event.status === 'completed';
-  const priorityColors: Record<number, string> = {
-    4: 'bg-priority-highest/20 border-l-priority-highest',
-    3: 'bg-priority-high/20 border-l-priority-high',
-    2: 'bg-priority-medium/20 border-l-priority-medium',
-    1: 'bg-priority-low/20 border-l-priority-low',
-  };
-
   const colorClass = event.priority 
-    ? priorityColors[event.priority] || 'bg-primary/20 border-l-primary'
+    ? getPriorityEventClasses(event.priority)
     : 'bg-primary/20 border-l-primary';
 
   const displayHeight = isResizing ? resizeHeight : height;

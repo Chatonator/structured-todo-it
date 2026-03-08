@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Search, Clock, ListTodo, ChevronDown, ChevronUp, Folder, User, Users } from 'lucide-react';
 import { Task, TaskCategory } from '@/types/task';
+import { getPriorityLevel } from '@/lib/styling';
 import { DraggableTask } from './DraggableTask';
 import { formatDuration } from '@/lib/formatters';
 import { Project } from '@/types/project';
@@ -75,14 +76,8 @@ export const UnscheduledTasksPanel: React.FC<UnscheduledTasksPanelProps> = ({
     result.sort((a, b) => {
       switch (sortBy) {
         case 'priority': {
-          const priorityMap = {
-            'Le plus important': 4,
-            'Important': 3,
-            'Peut attendre': 2,
-            "Si j'ai le temps": 1
-          };
-          const aPriority = a.subCategory ? priorityMap[a.subCategory] || 0 : 0;
-          const bPriority = b.subCategory ? priorityMap[b.subCategory] || 0 : 0;
+          const aPriority = getPriorityLevel(a.subCategory);
+          const bPriority = getPriorityLevel(b.subCategory);
           return bPriority - aPriority;
         }
         case 'duration':

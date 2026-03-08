@@ -7,7 +7,8 @@
 import { TimeEvent, TimeEventRow, RecurrenceConfig, RecurrenceFrequency, TimeBlock } from './types';
 import { Task, RecurrenceInterval } from '@/types/task';
 import { Habit } from '@/types/habit';
-import { CATEGORY_CONFIG } from '@/types/task';
+import { CATEGORY_CONFIG, SubTaskCategory } from '@/types/task';
+import { getPriorityLevel } from '@/lib/styling';
 
 export class EventNormalizer {
   /**
@@ -136,12 +137,6 @@ export class EventNormalizer {
   }
 
   static mapPriority(subCategory: string): number {
-    const priorityMap: Record<string, number> = {
-      'Le plus important': 4,
-      'Important': 3,
-      'Peut attendre': 2,
-      'Si j\'ai le temps': 1
-    };
-    return priorityMap[subCategory] || 2;
+    return getPriorityLevel(subCategory as SubTaskCategory);
   }
 }
