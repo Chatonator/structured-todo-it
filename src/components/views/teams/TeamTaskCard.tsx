@@ -142,7 +142,7 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
       )}
 
       {/* Self-assign button for unassigned tasks */}
-      {isUnassigned && !task.isCompleted && (
+      {isUnassigned && !task.isCompleted && can('assign_self') && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
