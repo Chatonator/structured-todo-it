@@ -26,7 +26,7 @@ import {
   CheckCircle,
   ListTodo,
   CalendarDays,
-  Plus
+  Home
 } from 'lucide-react';
 import { format, addDays, startOfDay, endOfDay, startOfWeek, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
