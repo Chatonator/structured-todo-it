@@ -9,11 +9,13 @@ interface TeamTask {
   isCompleted: boolean;
   category: string;
   estimatedTime: number;
+  assigned_to?: string | null;
 }
 
 interface SidebarTeamTasksSectionProps {
   tasks: TeamTask[];
   onToggleComplete: (taskId: string) => void;
+  currentUserId?: string;
 }
 
 export const SidebarTeamTasksSection: React.FC<SidebarTeamTasksSectionProps> = ({
