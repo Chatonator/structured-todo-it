@@ -961,28 +961,34 @@ export type Database = {
       }
       teams: {
         Row: {
+          code_join_role: string
           created_at: string
           created_by: string
           id: string
           invite_code: string
+          invite_link_enabled: boolean
           name: string
           permissions_config: Json
           updated_at: string
         }
         Insert: {
+          code_join_role?: string
           created_at?: string
           created_by: string
           id?: string
           invite_code: string
+          invite_link_enabled?: boolean
           name: string
           permissions_config?: Json
           updated_at?: string
         }
         Update: {
+          code_join_role?: string
           created_at?: string
           created_by?: string
           id?: string
           invite_code?: string
+          invite_link_enabled?: boolean
           name?: string
           permissions_config?: Json
           updated_at?: string

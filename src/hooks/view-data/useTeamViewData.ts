@@ -17,7 +17,7 @@ import type { TeamRole } from '@/hooks/useTeams';
 import type { TeamTask } from '@/hooks/useTeamTasks';
 
 export const useTeamViewData = () => {
-  const { currentTeam, teamMembers, updateMemberRole, removeMember, leaveTeam, teams, setCurrentTeam } = useTeamContext();
+  const { currentTeam, teamMembers, updateMemberRole, removeMember, leaveTeam, teams, setCurrentTeam, regenerateInviteCode, updateTeamSettings } = useTeamContext();
   const { setCurrentView, setIsModalOpen } = useApp();
   const { user } = useAuth();
   const { tasks, loading: tasksLoading, assignTask, toggleComplete, blockTask, unblockTask } = useTeamTasks(currentTeam?.id ?? null);
@@ -96,6 +96,32 @@ export const useTeamViewData = () => {
       setTimeout(() => setCopiedCode(false), 2000);
     }
   }, [currentTeam?.invite_code, toast]);
+
+  const handleCopyInviteLink = useCallback(() => {
+    if (currentTeam?.invite_code) {
+      const link = `${window.location.origin}${import.meta.env.BASE_URL}#/join/${currentTeam.invite_code}`;
+      navigator.clipboard.writeText(link);
+      toast({ title: "Lien copié !", description: "Le lien d'invitation a été copié." });
+    }
+  }, [currentTeam?.invite_code, toast]);
+
+  const handleRegenerateCode = useCallback(async () => {
+    if (currentTeam) {
+      await regenerateInviteCode(currentTeam.id);
+    }
+  }, [currentTeam, regenerateInviteCode]);
+
+  const handleToggleInviteLink = useCallback(async (enabled: boolean) => {
+    if (currentTeam) {
+      await updateTeamSettings(currentTeam.id, { invite_link_enabled: enabled });
+    }
+  }, [currentTeam, updateTeamSettings]);
+
+  const handleSetCodeJoinRole = useCallback(async (role: string) => {
+    if (currentTeam) {
+      await updateTeamSettings(currentTeam.id, { code_join_role: role });
+    }
+  }, [currentTeam, updateTeamSettings]);
 
   const handleGoToTasks = useCallback(() => setCurrentView('tasks'), [setCurrentView]);
   const handleGoToProjects = useCallback(() => setCurrentView('projects'), [setCurrentView]);
@@ -211,7 +237,9 @@ export const useTeamViewData = () => {
       viewState, isLoading, hasTeam, isEmpty, memberFilter, commentsLoading, myRole,
     },
     actions: {
-      handleCopyInviteCode, handleGoToTasks, handleGoToProjects, handleCreateTask,
+      handleCopyInviteCode, handleCopyInviteLink,
+      handleRegenerateCode, handleToggleInviteLink, handleSetCodeJoinRole,
+      handleGoToTasks, handleGoToProjects, handleCreateTask,
       handleUpdateRole, handleRemoveMember, handleLeaveTeam, handleSwitchTeam,
       handleAssignTask, handleAssignToMe, handleToggleComplete,
       handleRequestHelp, handleEncourage, handleBlockTask, handleUnblockTask,

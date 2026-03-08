@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,18 @@ const Auth = () => {
   const [awaitingEmailConfirmation, setAwaitingEmailConfirmation] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState('');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const redirectTo = searchParams.get('redirect') || '/';
+
+  const getPostAuthUrl = () => {
+    const base = import.meta.env.BASE_URL || '/';
+    if (redirectTo && redirectTo !== '/') {
+      return `${window.location.origin}${base}#${redirectTo}`;
+    }
+    return `${window.location.origin}${base}`;
+  };
 
   const getRedirectUrl = (path: string = '') => {
     const publicUrl = import.meta.env.VITE_PUBLIC_URL;
@@ -35,7 +46,7 @@ const Auth = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate(import.meta.env.BASE_URL || '/');
+        navigate(redirectTo);
       }
     };
     
@@ -48,7 +59,7 @@ const Auth = () => {
           title: "Email confirmé !",
           description: "Votre compte a été activé avec succès.",
         });
-        window.location.href = import.meta.env.BASE_URL || '/';
+        window.location.href = getPostAuthUrl();
       }
     });
 
@@ -110,7 +121,7 @@ const Auth = () => {
         });
         
         // Force page reload for clean state
-        window.location.href = import.meta.env.BASE_URL || '/';
+        window.location.href = getPostAuthUrl();
       }
     } catch (error: any) {
       setError('An unexpected error occurred. Please try again.');
@@ -172,7 +183,7 @@ const Auth = () => {
             title: "Compte créé !",
             description: "Bienvenue sur To-Do-iT !",
           });
-          window.location.href = import.meta.env.BASE_URL || '/';
+          window.location.href = getPostAuthUrl();
         } else {
           // Email confirmation required
           setConfirmationEmail(email);

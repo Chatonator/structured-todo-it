@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Switch } from '@/components/ui/switch';
 import { ViewLayout } from '@/components/layout/view';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ import {
   Users, Plus, FolderKanban, ListTodo,
   ArrowRight, Copy, Check, Mail, Send, LogIn,
   ChevronDown, LogOut, Sparkles, Rocket, UserCircle, AlertTriangle,
-  Tag, Trash2, Pencil, Shield
+  Tag, Trash2, Pencil, Shield, Link2, RefreshCw, KeyRound
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { useTeamContext } from '@/contexts/TeamContext';
@@ -433,22 +434,6 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
               </CardContent>
             </Card>
 
-            {actions.can('view_invite_code') && (
-              <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={actions.handleCopyInviteCode}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Code d'invitation</p>
-                      <p className="text-lg font-mono font-bold truncate max-w-[120px]">
-                        {data.currentTeam!.invite_code}
-                      </p>
-                    </div>
-                    {data.copiedCode ? <Check className="w-6 h-6 text-primary" /> : <Copy className="w-6 h-6 text-muted-foreground/50" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">Cliquez pour copier</p>
-                </CardContent>
-              </Card>
-            )}
             {data.stats.overdueTasks > 0 && (
               <Card>
                 <CardContent className="pt-6">
@@ -466,7 +451,176 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
           </div>
         )}
 
-        {/* Workload + Activity */}
+        {/* Invitations & Accès */}
+        {(actions.can('manage_members') || actions.can('view_invite_code')) && (
+          <Collapsible>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <KeyRound className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                      <CardTitle className="text-lg">Invitations & Accès</CardTitle>
+                      <CardDescription>Gérez les moyens de rejoindre l'équipe</CardDescription>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto transition-transform [[data-state=open]_&]:rotate-180" />
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-6">
+                  {/* 1. Email invitation */}
+                  {actions.can('manage_members') && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-primary" />
+                        <h4 className="font-medium text-sm">Invitation par email</h4>
+                        <Badge variant="secondary" className="text-xs">Membre</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        L'invité rejoint en tant que <strong>Membre</strong>. Il doit avoir un compte ou en créer un.
+                      </p>
+                      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-2">
+                            <Send className="w-4 h-4" />
+                            Inviter par email
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-background">
+                          <DialogHeader>
+                            <DialogTitle>Inviter un membre</DialogTitle>
+                            <DialogDescription>
+                              Entrez l'adresse email d'un utilisateur pour l'inviter. Il rejoint en tant que Membre.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="invite-email">Adresse email</Label>
+                              <Input
+                                id="invite-email"
+                                type="email"
+                                value={inviteEmail}
+                                onChange={(e) => setInviteEmail(e.target.value)}
+                                placeholder="membre@email.com"
+                                className="mt-1.5"
+                                onKeyDown={(e) => e.key === 'Enter' && handleInviteByEmail()}
+                              />
+                            </div>
+                            <Button onClick={handleInviteByEmail} className="w-full gap-2" disabled={inviteLoading || !inviteEmail.trim()}>
+                              <Send className="w-4 h-4" />
+                              {inviteLoading ? 'Envoi...' : "Envoyer l'invitation"}
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
+
+                  {/* 2. Shareable link */}
+                  {actions.can('view_invite_code') && (
+                    <div className="space-y-3 border-t border-border pt-4">
+                      <div className="flex items-center gap-2">
+                        <Link2 className="w-4 h-4 text-primary" />
+                        <h4 className="font-medium text-sm">Lien partageable</h4>
+                        <Badge variant="outline" className="text-xs">Invité</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Les visiteurs peuvent consulter l'équipe sans compte. Ils devront se connecter pour être promus.
+                      </p>
+                      <Button variant="outline" size="sm" className="gap-2" onClick={actions.handleCopyInviteLink}>
+                        <Link2 className="w-4 h-4" />
+                        Copier le lien
+                      </Button>
+
+                      {/* Toggle invite link enabled */}
+                      {actions.can('manage_members') && (
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm">Autoriser les nouvelles inscriptions via lien/code</Label>
+                          <Switch
+                            checked={data.currentTeam?.invite_link_enabled ?? true}
+                            onCheckedChange={(checked) => actions.handleToggleInviteLink(checked)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 3. Invite code */}
+                  {actions.can('view_invite_code') && (
+                    <div className="space-y-3 border-t border-border pt-4">
+                      <div className="flex items-center gap-2">
+                        <KeyRound className="w-4 h-4 text-primary" />
+                        <h4 className="font-medium text-sm">Code d'invitation</h4>
+                        <Badge variant="outline" className="text-xs">
+                          {data.currentTeam?.code_join_role === 'member' ? 'Membre' : 'Invité'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Nécessite un compte. Le rôle à l'arrivée est configurable par un admin.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="bg-muted px-3 py-1.5 rounded font-mono text-sm font-bold tracking-wider">
+                          {data.currentTeam?.invite_code}
+                        </code>
+                        <Button variant="ghost" size="sm" onClick={actions.handleCopyInviteCode}>
+                          {data.copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                      </div>
+
+                      {actions.can('manage_members') && (
+                        <div className="flex flex-wrap items-center gap-3">
+                          {/* Regenerate code */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="gap-2">
+                                <RefreshCw className="w-4 h-4" />
+                                Régénérer
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Régénérer le code ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  L'ancien code ne fonctionnera plus. Les liens partagés précédemment seront invalides.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={actions.handleRegenerateCode}>
+                                  Régénérer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+
+                          {/* Code join role selector */}
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">Rôle à l'arrivée :</Label>
+                            <Select
+                              value={data.currentTeam?.code_join_role || 'guest'}
+                              onValueChange={(v) => actions.handleSetCodeJoinRole(v)}
+                            >
+                              <SelectTrigger className="w-[130px] h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="guest">Invité (sécurisé)</SelectItem>
+                                <SelectItem value="member">Membre</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
+
+
         {!state.isEmpty && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TeamWorkloadCard
@@ -593,42 +747,6 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                   {data.teamMembers.length} membre{data.teamMembers.length > 1 ? 's' : ''}
                 </CardDescription>
               </div>
-              {actions.can('manage_members') && (
-                <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Mail className="w-4 h-4" />
-                      Inviter par email
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-background">
-                    <DialogHeader>
-                      <DialogTitle>Inviter un membre</DialogTitle>
-                      <DialogDescription>
-                        Entrez l'adresse email d'un utilisateur inscrit pour l'inviter à rejoindre l'équipe.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="invite-email">Adresse email</Label>
-                        <Input
-                          id="invite-email"
-                          type="email"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                          placeholder="membre@email.com"
-                          className="mt-1.5"
-                          onKeyDown={(e) => e.key === 'Enter' && handleInviteByEmail()}
-                        />
-                      </div>
-                      <Button onClick={handleInviteByEmail} className="w-full gap-2" disabled={inviteLoading || !inviteEmail.trim()}>
-                        <Send className="w-4 h-4" />
-                        {inviteLoading ? 'Envoi...' : "Envoyer l'invitation"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
             </div>
           </CardHeader>
           <CardContent>
