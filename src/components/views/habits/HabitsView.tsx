@@ -127,6 +127,7 @@ const HabitsView = () => {
             onClose={actions.handleCloseHabitModal}
             onSave={actions.handleHabitSave}
             habit={data.editingHabit}
+            defaultContext={habitDefaultContext}
           />
         </div>
       </ViewLayout>

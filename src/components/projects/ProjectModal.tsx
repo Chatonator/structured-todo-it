@@ -72,7 +72,7 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       setStatus('planning');
       setTargetDate('');
       setSelectedTeamId(teamId || currentTeam?.id || null);
-      setContext('Perso');
+      setContext(defaultContext || 'Perso');
       setCategory('Autres');
     }
   }, [project, initialName, open, teamId, currentTeam?.id]);

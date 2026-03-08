@@ -116,6 +116,7 @@ export const ProjectsView = () => {
         onSave={data.selectedProject ? actions.handleUpdateProject : actions.handleCreateProject}
         project={data.selectedProject}
         teamId={data.teamId ?? undefined}
+        defaultContext={projectDefaultContext}
       />
     </>
   );

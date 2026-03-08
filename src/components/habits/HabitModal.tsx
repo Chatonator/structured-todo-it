@@ -111,7 +111,7 @@ const HabitModal: React.FC<HabitModalProps> = ({
       userId: '',
       name,
       category: 'Quotidien',
-      context: 'Perso',
+      context: defaultContext || 'Perso',
       estimatedTime: 15,
       description: description || undefined,
       deckId: habit?.deckId || '',

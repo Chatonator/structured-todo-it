@@ -117,7 +117,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
               )}
             >
               <Plus className="w-4 h-4" />
-              {!isMobile && <span>{currentTeam ? 'Tâche équipe' : 'Nouvelle tâche'}</span>}
+              {!isMobile && <span>{
+                currentTeam ? 'Tâche équipe' 
+                : contextFilter === 'Perso' ? 'Tâche Perso'
+                : contextFilter === 'Pro' ? 'Tâche Pro'
+                : 'Nouvelle tâche'
+              }</span>}
             </Button>
             
             {!isMobile && <UserProfileBlock />}

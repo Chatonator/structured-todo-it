@@ -131,6 +131,7 @@ const IndexContent: React.FC = () => {
           onClose={() => setIsModalOpen(false)}
           onAddTask={handleAddTask}
           taskType={currentTeam ? 'team' : 'personal'}
+          defaultContext={contextFilter !== 'all' ? contextFilter as 'Pro' | 'Perso' : undefined}
         />
       </div>
     </SidebarProvider>

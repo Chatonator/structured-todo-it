@@ -40,7 +40,7 @@ interface ScheduleInfo {
 
 const TaskModal: React.FC<TaskModalProps> = ({ 
   isOpen, onClose, onAddTask, onUpdateTask, 
-  parentTask, editingTask, projectId, taskType = 'personal', teamMembers
+  parentTask, editingTask, projectId, taskType = 'personal', teamMembers, defaultContext
 }) => {
   const config = getTaskTypeConfig(taskType);
   const defaults = getDefaultsForTaskType(taskType);
@@ -48,7 +48,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const createEmptyDraft = (): TaskDraft => ({
     name: '', category: parentTask ? parentTask.category : (defaults.category || ''),
     subCategory: defaults.subCategory || '',
-    context: parentTask ? parentTask.context : (defaults.context || ''),
+    context: parentTask ? parentTask.context : (defaultContext || defaults.context || ''),
     estimatedTime: '', isRecurring: false, assignedTo: null
   });
 
