@@ -1,29 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Plus, 
   X, 
   Target, 
   ListTodo, 
   Sparkles,
   Clock,
   CheckCircle2,
-  ChevronDown
 } from 'lucide-react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { formatDuration } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { ToolProps } from '../types';
 import { useRule135Tool, TaskSlot } from './useRule135Tool';
 import { Task } from '@/types/task';
+import { TaskLinker } from '../../shared/TaskLinker';
+import { useTaskLinker } from '../../shared/useTaskLinker';
 
 const SLOT_CONFIG = {
   big: {
@@ -32,7 +26,8 @@ const SLOT_CONFIG = {
     icon: Target,
     color: 'text-system-error',
     bgColor: 'bg-system-error/10',
-    borderColor: 'border-system-error/30'
+    borderColor: 'border-system-error/30',
+    max: 1,
   },
   medium: {
     title: 'MEDIUM',
@@ -40,7 +35,8 @@ const SLOT_CONFIG = {
     icon: ListTodo,
     color: 'text-system-warning',
     bgColor: 'bg-system-warning/10',
-    borderColor: 'border-system-warning/30'
+    borderColor: 'border-system-warning/30',
+    max: 3,
   },
   small: {
     title: 'SMALL',
@@ -48,8 +44,9 @@ const SLOT_CONFIG = {
     icon: Sparkles,
     color: 'text-system-info',
     bgColor: 'bg-system-info/10',
-    borderColor: 'border-system-info/30'
-  }
+    borderColor: 'border-system-info/30',
+    max: 5,
+  },
 } as const;
 
 interface TaskItemProps {
@@ -100,75 +97,11 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove }) =
   );
 };
 
-interface TaskSelectorProps {
-  tasks: Task[];
-  slot: TaskSlot;
-  onSelect: (taskId: string, slot: TaskSlot) => void;
-  disabled?: boolean;
-}
-
-const TaskSelector: React.FC<TaskSelectorProps> = ({ tasks, slot, onSelect, disabled }) => {
-  const [open, setOpen] = useState(false);
-  const config = SLOT_CONFIG[slot];
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={disabled || tasks.length === 0}
-          className={cn(
-            "w-full justify-start gap-2 border-dashed",
-            config.borderColor
-          )}
-        >
-          <Plus className="w-4 h-4" />
-          Ajouter une tâche...
-          <ChevronDown className="w-4 h-4 ml-auto" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
-        <div className="p-2 border-b">
-          <div className="text-sm font-medium">Sélectionner une tâche</div>
-          <div className="text-xs text-muted-foreground">
-            {tasks.length} tâche{tasks.length > 1 ? 's' : ''} disponible{tasks.length > 1 ? 's' : ''}
-          </div>
-        </div>
-        <ScrollArea className="h-[250px]">
-          <div className="p-2 space-y-1">
-            {tasks.map(task => (
-              <button
-                key={task.id}
-                className="w-full text-left p-2 rounded-md hover:bg-accent transition-colors"
-                onClick={() => {
-                  onSelect(task.id, slot);
-                  setOpen(false);
-                }}
-              >
-                <div className="font-medium truncate text-sm">{task.name}</div>
-                <div className="text-xs text-muted-foreground flex items-center gap-2">
-                  {task.estimatedTime > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatDuration(task.estimatedTime)}
-                    </span>
-                  )}
-                  <span>{task.category}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
-      </PopoverContent>
-    </Popover>
-  );
-};
-
+// ─── Slot section using TaskLinker ───
 interface SlotSectionProps {
   slot: TaskSlot;
   tasks: Task[];
-  unselectedTasks: Task[];
+  allSelectedIds: string[];
   slotInfo: { filled: boolean; max: number; current: number };
   onAdd: (taskId: string, slot: TaskSlot) => void;
   onRemove: (taskId: string, slot: TaskSlot) => void;
@@ -178,15 +111,25 @@ interface SlotSectionProps {
 const SlotSection: React.FC<SlotSectionProps> = ({
   slot,
   tasks,
-  unselectedTasks,
+  allSelectedIds,
   slotInfo,
   onAdd,
   onRemove,
-  onToggle
+  onToggle,
 }) => {
   const config = SLOT_CONFIG[slot];
   const Icon = config.icon;
   const completedCount = tasks.filter(t => t.isCompleted).length;
+
+  const linker = useTaskLinker({
+    mode: config.max === 1 ? 'single' : 'multi',
+    maxSelection: config.max,
+    excludeIds: allSelectedIds,
+  });
+
+  const handleSelect = (id: string) => {
+    onAdd(id, slot);
+  };
 
   return (
     <Card className={cn("border", config.borderColor)}>
@@ -218,10 +161,20 @@ const SlotSection: React.FC<SlotSectionProps> = ({
         ))}
         
         {!slotInfo.filled && (
-          <TaskSelector
-            tasks={unselectedTasks}
-            slot={slot}
-            onSelect={onAdd}
+          <TaskLinker
+            mode={config.max === 1 ? 'single' : 'multi'}
+            max={config.max - slotInfo.current}
+            selectedTasks={[]}
+            filteredAvailableTasks={linker.filteredAvailableTasks}
+            search={linker.filters.search}
+            contextFilter={linker.filters.context}
+            canSelectMore={!slotInfo.filled}
+            onSelect={handleSelect}
+            onDeselect={() => {}}
+            onSearchChange={linker.setSearch}
+            onContextFilterChange={linker.setContextFilter}
+            placeholder="Ajouter une tâche..."
+            variant="popover"
           />
         )}
 
@@ -243,6 +196,13 @@ const SlotSection: React.FC<SlotSectionProps> = ({
 
 const Rule135Tool: React.FC<ToolProps> = () => {
   const { data, actions } = useRule135Tool();
+
+  // Collect all selected IDs across all slots to exclude from other slots
+  const allSelectedIds = [
+    ...(data.selectedTasks.big ? [data.selectedTasks.big.id] : []),
+    ...data.selectedTasks.medium.map(t => t.id),
+    ...data.selectedTasks.small.map(t => t.id),
+  ];
 
   return (
     <div className="space-y-6">
@@ -279,7 +239,7 @@ const Rule135Tool: React.FC<ToolProps> = () => {
         <SlotSection
           slot="big"
           tasks={data.selectedTasks.big ? [data.selectedTasks.big] : []}
-          unselectedTasks={data.unselectedTasks}
+          allSelectedIds={allSelectedIds}
           slotInfo={data.slots.big}
           onAdd={actions.addTask}
           onRemove={actions.removeTask}
@@ -289,7 +249,7 @@ const Rule135Tool: React.FC<ToolProps> = () => {
         <SlotSection
           slot="medium"
           tasks={data.selectedTasks.medium}
-          unselectedTasks={data.unselectedTasks}
+          allSelectedIds={allSelectedIds}
           slotInfo={data.slots.medium}
           onAdd={actions.addTask}
           onRemove={actions.removeTask}
@@ -299,7 +259,7 @@ const Rule135Tool: React.FC<ToolProps> = () => {
         <SlotSection
           slot="small"
           tasks={data.selectedTasks.small}
-          unselectedTasks={data.unselectedTasks}
+          allSelectedIds={allSelectedIds}
           slotInfo={data.slots.small}
           onAdd={actions.addTask}
           onRemove={actions.removeTask}
