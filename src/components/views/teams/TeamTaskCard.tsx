@@ -82,6 +82,7 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
         checked={task.isCompleted}
         onCheckedChange={(checked) => onToggleComplete(task.id, !!checked)}
         className="flex-shrink-0"
+        disabled={!(isAssignedToMe ? can('complete_own_task') : can('complete_any_task'))}
       />
 
       <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
