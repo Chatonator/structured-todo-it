@@ -2,17 +2,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create client for auth verification (uses anon key + user token)
     const supabaseAuthClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -23,27 +21,23 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Get authenticated user
     const {
       data: { user },
       error: authError,
     } = await supabaseAuthClient.auth.getUser();
 
     if (authError || !user) {
-      console.error('Authentication error:', authError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create admin client for database operations (bypasses RLS)
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Parse request body
     const { inviteCode } = await req.json();
 
     if (!inviteCode || typeof inviteCode !== 'string' || inviteCode.trim().length === 0) {
@@ -56,15 +50,22 @@ Deno.serve(async (req) => {
     // Find team by invite code
     const { data: team, error: teamError } = await supabaseClient
       .from('teams')
-      .select('id, name, created_by')
+      .select('id, name, created_by, invite_link_enabled, code_join_role')
       .eq('invite_code', inviteCode.trim().toUpperCase())
       .single();
 
     if (teamError || !team) {
-      console.error('Team not found for invite code:', inviteCode);
       return new Response(
         JSON.stringify({ error: 'Invalid invite code' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if invitations via code are enabled
+    if (!team.invite_link_enabled) {
+      return new Response(
+        JSON.stringify({ error: 'Les inscriptions via code sont désactivées pour cette équipe' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -83,13 +84,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Add user as member
+    // Use the configurable role (default: 'guest')
+    const joinRole = team.code_join_role || 'guest';
+
     const { error: memberError } = await supabaseClient
       .from('team_members')
       .insert({
         team_id: team.id,
         user_id: user.id,
-        role: 'member',
+        role: joinRole,
       });
 
     if (memberError) {
@@ -100,15 +103,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('User joined team successfully:', { teamId: team.id, userId: user.id });
+    console.log('User joined team:', { teamId: team.id, userId: user.id, role: joinRole });
 
     return new Response(
       JSON.stringify({
         success: true,
-        team: {
-          id: team.id,
-          name: team.name,
-        },
+        team: { id: team.id, name: team.name },
+        role: joinRole,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

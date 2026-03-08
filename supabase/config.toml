@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.respond-to-invitation]
 verify_jwt = false
+
+[functions.regenerate-invite-code]
+verify_jwt = false
+
+[functions.join-team-public]
+verify_jwt = false
