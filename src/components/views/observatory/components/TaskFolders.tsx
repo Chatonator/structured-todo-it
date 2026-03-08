@@ -12,10 +12,10 @@ import {
   Tag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { 
-  Collapsible, 
-  CollapsibleContent, 
-  CollapsibleTrigger 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
 } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +25,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { CategoryBadge } from '@/components/primitives/badges/CategoryBadge';
+import { ContextBadge } from '@/components/primitives/badges/ContextBadge';
+import { formatDuration } from '@/lib/formatters';
 import { EnrichedTask } from '@/hooks/view-data/useObservatoryViewData';
 import { TaskCategory } from '@/types/task';
 
