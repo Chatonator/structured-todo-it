@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -29,24 +29,20 @@ const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange, hasErr
   const minutes = totalMinutes % 60;
 
   const handleHoursChange = useCallback((vals: number[]) => {
-    const newH = vals[0];
-    const newTotal = newH * 60 + minutes;
-    onChange(Math.max(newTotal, 0));
+    onChange(vals[0] * 60 + minutes);
   }, [minutes, onChange]);
 
   const handleMinutesChange = useCallback((vals: number[]) => {
-    const newM = vals[0];
-    const newTotal = hours * 60 + newM;
-    onChange(Math.max(newTotal, 0));
+    onChange(hours * 60 + vals[0]);
   }, [hours, onChange]);
 
-  const handlePreset = useCallback((preset: number) => {
-    onChange(preset);
-  }, [onChange]);
+  const clickHour = useCallback((h: number) => {
+    onChange(h * 60 + minutes);
+  }, [minutes, onChange]);
 
-  const isPresetActive = useMemo(() => {
-    return PRESETS.find(p => p.value === totalMinutes)?.value;
-  }, [totalMinutes]);
+  const clickMinute = useCallback((m: number) => {
+    onChange(hours * 60 + m);
+  }, [hours, onChange]);
 
   return (
     <div className="space-y-3">
@@ -63,25 +59,6 @@ const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange, hasErr
         </span>
       </div>
 
-      {/* Presets */}
-      <div className="flex gap-1.5">
-        {PRESETS.map((p) => (
-          <button
-            key={p.value}
-            type="button"
-            onClick={() => handlePreset(p.value)}
-            className={cn(
-              'px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-150 border',
-              isPresetActive === p.value
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'
-            )}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
       {/* Hours slider */}
       <div className="space-y-1">
         <div className="flex items-center justify-between text-[10px] text-muted-foreground">
@@ -96,12 +73,20 @@ const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange, hasErr
           step={1}
           className="cursor-pointer"
         />
-        <div className="flex justify-between text-[9px] text-muted-foreground/50 px-0.5">
-          <span>0</span>
-          <span>2</span>
-          <span>4</span>
-          <span>6</span>
-          <span>8</span>
+        <div className="flex justify-between px-0.5">
+          {HOUR_TICKS.map((h) => (
+            <button
+              key={h}
+              type="button"
+              onClick={() => clickHour(h)}
+              className={cn(
+                'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
+                h === hours ? 'text-primary font-semibold' : 'text-muted-foreground/50'
+              )}
+            >
+              {h}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -119,12 +104,20 @@ const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange, hasErr
           step={5}
           className="cursor-pointer"
         />
-        <div className="flex justify-between text-[9px] text-muted-foreground/50 px-0.5">
-          <span>0</span>
-          <span>15</span>
-          <span>30</span>
-          <span>45</span>
-          <span>55</span>
+        <div className="flex justify-between px-0.5">
+          {MINUTE_TICKS.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => clickMinute(m)}
+              className={cn(
+                'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
+                m === minutes ? 'text-primary font-semibold' : 'text-muted-foreground/50'
+              )}
+            >
+              {m}
+            </button>
+          ))}
         </div>
       </div>
 
