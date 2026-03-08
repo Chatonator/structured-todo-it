@@ -35,6 +35,7 @@ interface PomodoroConfig {
 export const PRESETS: Record<string, PomodoroConfig & { label: string; description: string }> = {
   classic: { label: 'Classique', description: '25 / 5 / 15 min', focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15, cyclesBeforeLong: 4 },
   sprint: { label: 'Sprint', description: '15 / 3 / 10 min', focusMinutes: 15, shortBreakMinutes: 3, longBreakMinutes: 10, cyclesBeforeLong: 4 },
+  deepwork: { label: 'Deep Work', description: '50 / 10 / 20 min', focusMinutes: 50, shortBreakMinutes: 10, longBreakMinutes: 20, cyclesBeforeLong: 4 },
 };
 
 const CONFIG_KEY = 'pomodoro_config';
