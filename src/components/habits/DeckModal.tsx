@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { EmojiGrid } from '@/components/common/EmojiGrid';
 import { Deck } from '@/types/habit';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -96,26 +97,7 @@ const DeckModal: React.FC<DeckModalProps> = ({ isOpen, onClose, onSave, deck }) 
             </div>
 
             {/* ─── Icon grid ─── */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Icône</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {DECK_ICONS.map(emoji => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => setIcon(emoji)}
-                    className={cn(
-                      'w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all duration-150 border',
-                      icon === emoji
-                        ? 'border-primary bg-primary/10 scale-110 shadow-sm'
-                        : 'border-transparent hover:bg-accent/50'
-                    )}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <EmojiGrid value={icon} onChange={setIcon} options={DECK_ICONS} />
 
             {/* ─── Default checkbox ─── */}
             <div className="flex items-center gap-2">

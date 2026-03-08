@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { EmojiGrid } from '@/components/common/EmojiGrid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -183,26 +184,7 @@ const HabitModal: React.FC<HabitModalProps> = ({
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Icône</Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {EMOJI_OPTIONS.map(emoji => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => setIcon(emoji)}
-                        className={cn(
-                          'w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all duration-150 border',
-                          icon === emoji
-                            ? 'border-primary bg-primary/10 scale-110 shadow-sm'
-                            : 'border-transparent hover:bg-accent/50'
-                        )}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <EmojiGrid value={icon} onChange={setIcon} options={EMOJI_OPTIONS} />
               </TabsContent>
 
               {/* Tab Fréquence */}

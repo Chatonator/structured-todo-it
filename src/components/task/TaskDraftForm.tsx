@@ -1,7 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TaskCategory, SubTaskCategory, TaskContext, RecurrenceInterval } from '@/types/task';
 import { TaskType, getTaskTypeConfig } from '@/config/taskTypeConfig';
@@ -13,6 +12,7 @@ import {
   AssignmentSelector
 } from '@/components/task/fields';
 import { EisenhowerSelector } from '@/components/common/EisenhowerSelector';
+import { ContextPillSelector } from '@/components/common/ContextPillSelector';
 import type { TeamMemberOption } from '@/components/task/fields/AssignmentSelector';
 import type { Task } from '@/types/task';
 import { cn } from '@/lib/utils';
@@ -64,33 +64,10 @@ const TaskDraftForm: React.FC<TaskDraftFormProps> = ({
           </Badge>
         </div>
       ) : config.showContextSelector ? (
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Contexte</Label>
-          <div className="flex gap-2">
-            {(['Pro', 'Perso'] as const).map((ctx) => {
-              const isSelected = draft.context === ctx;
-              const isPro = ctx === 'Pro';
-              return (
-                <button
-                  key={ctx}
-                  type="button"
-                  onClick={() => onUpdate(index, 'context', ctx)}
-                  className={cn(
-                    'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border',
-                    isSelected
-                      ? isPro
-                        ? 'bg-context-pro/15 border-context-pro text-context-pro shadow-sm'
-                        : 'bg-context-perso/15 border-context-perso text-context-perso shadow-sm'
-                      : 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                  )}
-                >
-                  <span>{isPro ? '💼' : '🏠'}</span>
-                  <span>{ctx}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <ContextPillSelector
+          value={draft.context || 'Perso'}
+          onChange={(ctx) => onUpdate(index, 'context', ctx)}
+        />
       ) : null}
 
       {/* ─── Eisenhower / Priority ─── */}
