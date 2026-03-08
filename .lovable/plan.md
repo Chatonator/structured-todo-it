@@ -1,41 +1,94 @@
 
 
-## Plan : Convertir les modales restantes en Sheet latéral
+# Systeme de changelog / "Quoi de neuf" via les notifications
 
-### Modales a convertir (4)
+## Concept
 
-| Modale | Complexité | Notes |
-|--------|-----------|-------|
-| **HabitModal** | Élevée | 547 lignes, 3 onglets (Base/Fréquence/Avancé), conserve les Tabs |
-| **DeckModal** | Simple | Formulaire court (nom, description, icône, checkbox) |
-| **DeckManagement** | Moyenne | Liste de decks + actions edit/delete, ouvre DeckModal |
-| **BugReportModal** | Moyenne | Type selector, sévérité, titre, description, screenshot upload |
+Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
 
-### Modales qui restent en Dialog (justifié)
-- **SettingsModal** : panneau large (max-w-5xl) avec sidebar de navigation -- pas un formulaire de création
-- **ToolModal** : plein écran (95vw/95vh) pour lancer des outils -- pattern différent
+## Architecture
 
-### Pattern appliqué (identique à TaskModal/ProjectModal)
+```text
+app_updates (table Supabase)        useNotifications (hook existant)
+┌──────────────────────┐            ┌──────────────────────┐
+│ id, version, title,  │──inject──▶│ notifications[] avec  │
+│ message, created_at  │           │ type "update" + ✨     │
+└──────────────────────┘           └──────────────────────┘
+        ▲                                    │
+        │ INSERT (admin only)                ▼
+     Edge function               NotificationPanel (existant)
+     ou insertion SQL             affiche deja le type "update"
+```
 
-Pour chaque modale :
-1. `Dialog` → `Sheet` + `SheetContent side="right"`
-2. Structure : `SheetHeader` (sticky) → zone scrollable `flex-1 overflow-y-auto` → footer sticky `border-t`
-3. Input nom : style borderless-bottom (`border-0 border-b rounded-none px-0`)
-4. Classes container : `w-full sm:max-w-md p-0 flex flex-col gap-0 overflow-hidden`
-5. Bouton principal avec icône `Check`
+## Modifications
 
-### Fichiers modifiés
-- `src/components/habits/HabitModal.tsx`
-- `src/components/habits/DeckModal.tsx`
-- `src/components/habits/DeckManagement.tsx`
-- `src/components/bugs/BugReportModal.tsx`
+### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
 
-### Vérification bout en bout
-Après conversion, vérifier que :
-- Création + édition de tâches fonctionne (TaskModal existant)
-- Création + édition de projets fonctionne (ProjectModal existant)
-- Création + édition d'habitudes fonctionne (HabitModal converti)
-- Création + édition de decks fonctionne (DeckModal converti)
-- Gestion des decks fonctionne (DeckManagement converti)
-- Signalement de bugs fonctionne (BugReportModal converti)
+- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
+- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+
+### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+
+- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
+- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
+- Marque ensuite l'update comme vue dans `user_seen_updates`.
+- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+
+### 3. `NotificationPanel.tsx` — Deja pret
+
+Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+
+### 4. Outil d'insertion pour l'admin
+
+Deux options possibles :
+- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
+- **Option B** : Inserer directement via Supabase Dashboard.
+
+Je recommande l'**Option A** pour rester autonome.
+
+## Details techniques
+
+### Migration SQL
+```sql
+CREATE TABLE public.app_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  version text,
+  title text NOT NULL,
+  message text,
+  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.user_seen_updates (
+  user_id uuid NOT NULL,
+  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, update_id)
+);
+```
+
+### Hook useAppUpdates
+```typescript
+// 1. Fetch unseen updates
+const { data: unseenUpdates } = await supabase
+  .from('app_updates')
+  .select('*')
+  .not('id', 'in', seenUpdateIds);
+
+// 2. For each unseen: insert notification + mark seen
+for (const update of unseenUpdates) {
+  await supabase.from('notifications').insert({
+    user_id, type: 'update',
+    title: `✨ ${update.title}`,
+    message: update.message,
+    metadata: { updateId: update.id, version: update.version }
+  });
+  await supabase.from('user_seen_updates').insert({
+    user_id, update_id: update.id
+  });
+}
+```
+
+### Admin UI (dans /admin/bugs)
+Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
 
