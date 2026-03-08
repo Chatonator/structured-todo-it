@@ -51,28 +51,7 @@ interface TaskFoldersProps {
 }
 
 // ============= Helpers =============
-const formatTime = (minutes: number): string => {
-  if (minutes < 60) return `${minutes}min`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins > 0 ? `${hours}h${mins}` : `${hours}h`;
-};
-
-const getCategoryColor = (category: TaskCategory): string => {
-  const colors: Record<TaskCategory, string> = {
-    'Obligation': 'bg-destructive/10 text-destructive',
-    'Quotidien': 'bg-primary/10 text-primary',
-    'Envie': 'bg-accent/30 text-accent-foreground',
-    'Autres': 'bg-muted text-muted-foreground',
-  };
-  return colors[category] || colors['Autres'];
-};
-
-const getContextColor = (context: string): string => {
-  return context === 'Pro' 
-    ? 'bg-secondary text-secondary-foreground'
-    : 'bg-accent/30 text-accent-foreground';
-};
+// Use centralized formatDuration and badge components
 
 // ============= TaskRow Component =============
 interface TaskRowProps {
