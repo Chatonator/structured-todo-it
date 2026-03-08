@@ -191,7 +191,7 @@ const SubFolder: React.FC<SubFolderProps> = ({
       <CollapsibleContent>
         <div className="ml-5 border-l border-border/50 pl-2 mt-1">
           {group.tasks.map(task => (
-            <TaskRow
+            <ObservatoryTaskRow
               key={task.id}
               task={task}
               onComplete={onComplete}
