@@ -332,10 +332,38 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                 <p className="text-xs text-muted-foreground mt-2">Cliquez pour copier</p>
               </CardContent>
             </Card>
+            {data.stats.overdueTasks > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">En retard</p>
+                      <p className="text-2xl font-bold text-destructive">{data.stats.overdueTasks}</p>
+                    </div>
+                    <AlertTriangle className="w-8 h-8 text-destructive/20" />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">tâche{data.stats.overdueTasks > 1 ? 's' : ''} en retard</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
-        {/* Team Tasks List */}
+        {/* Workload + Activity */}
+        {!state.isEmpty && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TeamWorkloadCard
+              members={data.teamMembers}
+              memberStats={data.memberStats}
+              currentUserId={data.currentUserId}
+            />
+            <TeamActivityFeed
+              activities={data.activities}
+              members={data.teamMembers}
+              loading={state.isLoading}
+            />
+          </div>
+        )}
         {!state.isEmpty && data.filteredTasks.total > 0 && (
           <Collapsible>
             <Card>
