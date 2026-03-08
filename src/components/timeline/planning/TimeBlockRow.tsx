@@ -4,6 +4,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { TimeEvent, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
 import { ScheduledEventCard } from '../ScheduledEventCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { TaskCategory } from '@/types/task';
 
 interface TimeBlockRowProps {
   date: Date;
@@ -12,6 +13,7 @@ interface TimeBlockRowProps {
   onRemoveEvent?: (eventId: string) => void;
   onEventClick?: (event: TimeEvent) => void;
   disabled?: boolean;
+  taskCategoryMap?: Map<string, TaskCategory>;
 }
 
 /**
