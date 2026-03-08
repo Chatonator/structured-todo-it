@@ -47,6 +47,14 @@ const TimelineView: React.FC = () => {
   }, [selectedDate, viewMode]);
 
   const { occurrences, events, loading, completeEvent, totalBusyTime, totalFreeTime } = useTimeHub(dateRange);
+  const { tasks } = useTasks();
+
+  // Map task ID → category for color matching with sidebar
+  const taskCategoryMap = useMemo(() => {
+    const map = new Map<string, TaskCategory>();
+    tasks.forEach(t => map.set(t.id, t.category));
+    return map;
+  }, [tasks]);
 
   // Grouper les occurrences par jour
   const occurrencesByDay = useMemo(() => {
