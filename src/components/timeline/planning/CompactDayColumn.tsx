@@ -119,6 +119,7 @@ export const CompactDayColumn: React.FC<CompactDayColumnProps> = ({
               <CompactEventItem
                 key={event.id}
                 event={event}
+                category={taskCategoryMap?.get(event.entityId)}
                 onClick={() => onEventClick?.(event)}
                 onComplete={() => onCompleteEvent?.(event.id)}
               />
