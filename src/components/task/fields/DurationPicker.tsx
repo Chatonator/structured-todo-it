@@ -11,14 +11,8 @@ interface DurationPickerProps {
   hasError?: boolean;
 }
 
-const PRESETS = [
-  { value: 15, label: '15m' },
-  { value: 30, label: '30m' },
-  { value: 45, label: '45m' },
-  { value: 60, label: '1h' },
-  { value: 90, label: '1h30' },
-  { value: 120, label: '2h' },
-];
+const HOUR_TICKS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+const MINUTE_TICKS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
 function formatDuration(totalMinutes: number): string {
   if (totalMinutes === 0) return '0min';
