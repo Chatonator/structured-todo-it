@@ -4,6 +4,7 @@ import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamProjects } from '@/hooks/useTeamProjects';
 import { useTeamActivity } from '@/hooks/useTeamActivity';
+import { useTaskWatchers } from '@/hooks/useTaskWatchers';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -16,9 +17,10 @@ export const useTeamViewData = () => {
   const { currentTeam, teamMembers, updateMemberRole, removeMember, leaveTeam, teams, setCurrentTeam } = useTeamContext();
   const { setCurrentView, setIsModalOpen } = useApp();
   const { user } = useAuth();
-  const { tasks, loading: tasksLoading, assignTask, toggleComplete } = useTeamTasks(currentTeam?.id ?? null);
+  const { tasks, loading: tasksLoading, assignTask, toggleComplete, blockTask, unblockTask } = useTeamTasks(currentTeam?.id ?? null);
   const { projects, loading: projectsLoading } = useTeamProjects(currentTeam?.id ?? null);
   const { activities, loading: activityLoading } = useTeamActivity(currentTeam?.id ?? null);
+  const { isWatching, toggleWatch } = useTaskWatchers(currentTeam?.id ?? null, user?.id ?? null);
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState(false);
   const [memberFilter, setMemberFilter] = useState<string | null>(null);
@@ -126,6 +128,14 @@ export const useTeamViewData = () => {
     toggleComplete(taskId, completed);
   }, [toggleComplete]);
 
+  const handleUnblockTask = useCallback((taskId: string) => {
+    unblockTask(taskId);
+  }, [unblockTask]);
+
+  const handleToggleWatch = useCallback((taskId: string) => {
+    toggleWatch(taskId);
+  }, [toggleWatch]);
+
   // Send team notification via DB function
   const sendTeamNotification = useCallback(async (
     type: string, title: string, message: string,
@@ -148,6 +158,29 @@ export const useTeamViewData = () => {
       toast({ title: 'Erreur', description: "Impossible d'envoyer la notification", variant: 'destructive' });
     }
   }, [currentTeam, currentUserId, toast]);
+
+  const handleAssignToMe = useCallback((taskId: string) => {
+    if (!currentUserId) return;
+    assignTask(taskId, currentUserId);
+    const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
+    sendTeamNotification(
+      'team',
+      `🙋 ${senderName} s'est attribué une tâche`,
+      `Tâche : ${tasks.find(t => t.id === taskId)?.name || ''}`,
+      { task_id: taskId, action: 'self_assign' }
+    );
+  }, [assignTask, currentUserId, teamMembers, sendTeamNotification, tasks]);
+
+  const handleBlockTask = useCallback((taskId: string, reason: string) => {
+    blockTask(taskId, reason);
+    const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
+    sendTeamNotification(
+      'team',
+      `🚧 ${senderName} a signalé un blocage`,
+      `Tâche : ${tasks.find(t => t.id === taskId)?.name || ''} — ${reason}`,
+      { task_id: taskId, action: 'blocked', reason }
+    );
+  }, [blockTask, currentUserId, teamMembers, sendTeamNotification, tasks]);
 
   const handleRequestHelp = useCallback((task: TeamTask) => {
     const senderName = teamMembers.find(m => m.user_id === currentUserId)?.profiles?.display_name || 'Un membre';
@@ -203,9 +236,14 @@ export const useTeamViewData = () => {
       handleLeaveTeam,
       handleSwitchTeam,
       handleAssignTask,
+      handleAssignToMe,
       handleToggleComplete,
       handleRequestHelp,
       handleEncourage,
+      handleBlockTask,
+      handleUnblockTask,
+      handleToggleWatch,
+      isWatching,
       setMemberFilter,
     },
   };

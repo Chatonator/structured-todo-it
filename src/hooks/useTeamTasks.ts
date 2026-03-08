@@ -10,8 +10,10 @@ export interface TeamTask extends Omit<Task, 'user_id' | 'projectStatus'> {
   assigned_to: string | null;
   created_by: string;
   project_id: string | null;
-  projectStatus?: string; // Kanban column status (flexible for custom columns)
+  projectStatus?: string;
   scheduledDate?: Date;
+  is_blocked: boolean;
+  blocked_reason: string | null;
 }
 
 export const useTeamTasks = (teamId: string | null) => {
@@ -200,6 +202,38 @@ export const useTeamTasks = (teamId: string | null) => {
     }
   };
 
+  // Block a task
+  const blockTask = async (taskId: string, reason: string) => {
+    try {
+      const { error } = await supabase
+        .from('team_tasks')
+        .update({ is_blocked: true, blocked_reason: reason })
+        .eq('id', taskId);
+      if (error) throw error;
+      logger.info('Team task blocked', { taskId, teamId });
+      await loadTasks();
+    } catch (error) {
+      logger.error('Error blocking team task', { error, taskId, teamId });
+      toast({ title: 'Erreur', description: 'Impossible de bloquer la tâche', variant: 'destructive' });
+    }
+  };
+
+  // Unblock a task
+  const unblockTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('team_tasks')
+        .update({ is_blocked: false, blocked_reason: null })
+        .eq('id', taskId);
+      if (error) throw error;
+      logger.info('Team task unblocked', { taskId, teamId });
+      await loadTasks();
+    } catch (error) {
+      logger.error('Error unblocking team task', { error, taskId, teamId });
+      toast({ title: 'Erreur', description: 'Impossible de débloquer la tâche', variant: 'destructive' });
+    }
+  };
+
   // Assign task to a team member
   const assignTask = async (taskId: string, userId: string | null) => {
     try {
@@ -263,6 +297,8 @@ export const useTeamTasks = (teamId: string | null) => {
     deleteTask,
     toggleComplete,
     assignTask,
+    blockTask,
+    unblockTask,
     refreshTasks: loadTasks,
   };
 };

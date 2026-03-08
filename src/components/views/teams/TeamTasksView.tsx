@@ -410,15 +410,20 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mes tâches</p>
                       {data.filteredTasks.myTasks.map(task => (
-                        <TeamTaskCard
+                         <TeamTaskCard
                           key={task.id}
                           task={task}
                           members={data.teamMembers}
                           currentUserId={data.currentUserId}
                           onToggleComplete={actions.handleToggleComplete}
                           onAssign={actions.handleAssignTask}
+                          onAssignToMe={actions.handleAssignToMe}
                           onRequestHelp={actions.handleRequestHelp}
                           onEncourage={actions.handleEncourage}
+                          onBlockTask={actions.handleBlockTask}
+                          onUnblockTask={actions.handleUnblockTask}
+                          onToggleWatch={actions.handleToggleWatch}
+                          watchedByMe={actions.isWatching(task.id)}
                         />
                       ))}
                     </div>
@@ -436,8 +441,13 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                           currentUserId={data.currentUserId}
                           onToggleComplete={actions.handleToggleComplete}
                           onAssign={actions.handleAssignTask}
+                          onAssignToMe={actions.handleAssignToMe}
                           onRequestHelp={actions.handleRequestHelp}
                           onEncourage={actions.handleEncourage}
+                          onBlockTask={actions.handleBlockTask}
+                          onUnblockTask={actions.handleUnblockTask}
+                          onToggleWatch={actions.handleToggleWatch}
+                          watchedByMe={actions.isWatching(task.id)}
                         />
                       ))}
                     </div>
@@ -455,8 +465,13 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                           currentUserId={data.currentUserId}
                           onToggleComplete={actions.handleToggleComplete}
                           onAssign={actions.handleAssignTask}
+                          onAssignToMe={actions.handleAssignToMe}
                           onRequestHelp={actions.handleRequestHelp}
                           onEncourage={actions.handleEncourage}
+                          onBlockTask={actions.handleBlockTask}
+                          onUnblockTask={actions.handleUnblockTask}
+                          onToggleWatch={actions.handleToggleWatch}
+                          watchedByMe={actions.isWatching(task.id)}
                         />
                       ))}
                     </div>

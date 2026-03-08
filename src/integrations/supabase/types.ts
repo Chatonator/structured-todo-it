@@ -718,9 +718,39 @@ export type Database = {
           },
         ]
       }
+      team_task_watchers: {
+        Row: {
+          created_at: string
+          id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_task_watchers_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_tasks: {
         Row: {
           assigned_to: string | null
+          blocked_reason: string | null
           category: string
           context: string
           created_at: string
@@ -728,6 +758,7 @@ export type Database = {
           duration: number | null
           estimatedtime: number
           id: string
+          is_blocked: boolean
           iscompleted: boolean
           isexpanded: boolean
           isrecurring: boolean | null
@@ -747,6 +778,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          blocked_reason?: string | null
           category: string
           context: string
           created_at?: string
@@ -754,6 +786,7 @@ export type Database = {
           duration?: number | null
           estimatedtime: number
           id?: string
+          is_blocked?: boolean
           iscompleted?: boolean
           isexpanded?: boolean
           isrecurring?: boolean | null
@@ -773,6 +806,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          blocked_reason?: string | null
           category?: string
           context?: string
           created_at?: string
@@ -780,6 +814,7 @@ export type Database = {
           duration?: number | null
           estimatedtime?: number
           id?: string
+          is_blocked?: boolean
           iscompleted?: boolean
           isexpanded?: boolean
           isrecurring?: boolean | null
@@ -1231,6 +1266,10 @@ export type Database = {
       }
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_watcher_team_member: {
+        Args: { _task_id: string; _user_id: string }
         Returns: boolean
       }
       send_admin_notification: {
