@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { TaskCategory, TaskContext } from '@/types/task';
+import { useApp } from '@/contexts/AppContext';
 import { eisenhowerFromCategory, categoryFromEisenhower } from '@/types/item';
 import { cn } from '@/lib/utils';
 import { validateTask, sanitizeTask } from '@/utils/taskValidation';
@@ -27,11 +28,19 @@ interface SidebarQuickAddProps {
 
 const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapsed }) => {
   const { toast } = useToast();
+  const { contextFilter } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
-  const [context, setContext] = useState<TaskContext>('Perso');
+  const [context, setContext] = useState<TaskContext>(contextFilter !== 'all' ? contextFilter as TaskContext : 'Perso');
   const [category, setCategory] = useState<TaskCategory>('Autres');
   const [estimatedTime, setEstimatedTime] = useState<string>('30');
+
+  // Sync context when filter changes
+  React.useEffect(() => {
+    if (contextFilter !== 'all') {
+      setContext(contextFilter as TaskContext);
+    }
+  }, [contextFilter]);
 
   const handleSubmit = () => {
     const taskData = {
@@ -92,7 +101,11 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
         >
           <div className="flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5" />
-            <span className="font-medium">Nouvelle tâche</span>
+            <span className="font-medium">{
+              contextFilter === 'Perso' ? 'Tâche Perso'
+              : contextFilter === 'Pro' ? 'Tâche Pro'
+              : 'Nouvelle tâche'
+            }</span>
           </div>
           {isOpen ? (
             <ChevronUp className="w-3 h-3 text-muted-foreground" />
