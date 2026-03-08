@@ -1,50 +1,94 @@
 
 
-## Plan : Intégration complète des équipes dans la navigation et les contextes de création
+# Systeme de changelog / "Quoi de neuf" via les notifications
 
-### Problèmes identifiés
+## Concept
 
-1. **Vue Équipe cachée** : elle n'est pas dans `allNavigationItems` (AppContext), pas dans `iconMap` (ViewNavigation), et n'apparaît que quand on sélectionne une équipe depuis ContextPills
-2. **Auto-switch forcé** : quand on sélectionne une équipe, on est redirigé automatiquement sur la vue "team" sans pouvoir naviguer librement
-3. **Pas de contexte équipe dans les modales de création** : `ContextPillSelector` n'affiche que Pro/Perso, impossible de créer directement une tâche d'équipe depuis les modales
+Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
 
-### Changements
+## Architecture
 
-#### 1. `AppContext.tsx` — Ajouter "Équipe" dans la navigation
-- Ajouter `{ key: 'team', title: 'Équipe', icon: '👥' }` à `allNavigationItems`
-- La vue sera visible dans la barre de navigation comme toutes les autres
+```text
+app_updates (table Supabase)        useNotifications (hook existant)
+┌──────────────────────┐            ┌──────────────────────┐
+│ id, version, title,  │──inject──▶│ notifications[] avec  │
+│ message, created_at  │           │ type "update" + ✨     │
+└──────────────────────┘           └──────────────────────┘
+        ▲                                    │
+        │ INSERT (admin only)                ▼
+     Edge function               NotificationPanel (existant)
+     ou insertion SQL             affiche deja le type "update"
+```
 
-#### 2. `ViewNavigation.tsx` — Ajouter l'icône Users
-- Ajouter `team: Users` dans `iconMap` pour que l'icône s'affiche dans la navigation
+## Modifications
 
-#### 3. `BottomNavigation.tsx` — Ajouter l'icône Users pour mobile
-- Ajouter `team: <Users />` dans `iconMap`
+### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
 
-#### 4. `Index.tsx` — Supprimer l'auto-switch forcé
-- Retirer les deux `useEffect` qui forcent la navigation vers 'team' quand une équipe est sélectionnée et vers 'home' quand elle est désélectionnée
-- L'utilisateur peut naviguer librement entre les vues même avec une équipe active ; le contenu sera filtré par le contexte équipe
+- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
+- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
 
-#### 5. `ContextPillSelector.tsx` — Ajouter les équipes comme option
-- Accepter une prop optionnelle `teams` et `currentTeam`
-- Afficher les équipes comme troisième option après Pro/Perso (avec icône Users et couleur spécifique)
-- Quand une équipe est sélectionnée, appeler un callback `onTeamSelect`
+### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
 
-#### 6. `TaskDraftForm.tsx` — Connecter le sélecteur de contexte équipe
-- Passer les teams au `ContextPillSelector` pour que la création de tâches puisse cibler une équipe
+- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
+- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
+- Marque ensuite l'update comme vue dans `user_seen_updates`.
+- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
 
-#### 7. `HeaderBar.tsx` — Nettoyer le badge équipe redondant
-- Le badge indicateur d'équipe peut rester comme indicateur visuel rapide
+### 3. `NotificationPanel.tsx` — Deja pret
 
-### Fichiers modifiés
-- `src/contexts/AppContext.tsx`
-- `src/components/layout/ViewNavigation.tsx`
-- `src/components/layout/BottomNavigation.tsx`
-- `src/pages/Index.tsx`
-- `src/components/common/ContextPillSelector.tsx`
-- `src/components/task/TaskDraftForm.tsx`
+Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
 
-### Ce qui ne change pas
-- `TeamTasksView` : le contenu de la vue reste identique, c'est un dashboard d'administration d'équipe
-- `ContextPills` (header) : conserve son fonctionnement actuel de filtre global
-- Les flux Supabase : pas de changement de schéma
+### 4. Outil d'insertion pour l'admin
+
+Deux options possibles :
+- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
+- **Option B** : Inserer directement via Supabase Dashboard.
+
+Je recommande l'**Option A** pour rester autonome.
+
+## Details techniques
+
+### Migration SQL
+```sql
+CREATE TABLE public.app_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  version text,
+  title text NOT NULL,
+  message text,
+  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.user_seen_updates (
+  user_id uuid NOT NULL,
+  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, update_id)
+);
+```
+
+### Hook useAppUpdates
+```typescript
+// 1. Fetch unseen updates
+const { data: unseenUpdates } = await supabase
+  .from('app_updates')
+  .select('*')
+  .not('id', 'in', seenUpdateIds);
+
+// 2. For each unseen: insert notification + mark seen
+for (const update of unseenUpdates) {
+  await supabase.from('notifications').insert({
+    user_id, type: 'update',
+    title: `✨ ${update.title}`,
+    message: update.message,
+    metadata: { updateId: update.id, version: update.version }
+  });
+  await supabase.from('user_seen_updates').insert({
+    user_id, update_id: update.id
+  });
+}
+```
+
+### Admin UI (dans /admin/bugs)
+Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
 

@@ -63,19 +63,6 @@ const IndexContent: React.FC = () => {
     }
   }, [currentTeam, teamTasks, viewData]);
 
-  // Auto-switch to team view when team is selected
-  useEffect(() => {
-    if (currentTeam && currentView !== 'team') {
-      setCurrentView('team');
-    }
-  }, [currentTeam?.id]);
-
-  // Switch back when deselecting team
-  useEffect(() => {
-    if (!currentTeam && currentView === 'team') {
-      setCurrentView('home');
-    }
-  }, [currentTeam, currentView, setCurrentView]);
 
   // Application du thème
   useEffect(() => {
