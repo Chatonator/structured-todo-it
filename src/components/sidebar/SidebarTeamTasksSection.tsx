@@ -20,7 +20,8 @@ interface SidebarTeamTasksSectionProps {
 
 export const SidebarTeamTasksSection: React.FC<SidebarTeamTasksSectionProps> = ({
   tasks,
-  onToggleComplete
+  onToggleComplete,
+  currentUserId
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   
