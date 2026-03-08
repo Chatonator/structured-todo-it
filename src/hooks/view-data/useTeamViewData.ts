@@ -3,21 +3,21 @@ import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamProjects } from '@/hooks/useTeamProjects';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import type { ViewState } from '@/components/layout/view/ViewLayout';
 import type { TeamRole } from '@/hooks/useTeams';
 
-/**
- * Hook complet pour la vue Équipe
- * Suit le pattern { data, state, actions }
- */
 export const useTeamViewData = () => {
-  const { currentTeam, teamMembers, updateMemberRole, removeMember } = useTeamContext();
+  const { currentTeam, teamMembers, updateMemberRole, removeMember, leaveTeam, teams, setCurrentTeam } = useTeamContext();
   const { setCurrentView, setIsModalOpen } = useApp();
+  const { user } = useAuth();
   const { tasks, loading: tasksLoading } = useTeamTasks(currentTeam?.id ?? null);
   const { projects, loading: projectsLoading } = useTeamProjects(currentTeam?.id ?? null);
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState(false);
+
+  const currentUserId = user?.id ?? null;
 
   const stats = useMemo(() => {
     const completedTasks = tasks.filter(t => t.isCompleted).length;
@@ -32,8 +32,22 @@ export const useTeamViewData = () => {
     };
   }, [tasks, projects]);
 
+  // Per-member task stats
+  const memberStats = useMemo(() => {
+    const map = new Map<string, { assigned: number; completed: number }>();
+    for (const t of tasks) {
+      if (!t.assigned_to) continue;
+      const entry = map.get(t.assigned_to) || { assigned: 0, completed: 0 };
+      entry.assigned++;
+      if (t.isCompleted) entry.completed++;
+      map.set(t.assigned_to, entry);
+    }
+    return map;
+  }, [tasks]);
+
   const isLoading = tasksLoading || projectsLoading;
   const hasTeam = !!currentTeam;
+  const isEmpty = stats.totalTasks === 0 && stats.totalProjects === 0;
   const viewState: ViewState = !hasTeam ? 'empty' : isLoading ? 'loading' : 'success';
 
   const handleCopyInviteCode = useCallback(() => {
@@ -60,17 +74,29 @@ export const useTeamViewData = () => {
     if (currentTeam) removeMember(currentTeam.id, memberId);
   }, [currentTeam, removeMember]);
 
+  const handleLeaveTeam = useCallback(() => {
+    if (currentTeam) leaveTeam(currentTeam.id);
+  }, [currentTeam, leaveTeam]);
+
+  const handleSwitchTeam = useCallback((team: typeof currentTeam) => {
+    setCurrentTeam(team);
+  }, [setCurrentTeam]);
+
   return {
     data: {
       currentTeam,
       teamMembers,
       stats,
       copiedCode,
+      currentUserId,
+      memberStats,
+      teams,
     },
     state: {
       viewState,
       isLoading,
       hasTeam,
+      isEmpty,
     },
     actions: {
       handleCopyInviteCode,
@@ -79,6 +105,8 @@ export const useTeamViewData = () => {
       handleCreateTask,
       handleUpdateRole,
       handleRemoveMember,
+      handleLeaveTeam,
+      handleSwitchTeam,
     },
   };
 };
