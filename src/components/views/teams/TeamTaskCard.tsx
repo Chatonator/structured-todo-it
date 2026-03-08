@@ -7,8 +7,11 @@ import {
   DropdownMenuSubTrigger, DropdownMenuSubContent
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { MoreHorizontal, HelpCircle, Heart, UserCircle, Clock, UserPlus } from 'lucide-react';
+import { MoreHorizontal, HelpCircle, Heart, UserCircle, Clock, UserPlus, AlertTriangle, CalendarClock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { formatDuration } from '@/lib/formatters';
+import { format, isToday, isBefore, startOfDay } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import type { TeamTask } from '@/hooks/useTeamTasks';
 import type { TeamMember } from '@/hooks/useTeams';
 
@@ -68,6 +71,35 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
       ) : (
         <UserCircle className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
       )}
+
+      {/* Deadline badge */}
+      {task.scheduledDate && !task.isCompleted && (() => {
+        const scheduled = task.scheduledDate instanceof Date ? task.scheduledDate : new Date(String(task.scheduledDate) + 'T00:00:00');
+        const overdue = isBefore(scheduled, startOfDay(new Date()));
+        const today = isToday(scheduled);
+        if (overdue) {
+          return (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5 flex-shrink-0 gap-0.5">
+              <AlertTriangle className="w-3 h-3" />
+              En retard
+            </Badge>
+          );
+        }
+        if (today) {
+          return (
+            <Badge className="text-[10px] px-1.5 py-0 h-5 flex-shrink-0 gap-0.5 bg-orange-500/15 text-orange-600 border-orange-500/30 hover:bg-orange-500/20">
+              <CalendarClock className="w-3 h-3" />
+              Aujourd'hui
+            </Badge>
+          );
+        }
+        return (
+          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 flex-shrink-0">
+            <CalendarClock className="w-3 h-3" />
+            {format(scheduled, 'd MMM', { locale: fr })}
+          </span>
+        );
+      })()}
 
       {/* Duration */}
       {task.estimatedTime > 0 && (

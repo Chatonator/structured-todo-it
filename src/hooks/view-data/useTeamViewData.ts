@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { isBefore, startOfDay } from 'date-fns';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTeamProjects } from '@/hooks/useTeamProjects';
+import { useTeamActivity } from '@/hooks/useTeamActivity';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +18,7 @@ export const useTeamViewData = () => {
   const { user } = useAuth();
   const { tasks, loading: tasksLoading, assignTask, toggleComplete } = useTeamTasks(currentTeam?.id ?? null);
   const { projects, loading: projectsLoading } = useTeamProjects(currentTeam?.id ?? null);
+  const { activities, loading: activityLoading } = useTeamActivity(currentTeam?.id ?? null);
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState(false);
   const [memberFilter, setMemberFilter] = useState<string | null>(null);
@@ -29,11 +32,18 @@ export const useTeamViewData = () => {
     const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed').length;
     const completedProjects = projects.filter(p => p.status === 'completed').length;
     const unassignedTasks = tasks.filter(t => !t.assigned_to && !t.isCompleted).length;
+    const today = startOfDay(new Date());
+    const overdueTasks = tasks.filter(t =>
+      !t.isCompleted && t.scheduledDate && isBefore(
+        t.scheduledDate instanceof Date ? t.scheduledDate : new Date(String(t.scheduledDate) + 'T00:00:00'),
+        today
+      )
+    ).length;
 
     return {
       totalTasks, completedTasks, completionRate,
       activeProjects, completedProjects, totalProjects: projects.length,
-      unassignedTasks,
+      unassignedTasks, overdueTasks,
     };
   }, [tasks, projects]);
 
@@ -174,6 +184,7 @@ export const useTeamViewData = () => {
       teams,
       filteredTasks,
       tasks,
+      activities,
     },
     state: {
       viewState,

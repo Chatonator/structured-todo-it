@@ -11,6 +11,7 @@ export interface TeamTask extends Omit<Task, 'user_id' | 'projectStatus'> {
   created_by: string;
   project_id: string | null;
   projectStatus?: string; // Kanban column status (flexible for custom columns)
+  scheduledDate?: Date;
 }
 
 export const useTeamTasks = (teamId: string | null) => {

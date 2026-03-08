@@ -23,13 +23,15 @@ import { Label } from '@/components/ui/label';
 import {
   Users, Plus, FolderKanban, ListTodo,
   ArrowRight, Copy, Check, Mail, Send, LogIn,
-  ChevronDown, LogOut, Sparkles, Rocket, UserCircle
+  ChevronDown, LogOut, Sparkles, Rocket, UserCircle, AlertTriangle
 } from 'lucide-react';
 import { useTeamViewData } from '@/hooks/view-data';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
 import { PendingInvitationsCard } from '@/components/team/PendingInvitationsCard';
 import { TeamTaskCard } from './TeamTaskCard';
+import { TeamActivityFeed } from './TeamActivityFeed';
+import { TeamWorkloadCard } from './TeamWorkloadCard';
 
 interface TeamTasksViewProps {
   className?: string;
@@ -270,7 +272,7 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
 
         {/* Stats Overview — only when there's data */}
         {!state.isEmpty && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -330,10 +332,38 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
                 <p className="text-xs text-muted-foreground mt-2">Cliquez pour copier</p>
               </CardContent>
             </Card>
+            {data.stats.overdueTasks > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">En retard</p>
+                      <p className="text-2xl font-bold text-destructive">{data.stats.overdueTasks}</p>
+                    </div>
+                    <AlertTriangle className="w-8 h-8 text-destructive/20" />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">tâche{data.stats.overdueTasks > 1 ? 's' : ''} en retard</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
-        {/* Team Tasks List */}
+        {/* Workload + Activity */}
+        {!state.isEmpty && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TeamWorkloadCard
+              members={data.teamMembers}
+              memberStats={data.memberStats}
+              currentUserId={data.currentUserId}
+            />
+            <TeamActivityFeed
+              activities={data.activities}
+              members={data.teamMembers}
+              loading={state.isLoading}
+            />
+          </div>
+        )}
         {!state.isEmpty && data.filteredTasks.total > 0 && (
           <Collapsible>
             <Card>
