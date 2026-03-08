@@ -1168,6 +1168,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_admin_stats: { Args: never; Returns: Json }
+      get_admin_users_list: {
+        Args: { _limit?: number; _offset?: number }
+        Returns: Json
+      }
       has_team_role: {
         Args: {
           _role: Database["public"]["Enums"]["team_role"]
@@ -1183,6 +1188,15 @@ export type Database = {
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
+      }
+      send_admin_notification: {
+        Args: {
+          _message: string
+          _metadata?: Json
+          _target_user_id: string
+          _title: string
+        }
+        Returns: undefined
       }
       send_team_notification: {
         Args: {
