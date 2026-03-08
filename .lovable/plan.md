@@ -1,94 +1,35 @@
 
 
-# Systeme de changelog / "Quoi de neuf" via les notifications
+## Améliorations QOL pour la vue Équipe
 
-## Concept
+### 1. Switcher d'équipe rapide dans le header de la vue
+Quand l'utilisateur a plusieurs équipes, ajouter un dropdown dans le header de la vue (à côté du titre) pour changer d'équipe sans revenir à l'écran de sélection. Actuellement il faut désélectionner puis re-sélectionner.
 
-Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
+### 2. Bouton "Quitter l'équipe"
+Ajouter un bouton discret (destructif) dans la section membres ou en bas de page pour quitter une équipe. La fonction `leaveTeam` existe déjà dans le contexte mais n'est pas exposée dans la vue.
 
-## Architecture
+### 3. Confirmation avant actions destructives
+Les actions "Retirer de l'équipe" et "Quitter l'équipe" n'ont aucune confirmation. Ajouter un `AlertDialog` pour éviter les clics accidentels.
 
-```text
-app_updates (table Supabase)        useNotifications (hook existant)
-┌──────────────────────┐            ┌──────────────────────┐
-│ id, version, title,  │──inject──▶│ notifications[] avec  │
-│ message, created_at  │           │ type "update" + ✨     │
-└──────────────────────┘           └──────────────────────┘
-        ▲                                    │
-        │ INSERT (admin only)                ▼
-     Edge function               NotificationPanel (existant)
-     ou insertion SQL             affiche deja le type "update"
-```
+### 4. Indicateur "Vous" sur sa propre ligne membre
+Dans la liste des membres, marquer la ligne de l'utilisateur connecté avec un badge "Vous" pour se repérer rapidement. Actuellement tous les membres ont le même style.
 
-## Modifications
+### 5. Activité récente par membre
+Afficher le nombre de tâches assignées/complétées par membre dans la liste (données déjà disponibles via `useTeamTasks`). Donne une vue d'ensemble de la contribution de chacun.
 
-### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
+### 6. Bouton "Créer une équipe" même quand on en a déjà une
+Actuellement les cartes Créer/Rejoindre n'apparaissent que quand `teams.length === 0`. Ajouter un bouton secondaire dans le header ou en bas de la vue pour créer/rejoindre une nouvelle équipe.
 
-- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
-- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
+### 7. État vide amélioré pour stats à zéro
+Quand l'équipe n'a aucune tâche ni projet, les stats affichent "0/0". Remplacer par un mini-onboarding ("Créez votre première tâche d'équipe") plus engageant.
 
-### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
+---
 
-- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
-- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
-- Marque ensuite l'update comme vue dans `user_seen_updates`.
-- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
+### Fichiers modifiés
+- `src/components/views/teams/TeamTasksView.tsx` — switcher, quitter, créer/rejoindre, onboarding
+- `src/components/team/TeamMembersList.tsx` — badge "Vous", stats par membre
+- `src/hooks/view-data/useTeamViewData.ts` — exposer `leaveTeam`, stats par membre, currentUserId
 
-### 3. `NotificationPanel.tsx` — Deja pret
-
-Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
-
-### 4. Outil d'insertion pour l'admin
-
-Deux options possibles :
-- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
-- **Option B** : Inserer directement via Supabase Dashboard.
-
-Je recommande l'**Option A** pour rester autonome.
-
-## Details techniques
-
-### Migration SQL
-```sql
-CREATE TABLE public.app_updates (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version text,
-  title text NOT NULL,
-  message text,
-  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.user_seen_updates (
-  user_id uuid NOT NULL,
-  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
-  seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, update_id)
-);
-```
-
-### Hook useAppUpdates
-```typescript
-// 1. Fetch unseen updates
-const { data: unseenUpdates } = await supabase
-  .from('app_updates')
-  .select('*')
-  .not('id', 'in', seenUpdateIds);
-
-// 2. For each unseen: insert notification + mark seen
-for (const update of unseenUpdates) {
-  await supabase.from('notifications').insert({
-    user_id, type: 'update',
-    title: `✨ ${update.title}`,
-    message: update.message,
-    metadata: { updateId: update.id, version: update.version }
-  });
-  await supabase.from('user_seen_updates').insert({
-    user_id, update_id: update.id
-  });
-}
-```
-
-### Admin UI (dans /admin/bugs)
-Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
+### Priorité suggérée
+Les points 1, 2, 3, 4 sont rapides et à fort impact. Les points 5, 6, 7 sont des bonus.
 
