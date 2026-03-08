@@ -32,12 +32,24 @@ interface PomodoroConfig {
   cyclesBeforeLong: number;
 }
 
-const DEFAULT_CONFIG: PomodoroConfig = {
-  focusMinutes: 25,
-  shortBreakMinutes: 5,
-  longBreakMinutes: 15,
-  cyclesBeforeLong: 4,
+export const PRESETS: Record<string, PomodoroConfig & { label: string; description: string }> = {
+  classic: { label: 'Classique', description: '25 / 5 / 15 min', focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15, cyclesBeforeLong: 4 },
+  sprint: { label: 'Sprint', description: '15 / 3 / 10 min', focusMinutes: 15, shortBreakMinutes: 3, longBreakMinutes: 10, cyclesBeforeLong: 4 },
 };
+
+const CONFIG_KEY = 'pomodoro_config';
+
+function loadConfig(): PomodoroConfig {
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return PRESETS.classic;
+}
+
+function saveConfig(c: PomodoroConfig) {
+  try { localStorage.setItem(CONFIG_KEY, JSON.stringify(c)); } catch {}
+}
 
 const SESSIONS_KEY = 'pomodoro_sessions_today';
 const SESSIONS_DATE_KEY = 'pomodoro_sessions_date';
