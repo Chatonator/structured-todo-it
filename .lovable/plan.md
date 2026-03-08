@@ -1,69 +1,94 @@
 
 
-# Audit de sécurité — Résultats et corrections
+# Systeme de changelog / "Quoi de neuf" via les notifications
 
-## Vulnérabilités trouvées
+## Concept
 
-### 🔴 CRITIQUE — Escalade de privilèges sur `team_members`
+Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
 
-La policy INSERT `Users can add themselves when creating team` vérifie uniquement `auth.uid() = user_id` sans restreindre le `team_id` ni le `role`. **N'importe quel utilisateur authentifié peut s'insérer comme `owner` dans n'importe quelle équipe** via un simple appel Supabase côté client.
+## Architecture
 
-**Correction** : Supprimer la policy INSERT permissive et la remplacer par une policy qui ne permet l'insertion que via les Edge Functions (service role). Les insertions légitimes passent déjà toutes par des Edge Functions (`create-team`, `join-team`, `respond-to-invitation`) qui utilisent le service role key.
-
-### 🟡 WARN — Emails exposés aux coéquipiers
-
-La policy SELECT sur `profiles` permet à tout coéquipier de lire l'email des autres membres. Ce n'est pas critique pour un outil d'équipe (les admins ont besoin de voir les emails pour inviter), mais on peut restreindre : seuls les admins voient les emails, les autres voient uniquement `display_name`.
-
-**Correction** : Créer une vue `profiles_public` sans email, et restreindre la policy de base. Cependant, cela impacte beaucoup de code existant. Alternative plus simple : accepter ce comportement (les emails sont visibles entre coéquipiers, ce qui est normal dans un contexte d'équipe).
-
-### 🟡 WARN — OTP expiry trop long
-
-Le délai d'expiration OTP dépasse le seuil recommandé. Configurable dans le dashboard Supabase > Auth > Settings.
-
-### 🟡 WARN — Leaked password protection désactivée
-
-À activer dans le dashboard Supabase > Auth > Settings.
-
-### 🟡 WARN — Version Postgres à mettre à jour
-
-Patches de sécurité disponibles. À faire via le dashboard Supabase.
-
-### 🟡 WARN — Extension dans le schema public
-
-Peu critique, mais idéalement les extensions devraient être dans un schema dédié.
-
-## Plan de corrections (code)
-
-### 1. Migration SQL — Corriger la policy INSERT sur `team_members`
-
-```sql
--- Supprimer la policy dangereuse
-DROP POLICY "Users can add themselves when creating team" ON public.team_members;
-
--- Nouvelle policy : personne ne peut INSERT directement
--- Les Edge Functions utilisent le service_role qui bypass RLS
--- Donc aucune policy INSERT n'est nécessaire
+```text
+app_updates (table Supabase)        useNotifications (hook existant)
+┌──────────────────────┐            ┌──────────────────────┐
+│ id, version, title,  │──inject──▶│ notifications[] avec  │
+│ message, created_at  │           │ type "update" + ✨     │
+└──────────────────────┘           └──────────────────────┘
+        ▲                                    │
+        │ INSERT (admin only)                ▼
+     Edge function               NotificationPanel (existant)
+     ou insertion SQL             affiche deja le type "update"
 ```
 
-Cela fonctionne car :
-- `create-team` → service role (bypass RLS)
-- `join-team` → service role
-- `respond-to-invitation` → service role
-- `join-team-public` → ne fait pas d'insert (corrigé précédemment)
+## Modifications
 
-### 2. Pas de changement côté Edge Functions
+### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
 
-Toutes les Edge Functions utilisent déjà le `SUPABASE_SERVICE_ROLE_KEY` pour les insertions dans `team_members`, donc elles bypassent RLS. Aucun changement nécessaire.
+- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
+- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
 
-### 3. Recommandations dashboard (pas de code)
+### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
 
-- Réduire l'expiration OTP (dashboard Auth > Settings)
-- Activer la protection leaked passwords (dashboard Auth > Settings)
-- Mettre à jour Postgres (dashboard Infrastructure)
+- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
+- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
+- Marque ensuite l'update comme vue dans `user_seen_updates`.
+- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
 
-## Fichiers impactés
+### 3. `NotificationPanel.tsx` — Deja pret
 
-| Fichier | Action |
-|---|---|
-| Migration SQL | Supprimer policy INSERT dangereuse sur `team_members` |
+Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
+
+### 4. Outil d'insertion pour l'admin
+
+Deux options possibles :
+- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
+- **Option B** : Inserer directement via Supabase Dashboard.
+
+Je recommande l'**Option A** pour rester autonome.
+
+## Details techniques
+
+### Migration SQL
+```sql
+CREATE TABLE public.app_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  version text,
+  title text NOT NULL,
+  message text,
+  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.user_seen_updates (
+  user_id uuid NOT NULL,
+  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, update_id)
+);
+```
+
+### Hook useAppUpdates
+```typescript
+// 1. Fetch unseen updates
+const { data: unseenUpdates } = await supabase
+  .from('app_updates')
+  .select('*')
+  .not('id', 'in', seenUpdateIds);
+
+// 2. For each unseen: insert notification + mark seen
+for (const update of unseenUpdates) {
+  await supabase.from('notifications').insert({
+    user_id, type: 'update',
+    title: `✨ ${update.title}`,
+    message: update.message,
+    metadata: { updateId: update.id, version: update.version }
+  });
+  await supabase.from('user_seen_updates').insert({
+    user_id, update_id: update.id
+  });
+}
+```
+
+### Admin UI (dans /admin/bugs)
+Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
 
