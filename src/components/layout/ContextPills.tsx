@@ -43,6 +43,7 @@ const ContextPills: React.FC<ContextPillsProps> = ({
       const teamId = value.replace('team-', '');
       return currentTeam?.id === teamId;
     }
+    if (value === 'all') return contextFilter === 'all';
     return !currentTeam && contextFilter === value;
   };
 
