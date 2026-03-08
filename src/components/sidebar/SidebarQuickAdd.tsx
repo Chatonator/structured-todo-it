@@ -125,33 +125,20 @@ const SidebarQuickAdd: React.FC<SidebarQuickAddProps> = ({ onAddTask, isCollapse
               autoFocus
             />
 
-            <div className="grid grid-cols-2 gap-1.5">
-              <Select value={context} onValueChange={(value) => setContext(value as TaskContext)}>
-                <SelectTrigger className="text-[10px] h-6 bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pro">💼 Pro</SelectItem>
-                  <SelectItem value="Perso">🏠 Perso</SelectItem>
-                </SelectContent>
-              </Select>
+            <Select value={context} onValueChange={(value) => setContext(value as TaskContext)}>
+              <SelectTrigger className="text-[10px] h-6 bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Pro">💼 Pro</SelectItem>
+                <SelectItem value="Perso">🏠 Perso</SelectItem>
+              </SelectContent>
+            </Select>
 
-              <Select value={estimatedTime} onValueChange={setEstimatedTime}>
-                <SelectTrigger className="text-[10px] h-6 bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 min</SelectItem>
-                  <SelectItem value="30">30 min</SelectItem>
-                  <SelectItem value="45">45 min</SelectItem>
-                  <SelectItem value="60">1h</SelectItem>
-                  <SelectItem value="90">1h30</SelectItem>
-                  <SelectItem value="120">2h</SelectItem>
-                  <SelectItem value="180">3h</SelectItem>
-                  <SelectItem value="240">4h</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <DurationPicker
+              value={estimatedTime}
+              onChange={setEstimatedTime}
+            />
 
             <div className="flex gap-1.5">
               {(() => {
