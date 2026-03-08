@@ -47,7 +47,7 @@ export const TASK_TYPE_CONFIGS: Record<TaskType, TaskTypeConfig> = {
       submitMultipleButton: (count) => `Créer ${count} tâches`
     },
     defaults: {},
-    requiredFields: ['name', 'context', 'category', 'estimatedTime']
+    requiredFields: ['name', 'context', 'estimatedTime']
   },
   project: {
     showContextSelector: false,  // Pas de Pro/Perso pour les projets
