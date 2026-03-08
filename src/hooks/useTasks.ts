@@ -116,7 +116,7 @@ export const useTasks = () => {
       i.name === taskData.name && 
       i.parentId === parentId &&
       !i.isCompleted &&
-      i.createdAt && i.createdAt > fiveSecondsAgo
+      i.createdAt && new Date(i.createdAt).getTime() > Date.now() - 5000
     );
     
     if (existingTask) {
