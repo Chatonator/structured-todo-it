@@ -183,7 +183,7 @@ const Auth = () => {
             title: "Compte créé !",
             description: "Bienvenue sur To-Do-iT !",
           });
-          window.location.href = import.meta.env.BASE_URL || '/';
+          window.location.href = getPostAuthUrl();
         } else {
           // Email confirmation required
           setConfirmationEmail(email);
