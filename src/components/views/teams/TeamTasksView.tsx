@@ -439,39 +439,20 @@ const TeamTasksView: React.FC<TeamTasksViewProps> = ({ className }) => {
 
         {/* Quick Actions */}
         {!state.isEmpty && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow group" onClick={actions.handleGoToTasks}>
-              <CardContent className="pt-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <ListTodo className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Voir les tâches</p>
-                    <p className="text-sm text-muted-foreground">
-                      {data.stats.totalTasks - data.stats.completedTasks} tâches en attente
-                    </p>
-                  </div>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow group" onClick={actions.handleGoToProjects}>
+            <CardContent className="pt-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-accent">
+                  <FolderKanban className="w-6 h-6 text-accent-foreground" />
                 </div>
-                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer hover:shadow-md transition-shadow group" onClick={actions.handleGoToProjects}>
-              <CardContent className="pt-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-accent">
-                    <FolderKanban className="w-6 h-6 text-accent-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Voir les projets</p>
-                    <p className="text-sm text-muted-foreground">{data.stats.activeProjects} projets actifs</p>
-                  </div>
+                <div>
+                  <p className="font-medium">Voir les projets</p>
+                  <p className="text-sm text-muted-foreground">{data.stats.activeProjects} projets actifs</p>
                 </div>
-                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </CardContent>
+          </Card>
         )}
 
         {/* Team Members */}
