@@ -74,7 +74,7 @@ export const TeamTaskCard: React.FC<TeamTaskCardProps> = ({
 
       {/* Deadline badge */}
       {task.scheduledDate && !task.isCompleted && (() => {
-        const scheduled = new Date(task.scheduledDate + 'T00:00:00');
+        const scheduled = task.scheduledDate instanceof Date ? task.scheduledDate : new Date(String(task.scheduledDate) + 'T00:00:00');
         const overdue = isBefore(scheduled, startOfDay(new Date()));
         const today = isToday(scheduled);
         if (overdue) {
