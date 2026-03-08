@@ -375,7 +375,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
             <div className="flex-1 min-w-0">
               {/* Day view */}
               {viewMode === 'day' && (
-                <DayPlanningView
+              <DayPlanningView
                   date={selectedDate}
                   events={eventsByDay.get(format(selectedDate, 'yyyy-MM-dd')) || []}
                   quota={getQuotaForDate(selectedDate)}
@@ -383,6 +383,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
                   onCompleteEvent={handleCompleteEvent}
                   onRemoveEvent={handleUnscheduleEvent}
                   onEventClick={handleEventClick}
+                  taskCategoryMap={taskCategoryMap}
                 />
               )}
 
