@@ -256,7 +256,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           {/* Checkbox */}
           <Checkbox
             checked={task.isCompleted}
-            onCheckedChange={() => onToggleCompletion(task.id)}
+            onCheckedChange={() => handleToggleCompletion(task.id)}
             className="h-4 w-4"
           />
 
