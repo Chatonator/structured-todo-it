@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { computeCompletionStats } from '@/lib/formatters';
 import { isBefore, startOfDay } from 'date-fns';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
