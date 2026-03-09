@@ -18,11 +18,13 @@ const MAX_SMALL = 5;
 
 export const useRule135Tool = () => {
   const viewData = useViewDataContext();
-  const [selection, setSelection] = useState<Rule135Selection>(loadSelection);
+  const [selection, setSelection] = useState<Rule135Selection>(
+    () => loadDailyStorage<Rule135Selection>(STORAGE_KEY, { big: null, medium: [], small: [] })
+  );
 
   // Save to localStorage when selection changes
   useEffect(() => {
-    saveSelection(selection);
+    saveDailyStorage(STORAGE_KEY, selection);
   }, [selection]);
 
   // Available tasks (not completed, no parent)
