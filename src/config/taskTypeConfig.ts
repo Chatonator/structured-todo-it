@@ -65,7 +65,7 @@ export const TASK_TYPE_CONFIGS: Record<TaskType, TaskTypeConfig> = {
     },
     defaults: {
       context: 'Pro',           // Défaut Pro pour les projets
-      category: 'Quotidien'     // Catégorie neutre par défaut
+      category: 'Autres'        // Catégorie neutre par défaut
     },
     requiredFields: ['name', 'estimatedTime', 'subCategory']  // Priorité requise
   },
@@ -85,7 +85,7 @@ export const TASK_TYPE_CONFIGS: Record<TaskType, TaskTypeConfig> = {
     },
     defaults: {
       context: 'Pro',
-      category: 'Quotidien'
+      category: 'Autres'
     },
     requiredFields: ['name', 'estimatedTime']
   }
