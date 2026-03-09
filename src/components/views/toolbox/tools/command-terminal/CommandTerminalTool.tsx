@@ -30,6 +30,7 @@ const DEFAULT_SCRIPT = [
   'task "Préparer la roadmap" --context pro --time 45 --category obligation --priority important',
   'project "Migration design system" --context pro --color #0f766e --icon 🚀',
   'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
+  'habit "Sport" --time 40 --frequency weekly --days 0,2,4 --locked true --unlock-type streak --unlock-value 7 --requires-habit "Lire 20 minutes"',
   'update task "Préparer la roadmap" --time 60',
 ].join('\n');
 
@@ -113,6 +114,14 @@ function parseBoolean(value?: string): boolean {
   return ['1', 'true', 'yes', 'oui'].includes(value.toLowerCase());
 }
 
+function parseOptionalBoolean(value?: string): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return parseBoolean(value);
+}
+
 function parseMinutes(value: string | undefined, fallback: number): number {
   if (!value) {
     return fallback;
@@ -141,6 +150,114 @@ function parseDays(value?: string): number[] | undefined {
   }
 
   return Array.from(new Set(days));
+}
+
+function parsePositiveInteger(value: string | undefined, fieldName: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${fieldName} invalide: ${value}`);
+  }
+
+  return parsed;
+}
+
+function requireFlag(flags: Record<string, string>, key: string, message: string): string {
+  const value = flags[key];
+  if (!value) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function buildHabitPayload(
+  command: ParsedCommand,
+  baseHabit?: Habit,
+  decks?: Array<{ id: string; name: string }>,
+  defaultDeckId?: string | null,
+  availableHabits?: Habit[]
+) {
+  const frequency = command.flags.frequency
+    ? HABIT_FREQUENCY_MAP[command.flags.frequency.toLowerCase()] || (baseHabit?.frequency ?? 'daily')
+    : (baseHabit?.frequency ?? 'daily');
+  const targetDays = command.flags.days ? parseDays(command.flags.days) : baseHabit?.targetDays;
+  const count = command.flags.count ? parsePositiveInteger(command.flags.count, 'count') : undefined;
+  const deckId = command.flags.deck
+    ? resolveDeckId(command.flags.deck, decks || [], defaultDeckId ?? null)
+    : (baseHabit?.deckId ?? defaultDeckId ?? null);
+  const isChallenge = command.flags.challenge !== undefined
+    ? parseBoolean(command.flags.challenge)
+    : (baseHabit?.isChallenge ?? false);
+  const isLocked = command.flags.locked !== undefined
+    ? parseBoolean(command.flags.locked)
+    : (baseHabit?.isLocked ?? false);
+  const challengeDurationDays = isChallenge
+    ? (command.flags['challenge-days']
+        ? parsePositiveInteger(command.flags['challenge-days'], 'challenge-days')
+        : (baseHabit?.challengeDurationDays ?? 30))
+    : undefined;
+  const challengeEndAction = isChallenge
+    ? ((command.flags['challenge-end'] as Habit['challengeEndAction'] | undefined) ?? baseHabit?.challengeEndAction ?? 'archive')
+    : undefined;
+  const unlockType = isLocked
+    ? ((command.flags['unlock-type'] as Habit['unlockCondition'] extends infer U ? any : never) ?? baseHabit?.unlockCondition?.type ?? 'streak')
+    : undefined;
+  const unlockValue = isLocked && unlockType !== 'manual'
+    ? (command.flags['unlock-value']
+        ? parsePositiveInteger(command.flags['unlock-value'], 'unlock-value')
+        : (baseHabit?.unlockCondition?.value ?? 7))
+    : undefined;
+  const prerequisiteHabitName = command.flags['requires-habit'];
+  const prerequisiteHabitId = isLocked && unlockType !== 'manual'
+    ? (
+        prerequisiteHabitName
+          ? findByName((availableHabits || []).filter(habit => habit.id !== baseHabit?.id), prerequisiteHabitName)?.id
+          : baseHabit?.unlockCondition?.prerequisiteHabitId
+      )
+    : undefined;
+
+  if (!deckId) {
+    throw new Error('Aucun deck disponible. Créez un deck ou utilisez --deck avec un id valide.');
+  }
+
+  if (frequency === 'weekly' && (!targetDays || targetDays.length === 0)) {
+    throw new Error('Une habitude weekly exige --days 0,2,4');
+  }
+
+  if (frequency === 'monthly' && (!targetDays || targetDays.length === 0)) {
+    throw new Error('Une habitude monthly exige --days 1,15');
+  }
+
+  if (frequency === 'x-times-per-week' && !count && !baseHabit?.timesPerWeek) {
+    throw new Error('Une habitude x-week exige --count');
+  }
+
+  if (frequency === 'x-times-per-month' && !count && !baseHabit?.timesPerMonth) {
+    throw new Error('Une habitude x-month exige --count');
+  }
+
+  if (isLocked && unlockType !== 'manual' && !prerequisiteHabitId) {
+    throw new Error('Une habitude verrouillée exige --requires-habit "Nom"');
+  }
+
+  return {
+    deckId,
+    frequency,
+    targetDays,
+    isChallenge,
+    challengeDurationDays,
+    challengeEndAction,
+    isLocked,
+    unlockCondition: isLocked
+      ? {
+          type: unlockType || 'streak',
+          value: unlockType === 'manual' ? undefined : unlockValue,
+          prerequisiteHabitId: unlockType === 'manual' ? undefined : prerequisiteHabitId,
+        }
+      : undefined,
+    timesPerWeek: frequency === 'x-times-per-week' ? (count || baseHabit?.timesPerWeek || 3) : undefined,
+    timesPerMonth: frequency === 'x-times-per-month' ? (count || baseHabit?.timesPerMonth || 4) : undefined,
+  };
 }
 
 function resolveDeckId(flagValue: string | undefined, decks: Array<{ id: string; name: string }>, defaultDeckId: string | null): string | null {
@@ -212,10 +329,11 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     }
 
     if (command.action === 'create' && command.entity === 'task') {
+      const explicitTime = requireFlag(command.flags, 'time', 'Une tâche exige --time. Aucun défaut n’est appliqué à la durée.');
       const category = normalizeCategory(command.flags);
       const subCategory = normalizePriority(command.flags.priority);
       const context = normalizeContext(command.flags.context);
-      const estimatedTime = parseMinutes(command.flags.time, 30);
+      const estimatedTime = parseMinutes(explicitTime, 30);
       const eisenhower = eisenhowerFromCategory(category);
 
       await tasks.addTask({
@@ -268,14 +386,11 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     }
 
     if (command.action === 'create' && command.entity === 'habit') {
-      const frequency = HABIT_FREQUENCY_MAP[command.flags.frequency?.toLowerCase() || 'daily'] || 'daily';
-      const targetDays = parseDays(command.flags.days);
-      const count = command.flags.count ? Number(command.flags.count) : undefined;
-      const deckId = resolveDeckId(command.flags.deck, decks, defaultDeckId);
-
-      if (!deckId) {
-        throw new Error('Aucun deck disponible. Créez un deck ou utilisez --deck avec un id valide.');
-      }
+      const habitConfig = buildHabitPayload(command, undefined, decks, defaultDeckId, habits.habits);
+      const challengeStartDate = habitConfig.isChallenge ? new Date() : undefined;
+      const challengeEndDate = habitConfig.isChallenge && habitConfig.challengeDurationDays
+        ? new Date(challengeStartDate!.getTime() + habitConfig.challengeDurationDays * 24 * 60 * 60 * 1000)
+        : undefined;
 
       const created = await habits.createHabit({
         userId: '',
@@ -284,23 +399,23 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
         context: normalizeContext(command.flags.context),
         estimatedTime: parseMinutes(command.flags.time, 15),
         description: command.flags.description,
-        deckId,
-        frequency,
-        timesPerWeek: frequency === 'x-times-per-week' ? count || 3 : undefined,
-        timesPerMonth: frequency === 'x-times-per-month' ? count || 4 : undefined,
-        targetDays: ['weekly', 'monthly', 'custom'].includes(frequency) ? targetDays : undefined,
+        deckId: habitConfig.deckId,
+        frequency: habitConfig.frequency,
+        timesPerWeek: habitConfig.timesPerWeek,
+        timesPerMonth: habitConfig.timesPerMonth,
+        targetDays: ['weekly', 'monthly', 'custom'].includes(habitConfig.frequency) ? habitConfig.targetDays : undefined,
         isActive: true,
         updatedAt: new Date(),
         order: 0,
         icon: command.flags.icon,
         color: command.flags.color,
-        isChallenge: false,
-        challengeStartDate: undefined,
-        challengeEndDate: undefined,
-        challengeDurationDays: undefined,
-        challengeEndAction: undefined,
-        isLocked: false,
-        unlockCondition: undefined,
+        isChallenge: habitConfig.isChallenge,
+        challengeStartDate,
+        challengeEndDate,
+        challengeDurationDays: habitConfig.challengeDurationDays,
+        challengeEndAction: habitConfig.challengeEndAction,
+        isLocked: habitConfig.isLocked,
+        unlockCondition: habitConfig.unlockCondition,
       });
 
       if (!created) {
@@ -373,13 +488,13 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
         throw new Error(`Habitude introuvable: ${command.label}`);
       }
 
-      const nextFrequency = command.flags.frequency
-        ? HABIT_FREQUENCY_MAP[command.flags.frequency.toLowerCase()] || existingHabit.frequency
-        : existingHabit.frequency;
-      const count = command.flags.count ? Number(command.flags.count) : undefined;
-      const nextDeckId = command.flags.deck
-        ? resolveDeckId(command.flags.deck, decks, defaultDeckId) || existingHabit.deckId
-        : existingHabit.deckId;
+      const habitConfig = buildHabitPayload(command, existingHabit, decks, defaultDeckId, habits.habits);
+      const challengeStartDate = habitConfig.isChallenge
+        ? (existingHabit.challengeStartDate || new Date())
+        : undefined;
+      const challengeEndDate = habitConfig.isChallenge && habitConfig.challengeDurationDays
+        ? new Date(challengeStartDate!.getTime() + habitConfig.challengeDurationDays * 24 * 60 * 60 * 1000)
+        : undefined;
       const success = await habits.updateHabit(existingHabit.id, {
         name: command.flags.name || existingHabit.name,
         context: command.flags.context ? normalizeContext(command.flags.context) : existingHabit.context,
@@ -387,11 +502,17 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
         description: command.flags.description ?? existingHabit.description,
         icon: command.flags.icon ?? existingHabit.icon,
         color: command.flags.color ?? existingHabit.color,
-        deckId: nextDeckId,
-        frequency: nextFrequency,
-        timesPerWeek: nextFrequency === 'x-times-per-week' ? count || existingHabit.timesPerWeek : undefined,
-        timesPerMonth: nextFrequency === 'x-times-per-month' ? count || existingHabit.timesPerMonth : undefined,
-        targetDays: command.flags.days ? parseDays(command.flags.days) : existingHabit.targetDays,
+        frequency: habitConfig.frequency,
+        timesPerWeek: habitConfig.timesPerWeek,
+        timesPerMonth: habitConfig.timesPerMonth,
+        targetDays: habitConfig.targetDays,
+        isChallenge: habitConfig.isChallenge,
+        challengeStartDate,
+        challengeEndDate,
+        challengeDurationDays: habitConfig.challengeDurationDays,
+        challengeEndAction: habitConfig.challengeEndAction,
+        isLocked: habitConfig.isLocked,
+        unlockCondition: habitConfig.unlockCondition,
       });
 
       if (!success) {
@@ -533,6 +654,56 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
         lineNumber: command.lineNumber,
         level: 'success',
         message: `Tâche affectée au projet: ${existingTask.name} -> ${project.name}`,
+      };
+    }
+
+    if (command.action === 'delete' && command.entity === 'task') {
+      const existingTask = findByName(tasks.tasks, command.label!);
+      if (!existingTask) {
+        throw new Error(`Tâche introuvable: ${command.label}`);
+      }
+
+      await tasks.removeTask(existingTask.id);
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Tâche supprimée: ${existingTask.name}`,
+      };
+    }
+
+    if (command.action === 'delete' && command.entity === 'project') {
+      const existingProject = findByName(projects.projects, command.label!);
+      if (!existingProject) {
+        throw new Error(`Projet introuvable: ${command.label}`);
+      }
+
+      const success = await projects.deleteProject(existingProject.id);
+      if (!success) {
+        throw new Error('La suppression du projet a échoué');
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Projet supprimé: ${existingProject.name}`,
+      };
+    }
+
+    if (command.action === 'delete' && command.entity === 'habit') {
+      const existingHabit = findByName(habits.habits, command.label!);
+      if (!existingHabit) {
+        throw new Error(`Habitude introuvable: ${command.label}`);
+      }
+
+      const success = await habits.deleteHabit(existingHabit.id);
+      if (!success) {
+        throw new Error('La suppression de l’habitude a échoué');
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Habitude supprimée: ${existingHabit.name}`,
       };
     }
 
@@ -683,6 +854,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
               <Badge variant="outline">complete</Badge>
               <Badge variant="outline">plan</Badge>
               <Badge variant="outline">assign</Badge>
+              <Badge variant="outline">delete</Badge>
               <Badge variant="outline">help</Badge>
             </div>
             <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
@@ -703,7 +875,16 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
               <p className="font-medium text-foreground">Codes utiles</p>
               <p className="text-muted-foreground">`--context pro|perso`, `--category obligation|quotidien|envie|autres`, `--priority critical|important|later|optional`</p>
               <p className="text-muted-foreground">`--frequency daily|weekly|monthly|custom|x-week|x-month`, `--days 0,2,4`, `--count 3`, `--deck default`</p>
+              <p className="text-muted-foreground">`--challenge true`, `--challenge-days 30`, `--challenge-end archive|delete|convert`</p>
+              <p className="text-muted-foreground">`--locked true`, `--unlock-type streak|total_completions|manual`, `--unlock-value 7`, `--requires-habit "Nom"`</p>
               <p className="text-muted-foreground">`--date YYYY-MM-DD`, `--time HH:MM`, `--project "Nom du projet"`</p>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">Valeurs par défaut</p>
+              <p className="text-muted-foreground">Projet: icône, couleur et statut peuvent être omis.</p>
+              <p className="text-muted-foreground">Habitude: fréquence `daily`, état actif, challenge désactivé et verrouillage désactivé peuvent être implicites.</p>
+              <p className="text-muted-foreground">Tâche: le nom et `--time` sont obligatoires. Aucun défaut n’est appliqué à la durée.</p>
             </div>
           </CardContent>
         </Card>

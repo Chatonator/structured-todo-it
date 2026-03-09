@@ -1,5 +1,5 @@
 export type CommandEntity = 'task' | 'project' | 'habit';
-export type CommandAction = 'create' | 'update' | 'complete' | 'plan' | 'assign' | 'help';
+export type CommandAction = 'create' | 'update' | 'complete' | 'plan' | 'assign' | 'delete' | 'help';
 
 export interface ParsedCommand {
   lineNumber: number;
@@ -30,6 +30,7 @@ export const COMMAND_EXAMPLES = [
   'complete project "Refonte site vitrine"',
   'plan task "Préparer le sprint Q2" --date 2026-03-10 --time 14:30',
   'assign task "Préparer le sprint Q2" --project "Refonte site vitrine"',
+  'delete habit "Lire 20 minutes"',
 ];
 
 export const COMMAND_RULES = [
@@ -38,7 +39,9 @@ export const COMMAND_RULES = [
   'Les noms avec espaces doivent être entre guillemets.',
   'Les options utilisent le format --cle valeur.',
   'Les alias t, p et h sont acceptés.',
-  'Les actions disponibles sont create implicite, update, complete, plan et assign.',
+  'Les actions disponibles sont create implicite, update, complete, plan, assign et delete.',
+  'Les tâches exigent une durée explicite à la création: --time est obligatoire.',
+  'Les valeurs par défaut ne sont utilisées que si elles restent cohérentes avec les règles métier.',
 ];
 
 export const COMMAND_SYNTAX = [
@@ -49,6 +52,7 @@ export const COMMAND_SYNTAX = [
   'complete task|project|habit "Nom existant"',
   'plan task "Nom existant" --date YYYY-MM-DD --time HH:MM',
   'assign task "Nom existant" --project "Nom du projet"',
+  'delete task|project|habit "Nom existant"',
 ];
 
 const ENTITY_ALIASES: Record<string, CommandEntity> = {
@@ -65,6 +69,7 @@ const ACTION_ALIASES: Record<string, CommandAction> = {
   complete: 'complete',
   plan: 'plan',
   assign: 'assign',
+  delete: 'delete',
   help: 'help',
 };
 
