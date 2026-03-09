@@ -3,7 +3,7 @@ import { Task } from '@/types/task';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { getCategoryIndicatorColor } from '@/lib/styling';
-import { formatDuration } from '@/lib/formatters';
+import { formatDuration, formatDurationDelta, formatDurationLong, getEstimationComparison } from '@/lib/formatters';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,6 +112,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   const [tempTime, setTempTime] = useState(scheduledTime || '09:00');
 
   const isTimerActive = activeTaskId === task.id;
+  const estimationComparison = getEstimationComparison(totalTime, task.actualTime);
 
   // Format elapsed seconds as MM:SS or HH:MM:SS
   const formatElapsed = (seconds: number) => {
@@ -234,6 +235,12 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
               }
             </span>
           </div>
+
+          {estimationComparison && (
+            <span className="text-[10px] rounded border border-sidebar-border bg-sidebar-accent/50 px-1.5 py-0.5 text-foreground whitespace-nowrap">
+              Écart {formatDurationDelta(estimationComparison.delta)}
+            </span>
+          )}
 
           {/* Badge sous-tâches */}
           {hasSubTasks && (
@@ -412,6 +419,12 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           </DropdownMenu>
         </div>
       </div>
+
+      {isExpanded && estimationComparison && task.isCompleted && (
+        <div className="px-2.5 pb-2 text-[11px] text-muted-foreground">
+          Durée estimée : {formatDurationLong(estimationComparison.estimated)} | Durée réelle : {formatDurationLong(estimationComparison.actual)} | Écart : {formatDurationDelta(estimationComparison.delta)}
+        </div>
+      )}
 
       {/* Dialog de planification - séparé du dropdown */}
       <Dialog open={isSchedulePopoverOpen} onOpenChange={setIsSchedulePopoverOpen}>

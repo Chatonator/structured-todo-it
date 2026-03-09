@@ -105,6 +105,39 @@ export function formatDurationLong(minutes: number): string {
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
 }
 
+export interface EstimationComparison {
+  estimated: number;
+  actual: number;
+  delta: number;
+  ratio: number;
+}
+
+export function getEstimationComparison(
+  estimatedMinutes?: number,
+  actualMinutes?: number
+): EstimationComparison | null {
+  if (
+    typeof estimatedMinutes !== 'number' ||
+    typeof actualMinutes !== 'number' ||
+    estimatedMinutes <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    estimated: estimatedMinutes,
+    actual: actualMinutes,
+    delta: actualMinutes - estimatedMinutes,
+    ratio: actualMinutes / estimatedMinutes,
+  };
+}
+
+export function formatDurationDelta(minutes: number): string {
+  if (minutes === 0) return '0 min';
+  const prefix = minutes > 0 ? '+' : '-';
+  return `${prefix}${formatDurationLong(Math.abs(minutes))}`;
+}
+
 /**
  * Formate l'ancienneté d'une tâche de façon compacte
  * @param date - Date de création
