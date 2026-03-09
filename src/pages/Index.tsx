@@ -1,11 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import AppSidebar from '@/components/sidebar/AppSidebar';
-import TaskModal from '@/components/task/TaskModal';
-import HeaderBar from '@/components/layout/HeaderBar';
-import BottomNavigation from '@/components/layout/BottomNavigation';
-import MainContent from '@/components/layout/MainContent';
+import AppFrame from '@/components/layout/AppFrame';
 import { AppProvider, useApp } from '@/contexts/AppContext';
 import { ViewDataProvider, useViewDataContext } from '@/contexts/ViewDataContext';
 import { SidebarProvider as AppSidebarProvider } from '@/contexts/SidebarContext';
@@ -53,58 +47,20 @@ const IndexContent: React.FC = () => {
   }, [theme]);
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className={`min-h-screen flex w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
-        {/* Desktop: AppSidebar - zéro props grâce au contexte */}
-        {!isMobile && <AppSidebar />}
-
-        {/* Mobile: Sidebar en drawer */}
-        {isMobile && (
-          <Sheet open={isTaskListOpen} onOpenChange={setIsTaskListOpen}>
-            <SheetContent side="left" className="w-full sm:w-[400px] p-0">
-              <div className="h-full min-h-0">
-                <AppSidebar />
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
-
-        {/* Contenu principal */}
-        <SidebarInset className="flex flex-col">
-          <HeaderBar
-            onOpenModal={() => setIsModalOpen(true)}
-            onOpenTaskList={() => setIsTaskListOpen(true)}
-            isMobile={isMobile}
-            contextFilter={contextFilter}
-            onContextFilterChange={setContextFilter}
-            currentView={currentView}
-            onViewChange={setCurrentView}
-            navigationItems={navigationItems}
-            currentTeam={currentTeam}
-          />
-
-          <MainContent />
-        </SidebarInset>
-
-        {/* Navigation mobile */}
-        {isMobile && (
-          <BottomNavigation
-            currentView={currentView}
-            onViewChange={setCurrentView}
-            navigationItems={navigationItems}
-          />
-        )}
-
-        {/* Modal création tâche */}
-        <TaskModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onAddTask={handleAddTask}
-          taskType={currentTeam ? 'team' : 'personal'}
-          defaultContext={contextFilter !== 'all' ? contextFilter as 'Pro' | 'Perso' : undefined}
-        />
-      </div>
-    </SidebarProvider>
+    <AppFrame
+      isMobile={isMobile}
+      isTaskListOpen={isTaskListOpen}
+      setIsTaskListOpen={setIsTaskListOpen}
+      isModalOpen={isModalOpen}
+      setIsModalOpen={setIsModalOpen}
+      contextFilter={contextFilter}
+      setContextFilter={setContextFilter}
+      currentView={currentView}
+      setCurrentView={setCurrentView}
+      navigationItems={navigationItems}
+      currentTeam={currentTeam}
+      onAddTask={handleAddTask}
+    />
   );
 };
 
