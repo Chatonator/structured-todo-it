@@ -166,6 +166,8 @@ export const useTasks = () => {
     if (willBeCompleted) {
       await rewardTaskCompletion(task);
     }
+
+    return { taskId, willBeCompleted };
   }, [tasks, toggleComplete, rewardTaskCompletion, updateEventStatus]);
 
   // Toggle expansion
