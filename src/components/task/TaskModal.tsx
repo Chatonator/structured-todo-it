@@ -154,6 +154,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
           subCategory: draft.subCategory as SubTaskCategory || undefined,
           context: parentTask ? parentTask.context as TaskContext : (draft.context || config.defaults.context || 'Pro') as TaskContext,
           estimatedTime: Number(draft.estimatedTime),
+          projectStatus: editingTask.projectStatus,
         };
         if (config.showAssignment && draft.assignedTo !== undefined) updates.assigned_to = draft.assignedTo;
         (updates as any)._scheduleInfo = { date: draft.scheduledDate, time: draft.scheduledTime, isRecurring: draft.isRecurring, recurrenceInterval: draft.recurrenceInterval };
