@@ -100,6 +100,9 @@ export interface ItemMetadata {
   teamId?: string;
   assignedTo?: string;
   
+  // === Time tracking ===
+  actualTime?: number; // minutes of real tracked time
+
   // === Legacy/preserved fields ===
   // When transforming contexts, old fields are preserved here
   [key: string]: unknown;

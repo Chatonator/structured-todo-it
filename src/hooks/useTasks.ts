@@ -26,6 +26,7 @@ function taskToItemMetadata(task: Partial<Task>): Partial<ItemMetadata> {
     isExpanded: task.isExpanded,
     projectId: task.projectId,
     projectStatus: task.projectStatus,
+    actualTime: task.actualTime,
   };
 }
 
@@ -165,6 +166,8 @@ export const useTasks = () => {
     if (willBeCompleted) {
       await rewardTaskCompletion(task);
     }
+
+    return { taskId, willBeCompleted };
   }, [tasks, toggleComplete, rewardTaskCompletion, updateEventStatus]);
 
   // Toggle expansion

@@ -70,6 +70,7 @@ export interface Task {
   // Eisenhower flags (source of truth for category)
   isImportant?: boolean;
   isUrgent?: boolean;
+  actualTime?: number; // minutes of real tracked time
   // Note: Les champs temporels (scheduledDate, scheduledTime, startTime, isRecurring, recurrenceInterval, lastCompletedAt)
   // sont désormais gérés exclusivement via time_events
 }

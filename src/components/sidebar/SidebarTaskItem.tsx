@@ -38,11 +38,15 @@ import {
   Clock,
   RefreshCw,
   CalendarIcon,
+  Play,
+  Square,
+  TimerReset,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useTimeTrackerContext } from '@/contexts/TimeTrackerContext';
 
 // Options de fréquence de récurrence
 const RECURRENCE_OPTIONS = [
@@ -102,12 +106,24 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   onScheduleTask,
 }) => {
   const { projects } = useProjects();
+  const { activeTaskId, elapsedSeconds, startTimer, stopTimer, resetActualTime } = useTimeTrackerContext();
   const hasSubTasks = subTasks.length > 0;
   const [isHovered, setIsHovered] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSchedulePopoverOpen, setIsSchedulePopoverOpen] = useState(false);
   const [tempDate, setTempDate] = useState<Date | undefined>(scheduledDate);
   const [tempTime, setTempTime] = useState(scheduledTime || '09:00');
+
+  const isTimerActive = activeTaskId === task.id;
+
+  // Format elapsed seconds as MM:SS or HH:MM:SS
+  const formatElapsed = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
 
   // La tâche reste dépliée si hover OU si le menu est ouvert OU si popover planification ouvert
   const isExpanded = isHovered || isMenuOpen || isSchedulePopoverOpen;
@@ -119,6 +135,13 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
       setIsMenuOpen(false);
     }
   };
+  const handleToggleCompletion = async (taskId: string) => {
+    // Auto-stop timer if active for this task
+    if (activeTaskId === taskId) {
+      await stopTimer(true);
+    }
+    onToggleCompletion(taskId);
+  };
 
   return (
     <SidebarMenuItem
@@ -128,7 +151,9 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         'border-b border-sidebar-border/40',
         'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]',
         // Fond doré pour les tâches épinglées
-        isPinned && 'bg-[#EFBF04]/15 dark:bg-[#EFBF04]/10'
+        isPinned && 'bg-[#EFBF04]/15 dark:bg-[#EFBF04]/10',
+        // Pulsing green border when timer is active
+        isTimerActive && 'border-l-2 border-l-green-500 animate-pulse'
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -182,8 +207,15 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
             {task.name}
           </p>
 
+          {/* Live timer badge — always visible when timer is active */}
+          {isTimerActive && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30 shrink-0 whitespace-nowrap">
+              ⏱ {formatElapsed(elapsedSeconds)}
+            </span>
+          )}
+
           {/* Indicateur récurrent - visible seulement si récurrent et pas en hover */}
-          {isRecurring && !isExpanded && (
+          {isRecurring && !isExpanded && !isTimerActive && (
             <RefreshCw className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
           )}
         </div>
@@ -198,7 +230,12 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           {/* Temps estimé */}
           <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
             <Clock className="w-3 h-3" />
-            <span>{formatDuration(totalTime)}</span>
+            <span>
+              {task.actualTime 
+                ? `⏱ ${formatDuration(task.actualTime)} / ${formatDuration(totalTime)} est.`
+                : formatDuration(totalTime)
+              }
+            </span>
           </div>
 
           {/* Badge sous-tâches */}
@@ -219,7 +256,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           {/* Checkbox */}
           <Checkbox
             checked={task.isCompleted}
-            onCheckedChange={() => onToggleCompletion(task.id)}
+            onCheckedChange={() => handleToggleCompletion(task.id)}
             className="h-4 w-4"
           />
 
@@ -235,10 +272,31 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-popover z-50">
-              <DropdownMenuItem onClick={() => onToggleCompletion(task.id)}>
+              <DropdownMenuItem onClick={() => handleToggleCompletion(task.id)}>
                 <Check className="w-4 h-4 mr-2 text-green-600" />
                 {task.isCompleted ? 'Rouvrir' : 'Terminer'}
               </DropdownMenuItem>
+
+              {/* Timer controls */}
+              {isTimerActive ? (
+                <DropdownMenuItem onClick={() => stopTimer()}>
+                  <Square className="w-4 h-4 mr-2 text-red-500" />
+                  Arrêter le chrono
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => startTimer(task.id)}>
+                  <Play className="w-4 h-4 mr-2 text-green-600" />
+                  Démarrer le chrono
+                </DropdownMenuItem>
+              )}
+              {task.actualTime && (
+                <DropdownMenuItem onClick={() => resetActualTime(task.id)}>
+                  <TimerReset className="w-4 h-4 mr-2 text-muted-foreground" />
+                  Supprimer le temps réel
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuSeparator />
 
               <DropdownMenuItem onClick={() => onEditTask(task)}>
                 <Edit className="w-4 h-4 mr-2" />

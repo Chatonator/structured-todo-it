@@ -68,7 +68,12 @@ const TaskItemContent: React.FC<TaskItemContentProps> = ({
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              <span>{formatDuration(totalTime)}</span>
+              <span>
+                {task.actualTime 
+                  ? `⏱ ${formatDuration(task.actualTime)} / ${formatDuration(totalTime)} est.`
+                  : formatDuration(totalTime)
+                }
+              </span>
             </div>
             {isScheduled && timeEvent && (
               <div className="flex items-center gap-1 text-primary">
