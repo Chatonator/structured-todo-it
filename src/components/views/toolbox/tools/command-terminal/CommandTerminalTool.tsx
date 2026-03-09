@@ -19,7 +19,7 @@ import { useHabits } from '@/hooks/useHabits';
 import { useProjects } from '@/hooks/useProjects';
 import { Habit } from '@/types/habit';
 import { categoryFromEisenhower, eisenhowerFromCategory, SubTaskCategory, Task, TaskCategory, TaskContext } from '@/types/task';
-import { COMMAND_EXAMPLES, COMMAND_RULES, COMMAND_SYNTAX, ParsedCommand, getHelpScript, parseCommandScript } from './commandLanguage';
+import { COMMAND_RULES, COMMAND_SYNTAX, ParsedCommand, getHelpScript, parseCommandScript } from './commandLanguage';
 
 type LogLevel = 'info' | 'success' | 'error';
 
@@ -201,14 +201,6 @@ function parseBoolean(value?: string): boolean {
   }
 
   return ['1', 'true', 'yes', 'oui'].includes(value.toLowerCase());
-}
-
-function parseOptionalBoolean(value?: string): boolean | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  return parseBoolean(value);
 }
 
 function parseMinutes(value: string | undefined, fallback: number): number {
@@ -1678,79 +1670,81 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Favoris et Modèles</CardTitle>
-            <CardDescription>Scripts réutilisables pour humain et IA.</CardDescription>
+            <CardTitle className="text-base">Scripts</CardTitle>
+            <CardDescription>Modèles, favoris et historique au même endroit.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Modèles</p>
-              <div className="grid gap-2">
-                {SCRIPT_TEMPLATES.map(template => (
-                  <button
-                    key={template.name}
-                    type="button"
-                    onClick={() => {
-                      setScript(template.script);
-                      setScriptLabel(template.name);
-                    }}
-                    className="rounded-xl border px-3 py-2 text-left text-sm hover:border-primary/50"
-                  >
-                    <div className="flex items-center gap-2 font-medium">
-                      <Sparkles className="h-4 w-4" />
-                      {template.name}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <Separator />
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Favoris</p>
-              {favorites.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun favori enregistré.</p>
-              ) : (
+            <Tabs defaultValue="templates" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="templates">Modèles</TabsTrigger>
+                <TabsTrigger value="favorites">Favoris</TabsTrigger>
+                <TabsTrigger value="history">Historique</TabsTrigger>
+              </TabsList>
+              <TabsContent value="templates" className="space-y-2">
                 <div className="grid gap-2">
-                  {favorites.map(item => (
+                  {SCRIPT_TEMPLATES.map(template => (
                     <button
-                      key={`${item.name}-${item.updatedAt}`}
+                      key={template.name}
                       type="button"
                       onClick={() => {
-                        setScript(item.script);
-                        setScriptLabel(item.name);
+                        setScript(template.script);
+                        setScriptLabel(template.name);
                       }}
                       className="rounded-xl border px-3 py-2 text-left text-sm hover:border-primary/50"
                     >
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(item.updatedAt).toLocaleString('fr-FR')}</div>
+                      <div className="flex items-center gap-2 font-medium">
+                        <Sparkles className="h-4 w-4" />
+                        {template.name}
+                      </div>
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
-            <Separator />
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Historique</p>
-              {history.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune exécution enregistrée.</p>
-              ) : (
-                <div className="grid gap-2">
-                  {history.map(item => (
-                    <button
-                      key={`${item.name}-${item.updatedAt}`}
-                      type="button"
-                      onClick={() => {
-                        setScript(item.script);
-                        setScriptLabel(item.name);
-                      }}
-                      className="rounded-xl border px-3 py-2 text-left text-sm hover:border-primary/50"
-                    >
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(item.updatedAt).toLocaleString('fr-FR')}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              </TabsContent>
+              <TabsContent value="favorites" className="space-y-2">
+                {favorites.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aucun favori enregistré.</p>
+                ) : (
+                  <div className="grid gap-2">
+                    {favorites.map(item => (
+                      <button
+                        key={`${item.name}-${item.updatedAt}`}
+                        type="button"
+                        onClick={() => {
+                          setScript(item.script);
+                          setScriptLabel(item.name);
+                        }}
+                        className="rounded-xl border px-3 py-2 text-left text-sm hover:border-primary/50"
+                      >
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(item.updatedAt).toLocaleString('fr-FR')}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="history" className="space-y-2">
+                {history.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aucune exécution enregistrée.</p>
+                ) : (
+                  <div className="grid gap-2">
+                    {history.map(item => (
+                      <button
+                        key={`${item.name}-${item.updatedAt}`}
+                        type="button"
+                        onClick={() => {
+                          setScript(item.script);
+                          setScriptLabel(item.name);
+                        }}
+                        className="rounded-xl border px-3 py-2 text-left text-sm hover:border-primary/50"
+                      >
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(item.updatedAt).toLocaleString('fr-FR')}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -1778,6 +1772,17 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
                   <p>Pour bien tester, commence par `project`, `task`, `habit`, `find`, `list`.</p>
                   <p>Tâche: `--time` est obligatoire.</p>
                   <p>Suppression: ajoute toujours `--confirm CONFIRM`.</p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">Parcours de test</p>
+                  <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
+                    <div>1. project "Projet test" --context pro</div>
+                    <div>2. task "Tâche test" --time 30 --context pro --project "Projet test"</div>
+                    <div>3. habit "Habitude test" --time 15 --context perso --frequency daily</div>
+                    <div>4. find task --text test</div>
+                    <div>5. inspect task "Tâche test"</div>
+                  </div>
                 </div>
               </TabsContent>
               <TabsContent value="avance" className="space-y-3">
@@ -1834,22 +1839,6 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
                 </div>
               </TabsContent>
             </Tabs>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Exemples</CardTitle>
-            <CardDescription>Ces lignes sont directement exécutables.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
-              {COMMAND_EXAMPLES.map(example => (
-                <div key={example} className="break-all text-muted-foreground">
-                  {example}
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
 
