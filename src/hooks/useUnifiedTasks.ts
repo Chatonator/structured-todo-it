@@ -62,7 +62,8 @@ export const useUnifiedTasks = () => {
     
     tasksCount: teamTasks.tasks.length,
     totalProjectTime: teamTasks.tasks.reduce((sum, t) => sum + t.estimatedTime, 0),
-    ...computeCompletionStats(teamTasks.tasks, t => t.isCompleted),
+    completedTasks: computeCompletionStats(teamTasks.tasks, t => t.isCompleted).completed,
+    completionRate: computeCompletionStats(teamTasks.tasks, t => t.isCompleted).completionRate,
     
     undo: () => {},
     redo: () => {},
