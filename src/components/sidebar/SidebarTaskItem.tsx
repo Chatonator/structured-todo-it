@@ -270,6 +270,27 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
                 {task.isCompleted ? 'Rouvrir' : 'Terminer'}
               </DropdownMenuItem>
 
+              {/* Timer controls */}
+              {isTimerActive ? (
+                <DropdownMenuItem onClick={() => stopTimer()}>
+                  <Square className="w-4 h-4 mr-2 text-red-500" />
+                  Arrêter le chrono
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => startTimer(task.id)}>
+                  <Play className="w-4 h-4 mr-2 text-green-600" />
+                  Démarrer le chrono
+                </DropdownMenuItem>
+              )}
+              {task.actualTime && (
+                <DropdownMenuItem onClick={() => resetActualTime(task.id)}>
+                  <TimerReset className="w-4 h-4 mr-2 text-muted-foreground" />
+                  Supprimer le temps réel
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuSeparator />
+
               <DropdownMenuItem onClick={() => onEditTask(task)}>
                 <Edit className="w-4 h-4 mr-2" />
                 Modifier
