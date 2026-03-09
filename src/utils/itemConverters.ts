@@ -48,5 +48,6 @@ export function itemToTask(item: Item): Task {
     projectStatus,
     isImportant: meta.isImportant as boolean | undefined,
     isUrgent: meta.isUrgent as boolean | undefined,
+    actualTime: meta.actualTime as number | undefined,
   };
 }

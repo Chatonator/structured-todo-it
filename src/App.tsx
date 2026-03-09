@@ -170,6 +170,7 @@ const App = () => (
                 </Routes>
               </HashRouter>
             </TooltipProvider>
+            </TimeTrackerProvider>
           </TeamProvider>
         </ThemeProvider>
       </UserPreferencesProvider>

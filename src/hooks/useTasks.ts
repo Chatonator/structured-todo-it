@@ -26,6 +26,7 @@ function taskToItemMetadata(task: Partial<Task>): Partial<ItemMetadata> {
     isExpanded: task.isExpanded,
     projectId: task.projectId,
     projectStatus: task.projectStatus,
+    actualTime: task.actualTime,
   };
 }
 
