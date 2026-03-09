@@ -76,6 +76,13 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
     onTimeChange('');
   }, [onTimeChange]);
 
+  const handleDateChange = useCallback((date: Date | undefined) => {
+    onDateChange(date);
+    if (!date) {
+      onTimeChange('');
+    }
+  }, [onDateChange, onTimeChange]);
+
   return (
     <div className="space-y-3 pt-3 border-t border-border">
       <Label className="text-sm text-foreground flex items-center gap-2">
@@ -101,7 +108,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
           <Calendar
             mode="single"
             selected={scheduledDate}
-            onSelect={onDateChange}
+            onSelect={handleDateChange}
             disabled={(date) => date < startOfDay(new Date())}
             initialFocus
             className="pointer-events-auto"
@@ -110,83 +117,89 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
       </Popover>
 
       {/* Time selector */}
-      <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
-        {/* Header with display */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground uppercase tracking-wider">Heure</span>
-          <div className="flex items-center gap-2">
-            <span className={cn(
-              'text-sm font-semibold tabular-nums transition-colors',
-              hasTime ? 'text-primary' : 'text-muted-foreground'
-            )}>
-              {hasTime ? `${displayTime(hour, minute)} · ${getBlockLabel(hour)}` : '—'}
-            </span>
-            {hasTime && (
-              <button type="button" onClick={clearTime} className="text-muted-foreground hover:text-destructive transition-colors">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+      {scheduledDate ? (
+        <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+          {/* Header with display */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">Heure</span>
+            <div className="flex items-center gap-2">
+              <span className={cn(
+                'text-sm font-semibold tabular-nums transition-colors',
+                hasTime ? 'text-primary' : 'text-muted-foreground'
+              )}>
+                {hasTime ? `${displayTime(hour, minute)} · ${getBlockLabel(hour)}` : '—'}
+              </span>
+              {hasTime && (
+                <button type="button" onClick={clearTime} className="text-muted-foreground hover:text-destructive transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Hours slider with landmarks */}
-        <div className="space-y-1">
-          <Slider
-            value={[hour]}
-            onValueChange={handleHourSlider}
-            min={6}
-            max={22}
-            step={1}
-            className="cursor-pointer"
-          />
-          <div className="flex justify-between px-0.5">
-            {HOUR_LANDMARKS.map((lm) => (
-              <button
-                key={lm.hour}
-                type="button"
-                onClick={() => setTime(lm.hour, minute)}
-                className={cn(
-                  'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
-                  lm.hour === hour ? 'text-primary font-semibold' : 'text-muted-foreground/50'
-                )}
-              >
-                {lm.label}
-              </button>
-            ))}
+          {/* Hours slider with landmarks */}
+          <div className="space-y-1">
+            <Slider
+              value={[hour]}
+              onValueChange={handleHourSlider}
+              min={6}
+              max={22}
+              step={1}
+              className="cursor-pointer"
+            />
+            <div className="flex justify-between px-0.5">
+              {HOUR_LANDMARKS.map((lm) => (
+                <button
+                  key={lm.hour}
+                  type="button"
+                  onClick={() => setTime(lm.hour, minute)}
+                  className={cn(
+                    'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
+                    lm.hour === hour ? 'text-primary font-semibold' : 'text-muted-foreground/50'
+                  )}
+                >
+                  {lm.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Minutes slider */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>Minutes</span>
-            <span className="tabular-nums font-medium">{minute}min</span>
-          </div>
-          <Slider
-            value={[minute]}
-            onValueChange={handleMinuteSlider}
-            min={0}
-            max={55}
-            step={5}
-            className="cursor-pointer"
-          />
-          <div className="flex justify-between px-0.5">
-            {MINUTE_TICKS.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => clickMinute(m)}
-                className={cn(
-                  'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
-                  m === minute ? 'text-primary font-semibold' : 'text-muted-foreground/50'
-                )}
-              >
-                {m}
-              </button>
-            ))}
+          {/* Minutes slider */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>Minutes</span>
+              <span className="tabular-nums font-medium">{minute}min</span>
+            </div>
+            <Slider
+              value={[minute]}
+              onValueChange={handleMinuteSlider}
+              min={0}
+              max={55}
+              step={5}
+              className="cursor-pointer"
+            />
+            <div className="flex justify-between px-0.5">
+              {MINUTE_TICKS.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => clickMinute(m)}
+                  className={cn(
+                    'text-[9px] tabular-nums cursor-pointer transition-colors px-0.5 rounded hover:text-primary',
+                    m === minute ? 'text-primary font-semibold' : 'text-muted-foreground/50'
+                  )}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+          Sélectionne d'abord une date pour définir l'heure.
+        </div>
+      )}
     </div>
   );
 };

@@ -20,9 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
-import { Input } from '@/components/ui/input';
 import { SidebarMenuItem } from '@/components/ui/sidebar';
+import { SchedulingSection } from '@/components/task/fields';
 import {
   MoreHorizontal,
   Check,
@@ -44,8 +43,6 @@ import {
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { useTimeTrackerContext } from '@/contexts/TimeTrackerContext';
 
 // Options de fréquence de récurrence
@@ -423,22 +420,12 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
             <DialogTitle>Planifier la tâche</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <Calendar
-              mode="single"
-              selected={tempDate}
-              onSelect={setTempDate}
-              locale={fr}
-              className="pointer-events-auto rounded-md border mx-auto"
+            <SchedulingSection
+              scheduledDate={tempDate}
+              scheduledTime={tempTime}
+              onDateChange={setTempDate}
+              onTimeChange={setTempTime}
             />
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <Input
-                type="time"
-                value={tempTime}
-                onChange={(e) => setTempTime(e.target.value)}
-                className="flex-1"
-              />
-            </div>
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
@@ -455,11 +442,6 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
                 Confirmer
               </Button>
             </div>
-            {scheduledDate && (
-              <p className="text-xs text-muted-foreground text-center">
-                Actuellement: {format(scheduledDate, 'dd/MM/yyyy', { locale: fr })} à {scheduledTime}
-              </p>
-            )}
           </div>
         </DialogContent>
       </Dialog>
