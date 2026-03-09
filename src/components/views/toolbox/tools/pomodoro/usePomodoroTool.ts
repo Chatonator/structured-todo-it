@@ -100,7 +100,7 @@ export function usePomodoroTool() {
     if (phase === 'focus') {
       const newSessions = sessionsToday + 1;
       setSessionsToday(newSessions);
-      saveTodaySessions(newSessions);
+      saveDailyStorage(SESSIONS_KEY, newSessions);
 
       const nextCycle = cycleIndex + 1;
       if (nextCycle >= config.cyclesBeforeLong) {

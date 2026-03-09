@@ -35,10 +35,8 @@ export const useTeamViewData = () => {
   const currentUserId = user?.id ?? null;
 
   const stats = useMemo(() => {
-    const completedTasks = tasks.filter(t => t.isCompleted).length;
-    const totalTasks = tasks.length;
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed').length;
+    const { total: totalTasks, completed: completedTasks, completionRate } =
+      computeCompletionStats(tasks, t => t.isCompleted);
     const completedProjects = projects.filter(p => p.status === 'completed').length;
     const unassignedTasks = tasks.filter(t => !t.assigned_to && !t.isCompleted).length;
     const today = startOfDay(new Date());

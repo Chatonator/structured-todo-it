@@ -65,15 +65,10 @@ export const useRule135Tool = () => {
     ].filter(Boolean) as Task[];
 
     const totalTime = allSelected.reduce((sum, t) => sum + t.estimatedTime, 0);
-    const completedCount = allSelected.filter(t => t.isCompleted).length;
-    const totalCount = allSelected.length;
+    const { total: totalCount, completed: completedCount, completionRate: progress } =
+      computeCompletionStats(allSelected, t => t.isCompleted);
 
-    return {
-      totalTime,
-      completedCount,
-      totalCount,
-      progress: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
-    };
+    return { totalTime, completedCount, totalCount, progress };
   }, [selectedTasks]);
 
   // Slot availability
