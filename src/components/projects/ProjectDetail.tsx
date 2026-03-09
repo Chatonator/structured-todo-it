@@ -119,11 +119,11 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
   const handleComplete = useCallback(async () => {
     if (window.confirm(`Marquer le projet "${project.name}" comme terminé ?`)) {
       const success = await completeProject(project.id);
-      if (success && onDelete) {
-        onDelete(); // Retour à la liste après complétion
+      if (success) {
+        onBack(); // Retour à la liste après complétion
       }
     }
-  }, [project.id, project.name, completeProject, onDelete]);
+  }, [project.id, project.name, completeProject, onBack]);
 
   // Toggle sidebar visibility for project tasks
   const handleToggleSidebar = useCallback(async () => {

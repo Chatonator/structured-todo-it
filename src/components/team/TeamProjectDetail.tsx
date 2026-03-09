@@ -153,12 +153,10 @@ export const TeamProjectDetail = ({
           title: "Projet terminé",
           description: `Le projet "${project.name}" a été marqué comme terminé.`,
         });
-        if (onDelete) {
-          onDelete(); // Retour à la liste
-        }
+        onBack(); // Retour à la liste
       }
     }
-  }, [project.id, project.name, updateProject, toast, onDelete]);
+  }, [project.id, project.name, updateProject, toast, onBack]);
 
   const handleToggleSidebar = useCallback(async () => {
     const newValue = !project.showInSidebar;
