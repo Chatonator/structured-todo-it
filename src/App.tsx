@@ -128,6 +128,7 @@ const App = () => (
       <UserPreferencesProvider>
         <ThemeProvider>
           <TeamProvider>
+            <TimeTrackerProvider>
             <TooltipProvider>
               <Toaster />
               <HashRouter>
