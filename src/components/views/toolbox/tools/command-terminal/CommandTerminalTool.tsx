@@ -461,6 +461,46 @@ function normalizeStatus(value?: string): 'active' | 'completed' | 'all' {
   return value === 'completed' ? 'completed' : 'active';
 }
 
+function getActionLabel(command: ParsedCommand): string {
+  switch (command.action) {
+    case 'create':
+      if (command.entity === 'project') return `Creer le projet "${command.label}"`;
+      if (command.entity === 'task') return `Creer la tache "${command.label}"`;
+      if (command.entity === 'habit') return `Creer l'habitude "${command.label}"`;
+      return 'Creer un element';
+    case 'update':
+      return `Modifier ${command.entity === 'habit' ? "l'habitude" : command.entity === 'project' ? 'le projet' : 'la tache'} "${command.label}"`;
+    case 'complete':
+      return `Marquer comme termine ${command.entity === 'habit' ? "l'habitude" : command.entity === 'project' ? 'le projet' : 'la tache'} "${command.label}"`;
+    case 'plan':
+      return `Planifier la tache "${command.label}"`;
+    case 'assign':
+      return `Rattacher la tache "${command.label}" a un projet`;
+    case 'delete':
+      return `Supprimer ${command.entity === 'habit' ? "l'habitude" : command.entity === 'project' ? 'le projet' : 'la tache'} "${command.label}"`;
+    case 'find':
+      return `Rechercher des ${command.entity === 'project' ? 'projets' : command.entity === 'habit' ? 'habitudes' : 'taches'}`;
+    case 'list':
+      return `Lister les ${command.entity === 'project' ? 'projets' : command.entity === 'habit' ? 'habitudes' : 'taches'}`;
+    case 'complete-many':
+      return `Terminer plusieurs ${command.entity === 'project' ? 'projets' : command.entity === 'habit' ? 'habitudes' : 'taches'}`;
+    case 'delete-many':
+      return `Supprimer plusieurs ${command.entity === 'project' ? 'projets' : command.entity === 'habit' ? 'habitudes' : 'taches'}`;
+    case 'update-many':
+      return `Modifier plusieurs ${command.entity === 'project' ? 'projets' : command.entity === 'habit' ? 'habitudes' : 'taches'}`;
+    case 'schema':
+      return `Afficher la syntaxe ${command.entity}`;
+    case 'inspect':
+      return `Afficher le detail de ${command.entity === 'habit' ? "l'habitude" : command.entity === 'project' ? 'du projet' : 'la tache'} "${command.label}"`;
+    case 'stats':
+      return `Afficher les statistiques ${command.entity}`;
+    case 'help':
+      return 'Afficher l aide';
+    default:
+      return command.action;
+  }
+}
+
 const CommandTerminalTool: React.FC<ToolProps> = () => {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
@@ -479,10 +519,15 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
   const parsePreview = useMemo(() => parseCommandScript(script), [script]);
   const modeLabel = projects.isTeamMode ? `Equipe: ${projects.teamName || 'active'}` : 'Personnel';
-  const executionPlan = useMemo(
-    () => parsePreview.commands.map((command, index) => `${index + 1}. ${command.action} ${command.entity ?? ''} ${command.label ?? ''}`.trim()),
-    [parsePreview.commands]
-  );
+  const executionPlan = useMemo(() => {
+    const actions = parsePreview.commands.map(getActionLabel);
+    const counts = parsePreview.commands.reduce<Record<string, number>>((acc, command) => {
+      acc[command.action] = (acc[command.action] || 0) + 1;
+      return acc;
+    }, {});
+
+    return { actions, counts };
+  }, [parsePreview.commands]);
 
   useEffect(() => {
     setFavorites(loadStorage<StoredScript[]>(STORAGE_KEYS.favorites, []));
@@ -1642,29 +1687,51 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       <div className="space-y-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Plan d'exécution</CardTitle>
-            <CardDescription>Prévisualisation multi-étapes du script courant.</CardDescription>
+            <CardTitle className="text-base">Resume du script</CardTitle>
+            <CardDescription>Ce que le script va faire, en langage simple.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            {Object.keys(parsePreview.variables).length > 0 && (
-              <div className="space-y-2 rounded-xl bg-muted/40 p-3">
-                <p className="font-medium text-foreground">Variables</p>
+            <div className="space-y-2 rounded-xl bg-muted/40 p-3">
+              <p className="font-medium text-foreground">
+                {parsePreview.commands.length === 0
+                  ? 'Aucune action detectee'
+                  : `${parsePreview.commands.length} action(s) detectee(s)`}
+              </p>
+              {Object.keys(executionPlan.counts).length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(parsePreview.variables).map(([key, value]) => (
-                    <Badge key={key} variant="outline">{key}={value}</Badge>
+                  {Object.entries(executionPlan.counts).map(([action, count]) => (
+                    <Badge key={action} variant="outline">{action}: {count}</Badge>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
             <div className="space-y-2 rounded-xl bg-muted/40 p-3">
-              {executionPlan.length === 0 ? (
-                <p className="text-muted-foreground">Aucune étape détectée.</p>
+              {executionPlan.actions.length === 0 ? (
+                <p className="text-muted-foreground">Aucune etape detectee.</p>
               ) : (
-                executionPlan.map(step => (
-                  <div key={step} className="font-mono text-xs text-muted-foreground">{step}</div>
+                executionPlan.actions.map((step, index) => (
+                  <div key={`${index}-${step}`} className="text-sm text-muted-foreground">
+                    {index + 1}. {step}
+                  </div>
                 ))
               )}
             </div>
+            {Object.keys(parsePreview.variables).length > 0 && (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start">Voir les variables techniques</Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3">
+                  <div className="space-y-2 rounded-xl bg-muted/40 p-3">
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(parsePreview.variables).map(([key, value]) => (
+                        <Badge key={key} variant="outline">{key}={value}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </CardContent>
         </Card>
 
