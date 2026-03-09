@@ -52,18 +52,18 @@ function phaseDuration(phase: PomodoroPhase, config: PomodoroConfig): number {
 }
 
 export function usePomodoroTool() {
-  const [config, setConfigState] = useState<PomodoroConfig>(loadConfig);
+  const [config, setConfigState] = useState<PomodoroConfig>(() => loadStorage(CONFIG_KEY, PRESETS.classic));
   const [phase, setPhase] = useState<PomodoroPhase>('idle');
   const [status, setStatus] = useState<PomodoroStatus>('idle');
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(0);
   const [cycleIndex, setCycleIndex] = useState(0);
-  const [sessionsToday, setSessionsToday] = useState(getTodaySessions);
+  const [sessionsToday, setSessionsToday] = useState(() => loadDailyStorage<number>(SESSIONS_KEY, 0));
   const [linkedTaskId, setLinkedTaskId] = useState<string | null>(null);
 
   const setConfig = useCallback((c: PomodoroConfig) => {
     setConfigState(c);
-    saveConfig(c);
+    saveStorage(CONFIG_KEY, c);
   }, []);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
