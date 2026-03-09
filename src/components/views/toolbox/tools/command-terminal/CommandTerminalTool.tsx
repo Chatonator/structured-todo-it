@@ -36,15 +36,19 @@ interface StoredScript {
 }
 
 const DEFAULT_SCRIPT = [
-  'let sprint = "Migration design system"',
-  '# Crée plusieurs objets rapidement',
-  'project $sprint --context pro --color #0f766e --icon 🚀',
-  'task "Préparer la roadmap" --context pro --time 45 --category obligation --priority important --project $sprint',
-  'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
-  'habit "Sport" --time 40 --frequency weekly --days 0,2,4 --locked true --unlock-type streak --unlock-value 7 --requires-habit "Lire 20 minutes"',
-  'find task where context=pro and status=active and project=$sprint',
-  'complete-many task --context pro --status active --limit 5',
-  'update task "Préparer la roadmap" --time 60',
+  'let maison = "Maison"',
+  '# Exemple simple du quotidien',
+  '# 1. Je crée un projet perso pour les tâches de la maison',
+  'project $maison --context perso',
+  '',
+  '# 2. J ajoute une tâche simple dans ce projet',
+  'task "Faire la vaisselle" --context perso --time 15 --project $maison',
+  '',
+  '# 3. J ajoute une habitude très simple',
+  'habit "Boire un verre d eau" --context perso --time 5 --frequency daily',
+  '',
+  '# 4. Je recherche mes tâches perso encore actives',
+  'find task where context=perso and status=active and project=$maison',
 ].join('\n');
 
 const STORAGE_KEYS = {
@@ -55,22 +59,22 @@ const STORAGE_KEYS = {
 
 const SCRIPT_TEMPLATES: StoredScript[] = [
   {
-    name: 'Sprint Projet',
+    name: 'Maison',
     updatedAt: 'template',
     script: [
-      'let sprint = "Projet Sprint"',
-      'project $sprint --context pro --color #0f766e --icon 🚀',
-      'task "Préparer backlog" --context pro --time 45 --project $sprint',
-      'task "Animer sprint planning" --context pro --time 60 --project $sprint',
-      'find task where project=$sprint and status=active',
+      'let maison = "Maison"',
+      'project $maison --context perso',
+      'task "Faire la vaisselle" --context perso --time 15 --project $maison',
+      'task "Sortir la poubelle" --context perso --time 5 --project $maison',
+      'find task where project=$maison and status=active',
     ].join('\n'),
   },
   {
-    name: 'Pack Habitudes',
+    name: 'Habitudes simples',
     updatedAt: 'template',
     script: [
-      'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
-      'habit "Sport" --context perso --time 40 --frequency weekly --days 1,3,5 --icon 💪',
+      'habit "Boire un verre d eau" --context perso --time 5 --frequency daily',
+      'habit "Marcher 20 minutes" --context perso --time 20 --frequency weekly --days 1,3,5',
       'list habit --context perso --limit 10',
     ].join('\n'),
   },
@@ -102,9 +106,9 @@ const EXTERNAL_AI_PROMPT = [
   '- si un projet regroupe plusieurs tâches, crée d abord le projet puis les tâches avec --project',
   '- n utilise pas de commandes avancées sauf si nécessaire',
   'Exemples autorisés :',
-  'project "Migration design system" --context pro',
-  'task "Préparer la roadmap" --time 45 --context pro --project "Migration design system"',
-  'habit "Lire 20 minutes" --time 20 --context perso --frequency daily',
+  'project "Maison" --context perso',
+  'task "Faire la vaisselle" --time 15 --context perso --project "Maison"',
+  'habit "Boire un verre d eau" --time 5 --context perso --frequency daily',
   'Voici maintenant ma todo :',
 ].join('\n');
 
@@ -462,11 +466,14 @@ function normalizeStatus(value?: string): 'active' | 'completed' | 'all' {
 }
 
 function getActionLabel(command: ParsedCommand): string {
+  const contextLabel = command.flags.context ? ` (${command.flags.context})` : '';
+  const timeLabel = command.flags.time ? ` - ${command.flags.time} min` : '';
+  const projectLabel = command.flags.project ? ` dans "${command.flags.project}"` : '';
   switch (command.action) {
     case 'create':
-      if (command.entity === 'project') return `Creer le projet "${command.label}"`;
-      if (command.entity === 'task') return `Creer la tache "${command.label}"`;
-      if (command.entity === 'habit') return `Creer l'habitude "${command.label}"`;
+      if (command.entity === 'project') return `Creer le projet "${command.label}"${contextLabel}`;
+      if (command.entity === 'task') return `Creer la tache "${command.label}"${projectLabel}${timeLabel}${contextLabel}`;
+      if (command.entity === 'habit') return `Creer l'habitude "${command.label}"${timeLabel}${contextLabel}`;
       return 'Creer un element';
     case 'update':
       return `Modifier ${command.entity === 'habit' ? "l'habitude" : command.entity === 'project' ? 'le projet' : 'la tache'} "${command.label}"`;
@@ -1691,6 +1698,10 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
             <CardDescription>Ce que le script va faire, en langage simple.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            <div className="rounded-xl border bg-muted/30 p-3 text-muted-foreground">
+              Cette zone sert juste a verifier rapidement ton script avant execution.
+              Elle traduit le script en actions lisibles, sans montrer tout le detail technique.
+            </div>
             <div className="space-y-2 rounded-xl bg-muted/40 p-3">
               <p className="font-medium text-foreground">
                 {parsePreview.commands.length === 0
@@ -1873,8 +1884,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
                   </CollapsibleContent>
                 </Collapsible>
                 <div className="space-y-2 text-muted-foreground">
-                  <p>`where`: `find task where context=pro and status=active`</p>
-                  <p>Variables: `let sprint = "Migration design system"` puis `$sprint`</p>
+                  <p>`where`: `find task where context=perso and status=active`</p>
+                  <p>Variables: `let maison = "Maison"` puis `$maison`</p>
                   <p>Massif: `complete-many`, `update-many`, `delete-many` avec `--dry-run true` avant.</p>
                 </div>
               </TabsContent>
@@ -1900,9 +1911,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
                 </div>
                 <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
                   <div>schema habit</div>
-                  <div>inspect task "Préparer la roadmap"</div>
+                  <div>inspect task "Faire la vaisselle"</div>
                   <div>stats project</div>
-                  <div>find task where context=pro and status=active --json true</div>
+                  <div>find task where context=perso and status=active --json true</div>
                 </div>
               </TabsContent>
             </Tabs>

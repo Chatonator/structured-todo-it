@@ -23,25 +23,25 @@ export interface ParseResult {
 }
 
 export const COMMAND_EXAMPLES = [
-  'task "Préparer le sprint" --context pro --time 45 --category obligation --priority important',
-  'project "Refonte site vitrine" --context pro --description "Landing + contenu" --color #0f766e --icon 🚀',
-  'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
-  'habit "Sport" --frequency weekly --days 0,2,4 --deck default',
-  'update task "Préparer le sprint" --name "Préparer le sprint Q2" --time 60',
-  'complete project "Refonte site vitrine"',
-  'plan task "Préparer le sprint Q2" --date 2026-03-10 --time 14:30',
-  'assign task "Préparer le sprint Q2" --project "Refonte site vitrine"',
-  'delete habit "Lire 20 minutes"',
-  'find task --text sprint --context pro --status active',
-  'list project --status completed --limit 10',
-  'complete-many task --context pro --status active --limit 5',
-  'update-many task --project "Migration design system" --priority important',
-  'delete-many habit --text test --limit 3',
+  'task "Faire la vaisselle" --context perso --time 15',
+  'project "Maison" --context perso',
+  'habit "Boire un verre d eau" --context perso --time 5 --frequency daily',
+  'habit "Faire du sport" --context perso --time 40 --frequency weekly --days 1,3,5',
+  'update task "Faire la vaisselle" --time 20',
+  'complete project "Maison"',
+  'plan task "Faire la vaisselle" --date 2026-03-10 --time 19:00',
+  'assign task "Faire la vaisselle" --project "Maison"',
+  'delete habit "Boire un verre d eau" --confirm CONFIRM',
+  'find task --text vaisselle --context perso --status active',
+  'list project --status active --limit 10',
+  'complete-many task --context perso --status active --limit 5',
+  'update-many task --context perso --priority important',
+  'delete-many habit --text test --limit 3 --confirm CONFIRM',
   'schema habit',
-  'inspect task "Préparer la roadmap"',
+  'inspect task "Faire la vaisselle"',
   'stats project',
-  'let sprint = "Migration design system"',
-  'find task where context=pro and status=active and project=$sprint',
+  'let maison = "Maison"',
+  'find task where context=perso and status=active and project=$maison',
 ];
 
 export const COMMAND_RULES = [
@@ -78,7 +78,7 @@ export const COMMAND_SYNTAX = [
   'inspect task|project|habit "Nom existant"',
   'stats task|project|habit',
   'let variable = "valeur"',
-  'find task|project|habit where context=pro and status=active and text~sprint',
+  'find task|project|habit where context=perso and status=active and text~vaisselle',
 ];
 
 const ENTITY_ALIASES: Record<string, CommandEntity> = {
