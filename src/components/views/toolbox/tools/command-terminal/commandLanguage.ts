@@ -1,5 +1,5 @@
 export type CommandEntity = 'task' | 'project' | 'habit';
-export type CommandAction = 'create' | 'update' | 'complete' | 'plan' | 'assign' | 'delete' | 'find' | 'list' | 'complete-many' | 'delete-many' | 'update-many' | 'help';
+export type CommandAction = 'create' | 'update' | 'complete' | 'plan' | 'assign' | 'delete' | 'find' | 'list' | 'complete-many' | 'delete-many' | 'update-many' | 'schema' | 'inspect' | 'stats' | 'help';
 
 export interface ParsedCommand {
   lineNumber: number;
@@ -36,6 +36,9 @@ export const COMMAND_EXAMPLES = [
   'complete-many task --context pro --status active --limit 5',
   'update-many task --project "Migration design system" --priority important',
   'delete-many habit --text test --limit 3',
+  'schema habit',
+  'inspect task "Préparer la roadmap"',
+  'stats project',
 ];
 
 export const COMMAND_RULES = [
@@ -48,6 +51,8 @@ export const COMMAND_RULES = [
   'Les tâches exigent une durée explicite à la création: --time est obligatoire.',
   'Les valeurs par défaut ne sont utilisées que si elles restent cohérentes avec les règles métier.',
   'Les commandes de masse utilisent les mêmes filtres que find/list.',
+  'Les suppressions exigent --confirm CONFIRM.',
+  'Utilisez --dry-run true pour simuler une action avant exécution.',
 ];
 
 export const COMMAND_SYNTAX = [
@@ -64,6 +69,9 @@ export const COMMAND_SYNTAX = [
   'complete-many task|project|habit [--text "mot"] [--context pro|perso] [--status active|completed|all] [--project "Nom"] [--limit 20]',
   'delete-many task|project|habit [--text "mot"] [--context pro|perso] [--status active|completed|all] [--project "Nom"] [--limit 20]',
   'update-many task|project|habit [filtres] [champs à modifier]',
+  'schema task|project|habit',
+  'inspect task|project|habit "Nom existant"',
+  'stats task|project|habit',
 ];
 
 const ENTITY_ALIASES: Record<string, CommandEntity> = {
@@ -89,6 +97,9 @@ const ACTION_ALIASES: Record<string, CommandAction> = {
   'complete-many': 'complete-many',
   'delete-many': 'delete-many',
   'update-many': 'update-many',
+  schema: 'schema',
+  inspect: 'inspect',
+  stats: 'stats',
   help: 'help',
 };
 
@@ -192,7 +203,7 @@ function parseCommandLine(line: string, lineNumber: number): ParsedCommand {
     index += 2;
   }
 
-  const requiresLabel = !['find', 'list', 'help', 'complete-many', 'delete-many', 'update-many'].includes(action);
+  const requiresLabel = !['find', 'list', 'help', 'complete-many', 'delete-many', 'update-many', 'schema', 'stats'].includes(action);
 
   if (requiresLabel && !label) {
     throw new Error('Nom manquant. Utilisez par exemple: task "Nom de la tâche"');

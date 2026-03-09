@@ -81,6 +81,21 @@ const LOG_LABELS: Record<LogLevel, string> = {
   error: 'Erreur',
 };
 
+const BULK_CONFIRM_THRESHOLD = 10;
+const SCRIPT_MUTATION_THRESHOLD = 12;
+const CONFIRM_TOKEN = 'CONFIRM';
+const MUTATING_ACTIONS = new Set([
+  'create',
+  'update',
+  'complete',
+  'plan',
+  'assign',
+  'delete',
+  'complete-many',
+  'delete-many',
+  'update-many',
+]);
+
 function normalizeContext(value?: string): TaskContext {
   if (!value) {
     return 'Perso';
@@ -303,6 +318,18 @@ function parseTimeValue(value?: string): string {
   return value;
 }
 
+function hasConfirmToken(command: ParsedCommand): boolean {
+  return command.flags.confirm === CONFIRM_TOKEN;
+}
+
+function isDryRun(command: ParsedCommand): boolean {
+  return parseBoolean(command.flags['dry-run']);
+}
+
+function isMutatingAction(action: ParsedCommand['action']): boolean {
+  return MUTATING_ACTIONS.has(action);
+}
+
 function matchesText(name: string, text?: string): boolean {
   if (!text) {
     return true;
@@ -342,6 +369,14 @@ function formatSearchResults(title: string, items: string[], total: number): str
 
   const suffix = total > items.length ? ` (+${total - items.length} autres)` : '';
   return `${title}: ${items.join(' | ')}${suffix}`;
+}
+
+function formatInspectRecord(title: string, entries: Array<[string, string | number | boolean | undefined]>): string {
+  const formatted = entries
+    .filter(([, value]) => value !== undefined && value !== '')
+    .map(([key, value]) => `${key}=${String(value)}`);
+
+  return `${title}: ${formatted.join(' | ') || 'aucune donnée'}`;
 }
 
 function normalizeStatus(value?: string): 'active' | 'completed' | 'all' {
@@ -399,6 +434,30 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     ));
   };
 
+  const assertBulkSafety = (command: ParsedCommand, matchedCount: number) => {
+    if (command.action === 'delete' || command.action === 'delete-many') {
+      if (!hasConfirmToken(command)) {
+        throw new Error('Suppression bloquée. Ajoutez --confirm CONFIRM.');
+      }
+    }
+
+    if (['complete-many', 'delete-many', 'update-many'].includes(command.action) && matchedCount > BULK_CONFIRM_THRESHOLD && !hasConfirmToken(command)) {
+      throw new Error(`Action massive bloquée au-delà de ${BULK_CONFIRM_THRESHOLD} éléments. Ajoutez --confirm CONFIRM.`);
+    }
+  };
+
+  const maybeReturnDryRun = (command: ParsedCommand, label: string, items: string[], total: number): ExecutionLog | null => {
+    if (!isDryRun(command)) {
+      return null;
+    }
+
+    return {
+      lineNumber: command.lineNumber,
+      level: 'info',
+      message: `Simulation ${label}: ${formatSearchResults(`${total} élément(s)`, items, total)}`,
+    };
+  };
+
   const runCommand = async (command: ParsedCommand): Promise<ExecutionLog> => {
     if (command.action === 'help') {
       return {
@@ -408,7 +467,123 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       };
     }
 
+    if (command.action === 'schema' && command.entity === 'task') {
+      return {
+        lineNumber: command.lineNumber,
+        level: 'info',
+        message: 'Schema task: requis=name,time; options=context,category,priority,important,urgent,date,time,project; defauts=context Perso, category Autres seulement si coherent.',
+      };
+    }
+
+    if (command.action === 'schema' && command.entity === 'project') {
+      return {
+        lineNumber: command.lineNumber,
+        level: 'info',
+        message: 'Schema project: requis=name; options=context,description,color,icon,date; defauts=icon, color, status planning.',
+      };
+    }
+
+    if (command.action === 'schema' && command.entity === 'habit') {
+      return {
+        lineNumber: command.lineNumber,
+        level: 'info',
+        message: 'Schema habit: requis=name; options=context,time,frequency,days,count,deck,challenge,challenge-days,challenge-end,locked,unlock-type,unlock-value,requires-habit; contraintes=weekly/monthly exigent days, x-week/x-month exigent count.',
+      };
+    }
+
+    if (command.action === 'stats' && command.entity === 'task') {
+      const completed = tasks.tasks.filter(task => task.isCompleted).length;
+      return {
+        lineNumber: command.lineNumber,
+        level: 'info',
+        message: `Stats task: total=${tasks.tasks.length} | active=${tasks.tasks.length - completed} | completed=${completed}`,
+      };
+    }
+
+    if (command.action === 'stats' && command.entity === 'project') {
+      const completed = projects.projects.filter(project => project.status === 'completed').length;
+      return {
+        lineNumber: command.lineNumber,
+        level: 'info',
+        message: `Stats project: total=${projects.projects.length} | active=${projects.projects.length - completed} | completed=${completed}`,
+      };
+    }
+
+    if (command.action === 'stats' && command.entity === 'habit') {
+      return {
+        lineNumber: command.lineNumber,
+        level: 'info',
+        message: `Stats habit: total=${habits.habits.length} | perso=${habits.habits.filter(habit => habit.context === 'Perso').length} | pro=${habits.habits.filter(habit => habit.context === 'Pro').length}`,
+      };
+    }
+
+    if (command.action === 'inspect' && command.entity === 'task') {
+      const task = findByName(tasks.tasks, command.label!);
+      if (!task) {
+        throw new Error(`Tâche introuvable: ${command.label}`);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'info',
+        message: formatInspectRecord(`Task ${task.name}`, [
+          ['context', task.context],
+          ['category', task.category],
+          ['priority', task.subCategory],
+          ['time', task.estimatedTime],
+          ['completed', task.isCompleted],
+          ['projectId', task.projectId],
+          ['projectStatus', task.projectStatus],
+          ['actualTime', task.actualTime],
+        ]),
+      };
+    }
+
+    if (command.action === 'inspect' && command.entity === 'project') {
+      const project = findByName(projects.projects, command.label!);
+      if (!project) {
+        throw new Error(`Projet introuvable: ${command.label}`);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'info',
+        message: formatInspectRecord(`Project ${project.name}`, [
+          ['status', project.status],
+          ['color', project.color],
+          ['icon', project.icon],
+          ['progress', project.progress],
+          ['targetDate', project.targetDate?.toISOString().slice(0, 10)],
+          ['team', !!project.teamId],
+        ]),
+      };
+    }
+
+    if (command.action === 'inspect' && command.entity === 'habit') {
+      const habit = findByName(habits.habits, command.label!);
+      if (!habit) {
+        throw new Error(`Habitude introuvable: ${command.label}`);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'info',
+        message: formatInspectRecord(`Habit ${habit.name}`, [
+          ['context', habit.context],
+          ['frequency', habit.frequency],
+          ['time', habit.estimatedTime],
+          ['deckId', habit.deckId],
+          ['locked', habit.isLocked],
+          ['challenge', habit.isChallenge],
+          ['timesPerWeek', habit.timesPerWeek],
+          ['timesPerMonth', habit.timesPerMonth],
+        ]),
+      };
+    }
+
     if (command.action === 'create' && command.entity === 'task') {
+      const dryRun = maybeReturnDryRun(command, 'creation tâche', [command.label!], 1);
+      if (dryRun) return dryRun;
       const explicitTime = requireFlag(command.flags, 'time', 'Une tâche exige --time. Aucun défaut n’est appliqué à la durée.');
       const category = normalizeCategory(command.flags);
       const subCategory = normalizePriority(command.flags.priority);
@@ -442,6 +617,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     }
 
     if (command.action === 'create' && command.entity === 'project') {
+      const dryRun = maybeReturnDryRun(command, 'creation projet', [command.label!], 1);
+      if (dryRun) return dryRun;
       const category = normalizeCategory(command.flags);
       const eisenhower = eisenhowerFromCategory(category);
       const created = await projects.createProject(
@@ -466,6 +643,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     }
 
     if (command.action === 'create' && command.entity === 'habit') {
+      const dryRun = maybeReturnDryRun(command, 'creation habitude', [command.label!], 1);
+      if (dryRun) return dryRun;
       const habitConfig = buildHabitPayload(command, undefined, decks, defaultDeckId, habits.habits);
       const challengeStartDate = habitConfig.isChallenge ? new Date() : undefined;
       const challengeEndDate = habitConfig.isChallenge && habitConfig.challengeDurationDays
@@ -514,6 +693,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingTask) {
         throw new Error(`Tâche introuvable: ${command.label}`);
       }
+      const dryRun = maybeReturnDryRun(command, 'mise a jour tâche', [existingTask.name], 1);
+      if (dryRun) return dryRun;
 
       const nextCategory = command.flags.category || command.flags.important || command.flags.urgent
         ? normalizeCategory(command.flags)
@@ -542,6 +723,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingProject) {
         throw new Error(`Projet introuvable: ${command.label}`);
       }
+      const dryRun = maybeReturnDryRun(command, 'mise a jour projet', [existingProject.name], 1);
+      if (dryRun) return dryRun;
 
       const success = await projects.updateProject(existingProject.id, {
         name: command.flags.name || existingProject.name,
@@ -567,6 +750,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingHabit) {
         throw new Error(`Habitude introuvable: ${command.label}`);
       }
+      const dryRun = maybeReturnDryRun(command, 'mise a jour habitude', [existingHabit.name], 1);
+      if (dryRun) return dryRun;
 
       const habitConfig = buildHabitPayload(command, existingHabit, decks, defaultDeckId, habits.habits);
       const challengeStartDate = habitConfig.isChallenge
@@ -611,6 +796,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingTask) {
         throw new Error(`Tâche introuvable: ${command.label}`);
       }
+      const dryRun = maybeReturnDryRun(command, 'completion tâche', [existingTask.name], 1);
+      if (dryRun) return dryRun;
 
       if (existingTask.isCompleted) {
         return {
@@ -633,6 +820,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingProject) {
         throw new Error(`Projet introuvable: ${command.label}`);
       }
+      const dryRun = maybeReturnDryRun(command, 'completion projet', [existingProject.name], 1);
+      if (dryRun) return dryRun;
 
       const success = await projects.completeProject(existingProject.id);
       if (!success) {
@@ -651,6 +840,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingHabit) {
         throw new Error(`Habitude introuvable: ${command.label}`);
       }
+      const dryRun = maybeReturnDryRun(command, 'completion habitude', [existingHabit.name], 1);
+      if (dryRun) return dryRun;
 
       const success = await habits.toggleCompletion(existingHabit.id);
       if (!success) {
@@ -669,6 +860,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingTask) {
         throw new Error(`Tâche introuvable: ${command.label}`);
       }
+      const dryRun = maybeReturnDryRun(command, 'planification tâche', [existingTask.name], 1);
+      if (dryRun) return dryRun;
 
       const scheduledDate = parseDate(command.flags.date);
       const scheduledTime = parseTimeValue(command.flags.time);
@@ -706,6 +899,8 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!project) {
         throw new Error(`Projet introuvable: ${projectName}`);
       }
+      const dryRun = maybeReturnDryRun(command, 'affectation tâche', [`${existingTask.name} -> ${project.name}`], 1);
+      if (dryRun) return dryRun;
 
       if (tasks.isTeamMode) {
         await tasks.updateTask(existingTask.id, {
@@ -742,6 +937,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingTask) {
         throw new Error(`Tâche introuvable: ${command.label}`);
       }
+      assertBulkSafety(command, 1);
+      const dryRun = maybeReturnDryRun(command, 'suppression tâche', [existingTask.name], 1);
+      if (dryRun) return dryRun;
 
       await tasks.removeTask(existingTask.id);
       return {
@@ -756,6 +954,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingProject) {
         throw new Error(`Projet introuvable: ${command.label}`);
       }
+      assertBulkSafety(command, 1);
+      const dryRun = maybeReturnDryRun(command, 'suppression projet', [existingProject.name], 1);
+      if (dryRun) return dryRun;
 
       const success = await projects.deleteProject(existingProject.id);
       if (!success) {
@@ -774,6 +975,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       if (!existingHabit) {
         throw new Error(`Habitude introuvable: ${command.label}`);
       }
+      assertBulkSafety(command, 1);
+      const dryRun = maybeReturnDryRun(command, 'suppression habitude', [existingHabit.name], 1);
+      if (dryRun) return dryRun;
 
       const success = await habits.deleteHabit(existingHabit.id);
       if (!success) {
@@ -880,6 +1084,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     if (command.action === 'complete-many' && command.entity === 'task') {
       const limit = parseLimit(command.flags.limit);
       const matches = getTaskMatches(command).slice(0, limit).filter(task => !task.isCompleted);
+      assertBulkSafety(command, matches.length);
+      const dryRun = maybeReturnDryRun(command, 'completion massive tâche', matches.map(task => task.name), matches.length);
+      if (dryRun) return dryRun;
 
       for (const task of matches) {
         await tasks.toggleTaskCompletion(task.id);
@@ -899,6 +1106,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     if (command.action === 'complete-many' && command.entity === 'project') {
       const limit = parseLimit(command.flags.limit);
       const matches = getProjectMatches(command).slice(0, limit).filter(project => project.status !== 'completed');
+      assertBulkSafety(command, matches.length);
+      const dryRun = maybeReturnDryRun(command, 'completion massive projet', matches.map(project => project.name), matches.length);
+      if (dryRun) return dryRun;
 
       for (const project of matches) {
         await projects.completeProject(project.id);
@@ -914,6 +1124,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     if (command.action === 'complete-many' && command.entity === 'habit') {
       const limit = parseLimit(command.flags.limit);
       const matches = getHabitMatches(command).slice(0, limit);
+      assertBulkSafety(command, matches.length);
+      const dryRun = maybeReturnDryRun(command, 'completion massive habitude', matches.map(habit => habit.name), matches.length);
+      if (dryRun) return dryRun;
 
       for (const habit of matches) {
         await habits.toggleCompletion(habit.id);
@@ -929,6 +1142,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     if (command.action === 'delete-many' && command.entity === 'task') {
       const limit = parseLimit(command.flags.limit);
       const matches = getTaskMatches(command).slice(0, limit);
+      assertBulkSafety(command, matches.length);
+      const dryRun = maybeReturnDryRun(command, 'suppression massive tâche', matches.map(task => task.name), matches.length);
+      if (dryRun) return dryRun;
 
       for (const task of matches) {
         await tasks.removeTask(task.id);
@@ -944,6 +1160,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     if (command.action === 'delete-many' && command.entity === 'project') {
       const limit = parseLimit(command.flags.limit);
       const matches = getProjectMatches(command).slice(0, limit);
+      assertBulkSafety(command, matches.length);
+      const dryRun = maybeReturnDryRun(command, 'suppression massive projet', matches.map(project => project.name), matches.length);
+      if (dryRun) return dryRun;
 
       for (const project of matches) {
         await projects.deleteProject(project.id);
@@ -959,6 +1178,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     if (command.action === 'delete-many' && command.entity === 'habit') {
       const limit = parseLimit(command.flags.limit);
       const matches = getHabitMatches(command).slice(0, limit);
+      assertBulkSafety(command, matches.length);
+      const dryRun = maybeReturnDryRun(command, 'suppression massive habitude', matches.map(habit => habit.name), matches.length);
+      if (dryRun) return dryRun;
 
       for (const habit of matches) {
         await habits.deleteHabit(habit.id);
@@ -974,6 +1196,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     if (command.action === 'update-many' && command.entity === 'task') {
       const limit = parseLimit(command.flags.limit);
       const matches = getTaskMatches(command).slice(0, limit);
+      assertBulkSafety(command, matches.length);
+      const dryRun = maybeReturnDryRun(command, 'mise a jour massive tâche', matches.map(task => task.name), matches.length);
+      if (dryRun) return dryRun;
 
       for (const task of matches) {
         const nextCategory = command.flags.category || command.flags.important || command.flags.urgent
@@ -1000,6 +1225,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     if (command.action === 'update-many' && command.entity === 'project') {
       const limit = parseLimit(command.flags.limit);
       const matches = getProjectMatches(command).slice(0, limit);
+      assertBulkSafety(command, matches.length);
+      const dryRun = maybeReturnDryRun(command, 'mise a jour massive projet', matches.map(project => project.name), matches.length);
+      if (dryRun) return dryRun;
 
       for (const project of matches) {
         await projects.updateProject(project.id, {
@@ -1020,6 +1248,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     if (command.action === 'update-many' && command.entity === 'habit') {
       const limit = parseLimit(command.flags.limit);
       const matches = getHabitMatches(command).slice(0, limit);
+      assertBulkSafety(command, matches.length);
+      const dryRun = maybeReturnDryRun(command, 'mise a jour massive habitude', matches.map(habit => habit.name), matches.length);
+      if (dryRun) return dryRun;
 
       for (const habit of matches) {
         const habitConfig = buildHabitPayload(command, habit, decks, defaultDeckId, habits.habits);
@@ -1074,6 +1305,16 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
     if (parseResult.commands.length === 0) {
       appendLogs([{ lineNumber: 0, level: 'info', message: 'Aucune commande à exécuter.' }]);
+      return;
+    }
+
+    const mutatingCommands = parseResult.commands.filter(command => isMutatingAction(command.action));
+    if (mutatingCommands.length > SCRIPT_MUTATION_THRESHOLD && mutatingCommands.some(command => !hasConfirmToken(command))) {
+      appendLogs([{
+        lineNumber: 0,
+        level: 'error',
+        message: `Script bloqué: plus de ${SCRIPT_MUTATION_THRESHOLD} mutations sans --confirm CONFIRM.`,
+      }]);
       return;
     }
 
@@ -1210,6 +1451,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
               <Badge variant="outline">complete-many</Badge>
               <Badge variant="outline">update-many</Badge>
               <Badge variant="outline">delete-many</Badge>
+              <Badge variant="outline">schema</Badge>
+              <Badge variant="outline">inspect</Badge>
+              <Badge variant="outline">stats</Badge>
               <Badge variant="outline">help</Badge>
             </div>
             <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
@@ -1234,6 +1478,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
               <p className="text-muted-foreground">`--locked true`, `--unlock-type streak|total_completions|manual`, `--unlock-value 7`, `--requires-habit "Nom"`</p>
               <p className="text-muted-foreground">`--date YYYY-MM-DD`, `--time HH:MM`, `--project "Nom du projet"`</p>
               <p className="text-muted-foreground">`--text "mot clé"`, `--status active|completed|all`, `--limit 20`</p>
+              <p className="text-muted-foreground">`--confirm CONFIRM`, `--dry-run true`</p>
             </div>
             <Separator />
             <div className="space-y-2">
@@ -1241,6 +1486,12 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
               <p className="text-muted-foreground">Projet: icône, couleur et statut peuvent être omis.</p>
               <p className="text-muted-foreground">Habitude: fréquence `daily`, état actif, challenge désactivé et verrouillage désactivé peuvent être implicites.</p>
               <p className="text-muted-foreground">Tâche: le nom et `--time` sont obligatoires. Aucun défaut n’est appliqué à la durée.</p>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">IA Friendly</p>
+              <p className="text-muted-foreground">Utilisez `schema`, `inspect`, `stats`, `find` et `list` pour explorer le contexte sans accès au code.</p>
+              <p className="text-muted-foreground">Utilisez `--dry-run true` avant une mutation, puis `--confirm CONFIRM` pour les suppressions ou gros volumes.</p>
             </div>
           </CardContent>
         </Card>
