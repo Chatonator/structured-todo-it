@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useViewDataContext } from '@/contexts/ViewDataContext';
 import { Task } from '@/types/task';
+import { loadDailyStorage, saveDailyStorage } from '@/lib/storage';
+import { computeCompletionStats } from '@/lib/formatters';
 
 export type TaskSlot = 'big' | 'medium' | 'small';
 
@@ -13,37 +15,6 @@ export interface Rule135Selection {
 const STORAGE_KEY = 'rule135_selection';
 const MAX_MEDIUM = 3;
 const MAX_SMALL = 5;
-
-function getTodayKey(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
-function loadSelection(): Rule135Selection {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Only use if it's from today
-      if (parsed.date === getTodayKey()) {
-        return parsed.selection;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to load 1-3-5 selection:', e);
-  }
-  return { big: null, medium: [], small: [] };
-}
-
-function saveSelection(selection: Rule135Selection): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      date: getTodayKey(),
-      selection
-    }));
-  } catch (e) {
-    console.warn('Failed to save 1-3-5 selection:', e);
-  }
-}
 
 export const useRule135Tool = () => {
   const viewData = useViewDataContext();
