@@ -272,7 +272,7 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-popover z-50">
-              <DropdownMenuItem onClick={() => onToggleCompletion(task.id)}>
+              <DropdownMenuItem onClick={() => handleToggleCompletion(task.id)}>
                 <Check className="w-4 h-4 mr-2 text-green-600" />
                 {task.isCompleted ? 'Rouvrir' : 'Terminer'}
               </DropdownMenuItem>
