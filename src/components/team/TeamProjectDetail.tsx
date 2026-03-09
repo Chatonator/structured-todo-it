@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { computeCompletionStats } from '@/lib/formatters';
 import { PROJECT_STATUS_CONFIG } from '@/types/project';
 import { TeamProject } from '@/hooks/useTeamProjects';
 import { useTeamProjectTasks } from '@/hooks/useTeamProjectTasks';

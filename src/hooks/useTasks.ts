@@ -4,6 +4,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useItems } from './useItems';
+import { computeCompletionStats } from '@/lib/formatters';
 import { useGamification } from './useGamification';
 import { useTimeEventSync } from './useTimeEventSync';
 import { Task } from '@/types/task';
