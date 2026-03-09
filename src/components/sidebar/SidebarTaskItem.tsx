@@ -277,6 +277,20 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
                 {task.isCompleted ? 'Rouvrir' : 'Terminer'}
               </DropdownMenuItem>
 
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem onClick={() => onEditTask(task)}>
+                <Edit className="w-4 h-4 mr-2" />
+                Modifier
+              </DropdownMenuItem>
+
+              {canHaveSubTasks && (
+                <DropdownMenuItem onClick={() => onCreateSubTask(task)}>
+                  <Split className="w-4 h-4 mr-2" />
+                  Diviser en sous-tâches
+                </DropdownMenuItem>
+              )}
+
               {/* Timer controls */}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
@@ -303,20 +317,6 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
                   )}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem onClick={() => onEditTask(task)}>
-                <Edit className="w-4 h-4 mr-2" />
-                Modifier
-              </DropdownMenuItem>
-
-              {canHaveSubTasks && (
-                <DropdownMenuItem onClick={() => onCreateSubTask(task)}>
-                  <Split className="w-4 h-4 mr-2" />
-                  Diviser en sous-tâches
-                </DropdownMenuItem>
-              )}
 
               {/* Menu Projets unifié */}
               {(projects.length > 0 || task.level === 0) && (

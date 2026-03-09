@@ -72,10 +72,23 @@ export function useTimeTracker() {
   const resetActualTime = useCallback(async (taskId: string) => {
     const item = items.find(i => i.id === taskId);
     if (!item) return;
-    const { actualTime, ...restMeta } = item.metadata as any;
-    await updateItem(taskId, { metadata: restMeta });
+
+    // If this task is currently running, clear the timer without saving new tracked time.
+    if (timerState?.taskId === taskId) {
+      setTimerState(null);
+      setElapsedSeconds(0);
+      saveStorage(STORAGE_KEY, null);
+    }
+
+    await updateItem(taskId, {
+      metadata: {
+        ...item.metadata,
+        actualTime: undefined,
+      },
+    });
+
     toast({ title: 'Temps réel supprimé' });
-  }, [items, updateItem, toast]);
+  }, [items, timerState, updateItem, toast]);
 
   // Auto-stop on task completion
   const stopIfActive = useCallback(async (taskId: string) => {
