@@ -97,6 +97,24 @@ export function useTimeTracker() {
     }
   }, [timerState, stopTimer]);
 
+  // Global guard: stop the timer if the active task gets completed or disappears.
+  useEffect(() => {
+    if (!timerState) return;
+
+    const activeItem = items.find(i => i.id === timerState.taskId);
+
+    if (!activeItem) {
+      setTimerState(null);
+      setElapsedSeconds(0);
+      saveStorage(STORAGE_KEY, null);
+      return;
+    }
+
+    if (activeItem.isCompleted) {
+      stopTimer(true);
+    }
+  }, [items, timerState, stopTimer]);
+
   // Tick interval
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
