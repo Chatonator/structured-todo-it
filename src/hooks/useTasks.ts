@@ -4,6 +4,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useItems } from './useItems';
+import { computeCompletionStats } from '@/lib/formatters';
 import { useGamification } from './useGamification';
 import { useTimeEventSync } from './useTimeEventSync';
 import { Task } from '@/types/task';
@@ -61,17 +62,13 @@ export const useTasks = () => {
     [tasks]
   );
 
-  // Completed tasks
-  const completedTasks = useMemo(() => 
-    tasks.filter(t => t.isCompleted),
+  // Completion stats
+  const { completed: completedTasksCount, completionRate } = useMemo(
+    () => computeCompletionStats(tasks, t => t.isCompleted),
     [tasks]
   );
 
-  // Completion rate
-  const completionRate = useMemo(() => {
-    if (tasks.length === 0) return 0;
-    return Math.round((completedTasks.length / tasks.length) * 100);
-  }, [tasks, completedTasks]);
+  const completedTasks = useMemo(() => tasks.filter(t => t.isCompleted), [tasks]);
 
   // Total time
   const totalProjectTime = useMemo(() => 

@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { computeCompletionStats } from '@/lib/formatters';
 import { PROJECT_STATUS_CONFIG } from '@/types/project';
 import { TeamProject } from '@/hooks/useTeamProjects';
 import { useTeamProjectTasks } from '@/hooks/useTeamProjectTasks';
@@ -128,9 +129,8 @@ export const TeamProjectDetail = ({
 
   // Statistiques
   const stats = useMemo(() => {
-    const total = projectTasks.length;
-    const done = projectTasks.filter(t => t.isCompleted).length;
-    const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+    const { total, completed: done, completionRate: progress } =
+      computeCompletionStats(projectTasks, t => t.isCompleted);
     const assigned = projectTasks.filter(t => t.assigned_to).length;
     
     return { total, done, progress, assigned };

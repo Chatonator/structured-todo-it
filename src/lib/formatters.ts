@@ -148,3 +148,19 @@ export function formatAgeLong(date: Date | string): string {
   const years = Math.floor(months / 12);
   return `${years} an${years > 1 ? 's' : ''}`;
 }
+
+/**
+ * Calcule les stats de complétion d'une collection
+ * @param items - Collection d'éléments
+ * @param isCompleted - Prédicat pour déterminer si un élément est complété
+ * @returns { total, completed, completionRate }
+ */
+export function computeCompletionStats<T>(
+  items: T[],
+  isCompleted: (item: T) => boolean
+): { total: number; completed: number; completionRate: number } {
+  const total = items.length;
+  const completed = items.filter(isCompleted).length;
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return { total, completed, completionRate };
+}

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { loadStorage, saveStorage, loadDailyStorage, saveDailyStorage } from '@/lib/storage';
 
 export type PomodoroPhase = 'idle' | 'focus' | 'shortBreak' | 'longBreak';
 
@@ -39,39 +40,7 @@ export const PRESETS: Record<string, PomodoroConfig & { label: string; descripti
 };
 
 const CONFIG_KEY = 'pomodoro_config';
-
-function loadConfig(): PomodoroConfig {
-  try {
-    const raw = localStorage.getItem(CONFIG_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return PRESETS.classic;
-}
-
-function saveConfig(c: PomodoroConfig) {
-  try { localStorage.setItem(CONFIG_KEY, JSON.stringify(c)); } catch {}
-}
-
 const SESSIONS_KEY = 'pomodoro_sessions_today';
-const SESSIONS_DATE_KEY = 'pomodoro_sessions_date';
-
-function getTodaySessions(): number {
-  try {
-    const date = localStorage.getItem(SESSIONS_DATE_KEY);
-    const today = new Date().toDateString();
-    if (date !== today) return 0;
-    return parseInt(localStorage.getItem(SESSIONS_KEY) || '0', 10);
-  } catch {
-    return 0;
-  }
-}
-
-function saveTodaySessions(count: number): void {
-  try {
-    localStorage.setItem(SESSIONS_DATE_KEY, new Date().toDateString());
-    localStorage.setItem(SESSIONS_KEY, String(count));
-  } catch {}
-}
 
 function phaseDuration(phase: PomodoroPhase, config: PomodoroConfig): number {
   switch (phase) {
@@ -83,18 +52,18 @@ function phaseDuration(phase: PomodoroPhase, config: PomodoroConfig): number {
 }
 
 export function usePomodoroTool() {
-  const [config, setConfigState] = useState<PomodoroConfig>(loadConfig);
+  const [config, setConfigState] = useState<PomodoroConfig>(() => loadStorage(CONFIG_KEY, PRESETS.classic));
   const [phase, setPhase] = useState<PomodoroPhase>('idle');
   const [status, setStatus] = useState<PomodoroStatus>('idle');
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(0);
   const [cycleIndex, setCycleIndex] = useState(0);
-  const [sessionsToday, setSessionsToday] = useState(getTodaySessions);
+  const [sessionsToday, setSessionsToday] = useState(() => loadDailyStorage<number>(SESSIONS_KEY, 0));
   const [linkedTaskId, setLinkedTaskId] = useState<string | null>(null);
 
   const setConfig = useCallback((c: PomodoroConfig) => {
     setConfigState(c);
-    saveConfig(c);
+    saveStorage(CONFIG_KEY, c);
   }, []);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -131,7 +100,7 @@ export function usePomodoroTool() {
     if (phase === 'focus') {
       const newSessions = sessionsToday + 1;
       setSessionsToday(newSessions);
-      saveTodaySessions(newSessions);
+      saveDailyStorage(SESSIONS_KEY, newSessions);
 
       const nextCycle = cycleIndex + 1;
       if (nextCycle >= config.cyclesBeforeLong) {

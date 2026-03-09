@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from 'react';
+import { computeCompletionStats } from '@/lib/formatters';
 import { Task } from '@/types/task';
 import { useTasks } from '@/hooks/useTasks';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
@@ -61,10 +62,8 @@ export const useUnifiedTasks = () => {
     
     tasksCount: teamTasks.tasks.length,
     totalProjectTime: teamTasks.tasks.reduce((sum, t) => sum + t.estimatedTime, 0),
-    completedTasks: teamTasks.tasks.filter(t => t.isCompleted).length,
-    completionRate: teamTasks.tasks.length > 0 
-      ? (teamTasks.tasks.filter(t => t.isCompleted).length / teamTasks.tasks.length) * 100 
-      : 0,
+    completedTasks: computeCompletionStats(teamTasks.tasks, t => t.isCompleted).completed,
+    completionRate: computeCompletionStats(teamTasks.tasks, t => t.isCompleted).completionRate,
     
     undo: () => {},
     redo: () => {},

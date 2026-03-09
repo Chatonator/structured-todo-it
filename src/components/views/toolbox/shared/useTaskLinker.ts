@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useViewDataContext } from '@/contexts/ViewDataContext';
 import { Task, TaskContext, TaskCategory, SubTaskCategory } from '@/types/task';
+import { loadDailyStorage, saveDailyStorage } from '@/lib/storage';
 
 export type TaskLinkerMode = 'single' | 'multi';
 
@@ -38,60 +39,46 @@ export interface UseTaskLinkerReturn {
   mode: TaskLinkerMode;
 }
 
-function loadPersistedIds(storageKey?: string): string[] {
-  if (!storageKey) return [];
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const raw = localStorage.getItem(`taskLinker:${storageKey}`);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (parsed.date !== today) return [];
-    return parsed.ids ?? [];
-  } catch {
-    return [];
-  }
-}
-
-function persistIds(storageKey: string | undefined, ids: string[]) {
-  if (!storageKey) return;
-  const today = new Date().toISOString().slice(0, 10);
-  localStorage.setItem(`taskLinker:${storageKey}`, JSON.stringify({ date: today, ids }));
-}
-
 export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerReturn {
   const { mode, maxSelection, storageKey, excludeIds = [] } = options;
   const effectiveMax = mode === 'single' ? 1 : (maxSelection ?? Infinity);
 
   const { tasks } = useViewDataContext();
 
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => loadPersistedIds(storageKey));
+  const fullKey = storageKey ? `taskLinker:${storageKey}` : undefined;
+
+  const [selectedIds, setSelectedIds] = useState<string[]>(
+    () => fullKey ? loadDailyStorage<string[]>(fullKey, []) : []
+  );
   const [filters, setFilters] = useState<TaskLinkerFilters>({
     search: '', context: 'all', category: 'all', priority: 'all',
   });
 
-  const updateIds = useCallback((ids: string[]) => {
-    setSelectedIds(ids);
-    persistIds(storageKey, ids);
-  }, [storageKey]);
+  const persistIds = useCallback((ids: string[]) => {
+    if (fullKey) saveDailyStorage(fullKey, ids);
+  }, [fullKey]);
 
   const select = useCallback((id: string) => {
     setSelectedIds(prev => {
       if (prev.includes(id)) return prev;
       const next = mode === 'single' ? [id] : [...prev, id].slice(0, effectiveMax);
-      persistIds(storageKey, next);
+      persistIds(next);
       return next;
     });
-  }, [mode, effectiveMax, storageKey]);
+  }, [mode, effectiveMax, persistIds]);
 
   const deselect = useCallback((id: string) => {
     setSelectedIds(prev => {
       const next = prev.filter(x => x !== id);
-      persistIds(storageKey, next);
+      persistIds(next);
       return next;
     });
-  }, [storageKey]);
+  }, [persistIds]);
 
-  const clear = useCallback(() => updateIds([]), [updateIds]);
+  const clear = useCallback(() => {
+    setSelectedIds([]);
+    persistIds([]);
+  }, [persistIds]);
 
   const setSearch = useCallback((search: string) => setFilters(f => ({ ...f, search })), []);
   const setContextFilter = useCallback((context: TaskContext | 'all') => setFilters(f => ({ ...f, context })), []);

@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useViewDataContext } from '@/contexts/ViewDataContext';
 import { Task } from '@/types/task';
+import { loadDailyStorage, saveDailyStorage } from '@/lib/storage';
+import { computeCompletionStats } from '@/lib/formatters';
 
 export type TaskSlot = 'big' | 'medium' | 'small';
 
@@ -14,44 +16,15 @@ const STORAGE_KEY = 'rule135_selection';
 const MAX_MEDIUM = 3;
 const MAX_SMALL = 5;
 
-function getTodayKey(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
-function loadSelection(): Rule135Selection {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Only use if it's from today
-      if (parsed.date === getTodayKey()) {
-        return parsed.selection;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to load 1-3-5 selection:', e);
-  }
-  return { big: null, medium: [], small: [] };
-}
-
-function saveSelection(selection: Rule135Selection): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      date: getTodayKey(),
-      selection
-    }));
-  } catch (e) {
-    console.warn('Failed to save 1-3-5 selection:', e);
-  }
-}
-
 export const useRule135Tool = () => {
   const viewData = useViewDataContext();
-  const [selection, setSelection] = useState<Rule135Selection>(loadSelection);
+  const [selection, setSelection] = useState<Rule135Selection>(
+    () => loadDailyStorage<Rule135Selection>(STORAGE_KEY, { big: null, medium: [], small: [] })
+  );
 
   // Save to localStorage when selection changes
   useEffect(() => {
-    saveSelection(selection);
+    saveDailyStorage(STORAGE_KEY, selection);
   }, [selection]);
 
   // Available tasks (not completed, no parent)
@@ -92,15 +65,10 @@ export const useRule135Tool = () => {
     ].filter(Boolean) as Task[];
 
     const totalTime = allSelected.reduce((sum, t) => sum + t.estimatedTime, 0);
-    const completedCount = allSelected.filter(t => t.isCompleted).length;
-    const totalCount = allSelected.length;
+    const { total: totalCount, completed: completedCount, completionRate: progress } =
+      computeCompletionStats(allSelected, t => t.isCompleted);
 
-    return {
-      totalTime,
-      completedCount,
-      totalCount,
-      progress: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
-    };
+    return { totalTime, completedCount, totalCount, progress };
   }, [selectedTasks]);
 
   // Slot availability

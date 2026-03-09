@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { computeCompletionStats } from '@/lib/formatters';
 import { isBefore, startOfDay } from 'date-fns';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
@@ -34,9 +35,8 @@ export const useTeamViewData = () => {
   const currentUserId = user?.id ?? null;
 
   const stats = useMemo(() => {
-    const completedTasks = tasks.filter(t => t.isCompleted).length;
-    const totalTasks = tasks.length;
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const { total: totalTasks, completed: completedTasks, completionRate } =
+      computeCompletionStats(tasks, t => t.isCompleted);
     const activeProjects = projects.filter(p => p.status !== 'archived' && p.status !== 'completed').length;
     const completedProjects = projects.filter(p => p.status === 'completed').length;
     const unassignedTasks = tasks.filter(t => !t.assigned_to && !t.isCompleted).length;
