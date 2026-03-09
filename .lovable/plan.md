@@ -1,66 +1,94 @@
 
 
-# Audit d'unification — duplications restantes (round 3)
+# Systeme de changelog / "Quoi de neuf" via les notifications
 
-## 1. Persistance localStorage avec pattern "daily reset" dupliqué 4 fois
+## Concept
 
-Le même pattern `{ date: today, data }` avec try/catch et vérification de la date du jour est copié-collé dans :
+Creer une table `app_updates` accessible a tous (lecture seule pour les users) ou toi seul (admin) peut inserer des entrees. Au login ou au chargement de l'app, le hook verifie les updates que l'utilisateur n'a pas encore vues et les injecte automatiquement comme notifications de type `update` dans le panneau de notifications existant.
 
-| Fichier | Clé | Pattern |
-|---|---|---|
-| `useTaskLinker.ts` | `taskLinker:*` | `loadPersistedIds()` / `persistIds()` |
-| `useRule135Tool.ts` | `rule135_selection` | `loadSelection()` / `saveSelection()` |
-| `usePomodoroTool.ts` | `pomodoro_sessions_*` | `getTodaySessions()` / `saveTodaySessions()` |
-| `toolLaunchHelpers.ts` | `toolbox_launched_tools` | `getLaunchedTools()` / `markToolLaunched()` |
+## Architecture
 
-**Action** : Créer un utilitaire `lib/storage.ts` avec 2 fonctions :
-- `loadDailyStorage<T>(key, fallback)` — charge et vérifie la date
-- `saveDailyStorage<T>(key, data)` — persiste avec la date du jour
-- `loadStorage<T>(key, fallback)` / `saveStorage<T>(key, data)` — version sans expiration quotidienne
-
-Puis remplacer les implémentations locales.
-
-## 2. Calcul de stats `{ total, completed, completionRate }` dupliqué 6 fois
-
-Le même calcul `done / total * 100` est reconstruit dans :
-- `useTeamViewData.ts` (stats team)
-- `useHomeViewData.ts` (stats home)
-- `useRule135Tool.ts` (stats rule135)
-- `useUnifiedTasks.ts` (completionRate)
-- `useTasks.ts` (completionRate)
-- `TeamProjectDetail.tsx` (stats projet)
-
-**Action** : Ajouter une fonction utilitaire dans `lib/formatters.ts` :
-```ts
-function computeCompletionStats<T>(items: T[], isCompleted: (item: T) => boolean)
-  : { total: number; completed: number; completionRate: number }
+```text
+app_updates (table Supabase)        useNotifications (hook existant)
+┌──────────────────────┐            ┌──────────────────────┐
+│ id, version, title,  │──inject──▶│ notifications[] avec  │
+│ message, created_at  │           │ type "update" + ✨     │
+└──────────────────────┘           └──────────────────────┘
+        ▲                                    │
+        │ INSERT (admin only)                ▼
+     Edge function               NotificationPanel (existant)
+     ou insertion SQL             affiche deja le type "update"
 ```
 
-## 3. Pattern empty state reconstruit ~15 fois
+## Modifications
 
-Le pattern "icône + texte principal + texte secondaire" pour les états vides est reconstruit manuellement dans ~15 composants avec des structures HTML quasi identiques. Le composant `ViewEmptyState` existe déjà mais n'est utilisé que par les vues principales.
+### 1. Migration SQL — Table `app_updates` + table pivot `user_seen_updates`
 
-**Impact faible, complexité élevée** — à traiter dans un futur sprint dédié UI. Pas inclus dans cette phase.
+- `app_updates` : `id`, `version` (text), `title`, `message`, `type` (feature/fix/improvement), `created_at`. RLS : SELECT pour tous les authenticated, INSERT/UPDATE/DELETE uniquement pour l'admin (via `user_id = ADMIN_UUID` ou une fonction `has_role`).
+- `user_seen_updates` : `user_id`, `update_id`, `seen_at`. Permet de tracker quelles updates chaque user a deja vues. RLS : chaque user peut lire/inserer ses propres lignes.
 
----
+### 2. Hook `useAppUpdates.ts` — Detection des nouvelles updates
 
-## Fichiers impactés
+- Au montage, requete `app_updates` LEFT JOIN `user_seen_updates` pour trouver les updates non vues par l'utilisateur courant.
+- Pour chaque update non vue : insere une notification de type `update` dans la table `notifications` (titre = update.title, message = update.message, metadata = `{ updateId, version }`).
+- Marque ensuite l'update comme vue dans `user_seen_updates`.
+- Ce hook est appele une fois dans `App.tsx` ou `Index.tsx`.
 
-| Fichier | Action |
-|---|---|
-| `src/lib/storage.ts` | **Nouveau** — utilitaires de persistance localStorage |
-| `src/lib/formatters.ts` | Ajouter `computeCompletionStats()` |
-| `src/components/views/toolbox/shared/useTaskLinker.ts` | Utiliser `loadDailyStorage` / `saveDailyStorage` |
-| `src/components/views/toolbox/tools/rule135/useRule135Tool.ts` | Utiliser `loadDailyStorage` / `saveDailyStorage` |
-| `src/components/views/toolbox/tools/pomodoro/usePomodoroTool.ts` | Utiliser `loadDailyStorage` / `saveStorage` |
-| `src/components/views/toolbox/components/toolLaunchHelpers.ts` | Utiliser `loadStorage` / `saveStorage` |
-| `src/hooks/view-data/useTeamViewData.ts` | Utiliser `computeCompletionStats` |
-| `src/hooks/view-data/useHomeViewData.ts` | Utiliser `computeCompletionStats` |
-| `src/hooks/useUnifiedTasks.ts` | Utiliser `computeCompletionStats` |
-| `src/hooks/useTasks.ts` | Utiliser `computeCompletionStats` |
-| `src/components/team/TeamProjectDetail.tsx` | Utiliser `computeCompletionStats` |
+### 3. `NotificationPanel.tsx` — Deja pret
 
-## Estimation
+Le panneau affiche deja le type `update` avec l'icone Sparkles amber. Aucune modification necessaire.
 
-1 fichier créé, 1 modifié, 9 nettoyés. ~80 lignes de code dupliqué supprimées.
+### 4. Outil d'insertion pour l'admin
+
+Deux options possibles :
+- **Option A** : Ajouter un petit formulaire dans la page `/admin/bugs` (deja protegee admin) avec un onglet "Changelog" pour inserer des updates.
+- **Option B** : Inserer directement via Supabase Dashboard.
+
+Je recommande l'**Option A** pour rester autonome.
+
+## Details techniques
+
+### Migration SQL
+```sql
+CREATE TABLE public.app_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  version text,
+  title text NOT NULL,
+  message text,
+  update_type text NOT NULL DEFAULT 'feature', -- feature, fix, improvement
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.user_seen_updates (
+  user_id uuid NOT NULL,
+  update_id uuid NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+  seen_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, update_id)
+);
+```
+
+### Hook useAppUpdates
+```typescript
+// 1. Fetch unseen updates
+const { data: unseenUpdates } = await supabase
+  .from('app_updates')
+  .select('*')
+  .not('id', 'in', seenUpdateIds);
+
+// 2. For each unseen: insert notification + mark seen
+for (const update of unseenUpdates) {
+  await supabase.from('notifications').insert({
+    user_id, type: 'update',
+    title: `✨ ${update.title}`,
+    message: update.message,
+    metadata: { updateId: update.id, version: update.version }
+  });
+  await supabase.from('user_seen_updates').insert({
+    user_id, update_id: update.id
+  });
+}
+```
+
+### Admin UI (dans /admin/bugs)
+Un onglet supplementaire "Changelog" avec un formulaire : version, titre, message, type (feature/fix/improvement). Bouton "Publier" qui insere dans `app_updates`.
 

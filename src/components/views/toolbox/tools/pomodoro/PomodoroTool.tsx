@@ -193,11 +193,6 @@ const PomodoroTool: React.FC<ToolProps> = () => {
         />
       </div>
 
-      {/* Sessions today */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>🔥</span>
-        <span>{pomo.sessionsToday} session{pomo.sessionsToday !== 1 ? 's' : ''} aujourd'hui</span>
-      </div>
     </div>
   );
 };
