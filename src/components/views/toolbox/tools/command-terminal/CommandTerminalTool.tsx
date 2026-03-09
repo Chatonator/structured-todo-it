@@ -3,9 +3,11 @@ import { AlertCircle, CheckCircle2, CopyPlus, Download, Eraser, FileUp, Play, Sa
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { loadStorage, saveStorage } from '@/lib/storage';
@@ -36,8 +38,8 @@ interface StoredScript {
 const DEFAULT_SCRIPT = [
   'let sprint = "Migration design system"',
   '# Crée plusieurs objets rapidement',
-  'task "Préparer la roadmap" --context pro --time 45 --category obligation --priority important',
   'project $sprint --context pro --color #0f766e --icon 🚀',
+  'task "Préparer la roadmap" --context pro --time 45 --category obligation --priority important --project $sprint',
   'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
   'habit "Sport" --time 40 --frequency weekly --days 0,2,4 --locked true --unlock-type streak --unlock-value 7 --requires-habit "Lire 20 minutes"',
   'find task where context=pro and status=active and project=$sprint',
@@ -1728,66 +1730,70 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Syntaxe</CardTitle>
-            <CardDescription>Point d’entrée lisible pour l’utilisateur, directement dans l’outil.</CardDescription>
+            <CardTitle className="text-base">Guide</CardTitle>
+            <CardDescription>Version allégée pour tester le terminal plus vite.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">task</Badge>
-              <Badge variant="secondary">project</Badge>
-              <Badge variant="secondary">habit</Badge>
-              <Badge variant="outline">update</Badge>
-              <Badge variant="outline">complete</Badge>
-              <Badge variant="outline">plan</Badge>
-              <Badge variant="outline">assign</Badge>
-              <Badge variant="outline">delete</Badge>
-              <Badge variant="outline">find</Badge>
-              <Badge variant="outline">list</Badge>
-              <Badge variant="outline">complete-many</Badge>
-              <Badge variant="outline">update-many</Badge>
-              <Badge variant="outline">delete-many</Badge>
-              <Badge variant="outline">schema</Badge>
-              <Badge variant="outline">inspect</Badge>
-              <Badge variant="outline">stats</Badge>
-              <Badge variant="outline">help</Badge>
-            </div>
-            <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
-              {COMMAND_SYNTAX.map(rule => (
-                <div key={rule} className="break-all text-muted-foreground">
-                  {rule}
+            <Tabs defaultValue="essentiel" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="essentiel">Essentiel</TabsTrigger>
+                <TabsTrigger value="avance">Avancé</TabsTrigger>
+                <TabsTrigger value="ia">IA</TabsTrigger>
+              </TabsList>
+              <TabsContent value="essentiel" className="space-y-3">
+                <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
+                  <div>project "Nom" [--context pro|perso]</div>
+                  <div>task "Nom" --time 30 [--context pro|perso] [--project "Nom"]</div>
+                  <div>habit "Nom" --time 20 [--frequency daily|weekly|monthly]</div>
+                  <div>find task --text mot</div>
+                  <div>list project --status active</div>
                 </div>
-              ))}
-            </div>
-            <Separator />
-            <ul className="space-y-2 text-muted-foreground">
-              {COMMAND_RULES.map(rule => (
-                <li key={rule}>{rule}</li>
-              ))}
-            </ul>
-            <Separator />
-            <div className="space-y-2">
-              <p className="font-medium text-foreground">Codes utiles</p>
-              <p className="text-muted-foreground">`--context pro|perso`, `--category obligation|quotidien|envie|autres`, `--priority critical|important|later|optional`</p>
-              <p className="text-muted-foreground">`--frequency daily|weekly|monthly|custom|x-week|x-month`, `--days 0,2,4`, `--count 3`, `--deck default`</p>
-              <p className="text-muted-foreground">`--challenge true`, `--challenge-days 30`, `--challenge-end archive|delete|convert`</p>
-              <p className="text-muted-foreground">`--locked true`, `--unlock-type streak|total_completions|manual`, `--unlock-value 7`, `--requires-habit "Nom"`</p>
-              <p className="text-muted-foreground">`--date YYYY-MM-DD`, `--time HH:MM`, `--project "Nom du projet"`</p>
-              <p className="text-muted-foreground">`--text "mot clé"`, `--status active|completed|all`, `--limit 20`</p>
-              <p className="text-muted-foreground">`--confirm CONFIRM`, `--dry-run true`</p>
-            </div>
-            <Separator />
-            <div className="space-y-2">
-              <p className="font-medium text-foreground">Valeurs par défaut</p>
-              <p className="text-muted-foreground">Projet: icône, couleur et statut peuvent être omis.</p>
-              <p className="text-muted-foreground">Habitude: fréquence `daily`, état actif, challenge désactivé et verrouillage désactivé peuvent être implicites.</p>
-              <p className="text-muted-foreground">Tâche: le nom et `--time` sont obligatoires. Aucun défaut n’est appliqué à la durée.</p>
-            </div>
-            <Separator />
-            <div className="space-y-2">
-              <p className="font-medium text-foreground">IA Friendly</p>
-              <p className="text-muted-foreground">Utilisez `schema`, `inspect`, `stats`, `find` et `list` pour explorer le contexte sans accès au code.</p>
-              <p className="text-muted-foreground">Utilisez `--dry-run true` avant une mutation, puis `--confirm CONFIRM` pour les suppressions ou gros volumes.</p>
-            </div>
+                <div className="space-y-2 text-muted-foreground">
+                  <p>Pour bien tester, commence par `project`, `task`, `habit`, `find`, `list`.</p>
+                  <p>Tâche: `--time` est obligatoire.</p>
+                  <p>Suppression: ajoute toujours `--confirm CONFIRM`.</p>
+                </div>
+              </TabsContent>
+              <TabsContent value="avance" className="space-y-3">
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">Voir la syntaxe complète</Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-3">
+                    <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
+                      {COMMAND_SYNTAX.map(rule => (
+                        <div key={rule} className="break-all text-muted-foreground">
+                          {rule}
+                        </div>
+                      ))}
+                    </div>
+                    <ul className="space-y-2 text-muted-foreground">
+                      {COMMAND_RULES.map(rule => (
+                        <li key={rule}>{rule}</li>
+                      ))}
+                    </ul>
+                  </CollapsibleContent>
+                </Collapsible>
+                <div className="space-y-2 text-muted-foreground">
+                  <p>`where`: `find task where context=pro and status=active`</p>
+                  <p>Variables: `let sprint = "Migration design system"` puis `$sprint`</p>
+                  <p>Massif: `complete-many`, `update-many`, `delete-many` avec `--dry-run true` avant.</p>
+                </div>
+              </TabsContent>
+              <TabsContent value="ia" className="space-y-3">
+                <div className="space-y-2 text-muted-foreground">
+                  <p>Explore le contexte via `schema`, `inspect`, `stats`, `find`, `list`.</p>
+                  <p>Utilise `--json true` ou le bouton `JSON` pour des réponses structurées.</p>
+                  <p>Utilise `--dry-run true` avant mutation, puis `--confirm CONFIRM` si nécessaire.</p>
+                </div>
+                <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
+                  <div>schema habit</div>
+                  <div>inspect task "Préparer la roadmap"</div>
+                  <div>stats project</div>
+                  <div>find task where context=pro and status=active --json true</div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 

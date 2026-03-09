@@ -261,13 +261,21 @@ function stripWrappingQuotes(value: string): string {
   return value;
 }
 
+function quoteIfNeeded(value: string): string {
+  if (!/\s/.test(value) && !value.includes('"')) {
+    return value;
+  }
+
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
+
 function applyVariables(line: string, variables: Record<string, string>): string {
   return line.replace(/\$([a-zA-Z_][\w-]*)/g, (_, name: string) => {
     if (!(name in variables)) {
       throw new Error(`Variable inconnue: $${name}`);
     }
 
-    return variables[name];
+    return quoteIfNeeded(variables[name]);
   });
 }
 
@@ -283,12 +291,12 @@ function injectWhereFlags(line: string): string {
   const flags = segments.map(segment => {
     if (segment.includes('~')) {
       const [key, value] = segment.split('~');
-      return `--${key.trim()} ${stripWrappingQuotes(value.trim())}`;
+      return `--${key.trim()} ${quoteIfNeeded(stripWrappingQuotes(value.trim()))}`;
     }
 
     if (segment.includes('=')) {
       const [key, value] = segment.split('=');
-      return `--${key.trim()} ${stripWrappingQuotes(value.trim())}`;
+      return `--${key.trim()} ${quoteIfNeeded(stripWrappingQuotes(value.trim()))}`;
     }
 
     throw new Error(`Condition where invalide: ${segment}`);
