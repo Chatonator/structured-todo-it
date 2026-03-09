@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { loadStorage, saveStorage, loadDailyStorage, saveDailyStorage } from '@/lib/storage';
 
 export type PomodoroPhase = 'idle' | 'focus' | 'shortBreak' | 'longBreak';
 
@@ -39,39 +40,7 @@ export const PRESETS: Record<string, PomodoroConfig & { label: string; descripti
 };
 
 const CONFIG_KEY = 'pomodoro_config';
-
-function loadConfig(): PomodoroConfig {
-  try {
-    const raw = localStorage.getItem(CONFIG_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return PRESETS.classic;
-}
-
-function saveConfig(c: PomodoroConfig) {
-  try { localStorage.setItem(CONFIG_KEY, JSON.stringify(c)); } catch {}
-}
-
 const SESSIONS_KEY = 'pomodoro_sessions_today';
-const SESSIONS_DATE_KEY = 'pomodoro_sessions_date';
-
-function getTodaySessions(): number {
-  try {
-    const date = localStorage.getItem(SESSIONS_DATE_KEY);
-    const today = new Date().toDateString();
-    if (date !== today) return 0;
-    return parseInt(localStorage.getItem(SESSIONS_KEY) || '0', 10);
-  } catch {
-    return 0;
-  }
-}
-
-function saveTodaySessions(count: number): void {
-  try {
-    localStorage.setItem(SESSIONS_DATE_KEY, new Date().toDateString());
-    localStorage.setItem(SESSIONS_KEY, String(count));
-  } catch {}
-}
 
 function phaseDuration(phase: PomodoroPhase, config: PomodoroConfig): number {
   switch (phase) {
