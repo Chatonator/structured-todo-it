@@ -221,60 +221,60 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         {/* Métadonnées et actions - SOUS le texte, visible au hover */}
         <div
           className={cn(
-            'flex items-center gap-2 mt-1.5 transition-all duration-200',
+            'mt-1.5 flex items-center gap-2 transition-all duration-200',
             isExpanded ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0 overflow-hidden'
           )}
         >
-          {/* Temps estimé */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
-            <Clock className="w-3 h-3" />
-            <span>
-              {task.actualTime 
-                ? `⏱ ${formatDuration(task.actualTime)} / ${formatDuration(totalTime)} est.`
-                : formatDuration(totalTime)
-              }
-            </span>
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+            {/* Temps estimé */}
+            <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3 shrink-0" />
+              <span className="truncate whitespace-nowrap">
+                {task.actualTime
+                  ? `⏱ ${formatDuration(task.actualTime)} / ${formatDuration(totalTime)} est.`
+                  : formatDuration(totalTime)
+                }
+              </span>
+            </div>
+
+            {estimationComparison && (
+              <span className="shrink-0 whitespace-nowrap rounded border border-sidebar-border bg-sidebar-accent/50 px-1.5 py-0.5 text-[10px] text-foreground">
+                Écart {formatDurationDelta(estimationComparison.delta)}
+              </span>
+            )}
+
+            {/* Badge sous-tâches */}
+            {hasSubTasks && (
+              <span className="shrink-0 whitespace-nowrap rounded bg-muted px-1 text-[10px]">
+                +{subTasks.length}
+              </span>
+            )}
+
+            {/* Indicateur récurrent au hover */}
+            {isRecurring && (
+              <RefreshCw className="h-3 w-3 shrink-0 text-blue-500" />
+            )}
           </div>
 
-          {estimationComparison && (
-            <span className="text-[10px] rounded border border-sidebar-border bg-sidebar-accent/50 px-1.5 py-0.5 text-foreground whitespace-nowrap">
-              Écart {formatDurationDelta(estimationComparison.delta)}
-            </span>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Checkbox */}
+            <Checkbox
+              checked={task.isCompleted}
+              onCheckedChange={() => handleToggleCompletion(task.id)}
+              className="h-4 w-4 shrink-0"
+            />
 
-          {/* Badge sous-tâches */}
-          {hasSubTasks && (
-            <span className="text-[10px] bg-muted px-1 rounded whitespace-nowrap">
-              +{subTasks.length}
-            </span>
-          )}
-
-          {/* Indicateur récurrent au hover */}
-          {isRecurring && (
-            <RefreshCw className="w-3 h-3 text-blue-500" />
-          )}
-
-          {/* Spacer pour pousser checkbox et menu à droite */}
-          <div className="flex-1" />
-
-          {/* Checkbox */}
-          <Checkbox
-            checked={task.isCompleted}
-            onCheckedChange={() => handleToggleCompletion(task.id)}
-            className="h-4 w-4"
-          />
-
-          {/* Menu d'actions (3 points) */}
-          <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            {/* Menu d'actions (3 points) */}
+            <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-popover z-50">
               <DropdownMenuItem onClick={() => handleToggleCompletion(task.id)}>
                 <Check className="w-4 h-4 mr-2 text-green-600" />
@@ -415,8 +415,9 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
                 <Trash2 className="w-4 h-4 mr-2" />
                 Supprimer
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
