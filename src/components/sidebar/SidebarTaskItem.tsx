@@ -200,8 +200,15 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
             {task.name}
           </p>
 
+          {/* Live timer badge — always visible when timer is active */}
+          {isTimerActive && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30 shrink-0 whitespace-nowrap">
+              ⏱ {formatElapsed(elapsedSeconds)}
+            </span>
+          )}
+
           {/* Indicateur récurrent - visible seulement si récurrent et pas en hover */}
-          {isRecurring && !isExpanded && (
+          {isRecurring && !isExpanded && !isTimerActive && (
             <RefreshCw className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
           )}
         </div>
