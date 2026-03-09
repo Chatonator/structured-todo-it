@@ -106,12 +106,24 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   onScheduleTask,
 }) => {
   const { projects } = useProjects();
+  const { activeTaskId, elapsedSeconds, startTimer, stopTimer, resetActualTime } = useTimeTrackerContext();
   const hasSubTasks = subTasks.length > 0;
   const [isHovered, setIsHovered] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSchedulePopoverOpen, setIsSchedulePopoverOpen] = useState(false);
   const [tempDate, setTempDate] = useState<Date | undefined>(scheduledDate);
   const [tempTime, setTempTime] = useState(scheduledTime || '09:00');
+
+  const isTimerActive = activeTaskId === task.id;
+
+  // Format elapsed seconds as MM:SS or HH:MM:SS
+  const formatElapsed = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
 
   // La tâche reste dépliée si hover OU si le menu est ouvert OU si popover planification ouvert
   const isExpanded = isHovered || isMenuOpen || isSchedulePopoverOpen;
