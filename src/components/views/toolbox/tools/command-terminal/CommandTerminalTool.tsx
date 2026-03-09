@@ -32,6 +32,7 @@ const DEFAULT_SCRIPT = [
   'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
   'habit "Sport" --time 40 --frequency weekly --days 0,2,4 --locked true --unlock-type streak --unlock-value 7 --requires-habit "Lire 20 minutes"',
   'find task --text roadmap --status active',
+  'complete-many task --context pro --status active --limit 5',
   'update task "Préparer la roadmap" --time 60',
 ].join('\n');
 
@@ -343,6 +344,14 @@ function formatSearchResults(title: string, items: string[], total: number): str
   return `${title}: ${items.join(' | ')}${suffix}`;
 }
 
+function normalizeStatus(value?: string): 'active' | 'completed' | 'all' {
+  if (!value || value === 'all') {
+    return 'all';
+  }
+
+  return value === 'completed' ? 'completed' : 'active';
+}
+
 const CommandTerminalTool: React.FC<ToolProps> = () => {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
@@ -359,6 +368,35 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
   const appendLogs = (entries: ExecutionLog[]) => {
     setLogs(previous => [...entries, ...previous].slice(0, 40));
+  };
+
+  const getTaskMatches = (command: ParsedCommand) => {
+    const projectId = command.flags.project ? findByName(projects.projects, command.flags.project)?.id : undefined;
+    return tasks.tasks.filter(task => (
+      matchesText(task.name, command.flags.text || command.label) &&
+      matchesStatus(task.isCompleted, normalizeStatus(command.flags.status)) &&
+      (!command.flags.context || task.context === normalizeContext(command.flags.context)) &&
+      (!command.flags.project || projectId === task.projectId)
+    ));
+  };
+
+  const getProjectMatches = (command: ParsedCommand) => {
+    const status = normalizeStatus(command.flags.status);
+    return projects.projects.filter(project => (
+      matchesText(project.name, command.flags.text || command.label) &&
+      (status === 'all'
+        ? true
+        : status === 'completed'
+          ? project.status === 'completed'
+          : project.status !== 'completed')
+    ));
+  };
+
+  const getHabitMatches = (command: ParsedCommand) => {
+    return habits.habits.filter(habit => (
+      matchesText(habit.name, command.flags.text || command.label) &&
+      (!command.flags.context || habit.context === normalizeContext(command.flags.context))
+    ));
   };
 
   const runCommand = async (command: ParsedCommand): Promise<ExecutionLog> => {
@@ -751,17 +789,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
     if (command.action === 'find' && command.entity === 'task') {
       const limit = parseLimit(command.flags.limit);
-      const filteredTasks = tasks.tasks.filter(task => {
-        const projectMatch = command.flags.project
-          ? findByName(projects.projects, command.flags.project)?.id === task.projectId
-          : true;
-        return (
-          matchesText(task.name, command.flags.text || command.label) &&
-          matchesStatus(task.isCompleted, command.flags.status) &&
-          (!command.flags.context || task.context === normalizeContext(command.flags.context)) &&
-          projectMatch
-        );
-      });
+      const filteredTasks = getTaskMatches(command);
 
       return {
         lineNumber: command.lineNumber,
@@ -776,10 +804,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
     if (command.action === 'find' && command.entity === 'project') {
       const limit = parseLimit(command.flags.limit);
-      const filteredProjects = projects.projects.filter(project => (
-        matchesText(project.name, command.flags.text || command.label) &&
-        matchesStatus(project.status === 'completed', command.flags.status)
-      ));
+      const filteredProjects = getProjectMatches(command);
 
       return {
         lineNumber: command.lineNumber,
@@ -794,10 +819,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
     if (command.action === 'find' && command.entity === 'habit') {
       const limit = parseLimit(command.flags.limit);
-      const filteredHabits = habits.habits.filter(habit => (
-        matchesText(habit.name, command.flags.text || command.label) &&
-        (!command.flags.context || habit.context === normalizeContext(command.flags.context))
-      ));
+      const filteredHabits = getHabitMatches(command);
 
       return {
         lineNumber: command.lineNumber,
@@ -812,10 +834,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
     if (command.action === 'list' && command.entity === 'task') {
       const limit = parseLimit(command.flags.limit);
-      const listedTasks = tasks.tasks.filter(task => (
-        matchesStatus(task.isCompleted, command.flags.status) &&
-        (!command.flags.context || task.context === normalizeContext(command.flags.context))
-      ));
+      const listedTasks = getTaskMatches({ ...command, flags: { ...command.flags, text: command.flags.text || '' } });
 
       return {
         lineNumber: command.lineNumber,
@@ -830,13 +849,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
     if (command.action === 'list' && command.entity === 'project') {
       const limit = parseLimit(command.flags.limit);
-      const listedProjects = projects.projects.filter(project => (
-        !command.flags.status || command.flags.status === 'all'
-          ? true
-          : command.flags.status === 'completed'
-            ? project.status === 'completed'
-            : project.status !== 'completed'
-      ));
+      const listedProjects = getProjectMatches({ ...command, flags: { ...command.flags, text: command.flags.text || '' } });
 
       return {
         lineNumber: command.lineNumber,
@@ -851,9 +864,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
     if (command.action === 'list' && command.entity === 'habit') {
       const limit = parseLimit(command.flags.limit);
-      const listedHabits = habits.habits.filter(habit => (
-        !command.flags.context || habit.context === normalizeContext(command.flags.context)
-      ));
+      const listedHabits = getHabitMatches({ ...command, flags: { ...command.flags, text: command.flags.text || '' } });
 
       return {
         lineNumber: command.lineNumber,
@@ -863,6 +874,186 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
           listedHabits.slice(0, limit).map(habit => `${habit.name} [${habit.frequency}]`),
           listedHabits.length
         ),
+      };
+    }
+
+    if (command.action === 'complete-many' && command.entity === 'task') {
+      const limit = parseLimit(command.flags.limit);
+      const matches = getTaskMatches(command).slice(0, limit).filter(task => !task.isCompleted);
+
+      for (const task of matches) {
+        await tasks.toggleTaskCompletion(task.id);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: formatSearchResults(
+          `${matches.length} tâche(s) complétée(s)`,
+          matches.map(task => task.name),
+          matches.length
+        ),
+      };
+    }
+
+    if (command.action === 'complete-many' && command.entity === 'project') {
+      const limit = parseLimit(command.flags.limit);
+      const matches = getProjectMatches(command).slice(0, limit).filter(project => project.status !== 'completed');
+
+      for (const project of matches) {
+        await projects.completeProject(project.id);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: formatSearchResults(`${matches.length} projet(s) terminé(s)`, matches.map(project => project.name), matches.length),
+      };
+    }
+
+    if (command.action === 'complete-many' && command.entity === 'habit') {
+      const limit = parseLimit(command.flags.limit);
+      const matches = getHabitMatches(command).slice(0, limit);
+
+      for (const habit of matches) {
+        await habits.toggleCompletion(habit.id);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: formatSearchResults(`${matches.length} habitude(s) cochée(s)`, matches.map(habit => habit.name), matches.length),
+      };
+    }
+
+    if (command.action === 'delete-many' && command.entity === 'task') {
+      const limit = parseLimit(command.flags.limit);
+      const matches = getTaskMatches(command).slice(0, limit);
+
+      for (const task of matches) {
+        await tasks.removeTask(task.id);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: formatSearchResults(`${matches.length} tâche(s) supprimée(s)`, matches.map(task => task.name), matches.length),
+      };
+    }
+
+    if (command.action === 'delete-many' && command.entity === 'project') {
+      const limit = parseLimit(command.flags.limit);
+      const matches = getProjectMatches(command).slice(0, limit);
+
+      for (const project of matches) {
+        await projects.deleteProject(project.id);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: formatSearchResults(`${matches.length} projet(s) supprimé(s)`, matches.map(project => project.name), matches.length),
+      };
+    }
+
+    if (command.action === 'delete-many' && command.entity === 'habit') {
+      const limit = parseLimit(command.flags.limit);
+      const matches = getHabitMatches(command).slice(0, limit);
+
+      for (const habit of matches) {
+        await habits.deleteHabit(habit.id);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: formatSearchResults(`${matches.length} habitude(s) supprimée(s)`, matches.map(habit => habit.name), matches.length),
+      };
+    }
+
+    if (command.action === 'update-many' && command.entity === 'task') {
+      const limit = parseLimit(command.flags.limit);
+      const matches = getTaskMatches(command).slice(0, limit);
+
+      for (const task of matches) {
+        const nextCategory = command.flags.category || command.flags.important || command.flags.urgent
+          ? normalizeCategory(command.flags)
+          : task.category;
+        const eisenhower = eisenhowerFromCategory(nextCategory);
+        await tasks.updateTask(task.id, {
+          context: command.flags.context ? normalizeContext(command.flags.context) : task.context,
+          estimatedTime: command.flags.time ? parseMinutes(command.flags.time, task.estimatedTime) : task.estimatedTime,
+          category: nextCategory,
+          subCategory: command.flags.priority ? normalizePriority(command.flags.priority) : task.subCategory,
+          isImportant: eisenhower.isImportant,
+          isUrgent: eisenhower.isUrgent,
+        });
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: formatSearchResults(`${matches.length} tâche(s) mise(s) à jour`, matches.map(task => task.name), matches.length),
+      };
+    }
+
+    if (command.action === 'update-many' && command.entity === 'project') {
+      const limit = parseLimit(command.flags.limit);
+      const matches = getProjectMatches(command).slice(0, limit);
+
+      for (const project of matches) {
+        await projects.updateProject(project.id, {
+          color: command.flags.color ?? project.color,
+          icon: command.flags.icon ?? project.icon,
+          description: command.flags.description ?? project.description,
+          targetDate: command.flags.date ? parseDate(command.flags.date) : project.targetDate,
+        } as any);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: formatSearchResults(`${matches.length} projet(s) mis à jour`, matches.map(project => project.name), matches.length),
+      };
+    }
+
+    if (command.action === 'update-many' && command.entity === 'habit') {
+      const limit = parseLimit(command.flags.limit);
+      const matches = getHabitMatches(command).slice(0, limit);
+
+      for (const habit of matches) {
+        const habitConfig = buildHabitPayload(command, habit, decks, defaultDeckId, habits.habits);
+        const challengeStartDate = habitConfig.isChallenge
+          ? (habit.challengeStartDate || new Date())
+          : undefined;
+        const challengeEndDate = habitConfig.isChallenge && habitConfig.challengeDurationDays
+          ? new Date(challengeStartDate!.getTime() + habitConfig.challengeDurationDays * 24 * 60 * 60 * 1000)
+          : undefined;
+
+        await habits.updateHabit(habit.id, {
+          context: command.flags.context ? normalizeContext(command.flags.context) : habit.context,
+          estimatedTime: command.flags.time ? parseMinutes(command.flags.time, habit.estimatedTime) : habit.estimatedTime,
+          description: command.flags.description ?? habit.description,
+          icon: command.flags.icon ?? habit.icon,
+          color: command.flags.color ?? habit.color,
+          frequency: habitConfig.frequency,
+          timesPerWeek: habitConfig.timesPerWeek,
+          timesPerMonth: habitConfig.timesPerMonth,
+          targetDays: habitConfig.targetDays,
+          isChallenge: habitConfig.isChallenge,
+          challengeStartDate,
+          challengeEndDate,
+          challengeDurationDays: habitConfig.challengeDurationDays,
+          challengeEndAction: habitConfig.challengeEndAction,
+          isLocked: habitConfig.isLocked,
+          unlockCondition: habitConfig.unlockCondition,
+        });
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: formatSearchResults(`${matches.length} habitude(s) mise(s) à jour`, matches.map(habit => habit.name), matches.length),
       };
     }
 
@@ -1016,6 +1207,9 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
               <Badge variant="outline">delete</Badge>
               <Badge variant="outline">find</Badge>
               <Badge variant="outline">list</Badge>
+              <Badge variant="outline">complete-many</Badge>
+              <Badge variant="outline">update-many</Badge>
+              <Badge variant="outline">delete-many</Badge>
               <Badge variant="outline">help</Badge>
             </div>
             <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">

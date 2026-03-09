@@ -1,5 +1,5 @@
 export type CommandEntity = 'task' | 'project' | 'habit';
-export type CommandAction = 'create' | 'update' | 'complete' | 'plan' | 'assign' | 'delete' | 'find' | 'list' | 'help';
+export type CommandAction = 'create' | 'update' | 'complete' | 'plan' | 'assign' | 'delete' | 'find' | 'list' | 'complete-many' | 'delete-many' | 'update-many' | 'help';
 
 export interface ParsedCommand {
   lineNumber: number;
@@ -33,6 +33,9 @@ export const COMMAND_EXAMPLES = [
   'delete habit "Lire 20 minutes"',
   'find task --text sprint --context pro --status active',
   'list project --status completed --limit 10',
+  'complete-many task --context pro --status active --limit 5',
+  'update-many task --project "Migration design system" --priority important',
+  'delete-many habit --text test --limit 3',
 ];
 
 export const COMMAND_RULES = [
@@ -41,9 +44,10 @@ export const COMMAND_RULES = [
   'Les noms avec espaces doivent être entre guillemets.',
   'Les options utilisent le format --cle valeur.',
   'Les alias t, p et h sont acceptés.',
-  'Les actions disponibles sont create implicite, update, complete, plan, assign, delete, find et list.',
+  'Les actions disponibles sont create implicite, update, complete, plan, assign, delete, find, list, complete-many, delete-many et update-many.',
   'Les tâches exigent une durée explicite à la création: --time est obligatoire.',
   'Les valeurs par défaut ne sont utilisées que si elles restent cohérentes avec les règles métier.',
+  'Les commandes de masse utilisent les mêmes filtres que find/list.',
 ];
 
 export const COMMAND_SYNTAX = [
@@ -57,6 +61,9 @@ export const COMMAND_SYNTAX = [
   'delete task|project|habit "Nom existant"',
   'find task|project|habit [--text "mot"] [--context pro|perso] [--status active|completed|all] [--project "Nom"] [--limit 20]',
   'list task|project|habit [--status active|completed|all] [--limit 20]',
+  'complete-many task|project|habit [--text "mot"] [--context pro|perso] [--status active|completed|all] [--project "Nom"] [--limit 20]',
+  'delete-many task|project|habit [--text "mot"] [--context pro|perso] [--status active|completed|all] [--project "Nom"] [--limit 20]',
+  'update-many task|project|habit [filtres] [champs à modifier]',
 ];
 
 const ENTITY_ALIASES: Record<string, CommandEntity> = {
@@ -79,6 +86,9 @@ const ACTION_ALIASES: Record<string, CommandAction> = {
   delete: 'delete',
   find: 'find',
   list: 'list',
+  'complete-many': 'complete-many',
+  'delete-many': 'delete-many',
+  'update-many': 'update-many',
   help: 'help',
 };
 
@@ -182,7 +192,7 @@ function parseCommandLine(line: string, lineNumber: number): ParsedCommand {
     index += 2;
   }
 
-  const requiresLabel = !['find', 'list', 'help'].includes(action);
+  const requiresLabel = !['find', 'list', 'help', 'complete-many', 'delete-many', 'update-many'].includes(action);
 
   if (requiresLabel && !label) {
     throw new Error('Nom manquant. Utilisez par exemple: task "Nom de la tâche"');
