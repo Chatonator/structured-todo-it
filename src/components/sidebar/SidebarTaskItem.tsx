@@ -135,6 +135,13 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
       setIsMenuOpen(false);
     }
   };
+  const handleToggleCompletion = async (taskId: string) => {
+    // Auto-stop timer if active for this task
+    if (activeTaskId === taskId) {
+      await stopTimer(true);
+    }
+    onToggleCompletion(taskId);
+  };
 
   return (
     <SidebarMenuItem
