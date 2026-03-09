@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from 'react';
+import { computeCompletionStats } from '@/lib/formatters';
 import { Task } from '@/types/task';
 import { useTasks } from '@/hooks/useTasks';
 import { useTeamTasks } from '@/hooks/useTeamTasks';
