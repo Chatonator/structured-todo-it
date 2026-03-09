@@ -65,7 +65,7 @@ const TaskDraftForm: React.FC<TaskDraftFormProps> = ({
         </div>
       ) : config.showContextSelector ? (
         <ContextPillSelector
-          value={draft.context || 'Perso'}
+          value={draft.context}
           onChange={(ctx) => onUpdate(index, 'context', ctx)}
         />
       ) : null}
