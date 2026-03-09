@@ -1,12 +1,14 @@
-import React, { useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, CopyPlus, Eraser, Play, Terminal } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertCircle, CheckCircle2, CopyPlus, Download, Eraser, FileUp, Play, Save, Sparkles, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { loadStorage, saveStorage } from '@/lib/storage';
 import { ToolProps } from '../types';
 import { useUnifiedTasks } from '@/hooks/useUnifiedTasks';
 import { useUnifiedProjects } from '@/hooks/useUnifiedProjects';
@@ -25,16 +27,63 @@ interface ExecutionLog {
   message: string;
 }
 
+interface StoredScript {
+  name: string;
+  script: string;
+  updatedAt: string;
+}
+
 const DEFAULT_SCRIPT = [
+  'let sprint = "Migration design system"',
   '# Crée plusieurs objets rapidement',
   'task "Préparer la roadmap" --context pro --time 45 --category obligation --priority important',
-  'project "Migration design system" --context pro --color #0f766e --icon 🚀',
+  'project $sprint --context pro --color #0f766e --icon 🚀',
   'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
   'habit "Sport" --time 40 --frequency weekly --days 0,2,4 --locked true --unlock-type streak --unlock-value 7 --requires-habit "Lire 20 minutes"',
-  'find task --text roadmap --status active',
+  'find task where context=pro and status=active and project=$sprint',
   'complete-many task --context pro --status active --limit 5',
   'update task "Préparer la roadmap" --time 60',
 ].join('\n');
+
+const STORAGE_KEYS = {
+  history: 'toolbox.commandTerminal.history',
+  favorites: 'toolbox.commandTerminal.favorites',
+  jsonMode: 'toolbox.commandTerminal.jsonMode',
+} as const;
+
+const SCRIPT_TEMPLATES: StoredScript[] = [
+  {
+    name: 'Sprint Projet',
+    updatedAt: 'template',
+    script: [
+      'let sprint = "Projet Sprint"',
+      'project $sprint --context pro --color #0f766e --icon 🚀',
+      'task "Préparer backlog" --context pro --time 45 --project $sprint',
+      'task "Animer sprint planning" --context pro --time 60 --project $sprint',
+      'find task where project=$sprint and status=active',
+    ].join('\n'),
+  },
+  {
+    name: 'Pack Habitudes',
+    updatedAt: 'template',
+    script: [
+      'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
+      'habit "Sport" --context perso --time 40 --frequency weekly --days 1,3,5 --icon 💪',
+      'list habit --context perso --limit 10',
+    ].join('\n'),
+  },
+  {
+    name: 'Audit IA',
+    updatedAt: 'template',
+    script: [
+      'stats task',
+      'stats project',
+      'stats habit',
+      'find task where status=active and context=pro',
+      'list project --status active --limit 10 --json true',
+    ].join('\n'),
+  },
+];
 
 const PRIORITY_MAP: Record<string, SubTaskCategory> = {
   critical: 'Le plus important',
@@ -379,6 +428,16 @@ function formatInspectRecord(title: string, entries: Array<[string, string | num
   return `${title}: ${formatted.join(' | ') || 'aucune donnée'}`;
 }
 
+function formatStructuredMessage(command: ParsedCommand, log: ExecutionLog): string {
+  return JSON.stringify({
+    line: command.lineNumber,
+    action: command.action,
+    entity: command.entity ?? null,
+    level: log.level,
+    message: log.message,
+  });
+}
+
 function normalizeStatus(value?: string): 'active' | 'completed' | 'all' {
   if (!value || value === 'all') {
     return 'all';
@@ -391,6 +450,11 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [favorites, setFavorites] = useState<StoredScript[]>([]);
+  const [history, setHistory] = useState<StoredScript[]>([]);
+  const [jsonMode, setJsonMode] = useState(false);
+  const [scriptLabel, setScriptLabel] = useState('');
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const tasks = useUnifiedTasks();
   const projects = useUnifiedProjects();
@@ -400,9 +464,69 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
   const parsePreview = useMemo(() => parseCommandScript(script), [script]);
   const modeLabel = projects.isTeamMode ? `Equipe: ${projects.teamName || 'active'}` : 'Personnel';
+  const executionPlan = useMemo(
+    () => parsePreview.commands.map((command, index) => `${index + 1}. ${command.action} ${command.entity ?? ''} ${command.label ?? ''}`.trim()),
+    [parsePreview.commands]
+  );
+
+  useEffect(() => {
+    setFavorites(loadStorage<StoredScript[]>(STORAGE_KEYS.favorites, []));
+    setHistory(loadStorage<StoredScript[]>(STORAGE_KEYS.history, []));
+    setJsonMode(loadStorage<boolean>(STORAGE_KEYS.jsonMode, false));
+  }, []);
+
+  useEffect(() => {
+    saveStorage(STORAGE_KEYS.favorites, favorites);
+  }, [favorites]);
+
+  useEffect(() => {
+    saveStorage(STORAGE_KEYS.history, history);
+  }, [history]);
+
+  useEffect(() => {
+    saveStorage(STORAGE_KEYS.jsonMode, jsonMode);
+  }, [jsonMode]);
 
   const appendLogs = (entries: ExecutionLog[]) => {
     setLogs(previous => [...entries, ...previous].slice(0, 40));
+  };
+
+  const saveCurrentScript = (target: 'favorite' | 'history') => {
+    const name = scriptLabel.trim() || `Script ${new Date().toLocaleString('fr-FR')}`;
+    const entry: StoredScript = {
+      name,
+      script,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (target === 'favorite') {
+      setFavorites(previous => [entry, ...previous.filter(item => item.name !== name)].slice(0, 12));
+      return;
+    }
+
+    setHistory(previous => [entry, ...previous.filter(item => item.script !== script)].slice(0, 12));
+  };
+
+  const exportScript = () => {
+    const blob = new Blob([script], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${(scriptLabel.trim() || 'todo-it-script').replace(/\s+/g, '-').toLowerCase()}.todoit.txt`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importScript = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const content = await file.text();
+    setScript(content);
+    setScriptLabel(file.name.replace(/\.[^.]+$/, ''));
+    event.target.value = '';
   };
 
   const getTaskMatches = (command: ParsedCommand) => {
@@ -435,6 +559,10 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
   };
 
   const assertBulkSafety = (command: ParsedCommand, matchedCount: number) => {
+    if (isDryRun(command)) {
+      return;
+    }
+
     if (command.action === 'delete' || command.action === 'delete-many') {
       if (!hasConfirmToken(command)) {
         throw new Error('Suppression bloquée. Ajoutez --confirm CONFIRM.');
@@ -590,6 +718,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       const context = normalizeContext(command.flags.context);
       const estimatedTime = parseMinutes(explicitTime, 30);
       const eisenhower = eisenhowerFromCategory(category);
+      const targetProject = command.flags.project ? findByName(projects.projects, command.flags.project) : undefined;
 
       await tasks.addTask({
         name: command.label!,
@@ -602,11 +731,12 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
         isExpanded: true,
         isCompleted: false,
         duration: undefined,
-        projectId: undefined,
-        projectStatus: undefined,
+        projectId: targetProject?.id,
+        projectStatus: targetProject ? 'todo' : undefined,
         isImportant: eisenhower.isImportant,
         isUrgent: eisenhower.isUrgent,
         actualTime: undefined,
+        ...(tasks.isTeamMode && targetProject ? { project_id: targetProject.id } : {}),
       } satisfies Omit<Task, 'id' | 'createdAt'>);
 
       return {
@@ -1327,17 +1457,21 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
           setScript(getHelpScript());
         }
         const log = await runCommand(command);
-        nextLogs.push(log);
+        const shouldJson = jsonMode || parseBoolean(command.flags.json);
+        nextLogs.push(shouldJson ? { ...log, message: formatStructuredMessage(command, log) } : log);
       } catch (error) {
-        nextLogs.push({
+        const fallbackLog = {
           lineNumber: command.lineNumber,
           level: 'error',
           message: error instanceof Error ? error.message : 'Erreur inattendue',
-        });
+        } satisfies ExecutionLog;
+        const shouldJson = jsonMode || parseBoolean(command.flags.json);
+        nextLogs.push(shouldJson ? { ...fallbackLog, message: formatStructuredMessage(command, fallbackLog) } : fallbackLog);
       }
     }
 
     appendLogs(nextLogs.reverse());
+    saveCurrentScript('history');
     setIsRunning(false);
   };
 
@@ -1376,6 +1510,12 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
                 `todo-it-cli`
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={scriptLabel}
+                  onChange={(event) => setScriptLabel(event.target.value)}
+                  placeholder="Nom du script"
+                  className="h-8 w-40 border-slate-700 bg-slate-900 text-slate-100"
+                />
                 <Button
                   type="button"
                   size="sm"
@@ -1399,6 +1539,48 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
                 <Button
                   type="button"
                   size="sm"
+                  variant="outline"
+                  className="border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                  onClick={() => saveCurrentScript('favorite')}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Favori
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className={cn(
+                    'border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800',
+                    jsonMode && 'border-emerald-500 bg-emerald-500/15 text-emerald-200'
+                  )}
+                  onClick={() => setJsonMode(value => !value)}
+                >
+                  JSON
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                  onClick={exportScript}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                  onClick={() => importInputRef.current?.click()}
+                >
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Import
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
                   onClick={handleRun}
                   disabled={isRunning}
@@ -1414,6 +1596,13 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
               onChange={(event) => setScript(event.target.value)}
               placeholder='task "Nom de la tâche" --context perso --time 30'
               className="min-h-[360px] resize-none border-0 bg-transparent p-0 font-mono text-[13px] leading-6 text-slate-100 placeholder:text-slate-500 focus-visible:ring-0"
+            />
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".txt,.todoit,.json"
+              className="hidden"
+              onChange={importScript}
             />
           </div>
 
@@ -1431,6 +1620,112 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       </Card>
 
       <div className="space-y-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Plan d'exécution</CardTitle>
+            <CardDescription>Prévisualisation multi-étapes du script courant.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {Object.keys(parsePreview.variables).length > 0 && (
+              <div className="space-y-2 rounded-xl bg-muted/40 p-3">
+                <p className="font-medium text-foreground">Variables</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(parsePreview.variables).map(([key, value]) => (
+                    <Badge key={key} variant="outline">{key}={value}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="space-y-2 rounded-xl bg-muted/40 p-3">
+              {executionPlan.length === 0 ? (
+                <p className="text-muted-foreground">Aucune étape détectée.</p>
+              ) : (
+                executionPlan.map(step => (
+                  <div key={step} className="font-mono text-xs text-muted-foreground">{step}</div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Favoris et Modèles</CardTitle>
+            <CardDescription>Scripts réutilisables pour humain et IA.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Modèles</p>
+              <div className="grid gap-2">
+                {SCRIPT_TEMPLATES.map(template => (
+                  <button
+                    key={template.name}
+                    type="button"
+                    onClick={() => {
+                      setScript(template.script);
+                      setScriptLabel(template.name);
+                    }}
+                    className="rounded-xl border px-3 py-2 text-left text-sm hover:border-primary/50"
+                  >
+                    <div className="flex items-center gap-2 font-medium">
+                      <Sparkles className="h-4 w-4" />
+                      {template.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Favoris</p>
+              {favorites.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun favori enregistré.</p>
+              ) : (
+                <div className="grid gap-2">
+                  {favorites.map(item => (
+                    <button
+                      key={`${item.name}-${item.updatedAt}`}
+                      type="button"
+                      onClick={() => {
+                        setScript(item.script);
+                        setScriptLabel(item.name);
+                      }}
+                      className="rounded-xl border px-3 py-2 text-left text-sm hover:border-primary/50"
+                    >
+                      <div className="font-medium">{item.name}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(item.updatedAt).toLocaleString('fr-FR')}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Historique</p>
+              {history.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune exécution enregistrée.</p>
+              ) : (
+                <div className="grid gap-2">
+                  {history.map(item => (
+                    <button
+                      key={`${item.name}-${item.updatedAt}`}
+                      type="button"
+                      onClick={() => {
+                        setScript(item.script);
+                        setScriptLabel(item.name);
+                      }}
+                      className="rounded-xl border px-3 py-2 text-left text-sm hover:border-primary/50"
+                    >
+                      <div className="font-medium">{item.name}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(item.updatedAt).toLocaleString('fr-FR')}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Syntaxe</CardTitle>

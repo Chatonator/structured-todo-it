@@ -19,6 +19,7 @@ export interface ParseError {
 export interface ParseResult {
   commands: ParsedCommand[];
   errors: ParseError[];
+  variables: Record<string, string>;
 }
 
 export const COMMAND_EXAMPLES = [
@@ -39,6 +40,8 @@ export const COMMAND_EXAMPLES = [
   'schema habit',
   'inspect task "Préparer la roadmap"',
   'stats project',
+  'let sprint = "Migration design system"',
+  'find task where context=pro and status=active and project=$sprint',
 ];
 
 export const COMMAND_RULES = [
@@ -53,6 +56,8 @@ export const COMMAND_RULES = [
   'Les commandes de masse utilisent les mêmes filtres que find/list.',
   'Les suppressions exigent --confirm CONFIRM.',
   'Utilisez --dry-run true pour simuler une action avant exécution.',
+  'Les variables se définissent avec let nom = "valeur" puis se réutilisent avec $nom.',
+  'La clause where accepte des conditions de type cle=valeur ou text~mot séparées par and.',
 ];
 
 export const COMMAND_SYNTAX = [
@@ -72,6 +77,8 @@ export const COMMAND_SYNTAX = [
   'schema task|project|habit',
   'inspect task|project|habit "Nom existant"',
   'stats task|project|habit',
+  'let variable = "valeur"',
+  'find task|project|habit where context=pro and status=active and text~sprint',
 ];
 
 const ENTITY_ALIASES: Record<string, CommandEntity> = {
@@ -116,6 +123,7 @@ export function getHelpScript(): string {
 export function parseCommandScript(script: string): ParseResult {
   const commands: ParsedCommand[] = [];
   const errors: ParseError[] = [];
+  const variables: Record<string, string> = {};
 
   script.split(/\r?\n/).forEach((rawLine, index) => {
     const lineNumber = index + 1;
@@ -126,7 +134,14 @@ export function parseCommandScript(script: string): ParseResult {
     }
 
     try {
-      const parsed = parseCommandLine(trimmed, lineNumber);
+      if (trimmed.toLowerCase().startsWith('let ')) {
+        const declaration = parseVariableDeclaration(trimmed);
+        variables[declaration.name] = declaration.value;
+        return;
+      }
+
+      const resolvedLine = applyVariables(trimmed, variables);
+      const parsed = parseCommandLine(resolvedLine, lineNumber);
       commands.push(parsed);
     } catch (error) {
       errors.push({
@@ -137,11 +152,12 @@ export function parseCommandScript(script: string): ParseResult {
     }
   });
 
-  return { commands, errors };
+  return { commands, errors, variables };
 }
 
 function parseCommandLine(line: string, lineNumber: number): ParsedCommand {
-  const tokens = tokenize(line);
+  const enrichedLine = injectWhereFlags(line);
+  const tokens = tokenize(enrichedLine);
 
   if (tokens.length === 0) {
     throw new Error('Commande vide');
@@ -217,6 +233,68 @@ function parseCommandLine(line: string, lineNumber: number): ParsedCommand {
     label,
     flags,
   };
+}
+
+function parseVariableDeclaration(line: string): { name: string; value: string } {
+  const match = line.match(/^let\s+([a-zA-Z_][\w-]*)\s*=\s*(.+)$/);
+  if (!match) {
+    throw new Error('Déclaration de variable invalide. Utilisez: let nom = "valeur"');
+  }
+
+  const [, name, rawValue] = match;
+  const value = stripWrappingQuotes(rawValue.trim());
+  if (!value) {
+    throw new Error(`Variable vide: ${name}`);
+  }
+
+  return { name, value };
+}
+
+function stripWrappingQuotes(value: string): string {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+
+  return value;
+}
+
+function applyVariables(line: string, variables: Record<string, string>): string {
+  return line.replace(/\$([a-zA-Z_][\w-]*)/g, (_, name: string) => {
+    if (!(name in variables)) {
+      throw new Error(`Variable inconnue: $${name}`);
+    }
+
+    return variables[name];
+  });
+}
+
+function injectWhereFlags(line: string): string {
+  const whereIndex = line.toLowerCase().indexOf(' where ');
+  if (whereIndex === -1) {
+    return line;
+  }
+
+  const head = line.slice(0, whereIndex).trim();
+  const tail = line.slice(whereIndex + 7).trim();
+  const segments = tail.split(/\s+and\s+/i).map(segment => segment.trim()).filter(Boolean);
+  const flags = segments.map(segment => {
+    if (segment.includes('~')) {
+      const [key, value] = segment.split('~');
+      return `--${key.trim()} ${stripWrappingQuotes(value.trim())}`;
+    }
+
+    if (segment.includes('=')) {
+      const [key, value] = segment.split('=');
+      return `--${key.trim()} ${stripWrappingQuotes(value.trim())}`;
+    }
+
+    throw new Error(`Condition where invalide: ${segment}`);
+  });
+
+  return `${head} ${flags.join(' ')}`.trim();
 }
 
 function tokenize(line: string): string[] {
