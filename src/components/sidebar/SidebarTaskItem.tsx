@@ -38,11 +38,15 @@ import {
   Clock,
   RefreshCw,
   CalendarIcon,
+  Play,
+  Square,
+  TimerReset,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useTimeTrackerContext } from '@/contexts/TimeTrackerContext';
 
 // Options de fréquence de récurrence
 const RECURRENCE_OPTIONS = [
