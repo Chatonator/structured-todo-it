@@ -26,6 +26,10 @@ export interface TeamProject {
   showInSidebar: boolean;
 }
 
+interface UseTeamProjectsOptions {
+  enabled?: boolean;
+}
+
 interface TeamProjectRow {
   id: string;
   team_id: string;
@@ -64,15 +68,17 @@ const mapRowToProject = (row: TeamProjectRow): TeamProject => ({
   showInSidebar: row.show_in_sidebar ?? false,
 });
 
-export const useTeamProjects = (teamId: string | null) => {
+export const useTeamProjects = (teamId: string | null, options: UseTeamProjectsOptions = {}) => {
+  const { enabled = true } = options;
   const [projects, setProjects] = useState<TeamProject[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
   const fetchProjects = useCallback(async () => {
-    if (!teamId || !user) {
+    if (!teamId || !user || !enabled) {
       setProjects([]);
+      setLoading(false);
       return;
     }
 
@@ -97,9 +103,15 @@ export const useTeamProjects = (teamId: string | null) => {
     } finally {
       setLoading(false);
     }
-  }, [teamId, user, toast]);
+  }, [enabled, teamId, user, toast]);
 
   useEffect(() => {
+    if (!enabled) {
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
+
     fetchProjects();
 
     if (!teamId) return;
@@ -124,7 +136,7 @@ export const useTeamProjects = (teamId: string | null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchProjects]);
+  }, [enabled, fetchProjects, teamId]);
 
   const createProject = useCallback(async (
     name: string,

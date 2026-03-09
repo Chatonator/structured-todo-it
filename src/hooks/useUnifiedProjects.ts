@@ -15,10 +15,8 @@ import { useTeamContext } from '@/contexts/TeamContext';
 import { 
   UnifiedProject, 
   projectToUnified, 
-  teamProjectToUnified,
-  isTeamProject 
+  teamProjectToUnified
 } from '@/types/teamProject';
-import { ProjectStatus } from '@/types/project';
 
 export interface UnifiedProjectsResult {
   // Données
@@ -62,12 +60,11 @@ export interface UnifiedProjectsResult {
 export const useUnifiedProjects = (): UnifiedProjectsResult => {
   const { currentTeam } = useTeamContext();
   const teamId = currentTeam?.id ?? null;
-  
-  // Hooks des deux sources
-  const personalProjects = useProjects();
-  const teamProjects = useTeamProjects(teamId);
-  
   const isTeamMode = !!teamId;
+  
+  // Hooks des deux sources, activés uniquement si nécessaires
+  const personalProjects = useProjects(!isTeamMode);
+  const teamProjects = useTeamProjects(teamId, { enabled: isTeamMode });
 
   // Projets unifiés
   const projects = useMemo<UnifiedProject[]>(() => {

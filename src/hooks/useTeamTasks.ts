@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
-import { mapDbRowToTeamTask, mapCamelToSnake } from '@/utils/teamTaskMapper';
+import { mapDbRowToTeamTask } from '@/utils/teamTaskMapper';
 import type { Task } from '@/types/task';
 
 export interface TeamTask extends Omit<Task, 'user_id' | 'projectStatus'> {
@@ -16,14 +16,19 @@ export interface TeamTask extends Omit<Task, 'user_id' | 'projectStatus'> {
   blocked_reason: string | null;
 }
 
-export const useTeamTasks = (teamId: string | null) => {
+interface UseTeamTasksOptions {
+  enabled?: boolean;
+}
+
+export const useTeamTasks = (teamId: string | null, options: UseTeamTasksOptions = {}) => {
+  const { enabled = true } = options;
   const [tasks, setTasks] = useState<TeamTask[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   // Load team tasks
-  const loadTasks = async () => {
-    if (!teamId) {
+  const loadTasks = useCallback(async () => {
+    if (!teamId || !enabled) {
       setTasks([]);
       setLoading(false);
       return;
@@ -54,7 +59,7 @@ export const useTeamTasks = (teamId: string | null) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [enabled, teamId, toast]);
 
   // Create a new team task
   const createTask = async (taskData: Partial<TeamTask>) => {
@@ -101,13 +106,13 @@ export const useTeamTasks = (teamId: string | null) => {
       if (error) throw error;
 
       logger.info('Team task created', { teamId, taskId: data.id });
+      setTasks(prev => [mapDbRowToTeamTask(data) as unknown as TeamTask, ...prev]);
       
       toast({
         title: 'Success',
         description: 'Task created',
       });
 
-      await loadTasks();
       return data;
     } catch (error) {
       logger.error('Error creating team task', { error, teamId });
@@ -123,16 +128,20 @@ export const useTeamTasks = (teamId: string | null) => {
   // Update a team task
   const updateTask = async (taskId: string, updates: Partial<TeamTask>) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('team_tasks')
         .update(updates)
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select()
+        .single();
 
       if (error) throw error;
 
       logger.info('Team task updated', { taskId, teamId });
+      setTasks(prev => prev.map(task => (
+        task.id === taskId ? mapDbRowToTeamTask(data) as unknown as TeamTask : task
+      )));
       
-      await loadTasks();
     } catch (error) {
       logger.error('Error updating team task', { error, taskId, teamId });
       toast({
@@ -154,13 +163,13 @@ export const useTeamTasks = (teamId: string | null) => {
       if (error) throw error;
 
       logger.info('Team task deleted', { taskId, teamId });
+      setTasks(prev => prev.filter(task => task.id !== taskId));
       
       toast({
         title: 'Success',
         description: 'Task deleted',
       });
 
-      await loadTasks();
     } catch (error) {
       logger.error('Error deleting team task', { error, taskId, teamId });
       toast({
@@ -182,16 +191,20 @@ export const useTeamTasks = (teamId: string | null) => {
         updates.lastcompletedat = new Date().toISOString();
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('team_tasks')
         .update(updates)
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select()
+        .single();
 
       if (error) throw error;
 
       logger.info('Team task completion toggled', { taskId, isCompleted, teamId });
+      setTasks(prev => prev.map(task => (
+        task.id === taskId ? mapDbRowToTeamTask(data) as unknown as TeamTask : task
+      )));
       
-      await loadTasks();
     } catch (error) {
       logger.error('Error toggling team task completion', { error, taskId, teamId });
       toast({
@@ -205,13 +218,17 @@ export const useTeamTasks = (teamId: string | null) => {
   // Block a task
   const blockTask = async (taskId: string, reason: string) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('team_tasks')
         .update({ is_blocked: true, blocked_reason: reason })
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select()
+        .single();
       if (error) throw error;
       logger.info('Team task blocked', { taskId, teamId });
-      await loadTasks();
+      setTasks(prev => prev.map(task => (
+        task.id === taskId ? mapDbRowToTeamTask(data) as unknown as TeamTask : task
+      )));
     } catch (error) {
       logger.error('Error blocking team task', { error, taskId, teamId });
       toast({ title: 'Erreur', description: 'Impossible de bloquer la tâche', variant: 'destructive' });
@@ -221,13 +238,17 @@ export const useTeamTasks = (teamId: string | null) => {
   // Unblock a task
   const unblockTask = async (taskId: string) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('team_tasks')
         .update({ is_blocked: false, blocked_reason: null })
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select()
+        .single();
       if (error) throw error;
       logger.info('Team task unblocked', { taskId, teamId });
-      await loadTasks();
+      setTasks(prev => prev.map(task => (
+        task.id === taskId ? mapDbRowToTeamTask(data) as unknown as TeamTask : task
+      )));
     } catch (error) {
       logger.error('Error unblocking team task', { error, taskId, teamId });
       toast({ title: 'Erreur', description: 'Impossible de débloquer la tâche', variant: 'destructive' });
@@ -237,21 +258,25 @@ export const useTeamTasks = (teamId: string | null) => {
   // Assign task to a team member
   const assignTask = async (taskId: string, userId: string | null) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('team_tasks')
         .update({ assigned_to: userId })
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select()
+        .single();
 
       if (error) throw error;
 
       logger.info('Team task assigned', { taskId, userId, teamId });
+      setTasks(prev => prev.map(task => (
+        task.id === taskId ? mapDbRowToTeamTask(data) as unknown as TeamTask : task
+      )));
       
       toast({
         title: 'Success',
         description: userId ? 'Task assigned' : 'Task unassigned',
       });
 
-      await loadTasks();
     } catch (error) {
       logger.error('Error assigning team task', { error, taskId, teamId });
       toast({
@@ -263,6 +288,12 @@ export const useTeamTasks = (teamId: string | null) => {
   };
 
   useEffect(() => {
+    if (!enabled) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
+
     loadTasks();
 
     if (!teamId) return;
@@ -287,7 +318,7 @@ export const useTeamTasks = (teamId: string | null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [teamId]);
+  }, [enabled, teamId, loadTasks]);
 
   return {
     tasks,

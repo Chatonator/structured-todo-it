@@ -16,7 +16,7 @@ interface ViewDataProviderProps {
 export const ViewDataProvider: React.FC<ViewDataProviderProps> = ({ children }) => {
   const viewData = useViewData();
   const { contextFilter } = useApp();
-  const { allTeamTasks } = useAllTeamTasks();
+  const { allTeamTasks } = useAllTeamTasks(contextFilter === 'all');
 
   // Filtrer les tâches selon le contexte global
   const filteredViewData = useMemo<ViewDataReturn>(() => {

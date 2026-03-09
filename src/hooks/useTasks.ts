@@ -30,7 +30,7 @@ function taskToItemMetadata(task: Partial<Task>): Partial<ItemMetadata> {
   };
 }
 
-export const useTasks = () => {
+export const useTasks = (enabled = true) => {
   const { 
     items, 
     loading, 
@@ -42,7 +42,8 @@ export const useTasks = () => {
     getPinnedItems,
     reload 
   } = useItems({ 
-    contextTypes: ['task', 'subtask', 'project_task'] 
+    contextTypes: ['task', 'subtask', 'project_task'],
+    enabled,
   });
   
   const { rewardTaskCompletion } = useGamification();

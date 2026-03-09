@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
  * Hook qui charge les tâches de TOUTES les équipes de l'utilisateur.
  * Utilisé pour le filtre "Toutes" afin d'inclure les tâches d'équipe.
  */
-export const useAllTeamTasks = () => {
+export const useAllTeamTasks = (enabled = true) => {
   const { teams } = useTeamContext();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
@@ -17,8 +17,9 @@ export const useAllTeamTasks = () => {
   const teamIds = useMemo(() => teams.map(t => t.id), [teams]);
 
   useEffect(() => {
-    if (teamIds.length === 0) {
+    if (!enabled || teamIds.length === 0) {
       setTasks([]);
+      setLoading(false);
       return;
     }
 
@@ -48,7 +49,7 @@ export const useAllTeamTasks = () => {
     };
 
     loadAllTeamTasks();
-  }, [teamIds]);
+  }, [enabled, teamIds]);
 
   return { allTeamTasks: tasks, allTeamTasksLoading: loading };
 };

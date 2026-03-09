@@ -69,7 +69,7 @@ function projectToItemMetadata(
   return metadata;
 }
 
-export const useProjects = () => {
+export const useProjects = (enabled = true) => {
   const { 
     items, 
     loading, 
@@ -77,7 +77,7 @@ export const useProjects = () => {
     updateItem, 
     deleteItem,
     reload 
-  } = useItems({ contextTypes: ['project'] });
+  } = useItems({ contextTypes: ['project'], enabled });
   
   const { toast } = useToast();
 
@@ -156,10 +156,6 @@ export const useProjects = () => {
         metadata: { ...item.metadata, ...metadataUpdates },
       });
 
-      // Immediate reload without waiting - React Query will handle the refetch
-      // The data is already updated optimistically via the mutation
-      reload();
-
       return true;
     } catch (error: any) {
       toast({
@@ -169,7 +165,7 @@ export const useProjects = () => {
       });
       return false;
     }
-  }, [items, updateItem, toast, reload]);
+  }, [items, updateItem, toast]);
 
   // Delete project
   const deleteProject = useCallback(async (projectId: string) => {

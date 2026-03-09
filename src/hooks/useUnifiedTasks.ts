@@ -12,10 +12,13 @@ import { mapCamelToSnake } from '@/utils/teamTaskMapper';
  */
 export const useUnifiedTasks = () => {
   const { currentTeam } = useTeamContext();
-  const personalTasks = useTasks();
-  const teamTasks = useTeamTasks(currentTeam?.id || null);
-  
   const isTeamMode = !!currentTeam;
+  const personalTasks = useTasks(!isTeamMode);
+  const teamTasks = useTeamTasks(currentTeam?.id || null, { enabled: isTeamMode });
+  const teamCompletionStats = useMemo(
+    () => computeCompletionStats(teamTasks.tasks, t => t.isCompleted),
+    [teamTasks.tasks]
+  );
 
   // Wrapper pour les tâches d'équipe vers l'interface Task
   const teamTasksAdapter = useMemo(() => ({
@@ -62,8 +65,8 @@ export const useUnifiedTasks = () => {
     
     tasksCount: teamTasks.tasks.length,
     totalProjectTime: teamTasks.tasks.reduce((sum, t) => sum + t.estimatedTime, 0),
-    completedTasks: computeCompletionStats(teamTasks.tasks, t => t.isCompleted).completed,
-    completionRate: computeCompletionStats(teamTasks.tasks, t => t.isCompleted).completionRate,
+    completedTasks: teamCompletionStats.completed,
+    completionRate: teamCompletionStats.completionRate,
     
     undo: () => {},
     redo: () => {},
@@ -78,7 +81,7 @@ export const useUnifiedTasks = () => {
       const mappedUpdates = mapCamelToSnake(updates);
       await teamTasks.updateTask(taskId, mappedUpdates);
     },
-  }), [teamTasks]);
+  }), [teamCompletionStats, teamTasks]);
 
   // Sélectionner le bon hook selon le mode
   const hookResult = isTeamMode ? teamTasksAdapter : personalTasks;

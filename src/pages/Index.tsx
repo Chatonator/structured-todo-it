@@ -10,7 +10,6 @@ import { AppProvider, useApp } from '@/contexts/AppContext';
 import { ViewDataProvider, useViewDataContext } from '@/contexts/ViewDataContext';
 import { SidebarProvider as AppSidebarProvider } from '@/contexts/SidebarContext';
 import { useTeamContext } from '@/contexts/TeamContext';
-import { useTeamTasks } from '@/hooks/useTeamTasks';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsMobile } from '@/hooks/shared/use-mobile';
 import { useAppUpdates } from '@/hooks/useAppUpdates';
@@ -41,27 +40,11 @@ const IndexContent: React.FC = () => {
   
   // Team context integration
   const { currentTeam } = useTeamContext();
-  const teamTasks = useTeamTasks(currentTeam?.id ?? null);
 
   // Dynamic task creation handler
   const handleAddTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt'>) => {
-    if (currentTeam) {
-      // Create team task
-      await teamTasks.createTask({
-        name: task.name,
-        category: task.category,
-        subCategory: task.subCategory,
-        context: task.context,
-        estimatedTime: task.estimatedTime,
-        isCompleted: false,
-        level: task.level,
-        parentId: task.parentId,
-      });
-    } else {
-      // Create personal task
-      viewData.addTask(task);
-    }
-  }, [currentTeam, teamTasks, viewData]);
+    await viewData.addTask(task);
+  }, [viewData]);
 
 
   // Application du thème

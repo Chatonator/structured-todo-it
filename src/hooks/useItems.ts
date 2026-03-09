@@ -99,6 +99,7 @@ export interface UseItemsOptions {
   contextTypes?: ItemContextType[];
   parentId?: string | null;
   includeCompleted?: boolean;
+  enabled?: boolean;
 }
 
 export interface CreateItemData {
@@ -111,12 +112,13 @@ export interface CreateItemData {
 }
 
 export function useItems(options: UseItemsOptions = {}) {
-  const { contextTypes, parentId, includeCompleted = true } = options;
+  const { contextTypes, parentId, includeCompleted = true, enabled = true } = options;
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const userId = options.userId || user?.id;
+  const itemsQueryRoot = useMemo(() => ['items', userId], [userId]);
   const queryKey = ['items', userId, contextTypes, parentId, includeCompleted];
 
   // Fetch items from Supabase
@@ -157,7 +159,7 @@ export function useItems(options: UseItemsOptions = {}) {
 
       return (data as ItemRow[]).map(rowToItem);
     },
-    enabled: !!userId,
+    enabled: enabled && !!userId,
   });
 
   const error = queryError ? (queryError as Error).message : null;
@@ -228,7 +230,7 @@ export function useItems(options: UseItemsOptions = {}) {
       return rowToItem(result as ItemRow);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: itemsQueryRoot });
     },
     onError: (error) => {
       toast({
@@ -320,7 +322,7 @@ export function useItems(options: UseItemsOptions = {}) {
       return rowToItem(data as ItemRow);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: itemsQueryRoot });
     },
     onError: (error) => {
       toast({
@@ -343,7 +345,7 @@ export function useItems(options: UseItemsOptions = {}) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: itemsQueryRoot });
     },
     onError: (error) => {
       toast({
@@ -421,7 +423,7 @@ export function useItems(options: UseItemsOptions = {}) {
       return result;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: itemsQueryRoot });
       toast({
         title: 'Transformation réussie',
         description: `L'élément a été transformé en ${variables.newContextType}`,
@@ -598,8 +600,8 @@ export function useItems(options: UseItemsOptions = {}) {
   // ============= Reload =============
   
   const reload = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['items'] });
-  }, [queryClient]);
+    queryClient.invalidateQueries({ queryKey: itemsQueryRoot });
+  }, [queryClient, itemsQueryRoot]);
 
   return {
     // State
