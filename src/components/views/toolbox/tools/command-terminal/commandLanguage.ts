@@ -1,9 +1,11 @@
-export type CommandKind = 'task' | 'project' | 'habit' | 'help';
+export type CommandEntity = 'task' | 'project' | 'habit';
+export type CommandAction = 'create' | 'update' | 'complete' | 'plan' | 'assign' | 'help';
 
 export interface ParsedCommand {
   lineNumber: number;
   raw: string;
-  kind: CommandKind;
+  action: CommandAction;
+  entity?: CommandEntity;
   label?: string;
   flags: Record<string, string>;
 }
@@ -24,6 +26,10 @@ export const COMMAND_EXAMPLES = [
   'project "Refonte site vitrine" --context pro --description "Landing + contenu" --color #0f766e --icon 🚀',
   'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
   'habit "Sport" --frequency weekly --days 0,2,4 --deck default',
+  'update task "Préparer le sprint" --name "Préparer le sprint Q2" --time 60',
+  'complete project "Refonte site vitrine"',
+  'plan task "Préparer le sprint Q2" --date 2026-03-10 --time 14:30',
+  'assign task "Préparer le sprint Q2" --project "Refonte site vitrine"',
 ];
 
 export const COMMAND_RULES = [
@@ -32,20 +38,41 @@ export const COMMAND_RULES = [
   'Les noms avec espaces doivent être entre guillemets.',
   'Les options utilisent le format --cle valeur.',
   'Les alias t, p et h sont acceptés.',
+  'Les actions disponibles sont create implicite, update, complete, plan et assign.',
 ];
 
-const COMMAND_ALIASES: Record<string, CommandKind> = {
+export const COMMAND_SYNTAX = [
+  'task "Nom" [--context pro|perso] [--time 30] [--category obligation|quotidien|envie|autres] [--priority critical|important|later|optional]',
+  'project "Nom" [--context pro|perso] [--description "..."] [--color #hex] [--icon 🚀]',
+  'habit "Nom" [--context pro|perso] [--time 15] [--frequency daily|weekly|monthly|custom|x-week|x-month] [--days 0,2,4] [--count 3] [--deck default]',
+  'update task|project|habit "Nom existant" [options de création ou --name "Nouveau nom"]',
+  'complete task|project|habit "Nom existant"',
+  'plan task "Nom existant" --date YYYY-MM-DD --time HH:MM',
+  'assign task "Nom existant" --project "Nom du projet"',
+];
+
+const ENTITY_ALIASES: Record<string, CommandEntity> = {
   task: 'task',
   t: 'task',
   project: 'project',
   p: 'project',
   habit: 'habit',
   h: 'habit',
+};
+
+const ACTION_ALIASES: Record<string, CommandAction> = {
+  update: 'update',
+  complete: 'complete',
+  plan: 'plan',
+  assign: 'assign',
   help: 'help',
 };
 
 export function getHelpScript(): string {
   return [
+    '# Syntaxe',
+    ...COMMAND_SYNTAX,
+    '',
     '# Exemples',
     ...COMMAND_EXAMPLES,
   ].join('\n');
@@ -85,25 +112,35 @@ function parseCommandLine(line: string, lineNumber: number): ParsedCommand {
     throw new Error('Commande vide');
   }
 
-  const commandToken = tokens[0].toLowerCase();
-  const kind = COMMAND_ALIASES[commandToken];
+  const firstToken = tokens[0].toLowerCase();
 
-  if (!kind) {
-    throw new Error(`Commande inconnue: ${tokens[0]}`);
-  }
-
-  if (kind === 'help') {
+  if (ACTION_ALIASES[firstToken] === 'help') {
     return {
       lineNumber,
       raw: line,
-      kind,
+      action: 'help',
       flags: {},
     };
   }
 
+  let action: CommandAction = 'create';
+  let entity: CommandEntity | undefined;
+  let index = 1;
+
+  if (ACTION_ALIASES[firstToken] && firstToken !== 'help') {
+    action = ACTION_ALIASES[firstToken];
+    entity = ENTITY_ALIASES[tokens[1]?.toLowerCase()];
+    index = 2;
+  } else {
+    entity = ENTITY_ALIASES[firstToken];
+  }
+
+  if (!entity) {
+    throw new Error(`Commande ou cible inconnue: ${tokens[0]}`);
+  }
+
   let label: string | undefined;
   const flags: Record<string, string> = {};
-  let index = 1;
 
   if (tokens[index] && !tokens[index].startsWith('--')) {
     label = tokens[index];
@@ -138,7 +175,8 @@ function parseCommandLine(line: string, lineNumber: number): ParsedCommand {
   return {
     lineNumber,
     raw: line,
-    kind,
+    action,
+    entity,
     label,
     flags,
   };

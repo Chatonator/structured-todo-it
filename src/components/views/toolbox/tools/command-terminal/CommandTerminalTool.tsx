@@ -12,9 +12,10 @@ import { useUnifiedTasks } from '@/hooks/useUnifiedTasks';
 import { useUnifiedProjects } from '@/hooks/useUnifiedProjects';
 import { useDecks } from '@/hooks/useDecks';
 import { useHabits } from '@/hooks/useHabits';
+import { useProjects } from '@/hooks/useProjects';
 import { Habit } from '@/types/habit';
 import { categoryFromEisenhower, eisenhowerFromCategory, SubTaskCategory, Task, TaskCategory, TaskContext } from '@/types/task';
-import { COMMAND_EXAMPLES, COMMAND_RULES, ParsedCommand, getHelpScript, parseCommandScript } from './commandLanguage';
+import { COMMAND_EXAMPLES, COMMAND_RULES, COMMAND_SYNTAX, ParsedCommand, getHelpScript, parseCommandScript } from './commandLanguage';
 
 type LogLevel = 'info' | 'success' | 'error';
 
@@ -29,6 +30,7 @@ const DEFAULT_SCRIPT = [
   'task "Préparer la roadmap" --context pro --time 45 --category obligation --priority important',
   'project "Migration design system" --context pro --color #0f766e --icon 🚀',
   'habit "Lire 20 minutes" --context perso --time 20 --frequency daily --icon 📚',
+  'update task "Préparer la roadmap" --time 60',
 ].join('\n');
 
 const PRIORITY_MAP: Record<string, SubTaskCategory> = {
@@ -156,6 +158,32 @@ function resolveDeckId(flagValue: string | undefined, decks: Array<{ id: string;
   return byName?.id ?? null;
 }
 
+function findByName<T extends { name: string }>(items: T[], name: string): T | undefined {
+  const normalized = name.trim().toLowerCase();
+  return items.find(item => item.name.trim().toLowerCase() === normalized);
+}
+
+function parseDate(value?: string): Date {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error('Date invalide. Utilisez --date YYYY-MM-DD');
+  }
+
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Date invalide: ${value}`);
+  }
+
+  return parsed;
+}
+
+function parseTimeValue(value?: string): string {
+  if (!value || !/^\d{2}:\d{2}$/.test(value)) {
+    throw new Error('Heure invalide. Utilisez --time HH:MM');
+  }
+
+  return value;
+}
+
 const CommandTerminalTool: React.FC<ToolProps> = () => {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
@@ -165,6 +193,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
   const projects = useUnifiedProjects();
   const { decks, defaultDeckId } = useDecks();
   const habits = useHabits(null);
+  const personalProjects = useProjects(!projects.isTeamMode);
 
   const parsePreview = useMemo(() => parseCommandScript(script), [script]);
   const modeLabel = projects.isTeamMode ? `Equipe: ${projects.teamName || 'active'}` : 'Personnel';
@@ -174,7 +203,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
   };
 
   const runCommand = async (command: ParsedCommand): Promise<ExecutionLog> => {
-    if (command.kind === 'help') {
+    if (command.action === 'help') {
       return {
         lineNumber: command.lineNumber,
         level: 'info',
@@ -182,7 +211,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       };
     }
 
-    if (command.kind === 'task') {
+    if (command.action === 'create' && command.entity === 'task') {
       const category = normalizeCategory(command.flags);
       const subCategory = normalizePriority(command.flags.priority);
       const context = normalizeContext(command.flags.context);
@@ -214,7 +243,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       };
     }
 
-    if (command.kind === 'project') {
+    if (command.action === 'create' && command.entity === 'project') {
       const category = normalizeCategory(command.flags);
       const eisenhower = eisenhowerFromCategory(category);
       const created = await projects.createProject(
@@ -238,50 +267,276 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       };
     }
 
-    const frequency = HABIT_FREQUENCY_MAP[command.flags.frequency?.toLowerCase() || 'daily'] || 'daily';
-    const targetDays = parseDays(command.flags.days);
-    const count = command.flags.count ? Number(command.flags.count) : undefined;
-    const deckId = resolveDeckId(command.flags.deck, decks, defaultDeckId);
+    if (command.action === 'create' && command.entity === 'habit') {
+      const frequency = HABIT_FREQUENCY_MAP[command.flags.frequency?.toLowerCase() || 'daily'] || 'daily';
+      const targetDays = parseDays(command.flags.days);
+      const count = command.flags.count ? Number(command.flags.count) : undefined;
+      const deckId = resolveDeckId(command.flags.deck, decks, defaultDeckId);
 
-    if (!deckId) {
-      throw new Error('Aucun deck disponible. Créez un deck ou utilisez --deck avec un id valide.');
+      if (!deckId) {
+        throw new Error('Aucun deck disponible. Créez un deck ou utilisez --deck avec un id valide.');
+      }
+
+      const created = await habits.createHabit({
+        userId: '',
+        name: command.label!,
+        category: CATEGORY_MAP[command.flags.category?.toLowerCase() || 'quotidien'] || 'Quotidien',
+        context: normalizeContext(command.flags.context),
+        estimatedTime: parseMinutes(command.flags.time, 15),
+        description: command.flags.description,
+        deckId,
+        frequency,
+        timesPerWeek: frequency === 'x-times-per-week' ? count || 3 : undefined,
+        timesPerMonth: frequency === 'x-times-per-month' ? count || 4 : undefined,
+        targetDays: ['weekly', 'monthly', 'custom'].includes(frequency) ? targetDays : undefined,
+        isActive: true,
+        updatedAt: new Date(),
+        order: 0,
+        icon: command.flags.icon,
+        color: command.flags.color,
+        isChallenge: false,
+        challengeStartDate: undefined,
+        challengeEndDate: undefined,
+        challengeDurationDays: undefined,
+        challengeEndAction: undefined,
+        isLocked: false,
+        unlockCondition: undefined,
+      });
+
+      if (!created) {
+        throw new Error('La création de l’habitude a échoué');
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Habitude créée: ${command.label}`,
+      };
     }
 
-    const created = await habits.createHabit({
-      userId: '',
-      name: command.label!,
-      category: CATEGORY_MAP[command.flags.category?.toLowerCase() || 'quotidien'] || 'Quotidien',
-      context: normalizeContext(command.flags.context),
-      estimatedTime: parseMinutes(command.flags.time, 15),
-      description: command.flags.description,
-      deckId,
-      frequency,
-      timesPerWeek: frequency === 'x-times-per-week' ? count || 3 : undefined,
-      timesPerMonth: frequency === 'x-times-per-month' ? count || 4 : undefined,
-      targetDays: ['weekly', 'monthly', 'custom'].includes(frequency) ? targetDays : undefined,
-      isActive: true,
-      updatedAt: new Date(),
-      order: 0,
-      icon: command.flags.icon,
-      color: command.flags.color,
-      isChallenge: false,
-      challengeStartDate: undefined,
-      challengeEndDate: undefined,
-      challengeDurationDays: undefined,
-      challengeEndAction: undefined,
-      isLocked: false,
-      unlockCondition: undefined,
-    });
+    if (command.action === 'update' && command.entity === 'task') {
+      const existingTask = findByName(tasks.tasks, command.label!);
+      if (!existingTask) {
+        throw new Error(`Tâche introuvable: ${command.label}`);
+      }
 
-    if (!created) {
-      throw new Error('La création de l’habitude a échoué');
+      const nextCategory = command.flags.category || command.flags.important || command.flags.urgent
+        ? normalizeCategory(command.flags)
+        : existingTask.category;
+      const eisenhower = eisenhowerFromCategory(nextCategory);
+
+      await tasks.updateTask(existingTask.id, {
+        name: command.flags.name || existingTask.name,
+        context: command.flags.context ? normalizeContext(command.flags.context) : existingTask.context,
+        estimatedTime: command.flags.time ? parseMinutes(command.flags.time, existingTask.estimatedTime) : existingTask.estimatedTime,
+        category: nextCategory,
+        subCategory: command.flags.priority ? normalizePriority(command.flags.priority) : existingTask.subCategory,
+        isImportant: eisenhower.isImportant,
+        isUrgent: eisenhower.isUrgent,
+      });
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Tâche mise à jour: ${existingTask.name}`,
+      };
     }
 
-    return {
-      lineNumber: command.lineNumber,
-      level: 'success',
-      message: `Habitude créée: ${command.label}`,
-    };
+    if (command.action === 'update' && command.entity === 'project') {
+      const existingProject = findByName(projects.projects, command.label!);
+      if (!existingProject) {
+        throw new Error(`Projet introuvable: ${command.label}`);
+      }
+
+      const success = await projects.updateProject(existingProject.id, {
+        name: command.flags.name || existingProject.name,
+        description: command.flags.description ?? existingProject.description,
+        icon: command.flags.icon ?? existingProject.icon,
+        color: command.flags.color ?? existingProject.color,
+        targetDate: command.flags.date ? parseDate(command.flags.date) : existingProject.targetDate,
+      } as any);
+
+      if (!success) {
+        throw new Error('La mise à jour du projet a échoué');
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Projet mis à jour: ${existingProject.name}`,
+      };
+    }
+
+    if (command.action === 'update' && command.entity === 'habit') {
+      const existingHabit = findByName(habits.habits, command.label!);
+      if (!existingHabit) {
+        throw new Error(`Habitude introuvable: ${command.label}`);
+      }
+
+      const nextFrequency = command.flags.frequency
+        ? HABIT_FREQUENCY_MAP[command.flags.frequency.toLowerCase()] || existingHabit.frequency
+        : existingHabit.frequency;
+      const count = command.flags.count ? Number(command.flags.count) : undefined;
+      const nextDeckId = command.flags.deck
+        ? resolveDeckId(command.flags.deck, decks, defaultDeckId) || existingHabit.deckId
+        : existingHabit.deckId;
+      const success = await habits.updateHabit(existingHabit.id, {
+        name: command.flags.name || existingHabit.name,
+        context: command.flags.context ? normalizeContext(command.flags.context) : existingHabit.context,
+        estimatedTime: command.flags.time ? parseMinutes(command.flags.time, existingHabit.estimatedTime) : existingHabit.estimatedTime,
+        description: command.flags.description ?? existingHabit.description,
+        icon: command.flags.icon ?? existingHabit.icon,
+        color: command.flags.color ?? existingHabit.color,
+        deckId: nextDeckId,
+        frequency: nextFrequency,
+        timesPerWeek: nextFrequency === 'x-times-per-week' ? count || existingHabit.timesPerWeek : undefined,
+        timesPerMonth: nextFrequency === 'x-times-per-month' ? count || existingHabit.timesPerMonth : undefined,
+        targetDays: command.flags.days ? parseDays(command.flags.days) : existingHabit.targetDays,
+      });
+
+      if (!success) {
+        throw new Error('La mise à jour de l’habitude a échoué');
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Habitude mise à jour: ${existingHabit.name}`,
+      };
+    }
+
+    if (command.action === 'complete' && command.entity === 'task') {
+      const existingTask = findByName(tasks.tasks, command.label!);
+      if (!existingTask) {
+        throw new Error(`Tâche introuvable: ${command.label}`);
+      }
+
+      if (existingTask.isCompleted) {
+        return {
+          lineNumber: command.lineNumber,
+          level: 'info',
+          message: `Tâche déjà terminée: ${existingTask.name}`,
+        };
+      }
+
+      await tasks.toggleTaskCompletion(existingTask.id);
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Tâche terminée: ${existingTask.name}`,
+      };
+    }
+
+    if (command.action === 'complete' && command.entity === 'project') {
+      const existingProject = findByName(projects.projects, command.label!);
+      if (!existingProject) {
+        throw new Error(`Projet introuvable: ${command.label}`);
+      }
+
+      const success = await projects.completeProject(existingProject.id);
+      if (!success) {
+        throw new Error('La complétion du projet a échoué');
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Projet terminé: ${existingProject.name}`,
+      };
+    }
+
+    if (command.action === 'complete' && command.entity === 'habit') {
+      const existingHabit = findByName(habits.habits, command.label!);
+      if (!existingHabit) {
+        throw new Error(`Habitude introuvable: ${command.label}`);
+      }
+
+      const success = await habits.toggleCompletion(existingHabit.id);
+      if (!success) {
+        throw new Error('La complétion de l’habitude a échoué');
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Habitude cochée pour aujourd’hui: ${existingHabit.name}`,
+      };
+    }
+
+    if (command.action === 'plan' && command.entity === 'task') {
+      const existingTask = findByName(tasks.tasks, command.label!);
+      if (!existingTask) {
+        throw new Error(`Tâche introuvable: ${command.label}`);
+      }
+
+      const scheduledDate = parseDate(command.flags.date);
+      const scheduledTime = parseTimeValue(command.flags.time);
+
+      if (tasks.isTeamMode) {
+        await tasks.updateTask(existingTask.id, {
+          scheduledDate,
+          scheduledTime,
+        } as any);
+      } else {
+        await tasks.updateTask(existingTask.id, {
+          _scheduleInfo: { date: scheduledDate, time: scheduledTime },
+        } as any);
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Tâche planifiée: ${existingTask.name}`,
+      };
+    }
+
+    if (command.action === 'assign' && command.entity === 'task') {
+      const existingTask = findByName(tasks.tasks, command.label!);
+      if (!existingTask) {
+        throw new Error(`Tâche introuvable: ${command.label}`);
+      }
+
+      const projectName = command.flags.project;
+      if (!projectName) {
+        throw new Error('Projet cible manquant. Utilisez --project "Nom du projet"');
+      }
+
+      const project = findByName(projects.projects, projectName);
+      if (!project) {
+        throw new Error(`Projet introuvable: ${projectName}`);
+      }
+
+      if (tasks.isTeamMode) {
+        await tasks.updateTask(existingTask.id, {
+          project_id: project.id,
+          projectStatus: existingTask.projectStatus || 'todo',
+        } as any);
+      } else {
+        const rawTask = personalProjects.projects ? tasks.tasks.find(task => task.id === existingTask.id) : existingTask;
+        const success = await personalProjects.assignTaskToProject(existingTask.id, project.id, {
+          category: rawTask?.category,
+          context: rawTask?.context,
+          estimatedTime: rawTask?.estimatedTime,
+          level: rawTask?.level,
+          isExpanded: rawTask?.isExpanded,
+          subCategory: rawTask?.subCategory,
+          projectStatus: rawTask?.projectStatus || 'todo',
+          actualTime: rawTask?.actualTime,
+        } as any);
+
+        if (!success) {
+          throw new Error('L’affectation au projet a échoué');
+        }
+      }
+
+      return {
+        lineNumber: command.lineNumber,
+        level: 'success',
+        message: `Tâche affectée au projet: ${existingTask.name} -> ${project.name}`,
+      };
+    }
+
+    throw new Error('Commande non prise en charge');
   };
 
   const handleRun = async () => {
@@ -306,7 +561,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
 
     for (const command of parseResult.commands) {
       try {
-        if (command.kind === 'help') {
+        if (command.action === 'help') {
           setScript(getHelpScript());
         }
         const log = await runCommand(command);
@@ -416,16 +671,28 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       <div className="space-y-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Règles du langage</CardTitle>
-            <CardDescription>Première version pensée pour la création rapide et en masse.</CardDescription>
+            <CardTitle className="text-base">Syntaxe</CardTitle>
+            <CardDescription>Point d’entrée lisible pour l’utilisateur, directement dans l’outil.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">task</Badge>
               <Badge variant="secondary">project</Badge>
               <Badge variant="secondary">habit</Badge>
+              <Badge variant="outline">update</Badge>
+              <Badge variant="outline">complete</Badge>
+              <Badge variant="outline">plan</Badge>
+              <Badge variant="outline">assign</Badge>
               <Badge variant="outline">help</Badge>
             </div>
+            <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
+              {COMMAND_SYNTAX.map(rule => (
+                <div key={rule} className="break-all text-muted-foreground">
+                  {rule}
+                </div>
+              ))}
+            </div>
+            <Separator />
             <ul className="space-y-2 text-muted-foreground">
               {COMMAND_RULES.map(rule => (
                 <li key={rule}>{rule}</li>
@@ -436,6 +703,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
               <p className="font-medium text-foreground">Codes utiles</p>
               <p className="text-muted-foreground">`--context pro|perso`, `--category obligation|quotidien|envie|autres`, `--priority critical|important|later|optional`</p>
               <p className="text-muted-foreground">`--frequency daily|weekly|monthly|custom|x-week|x-month`, `--days 0,2,4`, `--count 3`, `--deck default`</p>
+              <p className="text-muted-foreground">`--date YYYY-MM-DD`, `--time HH:MM`, `--project "Nom du projet"`</p>
             </div>
           </CardContent>
         </Card>
