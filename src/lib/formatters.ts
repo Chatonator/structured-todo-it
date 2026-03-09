@@ -131,7 +131,39 @@ export function formatAge(date: Date | string): string {
  * @param date - Date de création
  * @returns String comme "3 jours", "2 semaines", "1 mois"
  */
+/**
+ * Calcule les stats de complétion d'une collection
+ * @param items - Collection d'éléments
+ * @param isCompleted - Prédicat pour déterminer si un élément est complété
+ * @returns { total, completed, completionRate }
+ */
+export function computeCompletionStats<T>(
+  items: T[],
+  isCompleted: (item: T) => boolean
+): { total: number; completed: number; completionRate: number } {
+  const total = items.length;
+  const completed = items.filter(isCompleted).length;
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return { total, completed, completionRate };
+}
+
 export function formatAgeLong(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  
+  if (isToday(d)) return "Aujourd'hui";
+  if (isYesterday(d)) return "Hier";
+  
+  const days = differenceInDays(now, d);
+  const weeks = differenceInWeeks(now, d);
+  const months = differenceInMonths(now, d);
+  
+  if (days < 7) return `${days} jour${days > 1 ? 's' : ''}`;
+  if (weeks < 4) return `${weeks} semaine${weeks > 1 ? 's' : ''}`;
+  if (months < 12) return `${months} mois`;
+  const years = Math.floor(months / 12);
+  return `${years} an${years > 1 ? 's' : ''}`;
+}
   const d = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
   
