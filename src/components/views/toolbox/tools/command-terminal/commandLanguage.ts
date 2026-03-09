@@ -1,5 +1,5 @@
 export type CommandEntity = 'task' | 'project' | 'habit';
-export type CommandAction = 'create' | 'update' | 'complete' | 'plan' | 'assign' | 'delete' | 'help';
+export type CommandAction = 'create' | 'update' | 'complete' | 'plan' | 'assign' | 'delete' | 'find' | 'list' | 'help';
 
 export interface ParsedCommand {
   lineNumber: number;
@@ -31,6 +31,8 @@ export const COMMAND_EXAMPLES = [
   'plan task "Préparer le sprint Q2" --date 2026-03-10 --time 14:30',
   'assign task "Préparer le sprint Q2" --project "Refonte site vitrine"',
   'delete habit "Lire 20 minutes"',
+  'find task --text sprint --context pro --status active',
+  'list project --status completed --limit 10',
 ];
 
 export const COMMAND_RULES = [
@@ -39,7 +41,7 @@ export const COMMAND_RULES = [
   'Les noms avec espaces doivent être entre guillemets.',
   'Les options utilisent le format --cle valeur.',
   'Les alias t, p et h sont acceptés.',
-  'Les actions disponibles sont create implicite, update, complete, plan, assign et delete.',
+  'Les actions disponibles sont create implicite, update, complete, plan, assign, delete, find et list.',
   'Les tâches exigent une durée explicite à la création: --time est obligatoire.',
   'Les valeurs par défaut ne sont utilisées que si elles restent cohérentes avec les règles métier.',
 ];
@@ -53,14 +55,19 @@ export const COMMAND_SYNTAX = [
   'plan task "Nom existant" --date YYYY-MM-DD --time HH:MM',
   'assign task "Nom existant" --project "Nom du projet"',
   'delete task|project|habit "Nom existant"',
+  'find task|project|habit [--text "mot"] [--context pro|perso] [--status active|completed|all] [--project "Nom"] [--limit 20]',
+  'list task|project|habit [--status active|completed|all] [--limit 20]',
 ];
 
 const ENTITY_ALIASES: Record<string, CommandEntity> = {
   task: 'task',
+  tasks: 'task',
   t: 'task',
   project: 'project',
+  projects: 'project',
   p: 'project',
   habit: 'habit',
+  habits: 'habit',
   h: 'habit',
 };
 
@@ -70,6 +77,8 @@ const ACTION_ALIASES: Record<string, CommandAction> = {
   plan: 'plan',
   assign: 'assign',
   delete: 'delete',
+  find: 'find',
+  list: 'list',
   help: 'help',
 };
 
@@ -173,7 +182,9 @@ function parseCommandLine(line: string, lineNumber: number): ParsedCommand {
     index += 2;
   }
 
-  if (!label) {
+  const requiresLabel = !['find', 'list', 'help'].includes(action);
+
+  if (requiresLabel && !label) {
     throw new Error('Nom manquant. Utilisez par exemple: task "Nom de la tâche"');
   }
 
