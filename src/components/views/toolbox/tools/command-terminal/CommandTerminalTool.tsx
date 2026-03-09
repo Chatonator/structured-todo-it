@@ -87,6 +87,27 @@ const SCRIPT_TEMPLATES: StoredScript[] = [
   },
 ];
 
+const EXTERNAL_AI_PROMPT = [
+  'Je te fournis une todo libre.',
+  'Transforme-la en commandes compatibles avec le terminal Todo-IT.',
+  'Réponds uniquement avec des lignes de commandes, sans explication, sans markdown, sans liste numérotée.',
+  'Respecte ces règles :',
+  '- crée un projet avec: project "Nom" [--context pro|perso]',
+  '- crée une tâche avec: task "Nom" --time 30 [--context pro|perso] [--project "Nom du projet"]',
+  '- crée une habitude avec: habit "Nom" --time 20 [--context pro|perso] [--frequency daily|weekly|monthly]',
+  '- pour une tâche, --time est obligatoire',
+  '- utilise seulement Pro ou Perso comme contexte',
+  '- si une information manque, utilise un défaut cohérent seulement pour projet ou habitude, pas pour le nom ni la durée d une tâche',
+  '- si la todo contient plusieurs éléments, renvoie une ligne par élément',
+  '- si un projet regroupe plusieurs tâches, crée d abord le projet puis les tâches avec --project',
+  '- n utilise pas de commandes avancées sauf si nécessaire',
+  'Exemples autorisés :',
+  'project "Migration design system" --context pro',
+  'task "Préparer la roadmap" --time 45 --context pro --project "Migration design system"',
+  'habit "Lire 20 minutes" --time 20 --context perso --frequency daily',
+  'Voici maintenant ma todo :',
+].join('\n');
+
 const PRIORITY_MAP: Record<string, SubTaskCategory> = {
   critical: 'Le plus important',
   highest: 'Le plus important',
@@ -529,6 +550,11 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
     setScript(content);
     setScriptLabel(file.name.replace(/\.[^.]+$/, ''));
     event.target.value = '';
+  };
+
+  const copyExternalAiPrompt = async () => {
+    await navigator.clipboard.writeText(EXTERNAL_AI_PROMPT);
+    appendLogs([{ lineNumber: 0, level: 'success', message: 'Prompt IA externe copié.' }]);
   };
 
   const getTaskMatches = (command: ParsedCommand) => {
@@ -1785,6 +1811,20 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
                   <p>Explore le contexte via `schema`, `inspect`, `stats`, `find`, `list`.</p>
                   <p>Utilise `--json true` ou le bouton `JSON` pour des réponses structurées.</p>
                   <p>Utilise `--dry-run true` avant mutation, puis `--confirm CONFIRM` si nécessaire.</p>
+                </div>
+                <div className="space-y-3 rounded-xl bg-muted/40 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-foreground">Prompt IA externe</p>
+                    <Button type="button" variant="outline" size="sm" onClick={copyExternalAiPrompt}>
+                      <CopyPlus className="mr-2 h-4 w-4" />
+                      Copier
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={EXTERNAL_AI_PROMPT}
+                    readOnly
+                    className="min-h-[220px] resize-none bg-background font-mono text-xs"
+                  />
                 </div>
                 <div className="space-y-2 rounded-xl bg-muted/40 p-3 font-mono text-xs">
                   <div>schema habit</div>
