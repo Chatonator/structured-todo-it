@@ -223,7 +223,12 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
           {/* Temps estimé */}
           <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
             <Clock className="w-3 h-3" />
-            <span>{formatDuration(totalTime)}</span>
+            <span>
+              {task.actualTime 
+                ? `⏱ ${formatDuration(task.actualTime)} / ${formatDuration(totalTime)} est.`
+                : formatDuration(totalTime)
+              }
+            </span>
           </div>
 
           {/* Badge sous-tâches */}
