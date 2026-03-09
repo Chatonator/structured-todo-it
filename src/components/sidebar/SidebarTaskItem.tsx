@@ -144,7 +144,9 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         'border-b border-sidebar-border/40',
         'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]',
         // Fond doré pour les tâches épinglées
-        isPinned && 'bg-[#EFBF04]/15 dark:bg-[#EFBF04]/10'
+        isPinned && 'bg-[#EFBF04]/15 dark:bg-[#EFBF04]/10',
+        // Pulsing green border when timer is active
+        isTimerActive && 'border-l-2 border-l-green-500 animate-pulse'
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
