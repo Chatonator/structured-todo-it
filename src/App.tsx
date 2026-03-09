@@ -13,6 +13,7 @@ import { TeamManagement } from "./components/team/TeamManagement";
 import BugReportsAdmin from "./components/bugs/BugReportsAdmin";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { TeamProvider } from "@/contexts/TeamContext";
+import { TimeTrackerProvider } from "@/contexts/TimeTrackerContext";
 import { UserPreferencesProvider } from "@/hooks/useUserPreferences";
 import { logger } from "@/lib/logger";
 
