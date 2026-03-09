@@ -1,8 +1,9 @@
-import { Grid3X3, ListOrdered, Timer } from 'lucide-react';
+import { Grid3X3, ListOrdered, Terminal, Timer } from 'lucide-react';
 import { ToolDefinition } from './types';
 import EisenhowerTool from './eisenhower/EisenhowerTool';
 import Rule135Tool from './rule135/Rule135Tool';
 import PomodoroTool from './pomodoro/PomodoroTool';
+import CommandTerminalTool from './command-terminal/CommandTerminalTool';
 
 // Tool registry - single source of truth for all available tools
 export const toolRegistry: ToolDefinition[] = [
@@ -54,6 +55,29 @@ export const toolRegistry: ToolDefinition[] = [
       "Si vous ne finissez pas tout, ce n'est pas grave — l'important est d'avoir avancé sur le 'Big'"
     ],
     learnMoreUrl: "https://www.themuse.com/advice/a-better-todo-list-the-135-rule"
+  },
+  {
+    id: 'command-terminal',
+    name: 'Terminal objets',
+    description: 'Créer en masse via commandes',
+    icon: Terminal,
+    color: 'text-emerald-500',
+    bgColor: 'bg-emerald-500/10',
+    category: 'planning',
+    isNew: true,
+    component: CommandTerminalTool,
+    longDescription: "Le terminal objets permet de créer rapidement des tâches, projets et habitudes à l'aide d'un petit langage de commandes. Il est pensé comme une base d'automatisation locale, utile pour saisir plusieurs objets d'un coup ou préparer plus tard des flux pilotés par IA.",
+    benefits: [
+      "Créer plusieurs objets en quelques lignes",
+      "Réutiliser des scripts pour des routines fréquentes",
+      "Standardiser la création rapide d'objets",
+      "Préparer une future automatisation IA fiable"
+    ],
+    tips: [
+      "Commencez par des scripts courts avant de créer en masse",
+      "Utilisez les commentaires # pour documenter vos scripts",
+      "Réutilisez un même modèle de lignes pour les routines récurrentes"
+    ],
   },
   {
     id: 'pomodoro',
