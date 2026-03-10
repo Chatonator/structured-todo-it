@@ -1,1 +1,0 @@
-import{j as p,f as r,c6 as l,c as m,V as n}from"./index-BQhYJMAq.js";const o={sm:"text-[10px] px-1.5 py-0",md:"text-xs px-2 py-0.5",lg:"text-sm px-2.5 py-1"},i=({category:s,displayName:e=!0,size:t="md",className:a})=>{const x=e?l(s):s;return p.jsx(r,{variant:"outline",className:m(n(s,"badge"),o[t],a),children:x})};export{i as C};
