@@ -8,7 +8,6 @@ import { EisenhowerSelector } from '@/components/common/EisenhowerSelector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Textarea } from '@/components/ui/textarea';
 import { ToolProps } from '../types';
 import { TaskLinker } from '../../shared/TaskLinker';
 import { useTaskLinker } from '../../shared/useTaskLinker';
@@ -19,7 +18,6 @@ import { Task, TaskCategory, TaskContext, eisenhowerFromCategory } from '@/types
 import {
   ALL_SLOT_IDS,
   buildDraftTree,
-  buildMermaidGraph,
   clearSlotAndDescendants,
   countFilledSlots,
   createEmptySlots,
@@ -36,43 +34,67 @@ import {
 
 type ApplyTarget = 'task' | 'project';
 type EditorMode = 'new' | 'import';
+type SlotTone = 'root' | 'branch' | 'leaf';
 
 const DEFAULT_ROOT_DURATION = 30;
 
 interface SlotBoxProps {
   slot: DivisionSlot;
-  isRoot?: boolean;
-  compact?: boolean;
+  tone: SlotTone;
   onClick: (slotId: DivisionSlotId) => void;
 }
 
-const SlotBox: React.FC<SlotBoxProps> = ({ slot, isRoot = false, compact = false, onClick }) => {
+const SLOT_TONE_LABELS: Record<SlotTone, string> = {
+  root: 'Départ',
+  branch: 'Branche',
+  leaf: 'Sous-tâche',
+};
+
+const SlotBox: React.FC<SlotBoxProps> = ({ slot, tone, onClick }) => {
   const isFilled = slot.name.trim().length > 0;
+
+  const sizeClass = tone === 'root'
+    ? 'min-h-[112px] px-6 py-5'
+    : tone === 'branch'
+      ? 'min-h-[108px] px-5 py-4'
+      : 'min-h-[92px] px-4 py-4';
+
+  const filledClass = tone === 'root'
+    ? 'border-primary/20 bg-gradient-to-br from-background via-background to-primary/5 shadow-[0_18px_45px_-28px_hsl(var(--primary)/0.45)] hover:border-primary/35 hover:shadow-[0_24px_55px_-30px_hsl(var(--primary)/0.5)]'
+    : tone === 'branch'
+      ? 'border-border/80 bg-gradient-to-br from-card via-card to-primary/[0.03] shadow-[0_12px_28px_-22px_hsl(var(--foreground)/0.25)] hover:border-primary/25 hover:shadow-[0_18px_35px_-25px_hsl(var(--primary)/0.3)]'
+      : 'border-border/75 bg-card/95 shadow-[0_10px_24px_-24px_hsl(var(--foreground)/0.25)] hover:border-primary/20 hover:bg-primary/[0.025]';
+
+  const emptyClass = tone === 'root'
+    ? 'border-dashed border-border/70 bg-gradient-to-br from-muted/55 to-muted/35 text-muted-foreground hover:border-primary/20 hover:bg-primary/[0.035]'
+    : 'border-dashed border-border/65 bg-muted/35 text-muted-foreground hover:border-primary/15 hover:bg-muted/55';
+
+  const titleClass = tone === 'root'
+    ? 'mt-2 text-xl font-semibold leading-tight break-words text-foreground'
+    : tone === 'branch'
+      ? 'mt-2 text-base font-semibold leading-snug break-words text-foreground'
+      : 'mt-1.5 text-sm font-medium leading-snug break-words text-foreground';
 
   return (
     <button
       type="button"
       onClick={() => onClick(slot.id)}
       className={[
-        'w-full rounded-2xl border text-left transition-all duration-200',
-        isRoot ? 'min-h-[96px] px-5 py-4' : compact ? 'min-h-[88px] px-4 py-4' : 'min-h-[92px] px-4 py-4',
-        isFilled
-          ? 'border-border/80 bg-card shadow-sm hover:border-primary/40 hover:bg-primary/[0.04] hover:shadow-md'
-          : 'border-dashed border-border/70 bg-muted/40 text-muted-foreground hover:border-primary/20 hover:bg-muted/60',
+        'group w-full rounded-[28px] border text-left transition-all duration-200',
+        sizeClass,
+        isFilled ? filledClass : emptyClass,
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {isRoot ? 'Départ' : 'Sous-tâche'}
+          <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/90">
+            {SLOT_TONE_LABELS[tone]}
           </div>
-          <div className={isRoot ? 'mt-1 text-lg font-semibold leading-tight break-words' : 'mt-1 text-sm font-medium leading-snug break-words'}>
-            {isFilled ? slot.name : 'Vide'}
-          </div>
+          <div className={titleClass}>{isFilled ? slot.name : 'Vide'}</div>
         </div>
-        <div className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted-foreground shrink-0">
-          {isFilled ? <Pencil className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-          {isFilled ? 'Modifier' : 'Ajouter'}
+        <div className="mt-1 inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-muted-foreground opacity-90 transition-opacity group-hover:opacity-100 shrink-0">
+          {isFilled ? <Pencil className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+          {isFilled ? 'Éditer' : 'Ajouter'}
         </div>
       </div>
     </button>
@@ -134,7 +156,6 @@ const Division33Tool: React.FC<ToolProps> = () => {
   }, [slots, tasks]);
 
   const filledCount = useMemo(() => countFilledSlots(slots), [slots]);
-  const mermaidGraph = useMemo(() => buildMermaidGraph(slots), [slots]);
   const draftTree = useMemo(() => buildDraftTree(slots), [slots]);
   const canApply = slots.root.name.trim().length > 0;
 
@@ -408,71 +429,80 @@ const Division33Tool: React.FC<ToolProps> = () => {
 
   return (
     <div className="space-y-6">
-      <Alert>
-        <Sparkles className="h-4 w-4" />
+      <Alert className="border-primary/15 bg-gradient-to-r from-primary/[0.04] via-background to-background">
+        <Sparkles className="h-4 w-4 text-primary" />
         <AlertTitle>Division visuelle</AlertTitle>
         <AlertDescription>
-          Cliquez sur une case pour la remplir. Une case vide ne crée rien. Commencez par le bloc de départ, puis ajoutez seulement les branches utiles.
+          Commencez par le départ, puis ajoutez seulement les branches utiles.
         </AlertDescription>
       </Alert>
 
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden border-border/70 bg-gradient-to-b from-background via-background to-muted/[0.22] shadow-[0_24px_60px_-48px_hsl(var(--foreground)/0.4)]">
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <Divide className="w-5 h-5 text-primary" />
-            Canevas 3x3
+            Carte 3x3
           </CardTitle>
           <CardDescription>
-            Le départ ouvre aussi ses réglages. Les sous-cases n’apparaissent que quand leur branche devient utile.
+            Une vue simple pour découper une idée en branches et sous-tâches.
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <div className="min-w-[58rem] space-y-8 px-3 pb-4">
-            <div className="flex justify-center">
-              <div className="w-[22rem]">
-                <SlotBox slot={slots.root} isRoot onClick={openEditor} />
+        <CardContent className="overflow-x-auto pt-2">
+          <div className="min-w-[62rem] rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.06),transparent_35%)] px-6 py-8">
+            <div className="mx-auto flex max-w-6xl flex-col items-center gap-8">
+              <div className="w-[24rem] max-w-full">
+                <SlotBox slot={slots.root} tone="root" onClick={openEditor} />
               </div>
-            </div>
 
-            <div className="flex justify-center">
-              <div className="h-8 w-px bg-border/70" />
-            </div>
+              <div className="flex h-8 w-px rounded-full bg-gradient-to-b from-primary/25 to-border/50" />
 
-            <div className="grid grid-cols-3 gap-6 items-start">
-              {branchColumns.map(({ branch, leaves }) => (
-                <div key={branch.id} className="rounded-3xl border bg-muted/[0.18] p-4 space-y-4">
-                  <div className="flex justify-center">
-                    <div className="h-4 w-px bg-border/60" />
+              <div className="grid w-full grid-cols-3 gap-8 items-start">
+                {branchColumns.map(({ branch, leaves }, columnIndex) => (
+                  <div key={branch.id} className="relative flex flex-col items-center gap-4 px-2">
+                    <div className="pointer-events-none absolute left-1/2 top-0 h-6 w-px -translate-x-1/2 rounded-full bg-gradient-to-b from-primary/20 to-border/40" />
+                    <div className="w-full rounded-[30px] border border-border/55 bg-background/70 px-4 pb-4 pt-6 shadow-[0_18px_40px_-34px_hsl(var(--foreground)/0.35)] backdrop-blur-sm">
+                      <div className="mx-auto mb-4 h-1 w-16 rounded-full bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+                      <SlotBox slot={branch} tone="branch" onClick={openEditor} />
+
+                      {branch.name.trim().length > 0 && (
+                        <div className="mt-5 space-y-3">
+                          <div className="flex justify-center">
+                            <div className="h-5 w-px rounded-full bg-gradient-to-b from-primary/15 to-border/40" />
+                          </div>
+                          <div className="space-y-3">
+                            {leaves.map((leaf, leafIndex) => (
+                              <div key={leaf.id} className="relative pl-4">
+                                <div className="pointer-events-none absolute left-0 top-1/2 h-px w-4 -translate-y-1/2 rounded-full bg-gradient-to-r from-border/40 to-primary/15" />
+                                <SlotBox slot={leaf} tone="leaf" onClick={openEditor} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {branch.name.trim().length === 0 && (
+                        <div className="mt-4 rounded-2xl border border-dashed border-border/55 bg-muted/25 px-4 py-3 text-center text-xs text-muted-foreground">
+                          Branche {columnIndex + 1} vide pour l’instant.
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <SlotBox slot={branch} onClick={openEditor} />
-                  {branch.name.trim().length > 0 && (
-                    <>
-                      <div className="flex justify-center">
-                        <div className="h-4 w-px bg-border/60" />
-                      </div>
-                      <div className="grid grid-cols-1 gap-3">
-                        {leaves.map((leaf) => (
-                          <SlotBox key={leaf.id} slot={leaf} compact onClick={openEditor} />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              {filledCount} case{filledCount > 1 ? 's' : ''} remplie{filledCount > 1 ? 's' : ''}. Les cases vides sont ignorées au moment de créer la structure.
+      <Card className="border-border/70 bg-background/80 shadow-[0_16px_40px_-40px_hsl(var(--foreground)/0.45)]">
+        <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm text-foreground">
+              {filledCount} case{filledCount > 1 ? 's' : ''} remplie{filledCount > 1 ? 's' : ''}
             </p>
-            <div className="rounded-2xl border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              Conseil: commencez par remplir le départ, puis 2 ou 3 grandes branches. Ajoutez les détails seulement là où c’est utile.
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Astuce: faites d’abord apparaître les grandes branches, puis ajoutez les détails seulement quand la structure devient claire.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={resetTool}>Réinitialiser</Button>
@@ -487,11 +517,6 @@ const Division33Tool: React.FC<ToolProps> = () => {
           </div>
         </CardContent>
       </Card>
-
-      <details className="rounded-lg border bg-muted/20 p-4">
-        <summary className="cursor-pointer text-sm font-medium">Voir le code Mermaid</summary>
-        <Textarea value={mermaidGraph} readOnly className="mt-4 min-h-[180px] font-mono text-xs" />
-      </details>
 
       <Sheet open={activeSlotId !== null} onOpenChange={(open) => !open && closeEditor()}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
