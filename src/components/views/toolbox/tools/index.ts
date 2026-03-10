@@ -82,8 +82,8 @@ export const toolRegistry: ToolDefinition[] = [
   },
   {
     id: 'division-3x3',
-    name: 'Division 3x3',
-    description: 'Structurer visuellement une tâche',
+    name: 'Division visuelle 3x3',
+    description: 'Décomposer une tâche en branches',
     icon: Divide,
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
