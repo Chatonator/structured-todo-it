@@ -1,9 +1,10 @@
-import { Grid3X3, ListOrdered, Terminal, Timer } from 'lucide-react';
+import { Divide, Grid3X3, ListOrdered, Terminal, Timer } from 'lucide-react';
 import { ToolDefinition } from './types';
 import EisenhowerTool from './eisenhower/EisenhowerTool';
 import Rule135Tool from './rule135/Rule135Tool';
 import PomodoroTool from './pomodoro/PomodoroTool';
 import CommandTerminalTool from './command-terminal/CommandTerminalTool';
+import Division33Tool from './division33/Division33Tool';
 
 // Tool registry - single source of truth for all available tools
 export const toolRegistry: ToolDefinition[] = [
@@ -77,6 +78,29 @@ export const toolRegistry: ToolDefinition[] = [
       "Commencez par des scripts courts avant de créer en masse",
       "Utilisez les commentaires # pour documenter vos scripts",
       "Réutilisez un même modèle de lignes pour les routines récurrentes"
+    ],
+  },
+  {
+    id: 'division-3x3',
+    name: 'Division 3x3',
+    description: 'Structurer visuellement une tâche',
+    icon: Divide,
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
+    category: 'planning',
+    isNew: true,
+    component: Division33Tool,
+    longDescription: "La division 3x3 aide à décomposer une tâche ou une idée en branches plus petites avant de l'appliquer réellement dans l'application. Vous pouvez partir d'une page vide ou d'une tâche existante, manipuler la structure librement, puis valider explicitement la conversion en tâche structurée ou en projet.",
+    benefits: [
+      "Visualiser rapidement la structure globale d'une tâche",
+      "Réfléchir librement avant toute modification réelle",
+      "Transformer un brouillon en sous-tâches ou en projet",
+      "Préparer une future aide IA sur la décomposition des tâches"
+    ],
+    tips: [
+      "Commencez par 2 ou 3 grandes branches avant de détailler",
+      "Gardez des intitulés courts pour lire le diagramme plus vite",
+      "Validez seulement quand la structure vous semble cohérente"
     ],
   },
   {
