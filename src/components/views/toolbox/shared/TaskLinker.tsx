@@ -47,7 +47,7 @@ export interface TaskLinkerProps {
 const SCOPE_OPTIONS: { value: TaskLinkerScope; label: string }[] = [
   { value: 'all', label: 'Toutes' },
   { value: 'free', label: 'Tâches libres' },
-  { value: 'project', label: 'Projet' },
+  { value: 'project', label: 'Projets' },
 ];
 
 const CONTEXT_OPTIONS: { value: TaskContext | 'all'; label: string }[] = [
@@ -110,7 +110,8 @@ function inferGroupBy(
   categoryFilter: TaskCategory | 'all',
   priorityFilter: SubTaskCategory | 'all' | 'none'
 ): TaskLinkerGroupBy {
-  if (scopeFilter === 'all') return 'scope';
+  if (scopeFilter === 'all') return 'mixed';
+  if (scopeFilter === 'project') return 'project';
   if (priorityFilter !== 'all') return 'none';
   if (contextFilter === 'all') return 'context';
   if (categoryFilter === 'all') return 'category';
@@ -125,13 +126,13 @@ function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy): TaskLinkerGroup
   const groups = new Map<string, TaskLinkerGroup>();
 
   tasks.forEach((task) => {
-    const id = groupBy === 'scope'
-      ? task.projectId ? 'scope:project' : 'scope:free'
+    const id = groupBy === 'mixed' || groupBy === 'project'
+      ? task.projectId ? `project:${task.projectId}` : 'scope:free'
       : groupBy === 'context'
         ? `context:${task.context}`
         : `category:${task.category}`;
 
-    const label = groupBy === 'scope'
+    const label = groupBy === 'mixed' || groupBy === 'project'
       ? task.projectId ? 'Projet' : 'Tâches libres'
       : groupBy === 'context'
         ? task.context
@@ -294,7 +295,8 @@ function filteredCountLabel(
   categoryFilter: TaskCategory | 'all',
   priorityFilter: SubTaskCategory | 'all' | 'none'
 ): string | null {
-  if (scopeFilter === 'all') return 'Range par type';
+  if (scopeFilter === 'all') return 'Libres + projets';
+  if (scopeFilter === 'project') return 'Range par projet';
   if (priorityFilter !== 'all') return 'Vue detaillee';
   if (contextFilter === 'all') return 'Range par contexte';
   if (categoryFilter === 'all') return 'Range par categorie';
@@ -382,7 +384,7 @@ const SelectorContent: React.FC<{
   onSortChange,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
-  const useGroups = showGrouping && groupBy !== 'none' && groups.length > 1;
+  const useGroups = showGrouping && groupBy !== 'none' && groups.length > 0;
 
   return (
     <div className="flex flex-col">
@@ -419,7 +421,7 @@ const SelectorContent: React.FC<{
         )}
       </div>
 
-      <ScrollArea className="max-h-72">
+      <ScrollArea className="h-72">
         <div className="p-2">
           {tasks.length === 0 ? (
             <div className="rounded-lg border border-dashed bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
@@ -494,11 +496,11 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
   );
 
   const effectiveGroups = useMemo(() => {
-    if (groupedAvailableTasks && sortOption && onSortChange && scopeFilter && onScopeFilterChange) {
+    if (groupedAvailableTasks) {
       return groupedAvailableTasks;
     }
     return buildGroups(sortedTasks, effectiveGroupBy);
-  }, [groupedAvailableTasks, sortOption, onSortChange, scopeFilter, onScopeFilterChange, sortedTasks, effectiveGroupBy]);
+  }, [groupedAvailableTasks, sortedTasks, effectiveGroupBy]);
 
   const handleSelect = (id: string) => {
     onSelect(id);

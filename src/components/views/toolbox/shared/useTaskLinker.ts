@@ -6,7 +6,7 @@ import { loadDailyStorage, saveDailyStorage } from '@/lib/storage';
 export type TaskLinkerMode = 'single' | 'multi';
 export type TaskLinkerSort = 'none' | 'name' | 'time' | 'priority';
 export type TaskLinkerScope = 'all' | 'free' | 'project';
-export type TaskLinkerGroupBy = 'none' | 'scope' | 'context' | 'category';
+export type TaskLinkerGroupBy = 'none' | 'mixed' | 'context' | 'category' | 'project';
 
 export interface UseTaskLinkerOptions {
   mode: TaskLinkerMode;
@@ -99,7 +99,11 @@ function compareTasks(left: Task, right: Task, sort: TaskLinkerSort): number {
 
 function inferGroupBy(filters: TaskLinkerFilters): TaskLinkerGroupBy {
   if (filters.scope === 'all') {
-    return 'scope';
+    return 'mixed';
+  }
+
+  if (filters.scope === 'project') {
+    return 'project';
   }
 
   if (filters.priority !== 'all') {
@@ -117,9 +121,17 @@ function inferGroupBy(filters: TaskLinkerFilters): TaskLinkerGroupBy {
   return 'none';
 }
 
-function getGroupLabel(groupBy: TaskLinkerGroupBy, task: Task): string {
-  if (groupBy === 'scope') {
-    return task.projectId ? SCOPE_GROUP_LABELS.project : SCOPE_GROUP_LABELS.free;
+function getProjectLabel(task: Task, projectLabels: Map<string, string>): string {
+  if (!task.projectId) {
+    return SCOPE_GROUP_LABELS.free;
+  }
+
+  return projectLabels.get(task.projectId) || 'Projet inconnu';
+}
+
+function getGroupLabel(groupBy: TaskLinkerGroupBy, task: Task, projectLabels: Map<string, string>): string {
+  if (groupBy === 'mixed' || groupBy === 'project') {
+    return getProjectLabel(task, projectLabels);
   }
 
   if (groupBy === 'context') {
@@ -134,8 +146,8 @@ function getGroupLabel(groupBy: TaskLinkerGroupBy, task: Task): string {
 }
 
 function getGroupId(groupBy: TaskLinkerGroupBy, task: Task): string {
-  if (groupBy === 'scope') {
-    return task.projectId ? 'scope:project' : 'scope:free';
+  if (groupBy === 'mixed' || groupBy === 'project') {
+    return task.projectId ? `project:${task.projectId}` : 'scope:free';
   }
 
   if (groupBy === 'context') {
@@ -149,7 +161,15 @@ function getGroupId(groupBy: TaskLinkerGroupBy, task: Task): string {
   return 'all';
 }
 
-function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy): TaskLinkerGroup[] {
+function sortGroups(groups: TaskLinkerGroup[]): TaskLinkerGroup[] {
+  return [...groups].sort((left, right) => {
+    if (left.id === 'scope:free') return -1;
+    if (right.id === 'scope:free') return 1;
+    return left.label.localeCompare(right.label, 'fr', { sensitivity: 'base' });
+  });
+}
+
+function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy, projectLabels: Map<string, string>): TaskLinkerGroup[] {
   if (groupBy === 'none') {
     return [{ id: 'all', label: 'Taches', count: tasks.length, tasks }];
   }
@@ -167,20 +187,20 @@ function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy): TaskLinkerGroup
 
     grouped.set(id, {
       id,
-      label: getGroupLabel(groupBy, task),
+      label: getGroupLabel(groupBy, task, projectLabels),
       count: 1,
       tasks: [task],
     });
   });
 
-  return Array.from(grouped.values());
+  return sortGroups(Array.from(grouped.values()));
 }
 
 export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerReturn {
   const { mode, maxSelection, storageKey, excludeIds = [], initialScope = 'all' } = options;
   const effectiveMax = mode === 'single' ? 1 : (maxSelection ?? Infinity);
 
-  const { tasks } = useViewDataContext();
+  const { tasks, sidebarProjects } = useViewDataContext();
 
   const fullKey = storageKey ? `taskLinker:${storageKey}` : undefined;
 
@@ -225,6 +245,10 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
   const setPriorityFilter = useCallback((priority: SubTaskCategory | 'all' | 'none') => setFilters(f => ({ ...f, priority })), []);
 
   const excludeSet = useMemo(() => new Set([...excludeIds, ...selectedIds]), [excludeIds, selectedIds]);
+  const projectLabels = useMemo(
+    () => new Map(sidebarProjects.map((project) => [project.id, project.name])),
+    [sidebarProjects]
+  );
 
   const baseAvailable = useMemo(() => tasks.filter(t => !t.isCompleted && !excludeSet.has(t.id)), [tasks, excludeSet]);
 
@@ -250,7 +274,10 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
 
   const filteredAvailableTasks = useMemo(() => filteredTasks.slice(0, 50), [filteredTasks]);
   const groupBy = useMemo(() => inferGroupBy(filters), [filters]);
-  const groupedAvailableTasks = useMemo(() => buildGroups(filteredAvailableTasks, groupBy), [filteredAvailableTasks, groupBy]);
+  const groupedAvailableTasks = useMemo(
+    () => buildGroups(filteredAvailableTasks, groupBy, projectLabels),
+    [filteredAvailableTasks, groupBy, projectLabels]
+  );
 
   const selectedTasks = useMemo(
     () => selectedIds.map(id => tasks.find(t => t.id === id)).filter(Boolean) as Task[],
