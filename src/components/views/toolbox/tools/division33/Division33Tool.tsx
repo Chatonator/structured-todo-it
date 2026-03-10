@@ -3,7 +3,10 @@ import { CheckCircle2, Divide, FolderPlus, Pencil, Plus, Sparkles, Trash2 } from
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ContextPillSelector } from '@/components/common/ContextPillSelector';
+import { EisenhowerSelector } from '@/components/common/EisenhowerSelector';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { ToolProps } from '../types';
@@ -33,6 +36,8 @@ import {
 
 type ApplyTarget = 'task' | 'project';
 type EditorMode = 'new' | 'import';
+
+const DEFAULT_ROOT_DURATION = 30;
 
 interface SlotBoxProps {
   slot: DivisionSlot;
@@ -84,6 +89,9 @@ const Division33Tool: React.FC<ToolProps> = () => {
   const [draftName, setDraftName] = useState('');
   const [editorMode, setEditorMode] = useState<EditorMode>('new');
   const [isApplying, setIsApplying] = useState(false);
+  const [rootContext, setRootContext] = useState<TaskContext>('Perso');
+  const [rootCategory, setRootCategory] = useState<TaskCategory>('Autres');
+  const [rootDuration, setRootDuration] = useState(DEFAULT_ROOT_DURATION);
 
   const importer = useTaskLinker({ mode: 'single' });
   const activeSlot = activeSlotId ? slots[activeSlotId] : null;
@@ -124,10 +132,6 @@ const Division33Tool: React.FC<ToolProps> = () => {
     return rootId ? tasks.find((task) => task.id === rootId) ?? null : null;
   }, [slots, tasks]);
 
-  const inferredContext: TaskContext = rootImportedTask?.context || 'Perso';
-  const inferredCategory: TaskCategory = rootImportedTask?.category || 'Autres';
-  const inferredDuration = rootImportedTask?.estimatedTime || 30;
-
   const filledCount = useMemo(() => countFilledSlots(slots), [slots]);
   const mermaidGraph = useMemo(() => buildMermaidGraph(slots), [slots]);
   const draftTree = useMemo(() => buildDraftTree(slots), [slots]);
@@ -145,6 +149,12 @@ const Division33Tool: React.FC<ToolProps> = () => {
     setEditorMode(activeSlot.sourceTaskId ? 'import' : 'new');
     importer.clear();
   }, [activeSlotId]);
+
+  useEffect(() => {
+    if (!rootImportedTask) return;
+    setRootContext(rootImportedTask.context || 'Perso');
+    setRootCategory(rootImportedTask.category || 'Autres');
+  }, [rootImportedTask?.id]);
 
   const openEditor = useCallback((slotId: DivisionSlotId) => {
     setActiveSlotId(slotId);
@@ -217,6 +227,9 @@ const Division33Tool: React.FC<ToolProps> = () => {
 
   const resetTool = useCallback(() => {
     setSlots(createEmptySlots());
+    setRootContext('Perso');
+    setRootCategory('Autres');
+    setRootDuration(DEFAULT_ROOT_DURATION);
     closeEditor();
   }, [closeEditor]);
 
@@ -239,9 +252,9 @@ const Division33Tool: React.FC<ToolProps> = () => {
 
     for (const [index, node] of nodes.entries()) {
       const importedTask = node.sourceTaskId ? tasks.find((task) => task.id === node.sourceTaskId) : null;
-      const duration = importedTask?.estimatedTime || durations[index] || 5;
-      const category = importedTask?.category || inferredCategory;
-      const context = importedTask?.context || inferredContext;
+      const duration = durations[index] || 5;
+      const category = importedTask?.category || rootCategory;
+      const context = importedTask?.context || rootContext;
 
       const created = await addTask({
         name: node.name,
@@ -264,13 +277,14 @@ const Division33Tool: React.FC<ToolProps> = () => {
         });
       }
     }
-  }, [addTask, tasks, inferredCategory, inferredContext]);
+  }, [addTask, tasks, rootCategory, rootContext]);
 
   const applyStructure = useCallback(async (target: ApplyTarget) => {
     if (!canApply) return;
 
     const rootName = slots.root.name.trim();
-    const flags = eisenhowerFromCategory(inferredCategory);
+    const safeRootDuration = Math.max(5, Number.isFinite(rootDuration) ? Math.round(rootDuration) : DEFAULT_ROOT_DURATION);
+    const flags = eisenhowerFromCategory(rootCategory);
 
     if (rootImportedTask) {
       const existingChildren = tasks.filter((task) => task.parentId === rootImportedTask.id);
@@ -290,27 +304,27 @@ const Division33Tool: React.FC<ToolProps> = () => {
         if (rootImportedTask) {
           await updateTask(rootImportedTask.id, {
             name: rootName,
-            category: inferredCategory,
-            context: inferredContext,
-            estimatedTime: inferredDuration,
-            duration: inferredDuration,
+            category: rootCategory,
+            context: rootContext,
+            estimatedTime: safeRootDuration,
+            duration: safeRootDuration,
           });
           await removeDirectChildren(rootImportedTask.id);
-          await createNodeChildren(draftTree.children, 1, inferredDuration, { parentId: rootImportedTask.id });
+          await createNodeChildren(draftTree.children, 1, safeRootDuration, { parentId: rootImportedTask.id });
         } else {
           const createdRoot = await addTask({
             name: rootName,
-            category: inferredCategory,
-            context: inferredContext,
-            estimatedTime: inferredDuration,
-            duration: inferredDuration,
+            category: rootCategory,
+            context: rootContext,
+            estimatedTime: safeRootDuration,
+            duration: safeRootDuration,
             level: 0,
             isExpanded: true,
             isCompleted: false,
           } as Omit<Task, 'id' | 'createdAt'>);
           const rootId = (createdRoot as { id?: string } | undefined)?.id;
           if (rootId) {
-            await createNodeChildren(draftTree.children, 1, inferredDuration, { parentId: rootId });
+            await createNodeChildren(draftTree.children, 1, safeRootDuration, { parentId: rootId });
           }
         }
       }
@@ -321,7 +335,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
           undefined,
           '🧩',
           '#0f766e',
-          inferredContext,
+          rootContext,
           flags.isImportant,
           flags.isUrgent
         );
@@ -330,16 +344,16 @@ const Division33Tool: React.FC<ToolProps> = () => {
           throw new Error('Impossible de créer le projet');
         }
 
-        await createNodeChildren(draftTree.children, 1, inferredDuration, { projectId: project.id });
+        await createNodeChildren(draftTree.children, 1, safeRootDuration, { projectId: project.id });
 
         if (rootImportedTask) {
           await removeDirectChildren(rootImportedTask.id);
           await updateTask(rootImportedTask.id, {
             isCompleted: true,
             name: rootName,
-            category: inferredCategory,
-            context: inferredContext,
-            estimatedTime: inferredDuration,
+            category: rootCategory,
+            context: rootContext,
+            estimatedTime: safeRootDuration,
             metadata: {
               archivedToProject: project.id,
               archivedAt: new Date(),
@@ -369,9 +383,9 @@ const Division33Tool: React.FC<ToolProps> = () => {
   }, [
     canApply,
     slots,
-    inferredCategory,
-    inferredContext,
-    inferredDuration,
+    rootCategory,
+    rootContext,
+    rootDuration,
     rootImportedTask,
     tasks,
     draftTree.children,
@@ -397,7 +411,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
         <Sparkles className="h-4 w-4" />
         <AlertTitle>Division visuelle</AlertTitle>
         <AlertDescription>
-          Cliquez sur une case pour la remplir. Une case vide ne crée rien. Une case remplie deviendra une sous-tâche quand vous validerez la structure.
+          Cliquez sur une case pour la remplir. Une case vide ne crée rien. Commencez par le bloc de départ, puis ajoutez seulement les branches utiles.
         </AlertDescription>
       </Alert>
 
@@ -416,6 +430,42 @@ const Division33Tool: React.FC<ToolProps> = () => {
             <div className="flex justify-center">
               <div className="w-[22rem]">
                 <SlotBox slot={slots.root} isRoot onClick={openEditor} />
+              </div>
+            </div>
+
+            <div className="mx-auto max-w-5xl rounded-3xl border bg-card/80 p-4">
+              <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_180px]">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Réglages du départ</p>
+                  <p className="text-xs text-muted-foreground">
+                    Le contexte et la catégorie restent modifiables, même si vous partez d’une tâche importée. La durée sert seulement de base pour répartir l’estimation.
+                  </p>
+                  {rootImportedTask && (
+                    <p className="text-xs text-muted-foreground">
+                      Base importée: <span className="font-medium text-foreground">{rootImportedTask.name}</span>
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  <ContextPillSelector value={rootContext} onChange={setRootContext} />
+                  <EisenhowerSelector value={rootCategory} onChange={setRootCategory} required={false} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="division-root-duration" className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Durée de base
+                  </Label>
+                  <Input
+                    id="division-root-duration"
+                    type="number"
+                    min={5}
+                    step={5}
+                    value={rootDuration}
+                    onChange={(event) => setRootDuration(Math.max(5, Number(event.target.value) || DEFAULT_ROOT_DURATION))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Non héritée. Cette valeur sert de repère pour la tâche finale et la répartition des sous-tâches.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -451,9 +501,14 @@ const Division33Tool: React.FC<ToolProps> = () => {
 
       <Card>
         <CardContent className="pt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-muted-foreground">
-            {filledCount} case{filledCount > 1 ? 's' : ''} remplie{filledCount > 1 ? 's' : ''}. Si vous importez une tâche au départ, ses réglages servent automatiquement de base.
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              {filledCount} case{filledCount > 1 ? 's' : ''} remplie{filledCount > 1 ? 's' : ''}. Les cases vides sont ignorées au moment de créer la structure.
+            </p>
+            <div className="rounded-2xl border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              Conseil: commencez simple avec 2 ou 3 branches, puis ajoutez des sous-tâches seulement là où vous en avez vraiment besoin.
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={resetTool}>Réinitialiser</Button>
             <Button variant="outline" onClick={() => applyStructure('task')} disabled={!canApply || isApplying}>
@@ -497,7 +552,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 <Input
                   value={draftName}
                   onChange={(event) => setDraftName(event.target.value)}
-                  placeholder={activeSlotId === ROOT_SLOT_ID ? 'Ex. Préparer le lancement' : 'Ex. Faire la vaisselle'}
+                  placeholder={activeSlotId === ROOT_SLOT_ID ? 'Ex. Organiser la maison' : 'Ex. Faire la vaisselle'}
                   onKeyDown={(event) => event.key === 'Enter' && saveDraftName()}
                 />
                 <p className="text-xs text-muted-foreground">
