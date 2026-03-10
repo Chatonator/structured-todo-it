@@ -95,6 +95,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
 
   const importer = useTaskLinker({ mode: 'single' });
   const activeSlot = activeSlotId ? slots[activeSlotId] : null;
+  const isRootEditor = activeSlotId === ROOT_SLOT_ID;
 
   const selectedImportedTask = importer.selectedTasks[0] ?? null;
   const selectedImportedIds = useMemo(() => {
@@ -422,7 +423,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
             Canevas 3x3
           </CardTitle>
           <CardDescription>
-            Commencez par le bloc de départ. Les sous-cases n’apparaissent que quand leur branche devient utile.
+            Le départ ouvre aussi ses réglages. Les sous-cases n’apparaissent que quand leur branche devient utile.
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -430,42 +431,6 @@ const Division33Tool: React.FC<ToolProps> = () => {
             <div className="flex justify-center">
               <div className="w-[22rem]">
                 <SlotBox slot={slots.root} isRoot onClick={openEditor} />
-              </div>
-            </div>
-
-            <div className="mx-auto max-w-5xl rounded-3xl border bg-card/80 p-4">
-              <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_180px]">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Réglages du départ</p>
-                  <p className="text-xs text-muted-foreground">
-                    Le contexte et la catégorie restent modifiables, même si vous partez d’une tâche importée. La durée sert seulement de base pour répartir l’estimation.
-                  </p>
-                  {rootImportedTask && (
-                    <p className="text-xs text-muted-foreground">
-                      Base importée: <span className="font-medium text-foreground">{rootImportedTask.name}</span>
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-4">
-                  <ContextPillSelector value={rootContext} onChange={setRootContext} />
-                  <EisenhowerSelector value={rootCategory} onChange={setRootCategory} required={false} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="division-root-duration" className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                    Durée de base
-                  </Label>
-                  <Input
-                    id="division-root-duration"
-                    type="number"
-                    min={5}
-                    step={5}
-                    value={rootDuration}
-                    onChange={(event) => setRootDuration(Math.max(5, Number(event.target.value) || DEFAULT_ROOT_DURATION))}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Non héritée. Cette valeur sert de repère pour la tâche finale et la répartition des sous-tâches.
-                  </p>
-                </div>
               </div>
             </div>
 
@@ -506,7 +471,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
               {filledCount} case{filledCount > 1 ? 's' : ''} remplie{filledCount > 1 ? 's' : ''}. Les cases vides sont ignorées au moment de créer la structure.
             </p>
             <div className="rounded-2xl border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              Conseil: commencez simple avec 2 ou 3 branches, puis ajoutez des sous-tâches seulement là où vous en avez vraiment besoin.
+              Conseil: commencez par remplir le départ, puis 2 ou 3 grandes branches. Ajoutez les détails seulement là où c’est utile.
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -531,9 +496,11 @@ const Division33Tool: React.FC<ToolProps> = () => {
       <Sheet open={activeSlotId !== null} onOpenChange={(open) => !open && closeEditor()}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Modifier la case</SheetTitle>
+            <SheetTitle>{isRootEditor ? 'Modifier le départ' : 'Modifier la case'}</SheetTitle>
             <SheetDescription>
-              Donnez un nom à la case ou importez une tâche existante. Les cases vides restent simplement inactives dans la structure finale.
+              {isRootEditor
+                ? 'Définissez le nom du départ, ses réglages de base et, si besoin, importez une tâche existante.'
+                : 'Donnez un nom à la case ou importez une tâche existante. Les cases vides restent simplement inactives dans la structure finale.'}
             </SheetDescription>
           </SheetHeader>
 
@@ -552,7 +519,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 <Input
                   value={draftName}
                   onChange={(event) => setDraftName(event.target.value)}
-                  placeholder={activeSlotId === ROOT_SLOT_ID ? 'Ex. Organiser la maison' : 'Ex. Faire la vaisselle'}
+                  placeholder={isRootEditor ? 'Ex. Organiser la maison' : 'Ex. Faire la vaisselle'}
                   onKeyDown={(event) => event.key === 'Enter' && saveDraftName()}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -583,6 +550,40 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 placeholder="Choisir une tâche..."
                 variant="inline"
               />
+            )}
+
+            {isRootEditor && (
+              <div className="space-y-4 rounded-2xl border bg-muted/20 p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Réglages du départ</p>
+                  <p className="text-xs text-muted-foreground">
+                    Le contexte et la catégorie restent modifiables, même si vous partez d’une tâche importée. La durée n’est jamais héritée.
+                  </p>
+                </div>
+                {rootImportedTask && (
+                  <p className="text-xs text-muted-foreground">
+                    Base importée: <span className="font-medium text-foreground">{rootImportedTask.name}</span>
+                  </p>
+                )}
+                <ContextPillSelector value={rootContext} onChange={setRootContext} />
+                <EisenhowerSelector value={rootCategory} onChange={setRootCategory} required={false} />
+                <div className="space-y-2">
+                  <Label htmlFor="division-root-duration" className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Durée de base
+                  </Label>
+                  <Input
+                    id="division-root-duration"
+                    type="number"
+                    min={5}
+                    step={5}
+                    value={rootDuration}
+                    onChange={(event) => setRootDuration(Math.max(5, Number(event.target.value) || DEFAULT_ROOT_DURATION))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Cette valeur sert de repère pour la tâche finale et la répartition des sous-tâches.
+                  </p>
+                </div>
+              </div>
             )}
           </div>
 
