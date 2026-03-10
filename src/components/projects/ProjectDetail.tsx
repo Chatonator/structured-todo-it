@@ -1,34 +1,19 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Project, PROJECT_STATUS_CONFIG } from '@/types/project';
+import { PROJECT_STATUS_CONFIG } from '@/types/project';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects, ProjectWithKanban } from '@/hooks/useProjects';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
-import { priorityOptions, sortOptions, SortOption, PriorityFilter } from '@/config/taskFilterOptions';
+import { priorityOptions, sortOptions } from '@/config/taskFilterOptions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
 import { KanbanBoard, DEFAULT_COLUMNS, KanbanColumn } from './KanbanBoard';
-import { KanbanColumnManager } from './KanbanColumnManager';
 import TaskModal from '@/components/task/TaskModal';
-import { 
-  ArrowLeft, Edit, Plus, Calendar, Target, Trash2, 
-  Search, Filter, ArrowUpDown, X, CheckCircle2, ListPlus,
-  Eye, EyeOff, Settings2
-} from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Calendar, Search, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Task, SubTaskCategory, SUB_CATEGORY_CONFIG } from '@/types/task';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
+import { Task } from '@/types/task';
+import ProjectDetailShell from './ProjectDetailShell';
 
 interface ProjectDetailProps {
   project: ProjectWithKanban;
@@ -38,32 +23,28 @@ interface ProjectDetailProps {
 }
 
 export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }: ProjectDetailProps) => {
-  const { getTasksByColumns, updateTaskStatus, reloadTasks, tasksByStatus } = useProjectTasks(projectProp.id);
+  const { getTasksByColumns, updateTaskStatus, reloadTasks } = useProjectTasks(projectProp.id);
   const { addTask, updateTask, removeTask } = useTasks();
   const { deleteProject, completeProject, updateProject, projects } = useProjects();
   const { toast } = useToast();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showColumnManager, setShowColumnManager] = useState(false);
-  
-  // Utiliser le projet le plus récent depuis le hook useProjects
-  // Cela garantit que les changements (showInSidebar, kanbanColumns, etc.) sont reflétés immédiatement
-  const project = useMemo(() => 
-    projects.find(p => p.id === projectProp.id) ?? projectProp,
+
+  const project = useMemo(
+    () => projects.find(p => p.id === projectProp.id) ?? projectProp,
     [projects, projectProp]
   );
-  
-  // Get columns (project-specific or default)
-  const columns = useMemo(() => 
-    project.kanbanColumns || DEFAULT_COLUMNS,
+
+  const columns = useMemo(
+    () => project.kanbanColumns || DEFAULT_COLUMNS,
     [project.kanbanColumns]
   );
-  
+
   const statusConfig = PROJECT_STATUS_CONFIG[project.status];
 
-  // Utiliser le hook partagé de filtrage
-  const allTasks = useMemo(() => 
-    Object.values(getTasksByColumns(columns)).flat(),
+  const allTasks = useMemo(
+    () => Object.values(getTasksByColumns(columns)).flat(),
     [columns, getTasksByColumns]
   );
 
@@ -79,31 +60,28 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
     filterAndSortTasks,
   } = useTaskFilters<Task>({
     tasks: allTasks,
-    getTaskName: (t) => t.name,
-    getSubCategory: (t) => t.subCategory,
-    getEstimatedTime: (t) => t.estimatedTime || 0,
+    getTaskName: task => task.name,
+    getSubCategory: task => task.subCategory,
+    getEstimatedTime: task => task.estimatedTime || 0,
   });
 
-  // Tâches par colonnes avec filtrage
   const filteredTasksByColumn = useMemo(() => {
     const rawTasks = getTasksByColumns(columns);
     const result: Record<string, Task[]> = {};
-    
+
     Object.entries(rawTasks).forEach(([columnId, tasks]) => {
       result[columnId] = filterAndSortTasks(tasks);
     });
-    
+
     return result;
   }, [columns, getTasksByColumns, filterAndSortTasks]);
 
-  // Statistiques calculées dynamiquement depuis les tâches réelles
   const stats = useMemo(() => {
     const tasks = Object.values(filteredTasksByColumn).flat();
     const total = tasks.length;
-    // Count done tasks (from 'done' column or any column with 'done' in its id)
-    const done = filteredTasksByColumn['done']?.length || 0;
+    const done = filteredTasksByColumn.done?.length || 0;
     const progress = total > 0 ? Math.round((done / total) * 100) : 0;
-    
+
     return { total, done, progress };
   }, [filteredTasksByColumn]);
 
@@ -120,36 +98,29 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
     if (window.confirm(`Marquer le projet "${project.name}" comme terminé ?`)) {
       const success = await completeProject(project.id);
       if (success) {
-        onBack(); // Retour à la liste après complétion
+        onBack();
       }
     }
   }, [project.id, project.name, completeProject, onBack]);
 
-  // Toggle sidebar visibility for project tasks
   const handleToggleSidebar = useCallback(async () => {
     const currentValue = project.showInSidebar ?? false;
-    await updateProject(project.id, { 
-      showInSidebar: !currentValue 
-    });
+    await updateProject(project.id, { showInSidebar: !currentValue });
     toast({
-      title: currentValue ? "Masqué de la sidebar" : "Affiché dans la sidebar",
-      description: currentValue 
-        ? "Les tâches de ce projet ne s'affichent plus dans la sidebar"
-        : "Les tâches de ce projet apparaissent maintenant dans la sidebar",
+      title: currentValue ? 'Masqué de la sidebar' : 'Affiché dans la sidebar',
+      description: currentValue
+        ? 'Les tâches de ce projet ne s\'affichent plus dans la sidebar'
+        : 'Les tâches de ce projet apparaissent maintenant dans la sidebar',
     });
   }, [project, updateProject, toast]);
 
-  // Update kanban columns and force reload
   const handleColumnsChange = useCallback(async (newColumns: KanbanColumn[]) => {
-    const success = await updateProject(project.id, { 
-      kanbanColumns: newColumns 
-    });
+    const success = await updateProject(project.id, { kanbanColumns: newColumns });
     if (success) {
-      // Force reload of project data for immediate UI update
       reloadTasks();
       toast({
-        title: "Colonnes mises à jour",
-        description: "La configuration du tableau Kanban a été sauvegardée.",
+        title: 'Colonnes mises à jour',
+        description: 'La configuration du tableau Kanban a été sauvegardée.',
       });
     }
   }, [project.id, updateProject, reloadTasks, toast]);
@@ -160,12 +131,9 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
   }, []);
 
   const handleToggleComplete = useCallback(async (taskId: string) => {
-    const allTasks = Object.values(filteredTasksByColumn).flat();
-    const task = allTasks.find(t => t.id === taskId);
-    
+    const task = Object.values(filteredTasksByColumn).flat().find(item => item.id === taskId);
     if (task) {
-      const newStatus = !task.isCompleted ? 'done' : 'todo';
-      await updateTaskStatus(taskId, newStatus);
+      await updateTaskStatus(taskId, !task.isCompleted ? 'done' : 'todo');
     }
   }, [filteredTasksByColumn, updateTaskStatus]);
 
@@ -173,8 +141,8 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
     await removeTask(taskId);
     reloadTasks();
     toast({
-      title: "Tâche supprimée",
-      description: "La tâche a été supprimée avec succès.",
+      title: 'Tâche supprimée',
+      description: 'La tâche a été supprimée avec succès.',
     });
   }, [removeTask, reloadTasks, toast]);
 
@@ -189,273 +157,92 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
     reloadTasks();
   }, [reloadTasks]);
 
-  const handleAddTask = useCallback(async (taskData: any) => {
+  const handleAddTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     await addTask(taskData);
     reloadTasks();
   }, [addTask, reloadTasks]);
 
-  const handleUpdateTask = useCallback(async (taskId: string, updates: any) => {
+  const handleUpdateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
     await updateTask(taskId, updates);
     reloadTasks();
   }, [updateTask, reloadTasks]);
 
+  const activeFilterBadges = [
+    searchQuery ? <Badge key="search" variant="secondary" className="gap-1">Recherche: "{searchQuery}"</Badge> : null,
+    priorityFilter !== 'all' ? <Badge key="priority" variant="secondary" className="gap-1">{priorityFilter}</Badge> : null,
+    sortBy !== 'none' ? <Badge key="sort" variant="secondary" className="gap-1">Tri: {sortOptions.find(option => option.value === sortBy)?.label}</Badge> : null,
+  ].filter(Boolean) as React.ReactNode[];
+
+  const statsCards = [
+    <div key="progress" className="bg-card p-4 rounded-lg border">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">Progression</p>
+          <p className="text-2xl font-bold">{stats.progress}%</p>
+        </div>
+        <Target className="w-8 h-8 text-project" />
+      </div>
+      <Progress value={stats.progress} className="mt-2" />
+    </div>,
+    project.targetDate ? (
+      <div key="date" className="bg-card p-4 rounded-lg border">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Date cible</p>
+            <p className="text-lg font-semibold">
+              {new Date(project.targetDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+            </p>
+          </div>
+          <Calendar className="w-8 h-8 text-blue-500" />
+        </div>
+      </div>
+    ) : null,
+    <div key="tasks" className="bg-card p-4 rounded-lg border">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">Tâches totales</p>
+          <p className="text-2xl font-bold">{stats.total}</p>
+        </div>
+        <div className="text-sm text-muted-foreground">{stats.done} terminées</div>
+      </div>
+    </div>,
+  ].filter(Boolean) as React.ReactNode[];
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{project.icon || '📚'}</span>
-              <div>
-                <h1 className="text-2xl font-bold">{project.name}</h1>
-                <Badge className={`${statusConfig.bgColor} ${statusConfig.color} mt-1`}>
-                  {statusConfig.label}
-                </Badge>
-              </div>
-            </div>
-            
-            {project.description && (
-              <p className="text-muted-foreground max-w-2xl">
-                {project.description}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-2 flex-wrap items-center">
-          {/* Toggle sidebar visibility */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-card">
-            <Switch
-              id="show-in-sidebar"
-              checked={(project as any).showInSidebar ?? false}
-              onCheckedChange={handleToggleSidebar}
-            />
-            <Label htmlFor="show-in-sidebar" className="text-sm cursor-pointer flex items-center gap-1">
-              {(project as any).showInSidebar ? (
-                <><Eye className="w-4 h-4 text-project" /> Sidebar</>
-              ) : (
-                <><EyeOff className="w-4 h-4 text-muted-foreground" /> Sidebar</>
-              )}
-            </Label>
-          </div>
-
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="h-auto py-2"
-            onClick={() => setShowColumnManager(true)}
-          >
-            <Settings2 className="w-4 h-4" />
-          </Button>
-
-          <Button variant="outline" onClick={onEdit}>
-            <Edit className="w-4 h-4 mr-2" />
-            Modifier
-          </Button>
-          {project.status !== 'completed' && (
-            <Button 
-              variant="outline" 
-              onClick={handleComplete}
-              className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700"
-            >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Terminer
-            </Button>
-          )}
-          <Button variant="destructive" onClick={handleDelete}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Supprimer
-          </Button>
-          {/* Project-specific new task button - differentiated style */}
-          <Button 
-            onClick={handleCreateTask}
-            className="bg-project hover:bg-project/90 text-white"
-          >
-            <ListPlus className="w-4 h-4 mr-2" />
-            Ajouter au projet
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats - avec progression calculée dynamiquement */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card p-4 rounded-lg border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Progression</p>
-              <p className="text-2xl font-bold">{stats.progress}%</p>
-            </div>
-            <Target className="w-8 h-8 text-project" />
-          </div>
-          <Progress value={stats.progress} className="mt-2" />
-        </div>
-
-        {project.targetDate && (
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Date cible</p>
-                <p className="text-lg font-semibold">
-                  {new Date(project.targetDate).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'long'
-                  })}
-                </p>
-              </div>
-              <Calendar className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-        )}
-
-        <div className="bg-card p-4 rounded-lg border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Tâches totales</p>
-              <p className="text-2xl font-bold">{stats.total}</p>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {stats.done} terminées
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Barre de recherche et filtres */}
-      <div className="flex flex-col sm:flex-row gap-3 p-4 bg-muted/30 rounded-lg border">
-        {/* Recherche */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Rechercher une tâche..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-background"
-          />
-        </div>
-
-        {/* Filtre par priorité */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant={priorityFilter !== 'all' ? 'default' : 'outline'} 
-              className="gap-2"
-            >
-              <Filter className="w-4 h-4" />
-              <span className="hidden sm:inline">
-                {priorityFilter === 'all' ? 'Priorité' : priorityFilter}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Filtrer par priorité</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {priorityOptions.map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                onClick={() => setPriorityFilter(option.value)}
-                className={priorityFilter === option.value ? 'bg-accent' : ''}
-              >
-                {option.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Tri */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant={sortBy !== 'none' ? 'default' : 'outline'} 
-              className="gap-2"
-            >
-              <ArrowUpDown className="w-4 h-4" />
-              <span className="hidden sm:inline">Trier</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Trier les tâches</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {sortOptions.map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                onClick={() => setSortBy(option.value)}
-                className={sortBy === option.value ? 'bg-accent' : ''}
-              >
-                {option.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Bouton effacer les filtres */}
-        {hasActiveFilters && (
-          <Button variant="ghost" size="icon" onClick={clearFilters}>
-            <X className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-
-      {/* Indicateur de filtres actifs */}
-      {hasActiveFilters && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Filtres actifs :</span>
-          {searchQuery && (
-            <Badge variant="secondary" className="gap-1">
-              Recherche: "{searchQuery}"
-            </Badge>
-          )}
-          {priorityFilter !== 'all' && (
-            <Badge variant="secondary" className="gap-1">
-              {priorityFilter}
-            </Badge>
-          )}
-          {sortBy !== 'none' && (
-            <Badge variant="secondary" className="gap-1">
-              Tri: {sortOptions.find(o => o.value === sortBy)?.label}
-            </Badge>
-          )}
-        </div>
-      )}
-
-      {/* Kanban Board avec tâches filtrées */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Tableau Kanban</h2>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowColumnManager(true)}
-          >
-            <Settings2 className="w-4 h-4 mr-2" />
-            Colonnes
-          </Button>
-        </div>
-        <KanbanBoard
-          tasksByColumn={filteredTasksByColumn}
-          columns={columns}
-          onStatusChange={updateTaskStatus}
-          onTaskClick={handleTaskClick}
-          onToggleComplete={handleToggleComplete}
-          onDeleteTask={handleDeleteTask}
-        />
-      </div>
-
-      {/* Kanban Column Manager Modal */}
-      <KanbanColumnManager
-        columns={columns}
-        onColumnsChange={handleColumnsChange}
-        isOpen={showColumnManager}
-        onClose={() => setShowColumnManager(false)}
-      />
-
-      {/* Task Modal */}
-      {showTaskModal && (
+    <ProjectDetailShell
+      project={project}
+      statusBadge={{ label: statusConfig.label, className: `${statusConfig.bgColor} ${statusConfig.color}` }}
+      statsGridClassName="grid grid-cols-1 md:grid-cols-3 gap-4"
+      statsCards={statsCards}
+      searchQuery={searchQuery}
+      onSearchQueryChange={setSearchQuery}
+      priorityFilter={priorityFilter}
+      onPriorityFilterChange={setPriorityFilter}
+      priorityOptions={priorityOptions}
+      sortBy={sortBy}
+      onSortByChange={setSortBy}
+      sortOptions={sortOptions}
+      hasActiveFilters={hasActiveFilters}
+      clearFilters={clearFilters}
+      activeFilterBadges={activeFilterBadges}
+      filteredTasksByColumn={filteredTasksByColumn}
+      columns={columns}
+      onStatusChange={updateTaskStatus}
+      onTaskClick={handleTaskClick}
+      onToggleComplete={handleToggleComplete}
+      onDeleteTask={handleDeleteTask}
+      showColumnManager={showColumnManager}
+      onOpenColumnManager={() => setShowColumnManager(true)}
+      onCloseColumnManager={() => setShowColumnManager(false)}
+      onColumnsChange={handleColumnsChange}
+      onBack={onBack}
+      onEdit={onEdit}
+      onComplete={handleComplete}
+      onDelete={handleDelete}
+      onToggleSidebar={handleToggleSidebar}
+      onCreateTask={handleCreateTask}
+      showCompleteAction={project.status !== 'completed'}
+      taskModal={showTaskModal ? (
         <TaskModal
           isOpen={showTaskModal}
           onClose={handleCloseModal}
@@ -465,7 +252,7 @@ export const ProjectDetail = ({ project: projectProp, onBack, onEdit, onDelete }
           onAddTask={handleAddTask}
           onUpdateTask={handleUpdateTask}
         />
-      )}
-    </div>
+      ) : undefined}
+    />
   );
 };
