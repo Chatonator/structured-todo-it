@@ -1,12 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Divide, FolderPlus, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { CheckCircle2, Divide, FolderPlus, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { ToolProps } from '../types';
 import { TaskLinker } from '../../shared/TaskLinker';
@@ -34,14 +32,16 @@ import {
 } from './division33Utils';
 
 type ApplyTarget = 'task' | 'project';
+type EditorMode = 'new' | 'import';
 
 interface SlotBoxProps {
   slot: DivisionSlot;
   isRoot?: boolean;
+  compact?: boolean;
   onClick: (slotId: DivisionSlotId) => void;
 }
 
-const SlotBox: React.FC<SlotBoxProps> = ({ slot, isRoot = false, onClick }) => {
+const SlotBox: React.FC<SlotBoxProps> = ({ slot, isRoot = false, compact = false, onClick }) => {
   const isFilled = slot.name.trim().length > 0;
 
   return (
@@ -49,35 +49,30 @@ const SlotBox: React.FC<SlotBoxProps> = ({ slot, isRoot = false, onClick }) => {
       type="button"
       onClick={() => onClick(slot.id)}
       className={[
-        'w-full rounded-xl border text-left transition-colors',
-        isRoot ? 'min-h-[88px] px-5 py-4' : 'min-h-[72px] px-4 py-3',
+        'w-full rounded-2xl border text-left transition-all duration-200',
+        isRoot ? 'min-h-[96px] px-5 py-4' : compact ? 'min-h-[88px] px-4 py-4' : 'min-h-[92px] px-4 py-4',
         isFilled
-          ? 'bg-card hover:border-primary/40 hover:bg-primary/5'
-          : 'border-dashed bg-muted/35 text-muted-foreground hover:border-primary/30 hover:bg-muted/60',
+          ? 'border-border/80 bg-card shadow-sm hover:border-primary/40 hover:bg-primary/[0.04] hover:shadow-md'
+          : 'border-dashed border-border/70 bg-muted/40 text-muted-foreground hover:border-primary/20 hover:bg-muted/60',
       ].join(' ')}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             {isRoot ? 'Départ' : 'Sous-tâche'}
           </div>
-          <div className={isRoot ? 'text-base font-semibold break-words' : 'text-sm font-medium break-words'}>
+          <div className={isRoot ? 'mt-1 text-lg font-semibold leading-tight break-words' : 'mt-1 text-sm font-medium leading-snug break-words'}>
             {isFilled ? slot.name : 'Vide'}
           </div>
         </div>
-        <div className="text-xs font-medium text-muted-foreground shrink-0">
+        <div className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted-foreground shrink-0">
+          {isFilled ? <Pencil className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
           {isFilled ? 'Modifier' : 'Ajouter'}
         </div>
       </div>
     </button>
   );
 };
-
-const ConnectorRow: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="relative flex flex-wrap items-start justify-center gap-4 pt-6 before:absolute before:left-[10%] before:right-[10%] before:top-0 before:h-px before:bg-border">
-    {children}
-  </div>
-);
 
 const Division33Tool: React.FC<ToolProps> = () => {
   const { tasks, addTask, updateTask, removeTask, reload: reloadTasks } = useTasks();
@@ -87,6 +82,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
   const [slots, setSlots] = useState<Record<DivisionSlotId, DivisionSlot>>(() => createEmptySlots());
   const [activeSlotId, setActiveSlotId] = useState<DivisionSlotId | null>(null);
   const [draftName, setDraftName] = useState('');
+  const [editorMode, setEditorMode] = useState<EditorMode>('new');
   const [isApplying, setIsApplying] = useState(false);
 
   const importer = useTaskLinker({ mode: 'single' });
@@ -94,9 +90,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
 
   const selectedImportedTask = importer.selectedTasks[0] ?? null;
   const selectedImportedIds = useMemo(() => {
-    return ALL_SLOT_IDS
-      .map((slotId) => slots[slotId].sourceTaskId)
-      .filter(Boolean) as string[];
+    return ALL_SLOT_IDS.map((slotId) => slots[slotId].sourceTaskId).filter(Boolean) as string[];
   }, [slots]);
 
   const selectableTasks = useMemo(() => {
@@ -137,17 +131,18 @@ const Division33Tool: React.FC<ToolProps> = () => {
   const filledCount = useMemo(() => countFilledSlots(slots), [slots]);
   const mermaidGraph = useMemo(() => buildMermaidGraph(slots), [slots]);
   const draftTree = useMemo(() => buildDraftTree(slots), [slots]);
-
   const canApply = slots.root.name.trim().length > 0;
 
   useEffect(() => {
     if (!activeSlot) {
       setDraftName('');
+      setEditorMode('new');
       importer.clear();
       return;
     }
 
     setDraftName(activeSlot.name);
+    setEditorMode(activeSlot.sourceTaskId ? 'import' : 'new');
     importer.clear();
   }, [activeSlotId]);
 
@@ -158,6 +153,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
   const closeEditor = useCallback(() => {
     setActiveSlotId(null);
     setDraftName('');
+    setEditorMode('new');
     importer.clear();
   }, [importer]);
 
@@ -334,7 +330,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
           throw new Error('Impossible de créer le projet');
         }
 
-        await createNodeChildren(draftTree.children, 0 as 1, inferredDuration, { projectId: project.id });
+        await createNodeChildren(draftTree.children, 1, inferredDuration, { projectId: project.id });
 
         if (rootImportedTask) {
           await removeDirectChildren(rootImportedTask.id);
@@ -412,55 +408,52 @@ const Division33Tool: React.FC<ToolProps> = () => {
             Canevas 3x3
           </CardTitle>
           <CardDescription>
-            Commencez par le bloc de départ, puis ajoutez jusqu’à 3 branches et 3 sous-branches par branche.
+            Commencez par le bloc de départ. Les sous-cases n’apparaissent que quand leur branche devient utile.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 overflow-x-auto">
-          <div className="min-w-[54rem] space-y-6 px-2 pb-2">
+        <CardContent className="overflow-x-auto">
+          <div className="min-w-[58rem] space-y-8 px-3 pb-4">
             <div className="flex justify-center">
-              <div className="w-[18rem]">
+              <div className="w-[22rem]">
                 <SlotBox slot={slots.root} isRoot onClick={openEditor} />
               </div>
             </div>
 
             <div className="flex justify-center">
-              <div className="h-6 w-px bg-border" />
+              <div className="h-8 w-px bg-border/70" />
             </div>
 
-            <ConnectorRow>
+            <div className="grid grid-cols-3 gap-6 items-start">
               {branchColumns.map(({ branch, leaves }) => (
-                <div key={branch.id} className="relative w-[16rem] space-y-5 before:absolute before:left-1/2 before:top-0 before:h-5 before:w-px before:-translate-x-1/2 before:bg-border">
-                  <SlotBox slot={branch} onClick={openEditor} />
+                <div key={branch.id} className="rounded-3xl border bg-muted/[0.18] p-4 space-y-4">
                   <div className="flex justify-center">
-                    <div className="h-4 w-px bg-border" />
+                    <div className="h-4 w-px bg-border/60" />
                   </div>
-                  <ConnectorRow>
-                    {leaves.map((leaf) => (
-                      <div key={leaf.id} className="relative w-[4.75rem] before:absolute before:left-1/2 before:top-0 before:h-4 before:w-px before:-translate-x-1/2 before:bg-border">
-                        <SlotBox slot={leaf} onClick={openEditor} />
+                  <SlotBox slot={branch} onClick={openEditor} />
+                  {branch.name.trim().length > 0 && (
+                    <>
+                      <div className="flex justify-center">
+                        <div className="h-4 w-px bg-border/60" />
                       </div>
-                    ))}
-                  </ConnectorRow>
+                      <div className="grid grid-cols-1 gap-3">
+                        {leaves.map((leaf) => (
+                          <SlotBox key={leaf.id} slot={leaf} compact onClick={openEditor} />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
-            </ConnectorRow>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="pt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{filledCount} case{filledCount > 1 ? 's' : ''} remplie{filledCount > 1 ? 's' : ''}</Badge>
-              <Badge variant="outline">Contexte : {inferredContext}</Badge>
-              <Badge variant="outline">Catégorie : {inferredCategory}</Badge>
-              <Badge variant="outline">Référence : {inferredDuration} min</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              La complexité reste cachée : si vous importez une tâche au départ, ses réglages servent de base. Sinon l’outil utilise des valeurs simples par défaut.
-            </p>
-          </div>
+        <CardContent className="pt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-muted-foreground">
+            {filledCount} case{filledCount > 1 ? 's' : ''} remplie{filledCount > 1 ? 's' : ''}. Si vous importez une tâche au départ, ses réglages servent automatiquement de base.
+          </p>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={resetTool}>Réinitialiser</Button>
             <Button variant="outline" onClick={() => applyStructure('task')} disabled={!canApply || isApplying}>
@@ -480,23 +473,27 @@ const Division33Tool: React.FC<ToolProps> = () => {
         <Textarea value={mermaidGraph} readOnly className="mt-4 min-h-[180px] font-mono text-xs" />
       </details>
 
-      <Dialog open={activeSlotId !== null} onOpenChange={(open) => !open && closeEditor()}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Modifier la case</DialogTitle>
-            <DialogDescription>
+      <Sheet open={activeSlotId !== null} onOpenChange={(open) => !open && closeEditor()}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Modifier la case</SheetTitle>
+            <SheetDescription>
               Donnez un nom à la case ou importez une tâche existante. Les cases vides restent simplement inactives dans la structure finale.
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
 
-          <Tabs defaultValue="new" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="new">Nouveau</TabsTrigger>
-              <TabsTrigger value="import">Importer une tâche</TabsTrigger>
-            </TabsList>
+          <div className="mt-6 space-y-6">
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant={editorMode === 'new' ? 'default' : 'outline'} onClick={() => setEditorMode('new')}>
+                Nouveau
+              </Button>
+              <Button variant={editorMode === 'import' ? 'default' : 'outline'} onClick={() => setEditorMode('import')}>
+                Importer
+              </Button>
+            </div>
 
-            <TabsContent value="new" className="space-y-4">
-              <div className="grid gap-2">
+            {editorMode === 'new' && (
+              <div className="space-y-3">
                 <Input
                   value={draftName}
                   onChange={(event) => setDraftName(event.target.value)}
@@ -507,9 +504,9 @@ const Division33Tool: React.FC<ToolProps> = () => {
                   Si vous laissez cette case vide, elle ne sera pas créée lors de l’application.
                 </p>
               </div>
-            </TabsContent>
+            )}
 
-            <TabsContent value="import" className="space-y-4">
+            {editorMode === 'import' && (
               <TaskLinker
                 mode="single"
                 max={1}
@@ -531,10 +528,10 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 placeholder="Choisir une tâche..."
                 variant="inline"
               />
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <SheetFooter className="mt-6 gap-2 sm:gap-0">
             {activeSlotId && (
               <Button variant="ghost" onClick={clearCurrentSlot} className="text-destructive mr-auto">
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -546,9 +543,9 @@ const Division33Tool: React.FC<ToolProps> = () => {
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Enregistrer
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
