@@ -11,7 +11,7 @@ import { TaskRow } from '@/components/primitives/cards/TaskRow';
 import { getCategoryClasses } from '@/lib/styling';
 import { cn } from '@/lib/utils';
 import { Task, TaskContext, TaskCategory, SubTaskCategory } from '@/types/task';
-import { TaskLinkerGroup, TaskLinkerGroupBy, TaskLinkerSort } from './useTaskLinker';
+import { TaskLinkerGroup, TaskLinkerGroupBy, TaskLinkerScope, TaskLinkerSort } from './useTaskLinker';
 
 export interface TaskLinkerProps {
   mode: 'single' | 'multi';
@@ -22,6 +22,7 @@ export interface TaskLinkerProps {
   filteredCount?: number;
   totalCount?: number;
   search: string;
+  scopeFilter?: TaskLinkerScope;
   contextFilter: TaskContext | 'all';
   categoryFilter?: TaskCategory | 'all';
   priorityFilter?: SubTaskCategory | 'all' | 'none';
@@ -31,6 +32,7 @@ export interface TaskLinkerProps {
   onSelect: (id: string) => void;
   onDeselect: (id: string) => void;
   onSearchChange: (search: string) => void;
+  onScopeFilterChange?: (scope: TaskLinkerScope) => void;
   onContextFilterChange: (context: TaskContext | 'all') => void;
   onCategoryFilterChange?: (category: TaskCategory | 'all') => void;
   onPriorityFilterChange?: (priority: SubTaskCategory | 'all' | 'none') => void;
@@ -39,10 +41,17 @@ export interface TaskLinkerProps {
   className?: string;
   showGrouping?: boolean;
   showSort?: boolean;
+  showScopeFilter?: boolean;
 }
 
+const SCOPE_OPTIONS: { value: TaskLinkerScope; label: string }[] = [
+  { value: 'all', label: 'Toutes' },
+  { value: 'free', label: 'Tâches libres' },
+  { value: 'project', label: 'Projet' },
+];
+
 const CONTEXT_OPTIONS: { value: TaskContext | 'all'; label: string }[] = [
-  { value: 'all', label: 'Tout' },
+  { value: 'all', label: 'Tous contextes' },
   { value: 'Pro', label: '💼 Pro' },
   { value: 'Perso', label: '🏠 Perso' },
 ];
@@ -96,10 +105,12 @@ function compareTasks(left: Task, right: Task, sort: TaskLinkerSort): number {
 }
 
 function inferGroupBy(
+  scopeFilter: TaskLinkerScope,
   contextFilter: TaskContext | 'all',
   categoryFilter: TaskCategory | 'all',
   priorityFilter: SubTaskCategory | 'all' | 'none'
 ): TaskLinkerGroupBy {
+  if (scopeFilter === 'all') return 'scope';
   if (priorityFilter !== 'all') return 'none';
   if (contextFilter === 'all') return 'context';
   if (categoryFilter === 'all') return 'category';
@@ -114,10 +125,17 @@ function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy): TaskLinkerGroup
   const groups = new Map<string, TaskLinkerGroup>();
 
   tasks.forEach((task) => {
-    const id = groupBy === 'context' ? `context:${task.context}` : `category:${task.category}`;
-    const label = groupBy === 'context'
-      ? task.context
-      : CATEGORY_OPTIONS.find((option) => option.value === task.category)?.label || task.category;
+    const id = groupBy === 'scope'
+      ? task.projectId ? 'scope:project' : 'scope:free'
+      : groupBy === 'context'
+        ? `context:${task.context}`
+        : `category:${task.category}`;
+
+    const label = groupBy === 'scope'
+      ? task.projectId ? 'Projet' : 'Tâches libres'
+      : groupBy === 'context'
+        ? task.context
+        : CATEGORY_OPTIONS.find((option) => option.value === task.category)?.label || task.category;
 
     const existing = groups.get(id);
     if (existing) {
@@ -133,42 +151,48 @@ function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy): TaskLinkerGroup
 }
 
 const FilterChips: React.FC<{
+  scopeFilter: TaskLinkerScope;
   contextFilter: TaskContext | 'all';
   categoryFilter: TaskCategory | 'all';
   priorityFilter: SubTaskCategory | 'all' | 'none';
   sortOption: TaskLinkerSort;
+  showSort: boolean;
+  showScopeFilter: boolean;
+  onScopeChange: (v: TaskLinkerScope) => void;
   onContextChange: (v: TaskContext | 'all') => void;
   onCategoryChange: (v: TaskCategory | 'all') => void;
   onPriorityChange: (v: SubTaskCategory | 'all' | 'none') => void;
   onSortChange: (v: TaskLinkerSort) => void;
   showFilters: boolean;
-  showSort: boolean;
   onToggleFilters: () => void;
 }> = ({
+  scopeFilter,
   contextFilter,
   categoryFilter,
   priorityFilter,
   sortOption,
+  showSort,
+  showScopeFilter,
+  onScopeChange,
   onContextChange,
   onCategoryChange,
   onPriorityChange,
   onSortChange,
   showFilters,
-  showSort,
   onToggleFilters,
 }) => {
-  const activeCount = [contextFilter !== 'all', categoryFilter !== 'all', priorityFilter !== 'all'].filter(Boolean).length;
+  const activeCount = [scopeFilter !== 'all', contextFilter !== 'all', categoryFilter !== 'all', priorityFilter !== 'all'].filter(Boolean).length;
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-1.5">
-        {CONTEXT_OPTIONS.map(opt => (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {showScopeFilter && SCOPE_OPTIONS.map((opt) => (
           <Button
             key={opt.value}
-            variant={contextFilter === opt.value ? 'default' : 'ghost'}
+            variant={scopeFilter === opt.value ? 'default' : 'ghost'}
             size="sm"
             className="h-7 text-xs px-2.5"
-            onClick={() => onContextChange(opt.value)}
+            onClick={() => onScopeChange(opt.value)}
           >
             {opt.label}
           </Button>
@@ -207,15 +231,28 @@ const FilterChips: React.FC<{
             </SelectContent>
           </Select>
         )}
-        {filteredCountLabel(contextFilter, categoryFilter, priorityFilter) && (
+        {filteredCountLabel(scopeFilter, contextFilter, categoryFilter, priorityFilter) && (
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            {filteredCountLabel(contextFilter, categoryFilter, priorityFilter)}
+            {filteredCountLabel(scopeFilter, contextFilter, categoryFilter, priorityFilter)}
           </div>
         )}
       </div>
 
       {showFilters && (
         <div className="space-y-2 rounded-lg border bg-muted/25 p-2.5">
+          <div className="flex flex-wrap gap-1">
+            {CONTEXT_OPTIONS.map((opt) => (
+              <Button
+                key={opt.value}
+                variant={contextFilter === opt.value ? 'default' : 'outline'}
+                size="sm"
+                className="h-6 px-2 text-[10px]"
+                onClick={() => onContextChange(opt.value)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-1">
             {CATEGORY_OPTIONS.map(opt => (
               <Button
@@ -252,10 +289,12 @@ const FilterChips: React.FC<{
 };
 
 function filteredCountLabel(
+  scopeFilter: TaskLinkerScope,
   contextFilter: TaskContext | 'all',
   categoryFilter: TaskCategory | 'all',
   priorityFilter: SubTaskCategory | 'all' | 'none'
 ): string | null {
+  if (scopeFilter === 'all') return 'Range par type';
   if (priorityFilter !== 'all') return 'Vue detaillee';
   if (contextFilter === 'all') return 'Range par contexte';
   if (categoryFilter === 'all') return 'Range par categorie';
@@ -302,6 +341,7 @@ const SelectorContent: React.FC<{
   groups: TaskLinkerGroup[];
   groupBy: TaskLinkerGroupBy;
   search: string;
+  scopeFilter: TaskLinkerScope;
   contextFilter: TaskContext | 'all';
   categoryFilter: TaskCategory | 'all';
   priorityFilter: SubTaskCategory | 'all' | 'none';
@@ -310,8 +350,10 @@ const SelectorContent: React.FC<{
   totalCount?: number;
   showGrouping: boolean;
   showSort: boolean;
+  showScopeFilter: boolean;
   onSelect: (id: string) => void;
   onSearchChange: (s: string) => void;
+  onScopeChange: (s: TaskLinkerScope) => void;
   onContextChange: (c: TaskContext | 'all') => void;
   onCategoryChange: (c: TaskCategory | 'all') => void;
   onPriorityChange: (p: SubTaskCategory | 'all' | 'none') => void;
@@ -321,6 +363,7 @@ const SelectorContent: React.FC<{
   groups,
   groupBy,
   search,
+  scopeFilter,
   contextFilter,
   categoryFilter,
   priorityFilter,
@@ -329,8 +372,10 @@ const SelectorContent: React.FC<{
   totalCount,
   showGrouping,
   showSort,
+  showScopeFilter,
   onSelect,
   onSearchChange,
+  onScopeChange,
   onContextChange,
   onCategoryChange,
   onPriorityChange,
@@ -352,16 +397,19 @@ const SelectorContent: React.FC<{
           />
         </div>
         <FilterChips
+          scopeFilter={scopeFilter}
           contextFilter={contextFilter}
           categoryFilter={categoryFilter}
           priorityFilter={priorityFilter}
           sortOption={sortOption}
+          showSort={showSort}
+          showScopeFilter={showScopeFilter}
+          onScopeChange={onScopeChange}
           onContextChange={onContextChange}
           onCategoryChange={onCategoryChange}
           onPriorityChange={onPriorityChange}
           onSortChange={onSortChange}
           showFilters={showFilters}
-          showSort={showSort}
           onToggleFilters={() => setShowFilters((value) => !value)}
         />
         {filteredCount !== undefined && totalCount !== undefined && filteredCount !== totalCount && (
@@ -405,6 +453,7 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
   filteredCount,
   totalCount,
   search,
+  scopeFilter,
   contextFilter,
   categoryFilter = 'all',
   priorityFilter = 'all',
@@ -414,6 +463,7 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
   onSelect,
   onDeselect,
   onSearchChange,
+  onScopeFilterChange,
   onContextFilterChange,
   onCategoryFilterChange,
   onPriorityFilterChange,
@@ -422,12 +472,16 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
   className,
   showGrouping = true,
   showSort = true,
+  showScopeFilter = true,
 }) => {
   const [open, setOpen] = useState(false);
   const [internalSort, setInternalSort] = useState<TaskLinkerSort>('none');
+  const [internalScope, setInternalScope] = useState<TaskLinkerScope>('all');
 
   const effectiveSort = sortOption ?? internalSort;
+  const effectiveScope = scopeFilter ?? internalScope;
   const handleSortChange = onSortChange ?? setInternalSort;
+  const handleScopeChange = onScopeFilterChange ?? setInternalScope;
 
   const sortedTasks = useMemo(
     () => [...filteredAvailableTasks].sort((left, right) => compareTasks(left, right, effectiveSort)),
@@ -435,16 +489,16 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
   );
 
   const effectiveGroupBy = useMemo(
-    () => inferGroupBy(contextFilter, categoryFilter, priorityFilter),
-    [contextFilter, categoryFilter, priorityFilter]
+    () => inferGroupBy(effectiveScope, contextFilter, categoryFilter, priorityFilter),
+    [effectiveScope, contextFilter, categoryFilter, priorityFilter]
   );
 
   const effectiveGroups = useMemo(() => {
-    if (groupedAvailableTasks && sortOption && onSortChange) {
+    if (groupedAvailableTasks && sortOption && onSortChange && scopeFilter && onScopeFilterChange) {
       return groupedAvailableTasks;
     }
     return buildGroups(sortedTasks, effectiveGroupBy);
-  }, [groupedAvailableTasks, sortOption, onSortChange, sortedTasks, effectiveGroupBy]);
+  }, [groupedAvailableTasks, sortOption, onSortChange, scopeFilter, onScopeFilterChange, sortedTasks, effectiveGroupBy]);
 
   const handleSelect = (id: string) => {
     onSelect(id);
@@ -476,6 +530,7 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
                 groups={effectiveGroups}
                 groupBy={effectiveGroupBy}
                 search={search}
+                scopeFilter={effectiveScope}
                 contextFilter={contextFilter}
                 categoryFilter={categoryFilter}
                 priorityFilter={priorityFilter}
@@ -484,8 +539,10 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
                 totalCount={totalCount}
                 showGrouping={showGrouping}
                 showSort={showSort}
+                showScopeFilter={showScopeFilter}
                 onSelect={handleSelect}
                 onSearchChange={onSearchChange}
+                onScopeChange={handleScopeChange}
                 onContextChange={onContextFilterChange}
                 onCategoryChange={noCategoryChange}
                 onPriorityChange={noPriorityChange}
@@ -500,6 +557,7 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
               groups={effectiveGroups}
               groupBy={effectiveGroupBy}
               search={search}
+              scopeFilter={effectiveScope}
               contextFilter={contextFilter}
               categoryFilter={categoryFilter}
               priorityFilter={priorityFilter}
@@ -508,8 +566,10 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
               totalCount={totalCount}
               showGrouping={showGrouping}
               showSort={showSort}
+              showScopeFilter={showScopeFilter}
               onSelect={handleSelect}
               onSearchChange={onSearchChange}
+              onScopeChange={handleScopeChange}
               onContextChange={onContextFilterChange}
               onCategoryChange={noCategoryChange}
               onPriorityChange={noPriorityChange}
@@ -523,4 +583,3 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
 };
 
 export default TaskLinker;
-

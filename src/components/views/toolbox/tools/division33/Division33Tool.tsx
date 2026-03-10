@@ -115,7 +115,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
   const [rootCategory, setRootCategory] = useState<TaskCategory>('Autres');
   const [rootDuration, setRootDuration] = useState(DEFAULT_ROOT_DURATION);
 
-  const importer = useTaskLinker({ mode: 'single' });
+  const importer = useTaskLinker({ mode: 'single', initialScope: 'free' });
   const activeSlot = activeSlotId ? slots[activeSlotId] : null;
   const isRootEditor = activeSlotId === ROOT_SLOT_ID;
 
@@ -126,7 +126,9 @@ const Division33Tool: React.FC<ToolProps> = () => {
 
   const selectableTasks = useMemo(() => {
     return tasks.filter((task) => {
-      if (task.isCompleted || task.projectId) return false;
+      if (task.isCompleted) return false;
+      if (importer.filters.scope === 'free' && task.projectId) return false;
+      if (importer.filters.scope === 'project' && !task.projectId) return false;
       if (selectedImportedIds.includes(task.id) && task.id !== activeSlot?.sourceTaskId) return false;
       if (importer.filters.context !== 'all' && task.context !== importer.filters.context) return false;
       if (importer.filters.category !== 'all' && task.category !== importer.filters.category) return false;
@@ -139,7 +141,9 @@ const Division33Tool: React.FC<ToolProps> = () => {
 
   const totalSelectableTasks = useMemo(() => {
     return tasks.filter((task) => {
-      if (task.isCompleted || task.projectId) return false;
+      if (task.isCompleted) return false;
+      if (importer.filters.scope === 'free' && task.projectId) return false;
+      if (importer.filters.scope === 'project' && !task.projectId) return false;
       if (selectedImportedIds.includes(task.id) && task.id !== activeSlot?.sourceTaskId) return false;
       if (importer.filters.context !== 'all' && task.context !== importer.filters.context) return false;
       if (importer.filters.category !== 'all' && task.category !== importer.filters.category) return false;
@@ -562,6 +566,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 filteredCount={selectableTasks.length}
                 totalCount={totalSelectableTasks}
                 search={importer.filters.search}
+                scopeFilter={importer.filters.scope}
                 contextFilter={importer.filters.context}
                 categoryFilter={importer.filters.category}
                 priorityFilter={importer.filters.priority}
@@ -569,11 +574,13 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 onSelect={importer.select}
                 onDeselect={importer.deselect}
                 onSearchChange={importer.setSearch}
+                onScopeFilterChange={importer.setScopeFilter}
                 onContextFilterChange={importer.setContextFilter}
                 onCategoryFilterChange={importer.setCategoryFilter}
                 onPriorityFilterChange={importer.setPriorityFilter}
                 placeholder="Choisir une tâche..."
                 variant="inline"
+                showScopeFilter={false}
               />
             )}
 
@@ -632,3 +639,4 @@ const Division33Tool: React.FC<ToolProps> = () => {
 };
 
 export default Division33Tool;
+

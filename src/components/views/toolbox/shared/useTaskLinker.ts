@@ -5,17 +5,20 @@ import { loadDailyStorage, saveDailyStorage } from '@/lib/storage';
 
 export type TaskLinkerMode = 'single' | 'multi';
 export type TaskLinkerSort = 'none' | 'name' | 'time' | 'priority';
-export type TaskLinkerGroupBy = 'none' | 'context' | 'category';
+export type TaskLinkerScope = 'all' | 'free' | 'project';
+export type TaskLinkerGroupBy = 'none' | 'scope' | 'context' | 'category';
 
 export interface UseTaskLinkerOptions {
   mode: TaskLinkerMode;
   maxSelection?: number;
   storageKey?: string;
   excludeIds?: string[];
+  initialScope?: TaskLinkerScope;
 }
 
 export interface TaskLinkerFilters {
   search: string;
+  scope: TaskLinkerScope;
   context: TaskContext | 'all';
   category: TaskCategory | 'all';
   priority: SubTaskCategory | 'all' | 'none';
@@ -43,6 +46,7 @@ export interface UseTaskLinkerReturn {
   deselect: (id: string) => void;
   clear: () => void;
   setSearch: (search: string) => void;
+  setScopeFilter: (scope: TaskLinkerScope) => void;
   setContextFilter: (context: TaskContext | 'all') => void;
   setCategoryFilter: (category: TaskCategory | 'all') => void;
   setPriorityFilter: (priority: SubTaskCategory | 'all' | 'none') => void;
@@ -71,6 +75,11 @@ const CONTEXT_GROUP_LABELS: Record<TaskContext, string> = {
   Perso: 'Perso',
 };
 
+const SCOPE_GROUP_LABELS: Record<Exclude<TaskLinkerScope, 'all'>, string> = {
+  free: 'Taches libres',
+  project: 'Projet',
+};
+
 function compareTasks(left: Task, right: Task, sort: TaskLinkerSort): number {
   switch (sort) {
     case 'name':
@@ -89,6 +98,10 @@ function compareTasks(left: Task, right: Task, sort: TaskLinkerSort): number {
 }
 
 function inferGroupBy(filters: TaskLinkerFilters): TaskLinkerGroupBy {
+  if (filters.scope === 'all') {
+    return 'scope';
+  }
+
   if (filters.priority !== 'all') {
     return 'none';
   }
@@ -105,6 +118,10 @@ function inferGroupBy(filters: TaskLinkerFilters): TaskLinkerGroupBy {
 }
 
 function getGroupLabel(groupBy: TaskLinkerGroupBy, task: Task): string {
+  if (groupBy === 'scope') {
+    return task.projectId ? SCOPE_GROUP_LABELS.project : SCOPE_GROUP_LABELS.free;
+  }
+
   if (groupBy === 'context') {
     return CONTEXT_GROUP_LABELS[task.context];
   }
@@ -117,6 +134,10 @@ function getGroupLabel(groupBy: TaskLinkerGroupBy, task: Task): string {
 }
 
 function getGroupId(groupBy: TaskLinkerGroupBy, task: Task): string {
+  if (groupBy === 'scope') {
+    return task.projectId ? 'scope:project' : 'scope:free';
+  }
+
   if (groupBy === 'context') {
     return `context:${task.context}`;
   }
@@ -156,7 +177,7 @@ function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy): TaskLinkerGroup
 }
 
 export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerReturn {
-  const { mode, maxSelection, storageKey, excludeIds = [] } = options;
+  const { mode, maxSelection, storageKey, excludeIds = [], initialScope = 'all' } = options;
   const effectiveMax = mode === 'single' ? 1 : (maxSelection ?? Infinity);
 
   const { tasks } = useViewDataContext();
@@ -167,7 +188,7 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
     () => fullKey ? loadDailyStorage<string[]>(fullKey, []) : []
   );
   const [filters, setFilters] = useState<TaskLinkerFilters>({
-    search: '', context: 'all', category: 'all', priority: 'all',
+    search: '', scope: initialScope, context: 'all', category: 'all', priority: 'all',
   });
   const [sort, setSort] = useState<TaskLinkerSort>('none');
 
@@ -198,6 +219,7 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
   }, [persistIds]);
 
   const setSearch = useCallback((search: string) => setFilters(f => ({ ...f, search })), []);
+  const setScopeFilter = useCallback((scope: TaskLinkerScope) => setFilters(f => ({ ...f, scope })), []);
   const setContextFilter = useCallback((context: TaskContext | 'all') => setFilters(f => ({ ...f, context })), []);
   const setCategoryFilter = useCallback((category: TaskCategory | 'all') => setFilters(f => ({ ...f, category })), []);
   const setPriorityFilter = useCallback((priority: SubTaskCategory | 'all' | 'none') => setFilters(f => ({ ...f, priority })), []);
@@ -209,6 +231,8 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
   const filteredTasks = useMemo(() => {
     let result = baseAvailable;
 
+    if (filters.scope === 'free') result = result.filter(t => !t.projectId);
+    if (filters.scope === 'project') result = result.filter(t => !!t.projectId);
     if (filters.context !== 'all') result = result.filter(t => t.context === filters.context);
     if (filters.category !== 'all') result = result.filter(t => t.category === filters.category);
     if (filters.priority === 'none') {
@@ -249,6 +273,7 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
     deselect,
     clear,
     setSearch,
+    setScopeFilter,
     setContextFilter,
     setCategoryFilter,
     setPriorityFilter,

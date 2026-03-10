@@ -53,7 +53,6 @@ const PomodoroTool: React.FC<ToolProps> = () => {
 
   return (
     <div className="flex flex-col items-center gap-6 max-w-md mx-auto py-4">
-      {/* Cycle dots */}
       <div className="flex items-center gap-2">
         {Array.from({ length: pomo.cyclesBeforeLong }).map((_, i) => (
           <div
@@ -73,7 +72,6 @@ const PomodoroTool: React.FC<ToolProps> = () => {
         </span>
       </div>
 
-      {/* Timer circle */}
       <div className="relative w-56 h-56 flex items-center justify-center">
         <svg className="absolute inset-0 -rotate-90" viewBox="0 0 200 200">
           <circle cx="100" cy="100" r={radius} fill="none" className="stroke-muted" strokeWidth="6" />
@@ -100,7 +98,6 @@ const PomodoroTool: React.FC<ToolProps> = () => {
         </div>
       </div>
 
-      {/* Controls */}
       <div className="flex items-center gap-3">
         {pomo.status === 'idle' ? (
           <>
@@ -133,10 +130,8 @@ const PomodoroTool: React.FC<ToolProps> = () => {
         )}
       </div>
 
-      {/* Settings panel (idle only) */}
       {pomo.status === 'idle' && showSettings && (
         <div className="w-full rounded-lg border border-border bg-card p-4 space-y-4">
-          {/* Presets */}
           <div className="flex gap-2">
             {Object.entries(PRESETS).map(([key, preset]) => (
               <Button
@@ -166,7 +161,6 @@ const PomodoroTool: React.FC<ToolProps> = () => {
             </Button>
           </div>
 
-          {/* Sliders */}
           <div className="space-y-3">
             <SliderRow label="Focus" value={pomo.config.focusMinutes} min={5} max={60} onChange={v => pomo.setConfig({ ...pomo.config, focusMinutes: v })} />
             <SliderRow label="Pause courte" value={pomo.config.shortBreakMinutes} min={1} max={15} onChange={v => pomo.setConfig({ ...pomo.config, shortBreakMinutes: v })} />
@@ -175,7 +169,6 @@ const PomodoroTool: React.FC<ToolProps> = () => {
         </div>
       )}
 
-      {/* Linked task */}
       <div className="w-full">
         <TaskLinker
           mode="single"
@@ -183,12 +176,14 @@ const PomodoroTool: React.FC<ToolProps> = () => {
           filteredAvailableTasks={linker.filteredAvailableTasks}
           groupedAvailableTasks={linker.groupedAvailableTasks}
           search={linker.filters.search}
+          scopeFilter={linker.filters.scope}
           contextFilter={linker.filters.context}
           sortOption={linker.sort}
           canSelectMore={linker.canSelectMore}
           onSelect={linker.select}
           onDeselect={linker.deselect}
           onSearchChange={linker.setSearch}
+          onScopeFilterChange={linker.setScopeFilter}
           onContextFilterChange={linker.setContextFilter}
           onSortChange={linker.setSort}
           placeholder="Lier une tâche (optionnel)"
@@ -211,4 +206,3 @@ function SliderRow({ label, value, min, max, onChange }: { label: string; value:
 }
 
 export default PomodoroTool;
-

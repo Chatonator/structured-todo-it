@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  X, 
-  Target, 
-  ListTodo, 
+import {
+  X,
+  Target,
+  ListTodo,
   Sparkles,
   Clock,
   CheckCircle2,
@@ -59,15 +59,15 @@ interface TaskItemProps {
 
 const SlotTaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove }) => {
   const config = SLOT_CONFIG[slot];
-  
+
   return (
     <div className={cn(
-      "flex items-center gap-3 p-3 rounded-lg border",
+      'flex items-center gap-3 p-3 rounded-lg border',
       config.bgColor,
       config.borderColor,
-      task.isCompleted && "opacity-60"
+      task.isCompleted && 'opacity-60'
     )}>
-      <div className={cn("w-1 self-stretch rounded-full shrink-0", getCategoryIndicatorColor(task.category))} />
+      <div className={cn('w-1 self-stretch rounded-full shrink-0', getCategoryIndicatorColor(task.category))} />
       <Checkbox
         checked={task.isCompleted}
         onCheckedChange={() => onToggle(task.id)}
@@ -75,8 +75,8 @@ const SlotTaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove 
       />
       <div className="flex-1 min-w-0">
         <div className={cn(
-          "font-medium truncate",
-          task.isCompleted && "line-through text-muted-foreground"
+          'font-medium truncate',
+          task.isCompleted && 'line-through text-muted-foreground'
         )}>
           {task.name}
         </div>
@@ -99,7 +99,6 @@ const SlotTaskItem: React.FC<TaskItemProps> = ({ task, slot, onToggle, onRemove 
   );
 };
 
-// ─── Slot section using TaskLinker ───
 interface SlotSectionProps {
   slot: TaskSlot;
   tasks: Task[];
@@ -134,11 +133,11 @@ const SlotSection: React.FC<SlotSectionProps> = ({
   };
 
   return (
-    <Card className={cn("border", config.borderColor)}>
-      <CardHeader className={cn("py-3", config.bgColor)}>
+    <Card className={cn('border', config.borderColor)}>
+      <CardHeader className={cn('py-3', config.bgColor)}>
         <CardTitle className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
-            <Icon className={cn("w-5 h-5", config.color)} />
+            <Icon className={cn('w-5 h-5', config.color)} />
             <div>
               <div className="font-bold">{config.title}</div>
               <div className="text-xs font-normal text-muted-foreground">
@@ -161,7 +160,7 @@ const SlotSection: React.FC<SlotSectionProps> = ({
             onRemove={onRemove}
           />
         ))}
-        
+
         {!slotInfo.filled && (
           <TaskLinker
             mode={config.max === 1 ? 'single' : 'multi'}
@@ -172,6 +171,7 @@ const SlotSection: React.FC<SlotSectionProps> = ({
             filteredCount={linker.filteredCount}
             totalCount={linker.totalCount}
             search={linker.filters.search}
+            scopeFilter={linker.filters.scope}
             contextFilter={linker.filters.context}
             categoryFilter={linker.filters.category}
             priorityFilter={linker.filters.priority}
@@ -180,6 +180,7 @@ const SlotSection: React.FC<SlotSectionProps> = ({
             onSelect={handleSelect}
             onDeselect={() => {}}
             onSearchChange={linker.setSearch}
+            onScopeFilterChange={linker.setScopeFilter}
             onContextFilterChange={linker.setContextFilter}
             onCategoryFilterChange={linker.setCategoryFilter}
             onPriorityFilterChange={linker.setPriorityFilter}
@@ -208,7 +209,6 @@ const SlotSection: React.FC<SlotSectionProps> = ({
 const Rule135Tool: React.FC<ToolProps> = () => {
   const { data, actions } = useRule135Tool();
 
-  // Collect all selected IDs across all slots to exclude from other slots
   const allSelectedIds = [
     ...(data.selectedTasks.big ? [data.selectedTasks.big.id] : []),
     ...data.selectedTasks.medium.map(t => t.id),
@@ -217,7 +217,6 @@ const Rule135Tool: React.FC<ToolProps> = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header stats */}
       <div className="flex flex-wrap gap-4 p-4 rounded-lg bg-muted/50 border">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-muted-foreground" />
@@ -245,7 +244,6 @@ const Rule135Tool: React.FC<ToolProps> = () => {
         )}
       </div>
 
-      {/* Slots */}
       <div className="space-y-4">
         <SlotSection
           slot="big"
@@ -278,7 +276,6 @@ const Rule135Tool: React.FC<ToolProps> = () => {
         />
       </div>
 
-      {/* Tips */}
       <div className="p-4 rounded-lg bg-muted/30 border border-dashed">
         <div className="text-sm font-medium mb-2">💡 Comment utiliser 1-3-5</div>
         <ul className="text-xs text-muted-foreground space-y-1">
@@ -293,4 +290,3 @@ const Rule135Tool: React.FC<ToolProps> = () => {
 };
 
 export default Rule135Tool;
-
