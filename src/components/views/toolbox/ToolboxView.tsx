@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, Suspense } from 'react';
 import { ViewLayout } from '@/components/layout/view';
-import { Wrench, ArrowLeft, Sparkles, Play, Eye } from 'lucide-react';
+import { Wrench, ArrowLeft } from 'lucide-react';
 import { toolRegistry, getToolById } from './tools';
 import ToolCatalog from './components/ToolCatalog';
 import ToolDetailView from './components/ToolDetailView';
@@ -43,8 +43,6 @@ const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
 
   const activeTool = activeToolId ? getToolById(activeToolId) : null;
   const sheetTool = sheetToolId ? getToolById(sheetToolId) : null;
-  const highlightedTool = [...toolRegistry].reverse().find(tool => tool.isNew) ?? null;
-  const HighlightedIcon = highlightedTool?.icon;
 
   // Click on card → open Sheet with details
   const handleSelectTool = useCallback((toolId: string) => {
@@ -134,47 +132,13 @@ const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
           </div>
         </div>
 
-        {highlightedTool && HighlightedIcon && (
-          <div className="mb-6 rounded-xl border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-start gap-3">
-                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", highlightedTool.bgColor)}>
-                  <HighlightedIcon className={cn("w-6 h-6", highlightedTool.color)} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
-                      <Sparkles className="w-3 h-3" />
-                      Nouvel outil
-                    </span>
-                  </div>
-                  <h3 className="font-semibold text-lg">{highlightedTool.name}</h3>
-                  <p className="text-sm text-muted-foreground max-w-2xl">
-                    {highlightedTool.description}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => handleSelectTool(highlightedTool.id)} className="gap-2">
-                  <Eye className="w-4 h-4" />
-                  Voir
-                </Button>
-                <Button onClick={() => handleQuickLaunch(highlightedTool.id)} className="gap-2">
-                  <Play className="w-4 h-4" />
-                  Lancer
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Tool catalog */}
         <ToolCatalog
           tools={toolRegistry}
           onSelectTool={handleSelectTool}
           onQuickLaunch={handleQuickLaunch}
           launchedTools={launchedTools}
-          groupByCategory={toolRegistry.length > 4}
+          groupByCategory={false}
         />
 
         {/* Detail Sheet */}
