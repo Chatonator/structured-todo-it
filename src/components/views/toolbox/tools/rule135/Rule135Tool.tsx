@@ -168,12 +168,14 @@ const SlotSection: React.FC<SlotSectionProps> = ({
             max={config.max - slotInfo.current}
             selectedTasks={[]}
             filteredAvailableTasks={linker.filteredAvailableTasks}
+            groupedAvailableTasks={linker.groupedAvailableTasks}
             filteredCount={linker.filteredCount}
             totalCount={linker.totalCount}
             search={linker.filters.search}
             contextFilter={linker.filters.context}
             categoryFilter={linker.filters.category}
             priorityFilter={linker.filters.priority}
+            sortOption={linker.sort}
             canSelectMore={!slotInfo.filled}
             onSelect={handleSelect}
             onDeselect={() => {}}
@@ -181,6 +183,7 @@ const SlotSection: React.FC<SlotSectionProps> = ({
             onContextFilterChange={linker.setContextFilter}
             onCategoryFilterChange={linker.setCategoryFilter}
             onPriorityFilterChange={linker.setPriorityFilter}
+            onSortChange={linker.setSort}
             placeholder="Ajouter une tâche..."
             variant="popover"
           />
@@ -290,3 +293,4 @@ const Rule135Tool: React.FC<ToolProps> = () => {
 };
 
 export default Rule135Tool;
+

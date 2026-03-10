@@ -1,26 +1,32 @@
-import React, { useState } from 'react';
-import { Plus, Search, ChevronDown, Filter } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Plus, Search, ChevronDown, Filter, ChevronRight, FolderKanban, ArrowDownAZ, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TaskRow } from '@/components/primitives/cards/TaskRow';
 import { getCategoryClasses } from '@/lib/styling';
 import { cn } from '@/lib/utils';
-import { Task, TaskContext, TaskCategory, SubTaskCategory, CATEGORY_DISPLAY_NAMES } from '@/types/task';
+import { Task, TaskContext, TaskCategory, SubTaskCategory } from '@/types/task';
+import { TaskLinkerGroup, TaskLinkerGroupBy, TaskLinkerSort } from './useTaskLinker';
 
 export interface TaskLinkerProps {
   mode: 'single' | 'multi';
   max?: number;
   selectedTasks: Task[];
   filteredAvailableTasks: Task[];
+  groupedAvailableTasks?: TaskLinkerGroup[];
   filteredCount?: number;
   totalCount?: number;
   search: string;
   contextFilter: TaskContext | 'all';
   categoryFilter?: TaskCategory | 'all';
   priorityFilter?: SubTaskCategory | 'all' | 'none';
+  sortOption?: TaskLinkerSort;
+  onSortChange?: (sort: TaskLinkerSort) => void;
   canSelectMore: boolean;
   onSelect: (id: string) => void;
   onDeselect: (id: string) => void;
@@ -31,6 +37,8 @@ export interface TaskLinkerProps {
   placeholder?: string;
   variant?: 'popover' | 'inline';
   className?: string;
+  showGrouping?: boolean;
+  showSort?: boolean;
 }
 
 const CONTEXT_OPTIONS: { value: TaskContext | 'all'; label: string }[] = [
@@ -42,7 +50,7 @@ const CONTEXT_OPTIONS: { value: TaskContext | 'all'; label: string }[] = [
 const CATEGORY_OPTIONS: { value: TaskCategory | 'all'; label: string; category?: TaskCategory }[] = [
   { value: 'all', label: 'Toutes' },
   { value: 'Obligation', label: 'Cruciales', category: 'Obligation' },
-  { value: 'Quotidien', label: 'Régulières', category: 'Quotidien' },
+  { value: 'Quotidien', label: 'Regulieres', category: 'Quotidien' },
   { value: 'Envie', label: 'Envies', category: 'Envie' },
   { value: 'Autres', label: 'Optionnelles', category: 'Autres' },
 ];
@@ -53,32 +61,113 @@ const PRIORITY_OPTIONS: { value: SubTaskCategory | 'all' | 'none'; label: string
   { value: 'Important', label: '🟠 Important' },
   { value: 'Peut attendre', label: '🟡 Peut attendre' },
   { value: "Si j'ai le temps", label: '🟢 Optionnel' },
-  { value: 'none', label: '⚪ Non définie' },
+  { value: 'none', label: '⚪ Non definie' },
 ];
 
-// ─── Filter chips row ───
+const SORT_OPTIONS: { value: TaskLinkerSort; label: string }[] = [
+  { value: 'none', label: 'Aucun tri' },
+  { value: 'name', label: 'Nom' },
+  { value: 'time', label: 'Duree' },
+  { value: 'priority', label: 'Priorite' },
+];
+
+const PRIORITY_ORDER: Record<SubTaskCategory, number> = {
+  'Le plus important': 0,
+  Important: 1,
+  'Peut attendre': 2,
+  "Si j'ai le temps": 3,
+};
+
+function compareTasks(left: Task, right: Task, sort: TaskLinkerSort): number {
+  switch (sort) {
+    case 'name':
+      return left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' });
+    case 'time':
+      return (right.estimatedTime || 0) - (left.estimatedTime || 0) || left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' });
+    case 'priority': {
+      const leftRank = left.subCategory ? PRIORITY_ORDER[left.subCategory] : 99;
+      const rightRank = right.subCategory ? PRIORITY_ORDER[right.subCategory] : 99;
+      return leftRank - rightRank || left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' });
+    }
+    case 'none':
+    default:
+      return 0;
+  }
+}
+
+function inferGroupBy(
+  contextFilter: TaskContext | 'all',
+  categoryFilter: TaskCategory | 'all',
+  priorityFilter: SubTaskCategory | 'all' | 'none'
+): TaskLinkerGroupBy {
+  if (priorityFilter !== 'all') return 'none';
+  if (contextFilter === 'all') return 'context';
+  if (categoryFilter === 'all') return 'category';
+  return 'none';
+}
+
+function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy): TaskLinkerGroup[] {
+  if (groupBy === 'none') {
+    return [{ id: 'all', label: 'Taches', count: tasks.length, tasks }];
+  }
+
+  const groups = new Map<string, TaskLinkerGroup>();
+
+  tasks.forEach((task) => {
+    const id = groupBy === 'context' ? `context:${task.context}` : `category:${task.category}`;
+    const label = groupBy === 'context'
+      ? task.context
+      : CATEGORY_OPTIONS.find((option) => option.value === task.category)?.label || task.category;
+
+    const existing = groups.get(id);
+    if (existing) {
+      existing.tasks.push(task);
+      existing.count += 1;
+      return;
+    }
+
+    groups.set(id, { id, label, count: 1, tasks: [task] });
+  });
+
+  return Array.from(groups.values());
+}
+
 const FilterChips: React.FC<{
   contextFilter: TaskContext | 'all';
   categoryFilter: TaskCategory | 'all';
   priorityFilter: SubTaskCategory | 'all' | 'none';
+  sortOption: TaskLinkerSort;
   onContextChange: (v: TaskContext | 'all') => void;
   onCategoryChange: (v: TaskCategory | 'all') => void;
   onPriorityChange: (v: SubTaskCategory | 'all' | 'none') => void;
+  onSortChange: (v: TaskLinkerSort) => void;
   showFilters: boolean;
+  showSort: boolean;
   onToggleFilters: () => void;
-}> = ({ contextFilter, categoryFilter, priorityFilter, onContextChange, onCategoryChange, onPriorityChange, showFilters, onToggleFilters }) => {
+}> = ({
+  contextFilter,
+  categoryFilter,
+  priorityFilter,
+  sortOption,
+  onContextChange,
+  onCategoryChange,
+  onPriorityChange,
+  onSortChange,
+  showFilters,
+  showSort,
+  onToggleFilters,
+}) => {
   const activeCount = [contextFilter !== 'all', categoryFilter !== 'all', priorityFilter !== 'all'].filter(Boolean).length;
 
   return (
-    <div className="space-y-1.5">
-      {/* Context row + filter toggle */}
-      <div className="flex items-center gap-1">
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
         {CONTEXT_OPTIONS.map(opt => (
           <Button
             key={opt.value}
             variant={contextFilter === opt.value ? 'default' : 'ghost'}
             size="sm"
-            className="h-6 text-xs px-2"
+            className="h-7 text-xs px-2.5"
             onClick={() => onContextChange(opt.value)}
           >
             {opt.label}
@@ -87,18 +176,46 @@ const FilterChips: React.FC<{
         <Button
           variant={showFilters ? 'secondary' : 'ghost'}
           size="sm"
-          className="h-6 text-xs px-2 ml-auto gap-1"
+          className="ml-auto h-7 gap-1.5 px-2.5 text-xs"
           onClick={onToggleFilters}
         >
-          <Filter className="w-3 h-3" />
-          {activeCount > 0 && <Badge variant="default" className="h-4 w-4 p-0 text-[9px] flex items-center justify-center">{activeCount}</Badge>}
+          <Filter className="h-3 w-3" />
+          Filtres
+          {activeCount > 0 && (
+            <Badge variant="default" className="flex h-4 min-w-4 items-center justify-center px-1 text-[9px]">
+              {activeCount}
+            </Badge>
+          )}
         </Button>
       </div>
 
-      {/* Extended filters */}
+      <div className="flex items-center gap-2">
+        {showSort && (
+          <Select value={sortOption} onValueChange={(value) => onSortChange(value as TaskLinkerSort)}>
+            <SelectTrigger className="h-8 w-[150px] text-xs">
+              <div className="flex items-center gap-1.5">
+                <ArrowDownAZ className="h-3.5 w-3.5 text-muted-foreground" />
+                <SelectValue placeholder="Tri" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="text-xs">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {filteredCountLabel(contextFilter, categoryFilter, priorityFilter) && (
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            {filteredCountLabel(contextFilter, categoryFilter, priorityFilter)}
+          </div>
+        )}
+      </div>
+
       {showFilters && (
-        <div className="space-y-1.5 pt-1 border-t">
-          {/* Category chips */}
+        <div className="space-y-2 rounded-lg border bg-muted/25 p-2.5">
           <div className="flex flex-wrap gap-1">
             {CATEGORY_OPTIONS.map(opt => (
               <Button
@@ -106,7 +223,7 @@ const FilterChips: React.FC<{
                 variant={categoryFilter === opt.value ? 'default' : 'outline'}
                 size="sm"
                 className={cn(
-                  "h-5 text-[10px] px-2",
+                  'h-6 px-2 text-[10px]',
                   categoryFilter !== opt.value && opt.category && getCategoryClasses(opt.category, 'badge')
                 )}
                 onClick={() => onCategoryChange(opt.value)}
@@ -115,14 +232,13 @@ const FilterChips: React.FC<{
               </Button>
             ))}
           </div>
-          {/* Priority chips */}
           <div className="flex flex-wrap gap-1">
             {PRIORITY_OPTIONS.map(opt => (
               <Button
                 key={opt.value}
                 variant={priorityFilter === opt.value ? 'default' : 'outline'}
                 size="sm"
-                className="h-5 text-[10px] px-2"
+                className="h-6 px-2 text-[10px]"
                 onClick={() => onPriorityChange(opt.value)}
               >
                 {opt.label}
@@ -135,28 +251,99 @@ const FilterChips: React.FC<{
   );
 };
 
-// ─── Selector content ───
+function filteredCountLabel(
+  contextFilter: TaskContext | 'all',
+  categoryFilter: TaskCategory | 'all',
+  priorityFilter: SubTaskCategory | 'all' | 'none'
+): string | null {
+  if (priorityFilter !== 'all') return 'Vue detaillee';
+  if (contextFilter === 'all') return 'Range par contexte';
+  if (categoryFilter === 'all') return 'Range par categorie';
+  return null;
+}
+
+const GroupSection: React.FC<{
+  group: TaskLinkerGroup;
+  onSelect: (id: string) => void;
+}> = ({ group, onSelect }) => {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="overflow-hidden rounded-lg border border-border/60 bg-card/70">
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center gap-2 px-3 py-2.5 transition-colors hover:bg-accent/20">
+            {open ? (
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+            <FolderKanban className="h-3.5 w-3.5 text-primary" />
+            <span className="text-sm font-medium text-foreground">{group.label}</span>
+            <Badge variant="outline" className="ml-auto text-[10px]">
+              {group.count}
+            </Badge>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="space-y-1 border-t border-border/50 p-2">
+            {group.tasks.map((task) => (
+              <TaskRow key={task.id} task={task} variant="default" onClick={onSelect} className="rounded-lg" />
+            ))}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+};
+
 const SelectorContent: React.FC<{
   tasks: Task[];
+  groups: TaskLinkerGroup[];
+  groupBy: TaskLinkerGroupBy;
   search: string;
   contextFilter: TaskContext | 'all';
   categoryFilter: TaskCategory | 'all';
   priorityFilter: SubTaskCategory | 'all' | 'none';
+  sortOption: TaskLinkerSort;
   filteredCount?: number;
   totalCount?: number;
+  showGrouping: boolean;
+  showSort: boolean;
   onSelect: (id: string) => void;
   onSearchChange: (s: string) => void;
   onContextChange: (c: TaskContext | 'all') => void;
   onCategoryChange: (c: TaskCategory | 'all') => void;
   onPriorityChange: (p: SubTaskCategory | 'all' | 'none') => void;
-}> = ({ tasks, search, contextFilter, categoryFilter, priorityFilter, filteredCount, totalCount, onSelect, onSearchChange, onContextChange, onCategoryChange, onPriorityChange }) => {
+  onSortChange: (sort: TaskLinkerSort) => void;
+}> = ({
+  tasks,
+  groups,
+  groupBy,
+  search,
+  contextFilter,
+  categoryFilter,
+  priorityFilter,
+  sortOption,
+  filteredCount,
+  totalCount,
+  showGrouping,
+  showSort,
+  onSelect,
+  onSearchChange,
+  onContextChange,
+  onCategoryChange,
+  onPriorityChange,
+  onSortChange,
+}) => {
   const [showFilters, setShowFilters] = useState(false);
+  const useGroups = showGrouping && groupBy !== 'none' && groups.length > 1;
 
   return (
     <div className="flex flex-col">
-      <div className="p-2 border-b space-y-2">
+      <div className="space-y-2 border-b p-3">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={e => onSearchChange(e.target.value)}
@@ -168,26 +355,41 @@ const SelectorContent: React.FC<{
           contextFilter={contextFilter}
           categoryFilter={categoryFilter}
           priorityFilter={priorityFilter}
+          sortOption={sortOption}
           onContextChange={onContextChange}
           onCategoryChange={onCategoryChange}
           onPriorityChange={onPriorityChange}
+          onSortChange={onSortChange}
           showFilters={showFilters}
-          onToggleFilters={() => setShowFilters(v => !v)}
+          showSort={showSort}
+          onToggleFilters={() => setShowFilters((value) => !value)}
         />
         {filteredCount !== undefined && totalCount !== undefined && filteredCount !== totalCount && (
-          <div className="text-[10px] text-muted-foreground text-right">
-            {filteredCount}/{totalCount} tâches
+          <div className="text-right text-[10px] text-muted-foreground">
+            {filteredCount}/{totalCount} tâches visibles
           </div>
         )}
       </div>
-      <ScrollArea className="max-h-64">
-        <div className="p-1">
+
+      <ScrollArea className="max-h-72">
+        <div className="p-2">
           {tasks.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-3 text-center">Aucune tâche trouvée</p>
+            <div className="rounded-lg border border-dashed bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+              <AlertCircle className="mx-auto mb-2 h-4 w-4 opacity-70" />
+              Aucune tâche trouvée
+            </div>
+          ) : useGroups ? (
+            <div className="space-y-2">
+              {groups.map((group) => (
+                <GroupSection key={group.id} group={group} onSelect={onSelect} />
+              ))}
+            </div>
           ) : (
-            tasks.map(t => (
-              <TaskRow key={t.id} task={t} variant="default" onClick={onSelect} />
-            ))
+            <div className="space-y-1">
+              {tasks.map((task) => (
+                <TaskRow key={task.id} task={task} variant="default" onClick={onSelect} className="rounded-lg" />
+              ))}
+            </div>
           )}
         </div>
       </ScrollArea>
@@ -195,17 +397,19 @@ const SelectorContent: React.FC<{
   );
 };
 
-// ─── Main component ───
 export const TaskLinker: React.FC<TaskLinkerProps> = ({
   mode,
   selectedTasks,
   filteredAvailableTasks,
+  groupedAvailableTasks,
   filteredCount,
   totalCount,
   search,
   contextFilter,
   categoryFilter = 'all',
   priorityFilter = 'all',
+  sortOption,
+  onSortChange,
   canSelectMore,
   onSelect,
   onDeselect,
@@ -216,8 +420,31 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
   placeholder = 'Lier une tâche...',
   variant = 'popover',
   className,
+  showGrouping = true,
+  showSort = true,
 }) => {
   const [open, setOpen] = useState(false);
+  const [internalSort, setInternalSort] = useState<TaskLinkerSort>('none');
+
+  const effectiveSort = sortOption ?? internalSort;
+  const handleSortChange = onSortChange ?? setInternalSort;
+
+  const sortedTasks = useMemo(
+    () => [...filteredAvailableTasks].sort((left, right) => compareTasks(left, right, effectiveSort)),
+    [filteredAvailableTasks, effectiveSort]
+  );
+
+  const effectiveGroupBy = useMemo(
+    () => inferGroupBy(contextFilter, categoryFilter, priorityFilter),
+    [contextFilter, categoryFilter, priorityFilter]
+  );
+
+  const effectiveGroups = useMemo(() => {
+    if (groupedAvailableTasks && sortOption && onSortChange) {
+      return groupedAvailableTasks;
+    }
+    return buildGroups(sortedTasks, effectiveGroupBy);
+  }, [groupedAvailableTasks, sortOption, onSortChange, sortedTasks, effectiveGroupBy]);
 
   const handleSelect = (id: string) => {
     onSelect(id);
@@ -243,38 +470,50 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
                 <ChevronDown className="w-4 h-4 ml-auto" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="center">
+            <PopoverContent className="w-[26rem] p-0" align="center">
               <SelectorContent
-                tasks={filteredAvailableTasks}
+                tasks={sortedTasks}
+                groups={effectiveGroups}
+                groupBy={effectiveGroupBy}
                 search={search}
                 contextFilter={contextFilter}
                 categoryFilter={categoryFilter}
                 priorityFilter={priorityFilter}
+                sortOption={effectiveSort}
                 filteredCount={filteredCount}
                 totalCount={totalCount}
+                showGrouping={showGrouping}
+                showSort={showSort}
                 onSelect={handleSelect}
                 onSearchChange={onSearchChange}
                 onContextChange={onContextFilterChange}
                 onCategoryChange={noCategoryChange}
                 onPriorityChange={noPriorityChange}
+                onSortChange={handleSortChange}
               />
             </PopoverContent>
           </Popover>
         ) : (
-          <div className="rounded-lg border">
+          <div className="rounded-xl border bg-card/70">
             <SelectorContent
-              tasks={filteredAvailableTasks}
+              tasks={sortedTasks}
+              groups={effectiveGroups}
+              groupBy={effectiveGroupBy}
               search={search}
               contextFilter={contextFilter}
               categoryFilter={categoryFilter}
               priorityFilter={priorityFilter}
+              sortOption={effectiveSort}
               filteredCount={filteredCount}
               totalCount={totalCount}
+              showGrouping={showGrouping}
+              showSort={showSort}
               onSelect={handleSelect}
               onSearchChange={onSearchChange}
               onContextChange={onContextFilterChange}
               onCategoryChange={noCategoryChange}
               onPriorityChange={noPriorityChange}
+              onSortChange={handleSortChange}
             />
           </div>
         )
@@ -284,3 +523,4 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
 };
 
 export default TaskLinker;
+

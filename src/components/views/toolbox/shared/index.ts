@@ -1,2 +1,3 @@
 export { TaskLinker, type TaskLinkerProps } from './TaskLinker';
-export { useTaskLinker, type UseTaskLinkerOptions, type UseTaskLinkerReturn, type TaskLinkerMode, type TaskLinkerFilters } from './useTaskLinker';
+export { useTaskLinker, type UseTaskLinkerOptions, type UseTaskLinkerReturn, type TaskLinkerMode, type TaskLinkerFilters, type TaskLinkerSort, type TaskLinkerGroupBy, type TaskLinkerGroup } from './useTaskLinker';
+

@@ -181,13 +181,16 @@ const PomodoroTool: React.FC<ToolProps> = () => {
           mode="single"
           selectedTasks={linker.selectedTasks}
           filteredAvailableTasks={linker.filteredAvailableTasks}
+          groupedAvailableTasks={linker.groupedAvailableTasks}
           search={linker.filters.search}
           contextFilter={linker.filters.context}
+          sortOption={linker.sort}
           canSelectMore={linker.canSelectMore}
           onSelect={linker.select}
           onDeselect={linker.deselect}
           onSearchChange={linker.setSearch}
           onContextFilterChange={linker.setContextFilter}
+          onSortChange={linker.setSort}
           placeholder="Lier une tâche (optionnel)"
           variant="popover"
         />
@@ -208,3 +211,4 @@ function SliderRow({ label, value, min, max, onChange }: { label: string; value:
 }
 
 export default PomodoroTool;
+
