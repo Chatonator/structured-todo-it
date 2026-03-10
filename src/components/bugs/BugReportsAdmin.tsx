@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSelectionSet } from '@/hooks/useSelectionSet';
 
 // ─── Constants ───
 const statusColors: Record<string, string> = {
@@ -216,7 +217,7 @@ const ChangelogAdmin: React.FC = () => {
   const [loadingHistory, setLoadingHistory] = useState(true);
 
   // Selection & compilation
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const { selectedIds, toggle, clear, replaceAll, toggleAll } = useSelectionSet<string>();
   const [compiledReport, setCompiledReport] = useState<string | null>(null);
   const [filterType, setFilterType] = useState('all');
   const [filterRange, setFilterRange] = useState('all');
@@ -256,7 +257,7 @@ const ChangelogAdmin: React.FC = () => {
   const handleDelete = async (id: string) => {
     await supabase.from('app_updates').delete().eq('id', id);
     setHistory(prev => prev.filter(u => u.id !== id));
-    setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+    replaceAll(Array.from(selectedIds).filter(selectedId => selectedId !== id));
     toast({ title: 'Supprimé' });
   };
 
@@ -276,20 +277,8 @@ const ChangelogAdmin: React.FC = () => {
     return true;
   });
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  };
-
   const toggleSelectAll = () => {
-    if (selectedIds.size === filteredHistory.length && filteredHistory.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredHistory.map(u => u.id)));
-    }
+    toggleAll(filteredHistory.map(update => update.id));
   };
 
   const generateReport = () => {
@@ -402,7 +391,7 @@ const ChangelogAdmin: React.FC = () => {
                 <Button size="sm" className="h-7 text-xs gap-1.5" onClick={generateReport}>
                   Générer le rapport
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={clear}>
                   Désélectionner
                 </Button>
               </div>
@@ -444,11 +433,11 @@ const ChangelogAdmin: React.FC = () => {
                     "flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
                     selectedIds.has(u.id) ? "border-primary/40 bg-primary/5" : "border-border hover:bg-muted/50"
                   )}
-                  onClick={() => toggleSelect(u.id)}
+                  onClick={() => toggle(u.id)}
                 >
                   <Checkbox
                     checked={selectedIds.has(u.id)}
-                    onCheckedChange={() => toggleSelect(u.id)}
+                    onCheckedChange={() => toggle(u.id)}
                     onClick={e => e.stopPropagation()}
                     className="mt-0.5"
                   />
@@ -482,7 +471,7 @@ const BugReportsTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const { selectedIds, toggle, clear, replaceAll, toggleAll } = useSelectionSet<string>();
   const { data: bugs = [], isLoading } = useBugReportsList(statusFilter, typeFilter);
   const updateBug = useUpdateBugReport();
   const { toast } = useToast();
@@ -497,20 +486,8 @@ const BugReportsTab: React.FC = () => {
     return true;
   });
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
   const selectAll = () => {
-    if (selectedIds.size === filtered.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filtered.map(b => b.id)));
-    }
+    toggleAll(filtered.map(bug => bug.id));
   };
 
   const handleBulkAction = (action: string) => {
@@ -519,7 +496,7 @@ const BugReportsTab: React.FC = () => {
       updateBug.mutate({ id, status: action });
     });
     toast({ title: `${selectedIds.size} rapport(s) mis à jour` });
-    setSelectedIds(new Set());
+    clear();
   };
 
   const handleStatusChange = (bug: BugReport, newStatus: string) => {
@@ -628,7 +605,7 @@ const BugReportsTab: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <Checkbox
                       checked={selectedIds.has(bug.id)}
-                      onCheckedChange={() => toggleSelect(bug.id)}
+                      onCheckedChange={() => toggle(bug.id)}
                       onClick={e => e.stopPropagation()}
                     />
                     <div className="flex-1 flex items-center gap-3 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : bug.id)}>
@@ -743,3 +720,7 @@ const BugReportsAdmin: React.FC = () => {
 };
 
 export default BugReportsAdmin;
+
+
+
+

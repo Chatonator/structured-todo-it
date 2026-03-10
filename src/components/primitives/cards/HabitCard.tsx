@@ -4,7 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Flame } from 'lucide-react';
-import { Habit, HabitStreak, DAYS_OF_WEEK } from '@/types/habit';
+import { Habit, HabitStreak } from '@/types/habit';
+import { getHabitFrequencyLabel } from '@/lib/habits/formatters';
 
 export interface HabitCardProps {
   habit: Habit;
@@ -18,43 +19,6 @@ export interface HabitCardProps {
   onClick?: () => void;
   className?: string;
 }
-
-/**
- * Calcule le label de fréquence pour une habitude
- */
-const getFrequencyLabel = (habit: Habit): string => {
-  switch (habit.frequency) {
-    case 'daily':
-      return 'Quotidien';
-    case 'weekly':
-      return 'Hebdo';
-    case 'x-times-per-week':
-      return `${habit.timesPerWeek}x/sem`;
-    case 'monthly':
-      if (habit.targetDays && habit.targetDays.length > 0) {
-        if (habit.targetDays.length === 1) {
-          return `Le ${habit.targetDays[0]}`;
-        }
-        return `${habit.targetDays.length} jours/mois`;
-      }
-      return 'Mensuel';
-    case 'x-times-per-month':
-      return `${habit.timesPerMonth || 1}x/mois`;
-    case 'custom':
-      if (habit.targetDays && habit.targetDays.length > 0) {
-        if (habit.targetDays.length === 5 && !habit.targetDays.includes(5) && !habit.targetDays.includes(6)) {
-          return 'Semaine';
-        }
-        if (habit.targetDays.length === 2 && habit.targetDays.includes(5) && habit.targetDays.includes(6)) {
-          return 'Weekend';
-        }
-        return habit.targetDays.map(d => DAYS_OF_WEEK[d]?.short || '').join('');
-      }
-      return 'Personnalisé';
-    default:
-      return '';
-  }
-};
 
 /**
  * HabitCard - Carte habitude réutilisable avec variantes
@@ -79,7 +43,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({
   onClick,
   className,
 }) => {
-  const frequencyLabel = getFrequencyLabel(habit);
+  const frequencyLabel = getHabitFrequencyLabel(habit);
   const showFrequencyBadge = showFrequency && habit.frequency !== 'daily';
   const currentStreak = streak?.currentStreak ?? 0;
 
@@ -224,3 +188,4 @@ export const HabitCard: React.FC<HabitCardProps> = ({
 };
 
 export default HabitCard;
+

@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreVertical, Edit2, Trash2, Calendar } from 'lucide-react';
-import { Habit, HabitStreak, DAYS_OF_WEEK } from '@/types/habit';
+import { Habit, HabitStreak } from '@/types/habit';
+import { getHabitFrequencyLabel } from '@/lib/habits/formatters';
 import StreakBadge from './StreakBadge';
 
 interface HabitItemProps {
@@ -17,40 +18,6 @@ interface HabitItemProps {
   onDelete: () => void;
 }
 
-const getFrequencyLabel = (habit: Habit): string => {
-  switch (habit.frequency) {
-    case 'daily':
-      return 'Quotidien';
-    case 'weekly':
-      return 'Hebdo';
-    case 'x-times-per-week':
-      return `${habit.timesPerWeek}x/sem`;
-    case 'monthly':
-      if (habit.targetDays && habit.targetDays.length > 0) {
-        if (habit.targetDays.length === 1) {
-          return `Le ${habit.targetDays[0]}`;
-        }
-        return `${habit.targetDays.length} jours/mois`;
-      }
-      return 'Mensuel';
-    case 'x-times-per-month':
-      return `${habit.timesPerMonth || 1}x/mois`;
-    case 'custom':
-      if (habit.targetDays && habit.targetDays.length > 0) {
-        if (habit.targetDays.length === 5 && !habit.targetDays.includes(5) && !habit.targetDays.includes(6)) {
-          return 'Semaine';
-        }
-        if (habit.targetDays.length === 2 && habit.targetDays.includes(5) && habit.targetDays.includes(6)) {
-          return 'Weekend';
-        }
-        return habit.targetDays.map(d => DAYS_OF_WEEK[d]?.short || '').join('');
-      }
-      return 'Personnalisé';
-    default:
-      return '';
-  }
-};
-
 const HabitItem: React.FC<HabitItemProps> = ({
   habit,
   isCompleted,
@@ -60,7 +27,7 @@ const HabitItem: React.FC<HabitItemProps> = ({
   onEdit,
   onDelete
 }) => {
-  const frequencyLabel = getFrequencyLabel(habit);
+  const frequencyLabel = getHabitFrequencyLabel(habit);
   const showFrequencyBadge = habit.frequency !== 'daily';
 
   return (
@@ -123,3 +90,4 @@ const HabitItem: React.FC<HabitItemProps> = ({
 };
 
 export default HabitItem;
+
