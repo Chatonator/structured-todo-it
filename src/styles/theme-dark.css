@@ -58,21 +58,21 @@
     --system-error: 0 72% 58%;
     --system-info: 217 91% 70%;
 
-    --category-obligation: 0 72% 58%;
-    --category-obligation-light: 0 40% 20%;
-    --category-quotidien: 35 90% 55%;
-    --category-quotidien-light: 35 32% 20%;
+    --category-obligation: 0 84% 67%;
+    --category-obligation-light: 0 36% 22%;
+    --category-quotidien: 48 96% 62%;
+    --category-quotidien-light: 45 32% 20%;
     --category-envie: 142 70% 50%;
     --category-envie-light: 142 30% 20%;
-    --category-autres: 262 83% 68%;
-    --category-autres-light: 262 28% 22%;
+    --category-autres: 217 91% 70%;
+    --category-autres-light: 217 28% 22%;
 
-    --priority-highest: 0 72% 58%;
-    --priority-highest-light: 0 40% 20%;
-    --priority-highest-dark: 0 72% 48%;
-    --priority-high: 48 96% 58%;
+    --priority-highest: 0 84% 67%;
+    --priority-highest-light: 0 36% 22%;
+    --priority-highest-dark: 0 78% 56%;
+    --priority-high: 48 96% 62%;
     --priority-high-light: 45 32% 20%;
-    --priority-high-dark: 45 96% 48%;
+    --priority-high-dark: 48 90% 52%;
     --priority-medium: 142 70% 50%;
     --priority-medium-light: 142 30% 20%;
     --priority-medium-dark: 142 70% 40%;
@@ -93,3 +93,4 @@
     --shadow-surface-strong: 0 16px 32px hsl(0 0% 0% / 0.34);
   }
 }
+

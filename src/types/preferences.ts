@@ -76,10 +76,10 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
     { id: 'completed', label: 'Terminées', order: 7, visible: true },
   ],
   categoryColors: {
-    Obligation: '#dc2626',
-    Quotidien: '#d97706',
-    Envie: '#16a34a',
-    Autres: '#8b5cf6',
+    Obligation: '#ef4444',
+    Quotidien: '#eab308',
+    Envie: '#22c55e',
+    Autres: '#3b82f6',
   },
   sidebarShowHabits: false,
   sidebarShowProjects: false,
@@ -102,3 +102,4 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   allFilterIncludeTeams: true,
   allFilterTeamIds: [],
 };
+

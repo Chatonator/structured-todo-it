@@ -59,24 +59,24 @@
     --system-error: 0 72% 51%;
     --system-info: 217 91% 60%;
 
-    --category-obligation: 0 72% 51%;
-    --category-obligation-light: 0 86% 97%;
-    --category-quotidien: 32 95% 44%;
-    --category-quotidien-light: 45 100% 96%;
-    --category-envie: 142 76% 36%;
+    --category-obligation: 0 84% 60%;
+    --category-obligation-light: 0 100% 97%;
+    --category-quotidien: 48 96% 53%;
+    --category-quotidien-light: 55 100% 96%;
+    --category-envie: 142 71% 45%;
     --category-envie-light: 138 76% 97%;
-    --category-autres: 262 83% 58%;
-    --category-autres-light: 270 100% 98%;
+    --category-autres: 217 91% 60%;
+    --category-autres-light: 214 100% 97%;
 
-    --priority-highest: 0 72% 51%;
-    --priority-highest-light: 0 86% 97%;
-    --priority-highest-dark: 0 72% 42%;
-    --priority-high: 48 96% 44%;
-    --priority-high-light: 55 92% 95%;
-    --priority-high-dark: 45 93% 36%;
-    --priority-medium: 142 76% 36%;
+    --priority-highest: 0 84% 60%;
+    --priority-highest-light: 0 100% 97%;
+    --priority-highest-dark: 0 78% 56%;
+    --priority-high: 48 96% 53%;
+    --priority-high-light: 55 100% 96%;
+    --priority-high-dark: 48 90% 46%;
+    --priority-medium: 142 71% 45%;
     --priority-medium-light: 138 76% 97%;
-    --priority-medium-dark: 142 72% 28%;
+    --priority-medium-dark: 142 68% 34%;
     --priority-low: 217 91% 60%;
     --priority-low-light: 214 100% 97%;
     --priority-low-dark: 221 83% 53%;
@@ -89,3 +89,4 @@
     --context-perso-dark: 263 70% 50%;
   }
 }
+

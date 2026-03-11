@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { UserPreferences, DEFAULT_PREFERENCES } from '@/types/preferences';
+import { UserPreferences, DEFAULT_PREFERENCES, CategoryColors } from '@/types/preferences';
 
 interface UserPreferencesContextType {
   preferences: UserPreferences;
@@ -12,28 +12,58 @@ const UserPreferencesContext = createContext<UserPreferencesContextType | undefi
 
 const STORAGE_KEY = 'todoIt_userPreferences';
 
+const LEGACY_ARCHITECTURE_CATEGORY_COLORS: CategoryColors = {
+  Obligation: '#dc2626',
+  Quotidien: '#d97706',
+  Envie: '#16a34a',
+  Autres: '#8b5cf6',
+};
+
+function normalizeHexColor(value: string | undefined): string {
+  return (value || '').trim().toLowerCase();
+}
+
+function matchesCategoryPalette(colors: CategoryColors, palette: CategoryColors): boolean {
+  return (Object.keys(palette) as (keyof CategoryColors)[]).every(
+    (key) => normalizeHexColor(colors[key]) === normalizeHexColor(palette[key])
+  );
+}
+
+function normalizeCategoryColors(storedColors?: Partial<CategoryColors>): CategoryColors {
+  const mergedColors: CategoryColors = {
+    ...DEFAULT_PREFERENCES.categoryColors,
+    ...storedColors,
+  };
+
+  if (matchesCategoryPalette(mergedColors, LEGACY_ARCHITECTURE_CATEGORY_COLORS)) {
+    return { ...DEFAULT_PREFERENCES.categoryColors };
+  }
+
+  return mergedColors;
+}
+
 export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [preferences, setPreferences] = useState<UserPreferences>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const storedPrefs = JSON.parse(stored);
-        
-        // Fusionner categoryOrder : ajouter les nouvelles catégories manquantes
+
         const storedCategoryIds = new Set(storedPrefs.categoryOrder?.map((cat: any) => cat.id) || []);
         const newCategories = DEFAULT_PREFERENCES.categoryOrder.filter(
           cat => !storedCategoryIds.has(cat.id)
         );
-        
+
         const mergedCategoryOrder = [
           ...(storedPrefs.categoryOrder || []),
           ...newCategories
         ];
-        
-        return { 
-          ...DEFAULT_PREFERENCES, 
+
+        return {
+          ...DEFAULT_PREFERENCES,
           ...storedPrefs,
-          categoryOrder: mergedCategoryOrder
+          categoryOrder: mergedCategoryOrder,
+          categoryColors: normalizeCategoryColors(storedPrefs.categoryColors),
         };
       }
     } catch (error) {
@@ -65,7 +95,7 @@ export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ chi
       showGamification: DEFAULT_PREFERENCES.showGamification,
       showTeams: DEFAULT_PREFERENCES.showTeams,
       categoryOrder: DEFAULT_PREFERENCES.categoryOrder.map(cat => ({ ...cat })),
-      categoryColors: DEFAULT_PREFERENCES.categoryColors,
+      categoryColors: { ...DEFAULT_PREFERENCES.categoryColors },
     }));
   };
 
