@@ -18,72 +18,50 @@ export interface CategoryColors {
 }
 
 export interface UserPreferences {
-  // Apparence
   theme: Theme;
   textSize: TextSize;
   highContrast: boolean;
   reducedAnimations: boolean;
-
-  // Notifications
   pushNotifications: boolean;
   soundEffects: boolean;
   vibrations: boolean;
   soundType: SoundType;
-
-  // Interface
   showHabits: boolean;
   showGamification: boolean;
   showTeams: boolean;
   categoryOrder: CategoryOrder[];
   categoryColors: CategoryColors;
-
-  // Barre latérale
   sidebarShowHabits: boolean;
   sidebarShowProjects: boolean;
   sidebarShowTeamTasks: boolean;
-
-  // Habitudes
   habitDailyReminders: boolean;
   habitReminderTime: string;
   habitDefaultFrequency: 'daily' | 'weekly';
   habitStrictMode: boolean;
-
-  // Gamification
   levelNotifications: boolean;
   showXpInHeader: boolean;
   autoDailyChallenges: boolean;
   showStreaks: boolean;
-
-  // Mode Focus
   focusModeEnabled: boolean;
   focusDuration: FocusDuration;
   focusHideNotifications: boolean;
   focusHideGamification: boolean;
   focusHideOtherViews: boolean;
-
-  // Timeline
-  timelineDefaultQuota: number; // en minutes (défaut: 240 = 4h)
-
-  // Filtres contextuels
+  timelineDefaultQuota: number;
   showProContext: boolean;
   allFilterIncludeTeams: boolean;
-  allFilterTeamIds: string[]; // vide = toutes les équipes
+  allFilterTeamIds: string[];
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  // Apparence
   theme: 'system',
   textSize: 'normal',
   highContrast: false,
   reducedAnimations: false,
-
-  // Notifications
   pushNotifications: true,
   soundEffects: true,
   vibrations: true,
   soundType: 'normal',
-
-  // Interface
   showHabits: true,
   showGamification: true,
   showTeams: true,
@@ -98,40 +76,28 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
     { id: 'completed', label: 'Terminées', order: 7, visible: true },
   ],
   categoryColors: {
-    Obligation: 'hsl(var(--destructive))',
-    Quotidien: 'hsl(var(--primary))',
-    Envie: 'hsl(var(--accent))',
-    Autres: 'hsl(var(--muted))',
+    Obligation: '#dc2626',
+    Quotidien: '#d97706',
+    Envie: '#16a34a',
+    Autres: '#8b5cf6',
   },
-
-  // Barre latérale
   sidebarShowHabits: false,
   sidebarShowProjects: false,
   sidebarShowTeamTasks: false,
-
-  // Habitudes
   habitDailyReminders: true,
   habitReminderTime: '09:00',
   habitDefaultFrequency: 'daily',
   habitStrictMode: false,
-
-  // Gamification
   levelNotifications: true,
   showXpInHeader: true,
   autoDailyChallenges: true,
   showStreaks: true,
-
-  // Mode Focus
   focusModeEnabled: false,
   focusDuration: 25,
   focusHideNotifications: true,
   focusHideGamification: true,
   focusHideOtherViews: false,
-
-  // Timeline
   timelineDefaultQuota: 240,
-
-  // Filtres contextuels
   showProContext: true,
   allFilterIncludeTeams: true,
   allFilterTeamIds: [],

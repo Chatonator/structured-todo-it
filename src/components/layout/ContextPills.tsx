@@ -11,6 +11,7 @@ import { TaskContext } from '@/types/task';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { cn } from '@/lib/utils';
+import { SegmentedControl, NavPill, headerSurfaceVariants } from '@/components/primitives/visual';
 
 interface ContextPillsProps {
   contextFilter: TaskContext | 'all';
@@ -19,7 +20,7 @@ interface ContextPillsProps {
 
 const ContextPills: React.FC<ContextPillsProps> = ({
   contextFilter,
-  onContextFilterChange
+  onContextFilterChange,
 }) => {
   const { teams, currentTeam, setCurrentTeam } = useTeamContext();
   const { preferences } = useUserPreferences();
@@ -30,7 +31,7 @@ const ContextPills: React.FC<ContextPillsProps> = ({
   };
 
   const handleTeamClick = (teamId: string) => {
-    const team = teams.find(t => t.id === teamId);
+    const team = teams.find((entry) => entry.id === teamId);
     if (team) {
       setCurrentTeam(team);
       onContextFilterChange('all');
@@ -51,55 +52,50 @@ const ContextPills: React.FC<ContextPillsProps> = ({
     { key: 'Pro', label: 'Pro', icon: Briefcase },
   ] as const;
 
-  const contexts = allContexts.filter(ctx => {
+  const contexts = allContexts.filter((ctx) => {
     if (ctx.key === 'Pro' && !preferences.showProContext) return false;
     return true;
   });
 
   return (
-    <div className="flex items-center gap-1">
-      {/* Pills segmentées pour contextes */}
-      <div className="header-surface flex items-center rounded-xl p-1">
+    <div className="flex items-center gap-1.5">
+      <SegmentedControl density="desktop" className="gap-0.5 rounded-xl">
         {contexts.map((ctx, index) => {
           const Icon = ctx.icon;
-          const active = isActive(ctx.key);
           return (
-            <button
+            <NavPill
               key={ctx.key}
+              density="mobile"
+              state={isActive(ctx.key) ? 'active' : 'inactive'}
               onClick={() => handleContextClick(ctx.key)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold transition-all duration-200",
-                index === 0 && "rounded-l-md",
-                index === contexts.length - 1 && !teams.length && "rounded-r-md",
-                active 
-                  ? "header-chip-active" 
-                  : "header-chip-inactive"
+                'min-h-0 gap-1.5 rounded-lg px-3 py-1.5',
+                index === 0 && 'rounded-l-lg',
+                index === contexts.length - 1 && !teams.length && 'rounded-r-lg'
               )}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{ctx.label}</span>
-            </button>
+            </NavPill>
           );
         })}
-      </div>
+      </SegmentedControl>
 
-      {/* Dropdown unique pour équipes (même avec 1 seule équipe) */}
       {teams.length > 0 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant={currentTeam ? 'default' : 'outline'}
+              variant='ghost'
               size="sm"
               className={cn(
-                "header-surface h-8 gap-1.5 px-3 text-foreground font-semibold",
-                currentTeam && "header-chip-active"
+                headerSurfaceVariants({ density: 'desktop' }),
+                'h-8 gap-1.5 px-3 type-filter-label',
+                currentTeam ? 'header-chip-active' : 'header-chip-inactive'
               )}
             >
-              <Users className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline max-w-[100px] truncate font-semibold">
-                {currentTeam?.name || 'Équipes'}
-              </span>
-              <ChevronDown className="w-3 h-3 opacity-60" />
+              <Users className="h-3.5 w-3.5" />
+              <span className="hidden max-w-[100px] truncate sm:inline">{currentTeam?.name || 'Équipes'}</span>
+              <ChevronDown className="h-3 w-3 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-[160px] bg-background border-border">
@@ -107,12 +103,9 @@ const ContextPills: React.FC<ContextPillsProps> = ({
               <DropdownMenuItem
                 key={team.id}
                 onClick={() => handleTeamClick(team.id)}
-                className={cn(
-                  "gap-2 cursor-pointer",
-                  currentTeam?.id === team.id && "bg-accent"
-                )}
+                className={cn('gap-2 cursor-pointer', currentTeam?.id === team.id && 'bg-accent')}
               >
-                <Users className="w-4 h-4" />
+                <Users className="h-4 w-4" />
                 <span>{team.name}</span>
               </DropdownMenuItem>
             ))}
@@ -124,3 +117,4 @@ const ContextPills: React.FC<ContextPillsProps> = ({
 };
 
 export default ContextPills;
+

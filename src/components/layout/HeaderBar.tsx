@@ -8,9 +8,9 @@ import { TaskContext } from '@/types/task';
 import ContextPills from '@/components/layout/ContextPills';
 import ViewNavigation from '@/components/layout/ViewNavigation';
 import UserProfileBlock from '@/components/layout/UserProfileBlock';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Team } from '@/hooks/useTeams';
+import { StatBadge, headerSurfaceVariants } from '@/components/primitives/visual';
 
 interface NavigationItem {
   key: string;
@@ -30,11 +30,6 @@ interface HeaderBarProps {
   currentTeam?: Team | null;
 }
 
-/**
- * HeaderBar - Composant de header bicouche
- * Niveau 1: Logo, recherche, actions
- * Niveau 2: Contextes et navigation des vues
- */
 const HeaderBar: React.FC<HeaderBarProps> = ({
   onOpenModal,
   onOpenTaskList,
@@ -44,95 +39,87 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
   currentView,
   onViewChange,
   navigationItems,
-  currentTeam
+  currentTeam,
 }) => {
   const [isBugHubOpen, setIsBugHubOpen] = useState(false);
 
   return (
     <header className="app-header-chroma bg-background">
-      {/* Niveau 1 - Barre principale */}
-      <div className="px-4 md:px-6 py-3">
+      <div className="px-4 py-3 md:px-6">
         <div className="flex items-center justify-between gap-4">
-          {/* Logo et titre */}
           <div className="flex items-center gap-2 md:gap-3">
             {isMobile && onOpenTaskList && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenTaskList}
-                className="h-9 w-9 p-0"
-              >
-                <Menu className="w-5 h-5" />
+              <Button variant="ghost" size="sm" onClick={onOpenTaskList} className="h-9 w-9 p-0">
+                <Menu className="h-5 w-5" />
               </Button>
             )}
-            
-            <div className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-xl shadow-sm">
-              <CheckSquare className="w-5 h-5 text-primary-foreground" />
+
+            <div className="rounded-xl bg-gradient-to-br from-primary to-primary/80 p-2 shadow-sm">
+              <CheckSquare className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">TO-DO-IT</h1>
+            <h1 className="type-view-title">TO-DO-IT</h1>
           </div>
-          
-          {/* Sélecteur de contexte (desktop) */}
+
           {!isMobile && (
             <ContextPills
               contextFilter={contextFilter}
               onContextFilterChange={onContextFilterChange}
             />
           )}
-          
-          {/* Actions rapides + Profil */}
+
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Team mode indicator */}
             {currentTeam && (
-              <Badge variant="secondary" className="header-surface gap-1.5 font-medium text-foreground">
-                <Users className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{currentTeam.name}</span>
-              </Badge>
+              <StatBadge className="type-filter-label hidden sm:inline-flex">
+                <Users className="h-3.5 w-3.5" />
+                <span>{currentTeam.name}</span>
+              </StatBadge>
             )}
 
-            {/* Bug report button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="header-surface text-foreground hover:bg-card hover:text-foreground"
+                  className={cn(headerSurfaceVariants({ density: 'desktop' }), 'header-chip-inactive h-10 w-10 p-0')}
                   onClick={() => setIsBugHubOpen(true)}
                 >
-                  <Bug className="w-4 h-4" />
+                  <Bug className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Signaler / Mes demandes</TooltipContent>
             </Tooltip>
 
-            {/* Notifications */}
             <NotificationPanel />
-            
+
             <Button
               onClick={onOpenModal}
-              size={isMobile ? "sm" : "default"}
+              size={isMobile ? 'sm' : 'default'}
               className={cn(
-                "border border-primary/25 shadow-lg hover:shadow-xl transition-all duration-200 gap-2 font-semibold",
-                currentTeam && "bg-primary"
+                'type-filter-label gap-2 border border-primary/25 shadow-lg transition-all duration-[var(--motion-standard-duration)] hover:shadow-xl',
+                currentTeam && 'bg-primary'
               )}
             >
-              <Plus className="w-4 h-4" />
-              {!isMobile && <span>{
-                currentTeam ? 'Tâche équipe' 
-                : contextFilter === 'Perso' ? 'Tâche Perso'
-                : contextFilter === 'Pro' ? 'Tâche Pro'
-                : 'Nouvelle tâche'
-              }</span>}
+              <Plus className="h-4 w-4" />
+              {!isMobile && (
+                <span>
+                  {currentTeam
+                    ? 'Tâche équipe'
+                    : contextFilter === 'Perso'
+                      ? 'Tâche Perso'
+                      : contextFilter === 'Pro'
+                        ? 'Tâche Pro'
+                        : 'Nouvelle tâche'}
+                </span>
+              )}
             </Button>
-            
+
             {!isMobile && <UserProfileBlock />}
           </div>
         </div>
       </div>
 
-      {/* Niveau 2 - Navigation des vues (desktop seulement) */}
       {!isMobile && (
-        <div className="px-4 md:px-6 pb-2">
+        <div className="px-4 pb-2 md:px-6">
           <ViewNavigation
             currentView={currentView}
             onViewChange={onViewChange}
@@ -140,6 +127,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
           />
         </div>
       )}
+
       <BugHub open={isBugHubOpen} onOpenChange={setIsBugHubOpen} />
     </header>
   );

@@ -1,0 +1,95 @@
+@layer base {
+  html.dark,
+  html[data-theme='dark'] {
+    --background: 25 25% 10%;
+    --foreground: 35 30% 90%;
+
+    --card: 25 20% 14%;
+    --card-foreground: 35 30% 90%;
+
+    --popover: 25 20% 14%;
+    --popover-foreground: 35 30% 90%;
+
+    --primary: 35 90% 55%;
+    --primary-foreground: 25 25% 10%;
+
+    --secondary: 25 15% 20%;
+    --secondary-foreground: 35 30% 90%;
+
+    --muted: 25 15% 18%;
+    --muted-foreground: 35 20% 60%;
+
+    --accent: 35 40% 22%;
+    --accent-foreground: 35 30% 90%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 35 30% 90%;
+
+    --border: 25 15% 22%;
+    --input: 25 15% 22%;
+    --ring: 35 90% 55%;
+
+    --sidebar-background: 25 20% 12%;
+    --sidebar-foreground: 35 30% 90%;
+    --sidebar-primary: 35 90% 55%;
+    --sidebar-primary-foreground: 25 25% 10%;
+    --sidebar-accent: 25 20% 18%;
+    --sidebar-accent-foreground: 35 30% 90%;
+    --sidebar-border: 25 15% 20%;
+    --sidebar-ring: 35 90% 55%;
+
+    --habit: 350 70% 55%;
+    --habit-light: 350 50% 20%;
+    --habit-dark: 350 65% 45%;
+    --habit-foreground: 0 0% 100%;
+
+    --reward: 43 90% 50%;
+    --reward-light: 43 50% 20%;
+    --reward-dark: 32 85% 40%;
+    --reward-foreground: 43 90% 95%;
+
+    --project: 258 65% 55%;
+    --project-light: 258 40% 22%;
+    --project-dark: 258 60% 45%;
+    --project-foreground: 0 0% 100%;
+
+    --system-success: 142 70% 50%;
+    --system-warning: 38 92% 58%;
+    --system-error: 0 72% 58%;
+    --system-info: 217 91% 70%;
+
+    --category-obligation: 0 72% 58%;
+    --category-obligation-light: 0 40% 20%;
+    --category-quotidien: 35 90% 55%;
+    --category-quotidien-light: 35 32% 20%;
+    --category-envie: 142 70% 50%;
+    --category-envie-light: 142 30% 20%;
+    --category-autres: 262 83% 68%;
+    --category-autres-light: 262 28% 22%;
+
+    --priority-highest: 0 72% 58%;
+    --priority-highest-light: 0 40% 20%;
+    --priority-highest-dark: 0 72% 48%;
+    --priority-high: 48 96% 58%;
+    --priority-high-light: 45 32% 20%;
+    --priority-high-dark: 45 96% 48%;
+    --priority-medium: 142 70% 50%;
+    --priority-medium-light: 142 30% 20%;
+    --priority-medium-dark: 142 70% 40%;
+    --priority-low: 217 91% 70%;
+    --priority-low-light: 217 28% 22%;
+    --priority-low-dark: 217 91% 60%;
+
+    --context-pro: 217 91% 70%;
+    --context-pro-light: 217 28% 22%;
+    --context-pro-dark: 217 91% 60%;
+    --context-perso: 262 83% 68%;
+    --context-perso-light: 262 28% 22%;
+    --context-perso-dark: 262 83% 58%;
+  }
+
+  html.dark {
+    --shadow-surface: 0 10px 24px hsl(0 0% 0% / 0.28);
+    --shadow-surface-strong: 0 16px 32px hsl(0 0% 0% / 0.34);
+  }
+}

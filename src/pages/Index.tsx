@@ -1,19 +1,13 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import AppFrame from '@/components/layout/AppFrame';
 import { AppProvider, useApp } from '@/contexts/AppContext';
 import { ViewDataProvider, useViewDataContext } from '@/contexts/ViewDataContext';
 import { SidebarProvider as AppSidebarProvider } from '@/contexts/SidebarContext';
 import { useTeamContext } from '@/contexts/TeamContext';
-import { useTheme } from '@/hooks/useTheme';
 import { useAppUpdates } from '@/hooks/useAppUpdates';
 import type { Task } from '@/types/task';
 
-/**
- * Contenu principal de l'application
- * Utilise les contextes pour éviter le prop drilling
- */
 const IndexContent: React.FC = () => {
-  const { theme } = useTheme();
   useAppUpdates();
 
   const {
@@ -25,23 +19,15 @@ const IndexContent: React.FC = () => {
     isTaskListOpen,
     setIsTaskListOpen,
     contextFilter,
-    setContextFilter
+    setContextFilter,
   } = useApp();
 
   const viewData = useViewDataContext();
-
-  // Team context integration
   const { currentTeam } = useTeamContext();
 
-  // Dynamic task creation handler
   const handleAddTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt'>) => {
     await viewData.addTask(task);
   }, [viewData]);
-
-  // Application du thème
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme || 'light');
-  }, [theme]);
 
   return (
     <AppFrame
@@ -60,10 +46,6 @@ const IndexContent: React.FC = () => {
   );
 };
 
-/**
- * Page principale - Wrapper avec providers
- * Ordre: AppProvider > ViewDataProvider > SidebarProvider > IndexContent
- */
 const Index: React.FC = () => {
   return (
     <AppProvider defaultView="home">

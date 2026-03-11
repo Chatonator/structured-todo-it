@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { HeaderSurface, NavPill, navPillVariants } from '@/components/primitives/visual';
 
 interface NavigationItem {
   key: string;
@@ -21,7 +22,6 @@ interface ViewNavigationProps {
   navigationItems: NavigationItem[];
 }
 
-// Map des icônes par clé de vue
 const iconMap: Record<string, React.ElementType> = {
   home: Home,
   observatory: Telescope,
@@ -36,18 +36,16 @@ const iconMap: Record<string, React.ElementType> = {
 const ViewNavigation: React.FC<ViewNavigationProps> = ({
   currentView,
   onViewChange,
-  navigationItems
+  navigationItems,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showOverflow, setShowOverflow] = useState(false);
   const [visibleCount, setVisibleCount] = useState(navigationItems.length);
 
-  // Calcul du nombre d'items visibles basé sur la largeur
   useEffect(() => {
     const checkOverflow = () => {
       if (scrollRef.current) {
         const containerWidth = scrollRef.current.offsetWidth;
-        // Environ 120px par bouton, on garde de la marge pour le menu overflow
         const maxVisible = Math.floor((containerWidth - 60) / 110);
         const shouldOverflow = navigationItems.length > maxVisible;
         setShowOverflow(shouldOverflow);
@@ -72,46 +70,35 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
         <DropdownMenuItem
           key={item.key}
           onClick={() => onViewChange(item.key)}
-          className={cn(
-            "gap-2 cursor-pointer",
-            isActive && "bg-accent font-medium"
-          )}
+          className={cn('gap-2 cursor-pointer', isActive && 'bg-accent font-medium')}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="h-4 w-4" />
           <span>{item.title}</span>
         </DropdownMenuItem>
       );
     }
 
     return (
-      <button
+      <NavPill
         key={item.key}
+        state={isActive ? 'active' : 'inactive'}
+        density="desktop"
         onClick={() => onViewChange(item.key)}
-        className={cn(
-          "relative flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-all duration-200 whitespace-nowrap",
-          isActive 
-            ? "header-chip-active" 
-            : "header-chip-inactive"
-        )}
+        className="gap-2"
       >
-        <Icon className="w-4 h-4" />
+        <Icon className="h-4 w-4" />
         <span>{item.title}</span>
-      </button>
+      </NavPill>
     );
   };
 
   return (
     <nav className="pb-3">
-      <div 
-        ref={scrollRef}
-        className="header-surface flex items-center gap-1 overflow-hidden rounded-2xl p-2"
-      >
-        {/* Items visibles avec scroll horizontal */}
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-1">
-          {visibleItems.map(item => renderNavButton(item))}
+      <HeaderSurface className="flex items-center gap-1 overflow-hidden rounded-2xl p-2">
+        <div ref={scrollRef} className="flex flex-1 items-center gap-1 overflow-x-auto scrollbar-none">
+          {visibleItems.map((item) => renderNavButton(item))}
         </div>
 
-        {/* Menu overflow */}
         {showOverflow && overflowItems.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -119,19 +106,19 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-9 w-9 p-0 shrink-0",
-                  overflowItems.some(item => item.key === currentView) && "header-chip-active"
+                  navPillVariants({ state: overflowItems.some((item) => item.key === currentView) ? 'active' : 'inactive' }),
+                  'h-9 w-9 shrink-0 p-0'
                 )}
               >
-                <MoreHorizontal className="w-4 h-4" />
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[160px]">
-              {overflowItems.map(item => renderNavButton(item, true))}
+              {overflowItems.map((item) => renderNavButton(item, true))}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-      </div>
+      </HeaderSurface>
     </nav>
   );
 };

@@ -1,22 +1,21 @@
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useTheme } from "@/hooks/useTheme";
-import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
-import JoinTeam from "./pages/JoinTeam";
-import { TeamManagement } from "./components/team/TeamManagement";
-import BugReportsAdmin from "./components/bugs/BugReportsAdmin";
-import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { TeamProvider } from "@/contexts/TeamContext";
-import { TimeTrackerProvider } from "@/contexts/TimeTrackerContext";
-import { UserPreferencesProvider } from "@/hooks/useUserPreferences";
-import { logger } from "@/lib/logger";
-import { ViewportProvider } from "@/contexts/ViewportContext";
+import { Toaster } from '@/components/ui/toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import Index from './pages/Index';
+import Auth from './pages/Auth';
+import NotFound from './pages/NotFound';
+import JoinTeam from './pages/JoinTeam';
+import { TeamManagement } from './components/team/TeamManagement';
+import BugReportsAdmin from './components/bugs/BugReportsAdmin';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { TeamProvider } from '@/contexts/TeamContext';
+import { TimeTrackerProvider } from '@/contexts/TimeTrackerContext';
+import { UserPreferencesProvider } from '@/hooks/useUserPreferences';
+import { logger } from '@/lib/logger';
+import { ViewportProvider } from '@/contexts/ViewportContext';
+import AppearanceProvider from '@/components/providers/AppearanceProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,28 +28,12 @@ const queryClient = new QueryClient({
   },
 });
 
-const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const { theme } = useTheme();
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    logger.debug('Theme applied', { theme });
-  }, [theme]);
-
-  return <>{children}</>;
-};
-
-// ⚠️ DEV MODE: Bypass authentication for visual development
 const DEV_BYPASS_AUTH = true;
-
-// Admin UUID — stored only here, never in user-accessible files
 const ADMIN_USER_ID = 'a72dc5ca-c281-46c0-a16c-139676705564';
 
-// Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
 
-  // Bypass auth in dev mode
   if (DEV_BYPASS_AUTH) {
     return <>{children}</>;
   }
@@ -73,7 +56,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Public Route component (redirects to main app if authenticated)
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -95,7 +77,6 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Admin Route — always checks real auth regardless of DEV_BYPASS_AUTH
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
@@ -127,7 +108,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <ViewportProvider>
         <UserPreferencesProvider>
-          <ThemeProvider>
+          <AppearanceProvider>
             <TeamProvider>
               <TimeTrackerProvider>
                 <TooltipProvider>
@@ -173,7 +154,7 @@ const App = () => (
                 </TooltipProvider>
               </TimeTrackerProvider>
             </TeamProvider>
-          </ThemeProvider>
+          </AppearanceProvider>
         </UserPreferencesProvider>
       </ViewportProvider>
     </QueryClientProvider>

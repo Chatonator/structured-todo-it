@@ -19,6 +19,13 @@ export const GamificationSettings: React.FC = () => {
           checked={preferences.showStreaks}
           onCheckedChange={(checked) => updatePreferences({ showStreaks: checked })}
         />
+        <SettingsToggle
+          id="showXpInHeader"
+          label="Afficher le niveau et l'XP dans le header"
+          description="Masquez le bloc niveau / XP du header si vous voulez une interface plus sobre"
+          checked={preferences.showXpInHeader}
+          onCheckedChange={(checked) => updatePreferences({ showXpInHeader: checked })}
+        />
       </SettingsSection>
     </div>
   );

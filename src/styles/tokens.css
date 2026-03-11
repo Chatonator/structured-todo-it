@@ -1,0 +1,68 @@
+@layer base {
+  :root {
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+
+    --shadow-surface: 0 10px 24px hsl(25 35% 20% / 0.12);
+    --shadow-surface-strong: 0 16px 32px hsl(25 35% 20% / 0.18);
+    --shadow-accent: 0 8px 18px hsl(var(--primary) / 0.28);
+
+    --surface-1: var(--card);
+    --surface-2: var(--muted);
+    --surface-overlay: var(--background);
+
+    --text-1: var(--foreground);
+    --text-2: var(--muted-foreground);
+    --text-inverse: var(--primary-foreground);
+
+    --border-1: var(--border);
+    --border-2: var(--input);
+
+    --header-surface-opacity: 0.6;
+    --header-surface-hover-opacity: 0.74;
+    --header-surface-border-opacity: 0.58;
+
+    --motion-gradient-duration: 36s;
+    --motion-standard-duration: 200ms;
+
+    --type-scale: 1;
+    --type-view-title-size: calc(1.25rem * var(--type-scale));
+    --type-section-title-size: calc(1rem * var(--type-scale));
+    --type-nav-size: calc(0.9375rem * var(--type-scale));
+    --type-filter-size: calc(0.875rem * var(--type-scale));
+    --type-meta-size: calc(0.75rem * var(--type-scale));
+  }
+
+  html[data-text-size='small'] {
+    --type-scale: 0.92;
+    font-size: 15px;
+  }
+
+  html[data-text-size='normal'] {
+    --type-scale: 1;
+    font-size: 16px;
+  }
+
+  html[data-text-size='large'] {
+    --type-scale: 1.08;
+    font-size: 17px;
+  }
+
+  html[data-text-size='xlarge'] {
+    --type-scale: 1.16;
+    font-size: 18px;
+  }
+
+  html[data-contrast='high'] {
+    --surface-1: var(--background);
+    --surface-2: var(--secondary);
+    --text-2: var(--foreground);
+    --border-1: var(--foreground);
+    --border-2: var(--foreground);
+    --header-surface-opacity: 0.82;
+    --header-surface-hover-opacity: 0.92;
+    --header-surface-border-opacity: 0.88;
+  }
+}
