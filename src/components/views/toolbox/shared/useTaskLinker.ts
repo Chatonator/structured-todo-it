@@ -291,7 +291,7 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
     return [...result].sort((left, right) => compareTasks(left, right, sort));
   }, [baseAvailable, filters, sort]);
 
-  const filteredAvailableTasks = useMemo(() => filteredTasks.slice(0, 50), [filteredTasks]);
+  const filteredAvailableTasks = useMemo(() => filteredTasks, [filteredTasks]);
   const groupBy = useMemo(() => inferGroupBy(filters), [filters]);
   const groupedAvailableTasks = useMemo(
     () => buildGroups(filteredAvailableTasks, groupBy, projectLabels),
