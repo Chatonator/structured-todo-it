@@ -90,8 +90,8 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
         className={cn(
           "relative flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-all duration-200 whitespace-nowrap",
           isActive 
-            ? "bg-primary text-primary-foreground shadow-md" 
-            : "text-foreground hover:bg-card/95 hover:text-foreground"
+            ? "header-chip-active" 
+            : "header-chip-inactive"
         )}
       >
         <Icon className="w-4 h-4" />
@@ -104,7 +104,7 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
     <nav className="pb-3">
       <div 
         ref={scrollRef}
-        className="flex items-center gap-1 overflow-hidden rounded-2xl border border-border/80 bg-card/88 p-2 shadow-lg backdrop-blur"
+        className="header-surface flex items-center gap-1 overflow-hidden rounded-2xl p-2"
       >
         {/* Items visibles avec scroll horizontal */}
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-1">
@@ -120,7 +120,7 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
                 size="sm"
                 className={cn(
                   "h-9 w-9 p-0 shrink-0",
-                  overflowItems.some(item => item.key === currentView) && "bg-primary text-primary-foreground shadow-md"
+                  overflowItems.some(item => item.key === currentView) && "header-chip-active"
                 )}
               >
                 <MoreHorizontal className="w-4 h-4" />

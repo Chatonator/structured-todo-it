@@ -453,6 +453,32 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(180deg, hsl(var(--background) / 0.42), hsl(var(--background) / 0.68));
 }
 
+.header-surface {
+  background: hsl(var(--card) / 0.9);
+  border: 1px solid hsl(var(--border) / 0.8);
+  box-shadow: 0 10px 24px hsl(25 35% 20% / 0.12);
+  backdrop-filter: blur(14px);
+}
+
+.header-chip-active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 8px 18px hsl(var(--primary) / 0.28);
+}
+
+.header-chip-inactive {
+  color: hsl(var(--foreground));
+}
+
+.header-chip-inactive:hover {
+  background: hsl(var(--card) / 0.95);
+  color: hsl(var(--foreground));
+}
+
+.dark .header-surface {
+  box-shadow: 0 10px 24px hsl(0 0% 0% / 0.28);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-header-chroma::before {
     animation: none;
