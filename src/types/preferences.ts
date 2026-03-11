@@ -31,6 +31,7 @@ export interface UserPreferences {
   showTeams: boolean;
   categoryOrder: CategoryOrder[];
   categoryColors: CategoryColors;
+  categoryPaletteVersion: number;
   sidebarShowHabits: boolean;
   sidebarShowProjects: boolean;
   sidebarShowTeamTasks: boolean;
@@ -52,6 +53,8 @@ export interface UserPreferences {
   allFilterIncludeTeams: boolean;
   allFilterTeamIds: string[];
 }
+
+export const CATEGORY_PALETTE_VERSION = 2;
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'system',
@@ -81,6 +84,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
     Envie: '#22c55e',
     Autres: '#3b82f6',
   },
+  categoryPaletteVersion: CATEGORY_PALETTE_VERSION,
   sidebarShowHabits: false,
   sidebarShowProjects: false,
   sidebarShowTeamTasks: false,
@@ -102,4 +106,3 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   allFilterIncludeTeams: true,
   allFilterTeamIds: [],
 };
-

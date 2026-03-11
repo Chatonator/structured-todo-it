@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart as PieIcon } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CategoryStat } from '@/hooks/view-data/useObservatoryViewData';
 import { TaskCategory, CATEGORY_DISPLAY_NAMES } from '@/types/task';
 
@@ -10,20 +10,11 @@ interface CategoryDonutProps {
   totalActive: number;
 }
 
-// Category colors matching the design system
-const CATEGORY_COLORS: Record<TaskCategory, string> = {
-  'Obligation': 'hsl(var(--category-obligation))',
-  'Quotidien': 'hsl(var(--category-quotidien))',
-  'Envie': 'hsl(var(--category-envie))',
-  'Autres': 'hsl(var(--category-autres))',
-};
-
-// Fallback colors if CSS vars not available
 const FALLBACK_COLORS: Record<TaskCategory, string> = {
-  'Obligation': '#ef4444',
-  'Quotidien': '#3b82f6',
-  'Envie': '#22c55e',
-  'Autres': '#a855f7',
+  Obligation: '#ef4444',
+  Quotidien: '#eab308',
+  Envie: '#22c55e',
+  Autres: '#3b82f6',
 };
 
 export const CategoryDonut: React.FC<CategoryDonutProps> = ({ data, totalActive }) => {
@@ -36,9 +27,9 @@ export const CategoryDonut: React.FC<CategoryDonutProps> = ({ data, totalActive 
 
   const getColor = (category: TaskCategory): string => {
     try {
-      // Try to get computed CSS color
       const root = document.documentElement;
-      const cssVar = getComputedStyle(root).getPropertyValue(`--category-${category.toLowerCase()}`);
+      const cssVarName = `--category-${category.toLowerCase()}`;
+      const cssVar = getComputedStyle(root).getPropertyValue(cssVarName).trim();
       if (cssVar) return `hsl(${cssVar})`;
     } catch {}
     return FALLBACK_COLORS[category];
@@ -47,13 +38,13 @@ export const CategoryDonut: React.FC<CategoryDonutProps> = ({ data, totalActive 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <PieIcon className="w-4 h-4 text-primary" />
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <PieIcon className="h-4 w-4 text-primary" />
           Répartition par catégorie
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-48 relative">
+        <div className="relative h-48">
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -67,8 +58,8 @@ export const CategoryDonut: React.FC<CategoryDonutProps> = ({ data, totalActive 
                   dataKey="value"
                 >
                   {chartData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
+                    <Cell
+                      key={`cell-${index}`}
                       fill={getColor(entry.category)}
                       stroke="hsl(var(--background))"
                       strokeWidth={2}
@@ -84,20 +75,19 @@ export const CategoryDonut: React.FC<CategoryDonutProps> = ({ data, totalActive 
                   }}
                   formatter={(value: number, name: string, props: any) => [
                     `${value} tâche${value > 1 ? 's' : ''} (${props.payload.percentage}%)`,
-                    name
+                    name,
                   ]}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               Aucune tâche active
             </div>
           )}
-          
-          {/* Center label */}
+
           {chartData.length > 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="text-center">
                 <div className="text-2xl font-bold">{totalActive}</div>
                 <div className="text-xs text-muted-foreground">actives</div>
@@ -106,12 +96,11 @@ export const CategoryDonut: React.FC<CategoryDonutProps> = ({ data, totalActive 
           )}
         </div>
 
-        {/* Legend */}
-        <div className="flex flex-wrap justify-center gap-3 mt-2">
+        <div className="mt-2 flex flex-wrap justify-center gap-3">
           {data.map(item => (
             <div key={item.category} className="flex items-center gap-1.5">
-              <div 
-                className="w-3 h-3 rounded-full"
+              <div
+                className="h-3 w-3 rounded-full"
                 style={{ backgroundColor: getColor(item.category) }}
               />
               <span className="text-xs text-muted-foreground">

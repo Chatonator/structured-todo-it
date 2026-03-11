@@ -4,14 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { UnrefinedTask } from '@/types/gamification';
+import type { TaskCategory } from '@/types/task';
 import { Pickaxe, AlertTriangle, CheckCircle2 } from 'lucide-react';
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Obligation: 'bg-orange-500',
-  Envie: 'bg-emerald-500',
-  Quotidien: 'bg-sky-500',
-  Autres: 'bg-muted-foreground',
-};
+import { getCategoryIndicatorColor } from '@/lib/styling';
 
 interface RefinementPanelProps {
   tasks: UnrefinedTask[];
@@ -50,11 +45,11 @@ const RefinementPanel: React.FC<RefinementPanelProps> = ({ tasks, onRefine, onRe
     : `Raffiner tout (${tasks.length})`;
 
   return (
-    <Card className="p-4 border-primary/20 h-full">
+    <Card className="h-full border-primary/20 p-4">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Pickaxe className="w-4 h-4 text-primary" />
+            <Pickaxe className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-bold text-foreground">Travail accompli</h3>
           </div>
           {tasks.length > 0 && (
@@ -66,32 +61,30 @@ const RefinementPanel: React.FC<RefinementPanelProps> = ({ tasks, onRefine, onRe
 
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
-            <CheckCircle2 className="w-8 h-8 text-muted-foreground/40 mb-2" />
+            <CheckCircle2 className="mb-2 h-8 w-8 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">Aucune tâche à raffiner</p>
             <p className="text-xs text-muted-foreground/60">Complétez des tâches pour gagner du temps</p>
           </div>
         ) : (
           <>
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+            <div className="max-h-64 space-y-1.5 overflow-y-auto">
               {tasks.map(task => (
                 <div
                   key={task.transactionId}
-                  className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-accent/50"
                 >
                   <Checkbox
                     checked={selected.has(task.transactionId)}
                     onCheckedChange={() => toggle(task.transactionId)}
                   />
-                  <div
-                    className={`w-1 h-6 rounded-full ${CATEGORY_COLORS[task.category] || CATEGORY_COLORS.Autres}`}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate text-justify">{task.taskName}</p>
+                  <div className={`h-6 w-1 rounded-full ${getCategoryIndicatorColor(task.category as TaskCategory)}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-justify text-xs font-medium text-foreground">{task.taskName}</p>
                     <p className="text-[10px] text-muted-foreground">{task.category}</p>
                   </div>
                   {task.weeksElapsed > 0 && (
-                    <div className="flex items-center gap-1 text-[10px] text-destructive shrink-0">
-                      <AlertTriangle className="w-3 h-3" />
+                    <div className="flex shrink-0 items-center gap-1 text-[10px] text-destructive">
+                      <AlertTriangle className="h-3 w-3" />
                       <span>-{Math.round(task.decayPct)}%</span>
                     </div>
                   )}
@@ -105,7 +98,7 @@ const RefinementPanel: React.FC<RefinementPanelProps> = ({ tasks, onRefine, onRe
               size="sm"
               className="w-full"
             >
-              <Pickaxe className="w-3.5 h-3.5 mr-1.5" />
+              <Pickaxe className="mr-1.5 h-3.5 w-3.5" />
               {refining ? 'Raffinage...' : label}
             </Button>
           </>
@@ -116,3 +109,4 @@ const RefinementPanel: React.FC<RefinementPanelProps> = ({ tasks, onRefine, onRe
 };
 
 export default RefinementPanel;
+
