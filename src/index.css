@@ -454,8 +454,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .header-surface {
-  background: hsl(var(--card) / 0.9);
-  border: 1px solid hsl(var(--border) / 0.8);
+  background: hsl(var(--card) / 0.68);
+  border: 1px solid hsl(var(--border) / 0.72);
   box-shadow: 0 10px 24px hsl(25 35% 20% / 0.12);
   backdrop-filter: blur(14px);
 }
@@ -471,7 +471,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .header-chip-inactive:hover {
-  background: hsl(var(--card) / 0.95);
+  background: hsl(var(--card) / 0.82);
   color: hsl(var(--foreground));
 }
 
