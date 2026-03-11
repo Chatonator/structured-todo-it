@@ -39,7 +39,7 @@ const UserProfileBlock: React.FC = () => {
     <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="group flex items-center gap-3 rounded-lg border border-border/70 bg-background/82 px-3 py-2 shadow-md backdrop-blur transition-colors hover:bg-background/92">
+        <button className="group flex items-center gap-3 rounded-xl border border-border/80 bg-card/90 px-3 py-2 shadow-lg backdrop-blur transition-colors hover:bg-card">
           <Avatar className="h-10 w-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all">
             <AvatarImage src={user?.user_metadata?.avatar_url} />
             <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
@@ -58,7 +58,7 @@ const UserProfileBlock: React.FC = () => {
             </div>
             <Progress 
               value={xpPercentage} 
-              className="h-1.5 w-full bg-background/88"
+              className="h-1.5 w-full bg-muted/80"
             />
           </div>
         </button>

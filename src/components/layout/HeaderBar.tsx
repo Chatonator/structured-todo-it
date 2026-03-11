@@ -84,7 +84,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
           <div className="flex items-center gap-2 md:gap-3">
             {/* Team mode indicator */}
             {currentTeam && (
-              <Badge variant="secondary" className="gap-1.5 border-primary/20 bg-background/72 font-medium text-foreground shadow-sm backdrop-blur">
+              <Badge variant="secondary" className="gap-1.5 border-border/80 bg-card/90 font-medium text-foreground shadow-lg backdrop-blur">
                 <Users className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{currentTeam.name}</span>
               </Badge>
@@ -96,7 +96,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="border border-border/60 bg-background/70 text-foreground/85 shadow-sm backdrop-blur hover:bg-background/85 hover:text-foreground"
+                  className="border border-border/80 bg-card/90 text-foreground shadow-lg backdrop-blur hover:bg-card hover:text-foreground"
                   onClick={() => setIsBugHubOpen(true)}
                 >
                   <Bug className="w-4 h-4" />
@@ -112,7 +112,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
               onClick={onOpenModal}
               size={isMobile ? "sm" : "default"}
               className={cn(
-                "shadow-sm hover:shadow-md transition-all duration-200 gap-2",
+                "border border-primary/25 shadow-lg hover:shadow-xl transition-all duration-200 gap-2",
                 currentTeam && "bg-primary"
               )}
             >
