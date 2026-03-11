@@ -88,10 +88,10 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
         key={item.key}
         onClick={() => onViewChange(item.key)}
         className={cn(
-          "relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap rounded-md",
+          "relative flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-all duration-200 whitespace-nowrap",
           isActive 
-            ? "bg-primary text-primary-foreground shadow-sm" 
-            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            ? "bg-background/88 text-foreground shadow-sm ring-1 ring-white/45 backdrop-blur" 
+            : "text-foreground/85 hover:bg-background/62 hover:text-foreground"
         )}
       >
         <Icon className="w-4 h-4" />
@@ -104,7 +104,7 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
     <nav className="px-4 md:px-6 pb-3">
       <div 
         ref={scrollRef}
-        className="flex items-center gap-1 bg-muted/30 p-1.5 rounded-xl border border-border/50 overflow-hidden"
+        className="flex items-center gap-1 overflow-hidden rounded-xl border border-border/60 bg-background/52 p-1.5 shadow-sm backdrop-blur"
       >
         {/* Items visibles avec scroll horizontal */}
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-1">
@@ -120,7 +120,7 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
                 size="sm"
                 className={cn(
                   "h-9 w-9 p-0 shrink-0",
-                  overflowItems.some(item => item.key === currentView) && "bg-accent"
+                  overflowItems.some(item => item.key === currentView) && "bg-background/82 text-foreground"
                 )}
               >
                 <MoreHorizontal className="w-4 h-4" />

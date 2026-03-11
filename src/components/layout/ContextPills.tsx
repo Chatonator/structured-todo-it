@@ -59,7 +59,7 @@ const ContextPills: React.FC<ContextPillsProps> = ({
   return (
     <div className="flex items-center gap-1">
       {/* Pills segmentées pour contextes */}
-      <div className="flex items-center bg-muted/50 p-0.5 rounded-lg border border-border/50">
+      <div className="flex items-center rounded-lg border border-border/60 bg-background/58 p-0.5 shadow-sm backdrop-blur">
         {contexts.map((ctx, index) => {
           const Icon = ctx.icon;
           const active = isActive(ctx.key);
@@ -68,12 +68,12 @@ const ContextPills: React.FC<ContextPillsProps> = ({
               key={ctx.key}
               onClick={() => handleContextClick(ctx.key)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-all duration-200",
+                "flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold transition-all duration-200",
                 index === 0 && "rounded-l-md",
                 index === contexts.length - 1 && !teams.length && "rounded-r-md",
                 active 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  ? "bg-background/88 text-foreground shadow-sm ring-1 ring-white/45 backdrop-blur" 
+                  : "text-foreground/85 hover:bg-background/62 hover:text-foreground"
               )}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -91,8 +91,8 @@ const ContextPills: React.FC<ContextPillsProps> = ({
               variant={currentTeam ? 'default' : 'outline'}
               size="sm"
               className={cn(
-                "h-8 px-3 gap-1.5 border-border/50",
-                currentTeam && "bg-primary text-primary-foreground border-primary"
+                "h-8 gap-1.5 border-border/60 bg-background/72 px-3 text-foreground shadow-sm backdrop-blur",
+                currentTeam && "bg-background/88 text-foreground ring-1 ring-white/45"
               )}
             >
               <Users className="w-3.5 h-3.5" />
