@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import AppFrame from '@/components/layout/AppFrame';
 import { AppProvider, useApp } from '@/contexts/AppContext';
 import { ViewDataProvider, useViewDataContext } from '@/contexts/ViewDataContext';
@@ -23,7 +23,19 @@ const IndexContent: React.FC = () => {
   } = useApp();
 
   const viewData = useViewDataContext();
-  const { currentTeam } = useTeamContext();
+  const { currentTeam, teams, setCurrentTeam } = useTeamContext();
+
+  useEffect(() => {
+    if (currentView !== 'team' || teams.length === 0) return;
+
+    if (!currentTeam) {
+      setCurrentTeam(teams[0]);
+    }
+
+    if (contextFilter !== 'all') {
+      setContextFilter('all');
+    }
+  }, [contextFilter, currentTeam, currentView, setContextFilter, setCurrentTeam, teams]);
 
   const handleAddTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt'>) => {
     await viewData.addTask(task);
