@@ -132,7 +132,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
 
       {/* Niveau 2 - Navigation des vues (desktop seulement) */}
       {!isMobile && (
-        <div className="px-4 md:px-6 py-2 bg-muted/20 border-t border-border/30">
+        <div className="app-header-chroma border-t border-border/30 px-4 md:px-6 py-2">
           <ViewNavigation
             currentView={currentView}
             onViewChange={onViewChange}
