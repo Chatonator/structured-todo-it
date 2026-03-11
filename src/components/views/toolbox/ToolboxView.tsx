@@ -44,16 +44,16 @@ const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
   const activeTool = activeToolId ? getToolById(activeToolId) : null;
   const sheetTool = sheetToolId ? getToolById(sheetToolId) : null;
 
-  // Click on card → open Sheet with details
+  // Click on card -> launch tool directly
   const handleSelectTool = useCallback((toolId: string) => {
-    setSheetToolId(toolId);
-  }, []);
-
-  // Quick launch → go directly to inline tool
-  const handleQuickLaunch = useCallback((toolId: string) => {
     markToolLaunched(toolId);
     setLaunchedTools(getLaunchedTools());
     setActiveToolId(toolId);
+  }, []);
+
+  // Info button -> open Sheet with details
+  const handleQuickLaunch = useCallback((toolId: string) => {
+    setSheetToolId(toolId);
   }, []);
 
   // Launch from Sheet detail view
@@ -159,3 +159,4 @@ const ToolboxView: React.FC<ToolboxViewProps> = ({ className }) => {
 };
 
 export default ToolboxView;
+
