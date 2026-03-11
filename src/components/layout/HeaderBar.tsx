@@ -49,7 +49,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
   const [isBugHubOpen, setIsBugHubOpen] = useState(false);
 
   return (
-    <header className="bg-background border-b border-border">
+    <header className="app-header-chroma border-b border-border bg-background">
       {/* Niveau 1 - Barre principale */}
       <div className="px-4 md:px-6 py-3">
         <div className="flex items-center justify-between gap-4">
