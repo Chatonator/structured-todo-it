@@ -25,8 +25,8 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   const currentViewConfig = getViewConfig(currentView);
 
   return (
-    <header className="app-header-chroma sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
-      <div className="px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+0.875rem)]">
+    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+      <div className="app-header-chroma px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+0.875rem)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">TO-DO-IT</p>

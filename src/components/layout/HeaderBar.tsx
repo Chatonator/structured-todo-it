@@ -49,9 +49,9 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
   const [isBugHubOpen, setIsBugHubOpen] = useState(false);
 
   return (
-    <header className="app-header-chroma border-b border-border bg-background">
+    <header className="border-b border-border bg-background">
       {/* Niveau 1 - Barre principale */}
-      <div className="px-4 md:px-6 py-3">
+      <div className="app-header-chroma px-4 md:px-6 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logo et titre */}
           <div className="flex items-center gap-2 md:gap-3">
