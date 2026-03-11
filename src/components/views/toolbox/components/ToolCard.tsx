@@ -44,7 +44,7 @@ const ToolCard: React.FC<ToolCardProps> = ({
       )}
     >
       {(tool.isNew || tool.isBeta) && (
-        <div className="absolute -right-2 -top-2">
+        <div className="absolute left-2 top-2">
           {tool.isNew && (
             <Badge className="bg-primary px-1.5 text-[10px] text-primary-foreground">
               Nouveau
