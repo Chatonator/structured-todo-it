@@ -4,6 +4,7 @@ import { Task, TaskContext, TaskCategory, SubTaskCategory } from '@/types/task';
 import { loadDailyStorage, saveDailyStorage } from '@/lib/storage';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllTeamProjects } from '@/hooks/useAllTeamProjects';
+import { buildTaskLinkerGroups, compareTaskLinkerTasks, inferTaskLinkerGroupBy } from './taskLinker.helpers';
 
 export type TaskLinkerMode = 'single' | 'multi';
 export type TaskLinkerSort = 'none' | 'name' | 'time' | 'priority';
@@ -56,146 +57,6 @@ export interface UseTaskLinkerReturn {
 
   canSelectMore: boolean;
   mode: TaskLinkerMode;
-}
-
-const PRIORITY_ORDER: Record<SubTaskCategory, number> = {
-  'Le plus important': 0,
-  Important: 1,
-  'Peut attendre': 2,
-  "Si j'ai le temps": 3,
-};
-
-const CATEGORY_GROUP_LABELS: Record<TaskCategory, string> = {
-  Obligation: 'Cruciales',
-  Quotidien: 'Regulieres',
-  Envie: 'Envies',
-  Autres: 'Optionnelles',
-};
-
-const CONTEXT_GROUP_LABELS: Record<TaskContext, string> = {
-  Pro: 'Pro',
-  Perso: 'Perso',
-};
-
-const SCOPE_GROUP_LABELS: Record<Exclude<TaskLinkerScope, 'all'>, string> = {
-  free: 'Taches libres',
-  project: 'Projet',
-};
-
-function compareTasks(left: Task, right: Task, sort: TaskLinkerSort): number {
-  switch (sort) {
-    case 'name':
-      return left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' });
-    case 'time':
-      return (right.estimatedTime || 0) - (left.estimatedTime || 0) || left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' });
-    case 'priority': {
-      const leftRank = left.subCategory ? PRIORITY_ORDER[left.subCategory] : 99;
-      const rightRank = right.subCategory ? PRIORITY_ORDER[right.subCategory] : 99;
-      return leftRank - rightRank || left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' });
-    }
-    case 'none':
-    default:
-      return 0;
-  }
-}
-
-function inferGroupBy(filters: TaskLinkerFilters): TaskLinkerGroupBy {
-  if (filters.scope === 'all') {
-    return 'mixed';
-  }
-
-  if (filters.scope === 'project') {
-    return 'project';
-  }
-
-  if (filters.priority !== 'all') {
-    return 'none';
-  }
-
-  if (filters.context === 'all') {
-    return 'context';
-  }
-
-  if (filters.category === 'all') {
-    return 'category';
-  }
-
-  return 'none';
-}
-
-function getProjectLabel(task: Task, projectLabels: Map<string, string>): string {
-  if (!task.projectId) {
-    return SCOPE_GROUP_LABELS.free;
-  }
-
-  return projectLabels.get(task.projectId) || 'Projet inconnu';
-}
-
-function getGroupLabel(groupBy: TaskLinkerGroupBy, task: Task, projectLabels: Map<string, string>): string {
-  if (groupBy === 'mixed' || groupBy === 'project') {
-    return getProjectLabel(task, projectLabels);
-  }
-
-  if (groupBy === 'context') {
-    return CONTEXT_GROUP_LABELS[task.context];
-  }
-
-  if (groupBy === 'category') {
-    return CATEGORY_GROUP_LABELS[task.category];
-  }
-
-  return 'Taches';
-}
-
-function getGroupId(groupBy: TaskLinkerGroupBy, task: Task): string {
-  if (groupBy === 'mixed' || groupBy === 'project') {
-    return task.projectId ? `project:${task.projectId}` : 'scope:free';
-  }
-
-  if (groupBy === 'context') {
-    return `context:${task.context}`;
-  }
-
-  if (groupBy === 'category') {
-    return `category:${task.category}`;
-  }
-
-  return 'all';
-}
-
-function sortGroups(groups: TaskLinkerGroup[]): TaskLinkerGroup[] {
-  return [...groups].sort((left, right) => {
-    if (left.id === 'scope:free') return -1;
-    if (right.id === 'scope:free') return 1;
-    return left.label.localeCompare(right.label, 'fr', { sensitivity: 'base' });
-  });
-}
-
-function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy, projectLabels: Map<string, string>): TaskLinkerGroup[] {
-  if (groupBy === 'none') {
-    return [{ id: 'all', label: 'Taches', count: tasks.length, tasks }];
-  }
-
-  const grouped = new Map<string, TaskLinkerGroup>();
-
-  tasks.forEach((task) => {
-    const id = getGroupId(groupBy, task);
-    const existing = grouped.get(id);
-    if (existing) {
-      existing.tasks.push(task);
-      existing.count += 1;
-      return;
-    }
-
-    grouped.set(id, {
-      id,
-      label: getGroupLabel(groupBy, task, projectLabels),
-      count: 1,
-      tasks: [task],
-    });
-  });
-
-  return sortGroups(Array.from(grouped.values()));
 }
 
 export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerReturn {
@@ -288,13 +149,13 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
       result = result.filter(t => t.name.toLowerCase().includes(q));
     }
 
-    return [...result].sort((left, right) => compareTasks(left, right, sort));
+    return [...result].sort((left, right) => compareTaskLinkerTasks(left, right, sort));
   }, [baseAvailable, filters, sort]);
 
   const filteredAvailableTasks = useMemo(() => filteredTasks, [filteredTasks]);
-  const groupBy = useMemo(() => inferGroupBy(filters), [filters]);
+  const groupBy = useMemo(() => inferTaskLinkerGroupBy(filters), [filters]);
   const groupedAvailableTasks = useMemo(
-    () => buildGroups(filteredAvailableTasks, groupBy, projectLabels),
+    () => buildTaskLinkerGroups(filteredAvailableTasks, groupBy, projectLabels),
     [filteredAvailableTasks, groupBy, projectLabels]
   );
 

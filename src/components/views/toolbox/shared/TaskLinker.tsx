@@ -12,6 +12,7 @@ import { getCategoryClasses } from '@/lib/styling';
 import { cn } from '@/lib/utils';
 import { Task, TaskContext, TaskCategory, SubTaskCategory } from '@/types/task';
 import { TaskLinkerGroup, TaskLinkerGroupBy, TaskLinkerScope, TaskLinkerSort } from './useTaskLinker';
+import { buildTaskLinkerGroups, compareTaskLinkerTasks, inferTaskLinkerGroupBy } from './taskLinker.helpers';
 
 export interface TaskLinkerProps {
   mode: 'single' | 'multi';
@@ -80,77 +81,6 @@ const SORT_OPTIONS: { value: TaskLinkerSort; label: string }[] = [
   { value: 'time', label: 'Duree' },
   { value: 'priority', label: 'Priorite' },
 ];
-
-const PRIORITY_ORDER: Record<SubTaskCategory, number> = {
-  'Le plus important': 0,
-  Important: 1,
-  'Peut attendre': 2,
-  "Si j'ai le temps": 3,
-};
-
-function compareTasks(left: Task, right: Task, sort: TaskLinkerSort): number {
-  switch (sort) {
-    case 'name':
-      return left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' });
-    case 'time':
-      return (right.estimatedTime || 0) - (left.estimatedTime || 0) || left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' });
-    case 'priority': {
-      const leftRank = left.subCategory ? PRIORITY_ORDER[left.subCategory] : 99;
-      const rightRank = right.subCategory ? PRIORITY_ORDER[right.subCategory] : 99;
-      return leftRank - rightRank || left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' });
-    }
-    case 'none':
-    default:
-      return 0;
-  }
-}
-
-function inferGroupBy(
-  scopeFilter: TaskLinkerScope,
-  contextFilter: TaskContext | 'all',
-  categoryFilter: TaskCategory | 'all',
-  priorityFilter: SubTaskCategory | 'all' | 'none'
-): TaskLinkerGroupBy {
-  if (scopeFilter === 'all') return 'mixed';
-  if (scopeFilter === 'project') return 'project';
-  if (priorityFilter !== 'all') return 'none';
-  if (contextFilter === 'all') return 'context';
-  if (categoryFilter === 'all') return 'category';
-  return 'none';
-}
-
-function buildGroups(tasks: Task[], groupBy: TaskLinkerGroupBy): TaskLinkerGroup[] {
-  if (groupBy === 'none') {
-    return [{ id: 'all', label: 'Taches', count: tasks.length, tasks }];
-  }
-
-  const groups = new Map<string, TaskLinkerGroup>();
-
-  tasks.forEach((task) => {
-    const id = groupBy === 'mixed' || groupBy === 'project'
-      ? task.projectId ? `project:${task.projectId}` : 'scope:free'
-      : groupBy === 'context'
-        ? `context:${task.context}`
-        : `category:${task.category}`;
-
-    const label = groupBy === 'mixed' || groupBy === 'project'
-      ? task.projectId ? 'Projet' : 'Tâches libres'
-      : groupBy === 'context'
-        ? task.context
-        : CATEGORY_OPTIONS.find((option) => option.value === task.category)?.label || task.category;
-
-    const existing = groups.get(id);
-    if (existing) {
-      existing.tasks.push(task);
-      existing.count += 1;
-      return;
-    }
-
-    groups.set(id, { id, label, count: 1, tasks: [task] });
-  });
-
-  return Array.from(groups.values());
-}
 
 const FilterChips: React.FC<{
   scopeFilter: TaskLinkerScope;
@@ -492,11 +422,11 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
       return filteredAvailableTasks;
     }
 
-    return [...filteredAvailableTasks].sort((left, right) => compareTasks(left, right, effectiveSort));
+    return [...filteredAvailableTasks].sort((left, right) => compareTaskLinkerTasks(left, right, effectiveSort));
   }, [filteredAvailableTasks, groupedAvailableTasks, effectiveSort]);
 
   const effectiveGroupBy = useMemo(
-    () => groupBy ?? inferGroupBy(effectiveScope, contextFilter, categoryFilter, priorityFilter),
+    () => groupBy ?? inferTaskLinkerGroupBy({ search: '', scope: effectiveScope, context: contextFilter, category: categoryFilter, priority: priorityFilter }),
     [groupBy, effectiveScope, contextFilter, categoryFilter, priorityFilter]
   );
 
@@ -504,7 +434,7 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
     if (groupedAvailableTasks) {
       return groupedAvailableTasks;
     }
-    return buildGroups(sortedTasks, effectiveGroupBy);
+    return buildTaskLinkerGroups(sortedTasks, effectiveGroupBy);
   }, [groupedAvailableTasks, sortedTasks, effectiveGroupBy]);
 
   const handleSelect = (id: string) => {
