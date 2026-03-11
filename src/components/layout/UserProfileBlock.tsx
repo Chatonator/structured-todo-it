@@ -49,10 +49,10 @@ const UserProfileBlock: React.FC = () => {
           
           <div className="flex flex-col items-start gap-1 min-w-[120px]">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground">
+              <span className="text-sm font-semibold text-foreground">
                 Niveau {progress?.currentLevel || 1}
               </span>
-              <span className="text-xs font-semibold text-foreground/88">
+              <span className="text-xs font-semibold tracking-tight text-foreground/88">
                 {progress?.totalXp || 0} XP
               </span>
             </div>

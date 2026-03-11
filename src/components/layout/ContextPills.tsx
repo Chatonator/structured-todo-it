@@ -91,12 +91,12 @@ const ContextPills: React.FC<ContextPillsProps> = ({
               variant={currentTeam ? 'default' : 'outline'}
               size="sm"
               className={cn(
-                "header-surface h-8 gap-1.5 px-3 text-foreground",
+                "header-surface h-8 gap-1.5 px-3 text-foreground font-semibold",
                 currentTeam && "header-chip-active"
               )}
             >
               <Users className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline max-w-[100px] truncate">
+              <span className="hidden sm:inline max-w-[100px] truncate font-semibold">
                 {currentTeam?.name || 'Équipes'}
               </span>
               <ChevronDown className="w-3 h-3 opacity-60" />

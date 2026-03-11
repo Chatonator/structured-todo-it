@@ -112,7 +112,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
               onClick={onOpenModal}
               size={isMobile ? "sm" : "default"}
               className={cn(
-                "border border-primary/25 shadow-lg hover:shadow-xl transition-all duration-200 gap-2",
+                "border border-primary/25 shadow-lg hover:shadow-xl transition-all duration-200 gap-2 font-semibold",
                 currentTeam && "bg-primary"
               )}
             >
