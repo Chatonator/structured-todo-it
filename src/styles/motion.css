@@ -1,6 +1,6 @@
-@keyframes header-gradient-shift {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes header-gradient-loop {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .app-header-chroma {
@@ -12,18 +12,26 @@
 .app-header-chroma::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(45deg,
-    rgb(255 107 107 / 0.95),
-    rgb(254 202 87 / 0.92),
-    rgb(72 219 251 / 0.9),
-    rgb(29 209 161 / 0.92),
-    rgb(95 39 205 / 0.94),
-    rgb(255 107 107 / 0.95)
+  inset-block: 0;
+  left: 0;
+  width: 200%;
+  background: linear-gradient(
+    45deg,
+    rgb(255 107 107 / 0.95) 0%,
+    rgb(254 202 87 / 0.92) 10%,
+    rgb(72 219 251 / 0.9) 20%,
+    rgb(29 209 161 / 0.92) 30%,
+    rgb(95 39 205 / 0.94) 40%,
+    rgb(255 107 107 / 0.95) 50%,
+    rgb(254 202 87 / 0.92) 60%,
+    rgb(72 219 251 / 0.9) 70%,
+    rgb(29 209 161 / 0.92) 80%,
+    rgb(95 39 205 / 0.94) 90%,
+    rgb(255 107 107 / 0.95) 100%
   );
-  background-size: 400% 400%;
-  animation: header-gradient-shift var(--motion-gradient-duration) linear infinite;
+  animation: header-gradient-loop var(--motion-gradient-duration) linear infinite;
   opacity: 1;
+  will-change: transform;
 }
 
 .app-header-chroma::after {
@@ -53,12 +61,12 @@ html[data-theme='dark'] .app-header-chroma::after {
 
 html[data-motion='reduced'] .app-header-chroma::before {
   animation: none;
-  background-position: 50% 50%;
+  transform: translateX(0);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .app-header-chroma::before {
     animation: none;
-    background-position: 50% 50%;
+    transform: translateX(0);
   }
 }
