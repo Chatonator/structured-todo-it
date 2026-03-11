@@ -39,7 +39,7 @@ const UserProfileBlock: React.FC = () => {
     <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="group flex items-center gap-3 rounded-lg border border-border/60 bg-background/70 px-3 py-2 shadow-sm backdrop-blur transition-colors hover:bg-background/85">
+        <button className="group flex items-center gap-3 rounded-lg border border-white/30 bg-background/58 px-3 py-2 shadow-sm backdrop-blur transition-colors hover:bg-background/82">
           <Avatar className="h-10 w-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all">
             <AvatarImage src={user?.user_metadata?.avatar_url} />
             <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
@@ -49,10 +49,10 @@ const UserProfileBlock: React.FC = () => {
           
           <div className="flex flex-col items-start gap-1 min-w-[120px]">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground">
+              <span className="app-header-adaptive-ink text-sm font-semibold">
                 Niveau {progress?.currentLevel || 1}
               </span>
-              <span className="text-xs font-medium text-foreground/72">
+              <span className="app-header-adaptive-soft text-xs font-semibold">
                 {progress?.totalXp || 0} XP
               </span>
             </div>

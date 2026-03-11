@@ -132,9 +132,9 @@ export const NotificationPanel: React.FC = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="relative border border-border/60 bg-background/70 text-foreground/85 shadow-sm backdrop-blur hover:bg-background/85 hover:text-foreground"
+              className="relative border border-border/60 bg-background/72 shadow-sm backdrop-blur hover:bg-background/88"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="app-header-adaptive-ink w-4 h-4" />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full flex items-center justify-center">
                   {unreadCount > 9 ? '9+' : unreadCount}
