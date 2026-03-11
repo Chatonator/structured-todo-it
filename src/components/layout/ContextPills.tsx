@@ -59,7 +59,7 @@ const ContextPills: React.FC<ContextPillsProps> = ({
   return (
     <div className="flex items-center gap-1">
       {/* Pills segmentées pour contextes */}
-      <div className="flex items-center rounded-lg border border-border/70 bg-background/78 p-0.5 shadow-md backdrop-blur">
+      <div className="flex items-center rounded-xl border border-border/80 bg-card/90 p-1 shadow-lg backdrop-blur">
         {contexts.map((ctx, index) => {
           const Icon = ctx.icon;
           const active = isActive(ctx.key);
@@ -72,8 +72,8 @@ const ContextPills: React.FC<ContextPillsProps> = ({
                 index === 0 && "rounded-l-md",
                 index === contexts.length - 1 && !teams.length && "rounded-r-md",
                 active 
-                  ? "bg-background/94 text-foreground shadow-md ring-1 ring-white/65 backdrop-blur" 
-                  : "text-foreground/92 hover:bg-background/82 hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-md" 
+                  : "text-foreground hover:bg-card/95 hover:text-foreground"
               )}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -91,8 +91,8 @@ const ContextPills: React.FC<ContextPillsProps> = ({
               variant={currentTeam ? 'default' : 'outline'}
               size="sm"
               className={cn(
-                "h-8 gap-1.5 border-border/70 bg-background/82 px-3 text-foreground shadow-md backdrop-blur",
-                currentTeam && "bg-background/94 text-foreground shadow-md ring-1 ring-white/65"
+                "h-8 gap-1.5 border-border/80 bg-card/90 px-3 text-foreground shadow-lg backdrop-blur",
+                currentTeam && "bg-primary text-primary-foreground shadow-md"
               )}
             >
               <Users className="w-3.5 h-3.5" />
