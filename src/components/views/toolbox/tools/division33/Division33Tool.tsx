@@ -126,7 +126,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
     return selectedImportedIds.filter((id) => id !== activeSlot?.sourceTaskId);
   }, [selectedImportedIds, activeSlot?.sourceTaskId]);
 
-  const importer = useTaskLinker({ mode: 'single', initialScope: 'free', excludeIds: importerExcludeIds });
+  const importer = useTaskLinker({ mode: 'single', excludeIds: importerExcludeIds });
   const selectedImportedTask = importer.selectedTasks[0] ?? null;
 
   const rootImportedTask = useMemo(() => {
@@ -558,7 +558,6 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 onSortChange={importer.setSort}
                 placeholder="Choisir une tâche..."
                 variant="inline"
-                showScopeFilter={false}
               />
             )}
 
