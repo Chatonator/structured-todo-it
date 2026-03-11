@@ -433,7 +433,7 @@ h1, h2, h3, h4, h5, h6 {
     rgb(255 107 107 / 0.95)
   );
   background-size: 400% 400%;
-  animation: header-gradient-shift 12s ease infinite;
+  animation: header-gradient-shift 36s ease infinite;
   opacity: 1;
 }
 
