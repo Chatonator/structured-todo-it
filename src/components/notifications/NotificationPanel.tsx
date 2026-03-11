@@ -132,7 +132,7 @@ export const NotificationPanel: React.FC = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="relative border border-border/60 bg-background/70 text-foreground/85 shadow-sm backdrop-blur hover:bg-background/85 hover:text-foreground"
+              className="relative border border-border/70 bg-background/82 text-foreground shadow-md backdrop-blur hover:bg-background/92 hover:text-foreground"
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
