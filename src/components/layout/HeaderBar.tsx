@@ -49,9 +49,9 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
   const [isBugHubOpen, setIsBugHubOpen] = useState(false);
 
   return (
-    <header className="app-header-chroma border-b border-border bg-background">
+    <header className="border-b border-border bg-background">
       {/* Niveau 1 - Barre principale */}
-      <div className="px-4 md:px-6 py-3">
+      <div className="app-header-chroma px-4 md:px-6 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logo et titre */}
           <div className="flex items-center gap-2 md:gap-3">
@@ -69,7 +69,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
             <div className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-xl shadow-sm">
               <CheckSquare className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className="app-header-adaptive-ink text-xl font-bold tracking-tight">TO-DO-IT</h1>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">TO-DO-IT</h1>
           </div>
           
           {/* Sélecteur de contexte (desktop) */}
@@ -96,10 +96,10 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="border border-border/60 bg-background/72 shadow-sm backdrop-blur hover:bg-background/88"
+                  className="border border-border/60 bg-background/70 text-foreground/85 shadow-sm backdrop-blur hover:bg-background/85 hover:text-foreground"
                   onClick={() => setIsBugHubOpen(true)}
                 >
-                  <Bug className="app-header-adaptive-ink w-4 h-4" />
+                  <Bug className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Signaler / Mes demandes</TooltipContent>
@@ -132,7 +132,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
 
       {/* Niveau 2 - Navigation des vues (desktop seulement) */}
       {!isMobile && (
-        <div className="px-4 md:px-6 py-2">
+        <div className="app-header-chroma border-t border-border/30 px-4 md:px-6 py-2">
           <ViewNavigation
             currentView={currentView}
             onViewChange={onViewChange}
