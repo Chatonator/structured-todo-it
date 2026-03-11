@@ -168,6 +168,7 @@ const SlotSection: React.FC<SlotSectionProps> = ({
             selectedTasks={[]}
             filteredAvailableTasks={linker.filteredAvailableTasks}
             groupedAvailableTasks={linker.groupedAvailableTasks}
+            groupBy={linker.groupBy}
             filteredCount={linker.filteredCount}
             totalCount={linker.totalCount}
             search={linker.filters.search}
@@ -290,3 +291,4 @@ const Rule135Tool: React.FC<ToolProps> = () => {
 };
 
 export default Rule135Tool;
+

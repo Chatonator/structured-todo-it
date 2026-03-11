@@ -1,7 +1,9 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useViewDataContext } from '@/contexts/ViewDataContext';
 import { Task, TaskContext, TaskCategory, SubTaskCategory } from '@/types/task';
 import { loadDailyStorage, saveDailyStorage } from '@/lib/storage';
+import { useProjects } from '@/hooks/useProjects';
+import { useAllTeamProjects } from '@/hooks/useAllTeamProjects';
 
 export type TaskLinkerMode = 'single' | 'multi';
 export type TaskLinkerSort = 'none' | 'name' | 'time' | 'priority';
@@ -200,7 +202,9 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
   const { mode, maxSelection, storageKey, excludeIds = [], initialScope = 'all' } = options;
   const effectiveMax = mode === 'single' ? 1 : (maxSelection ?? Infinity);
 
-  const { tasks, sidebarProjects } = useViewDataContext();
+  const { tasks } = useViewDataContext();
+  const { projects } = useProjects();
+  const { allTeamProjects } = useAllTeamProjects();
 
   const fullKey = storageKey ? `taskLinker:${storageKey}` : undefined;
 
@@ -245,10 +249,25 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
   const setPriorityFilter = useCallback((priority: SubTaskCategory | 'all' | 'none') => setFilters(f => ({ ...f, priority })), []);
 
   const excludeSet = useMemo(() => new Set([...excludeIds, ...selectedIds]), [excludeIds, selectedIds]);
-  const projectLabels = useMemo(
-    () => new Map(sidebarProjects.map((project) => [project.id, project.name])),
-    [sidebarProjects]
-  );
+  const projectLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    projects.forEach((project) => labels.set(project.id, project.name));
+    allTeamProjects.forEach((project) => labels.set(project.id, project.name));
+    return labels;
+  }, [projects, allTeamProjects]);
+  const availableTaskIds = useMemo(() => new Set(tasks.map((task) => task.id)), [tasks]);
+  const excludedIds = useMemo(() => new Set(excludeIds), [excludeIds]);
+
+  useEffect(() => {
+    setSelectedIds((previous) => {
+      const next = previous.filter((id) => availableTaskIds.has(id) && !excludedIds.has(id));
+      if (next.length === previous.length) {
+        return previous;
+      }
+      persistIds(next);
+      return next;
+    });
+  }, [availableTaskIds, excludedIds, persistIds]);
 
   const baseAvailable = useMemo(() => tasks.filter(t => !t.isCompleted && !excludeSet.has(t.id)), [tasks, excludeSet]);
 
@@ -309,3 +328,4 @@ export function useTaskLinker(options: UseTaskLinkerOptions): UseTaskLinkerRetur
     mode,
   };
 }
+

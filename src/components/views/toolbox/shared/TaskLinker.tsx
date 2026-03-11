@@ -19,6 +19,7 @@ export interface TaskLinkerProps {
   selectedTasks: Task[];
   filteredAvailableTasks: Task[];
   groupedAvailableTasks?: TaskLinkerGroup[];
+  groupBy?: TaskLinkerGroupBy;
   filteredCount?: number;
   totalCount?: number;
   search: string;
@@ -452,6 +453,7 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
   selectedTasks,
   filteredAvailableTasks,
   groupedAvailableTasks,
+  groupBy,
   filteredCount,
   totalCount,
   search,
@@ -485,14 +487,17 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
   const handleSortChange = onSortChange ?? setInternalSort;
   const handleScopeChange = onScopeFilterChange ?? setInternalScope;
 
-  const sortedTasks = useMemo(
-    () => [...filteredAvailableTasks].sort((left, right) => compareTasks(left, right, effectiveSort)),
-    [filteredAvailableTasks, effectiveSort]
-  );
+  const sortedTasks = useMemo(() => {
+    if (groupedAvailableTasks) {
+      return filteredAvailableTasks;
+    }
+
+    return [...filteredAvailableTasks].sort((left, right) => compareTasks(left, right, effectiveSort));
+  }, [filteredAvailableTasks, groupedAvailableTasks, effectiveSort]);
 
   const effectiveGroupBy = useMemo(
-    () => inferGroupBy(effectiveScope, contextFilter, categoryFilter, priorityFilter),
-    [effectiveScope, contextFilter, categoryFilter, priorityFilter]
+    () => groupBy ?? inferGroupBy(effectiveScope, contextFilter, categoryFilter, priorityFilter),
+    [groupBy, effectiveScope, contextFilter, categoryFilter, priorityFilter]
   );
 
   const effectiveGroups = useMemo(() => {
@@ -585,3 +590,4 @@ export const TaskLinker: React.FC<TaskLinkerProps> = ({
 };
 
 export default TaskLinker;
+

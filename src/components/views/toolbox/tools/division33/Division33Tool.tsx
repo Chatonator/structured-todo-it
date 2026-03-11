@@ -539,6 +539,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 selectedTasks={importer.selectedTasks}
                 filteredAvailableTasks={importer.filteredAvailableTasks}
                 groupedAvailableTasks={importer.groupedAvailableTasks}
+                groupBy={importer.groupBy}
                 filteredCount={importer.filteredCount}
                 totalCount={importer.totalCount}
                 search={importer.filters.search}

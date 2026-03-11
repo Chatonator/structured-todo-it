@@ -175,6 +175,7 @@ const PomodoroTool: React.FC<ToolProps> = () => {
           selectedTasks={linker.selectedTasks}
           filteredAvailableTasks={linker.filteredAvailableTasks}
           groupedAvailableTasks={linker.groupedAvailableTasks}
+          groupBy={linker.groupBy}
           search={linker.filters.search}
           scopeFilter={linker.filters.scope}
           contextFilter={linker.filters.context}
@@ -206,3 +207,4 @@ function SliderRow({ label, value, min, max, onChange }: { label: string; value:
 }
 
 export default PomodoroTool;
+
