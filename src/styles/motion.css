@@ -18,17 +18,18 @@
   background: linear-gradient(
     45deg,
     rgb(255 107 107 / 0.95) 0%,
-    rgb(254 202 87 / 0.92) 10%,
-    rgb(72 219 251 / 0.9) 20%,
+    rgb(254 202 87 / 0.92) 8%,
+    rgb(72 219 251 / 0.9) 18%,
     rgb(29 209 161 / 0.92) 30%,
-    rgb(95 39 205 / 0.94) 40%,
+    rgb(95 39 205 / 0.94) 42%,
     rgb(255 107 107 / 0.95) 50%,
-    rgb(254 202 87 / 0.92) 60%,
-    rgb(72 219 251 / 0.9) 70%,
+    rgb(254 202 87 / 0.92) 58%,
+    rgb(72 219 251 / 0.9) 68%,
     rgb(29 209 161 / 0.92) 80%,
-    rgb(95 39 205 / 0.94) 90%,
+    rgb(95 39 205 / 0.94) 92%,
     rgb(255 107 107 / 0.95) 100%
   );
+  background-size: 100% 100%;
   animation: header-gradient-loop var(--motion-gradient-duration) linear infinite;
   opacity: 1;
   will-change: transform;
