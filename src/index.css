@@ -425,11 +425,12 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   inset: 0;
   background: linear-gradient(120deg,
-    hsl(var(--primary) / 0.18),
-    hsl(var(--reward) / 0.12),
-    hsl(var(--habit) / 0.14),
-    hsl(var(--project) / 0.16),
-    hsl(var(--primary) / 0.18)
+    rgb(255 107 107 / 0.42),
+    rgb(254 202 87 / 0.34),
+    rgb(72 219 251 / 0.32),
+    rgb(29 209 161 / 0.34),
+    rgb(95 39 205 / 0.38),
+    rgb(255 107 107 / 0.42)
   );
   background-size: 240% 240%;
   animation: header-gradient-shift 16s ease infinite;
@@ -440,7 +441,7 @@ h1, h2, h3, h4, h5, h6 {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, hsl(var(--background) / 0.78), hsl(var(--background) / 0.94));
+  background: linear-gradient(180deg, hsl(var(--background) / 0.72), hsl(var(--background) / 0.9));
 }
 
 .app-header-chroma > * {
@@ -449,7 +450,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dark .app-header-chroma::after {
-  background: linear-gradient(180deg, hsl(var(--background) / 0.72), hsl(var(--background) / 0.9));
+  background: linear-gradient(180deg, hsl(var(--background) / 0.76), hsl(var(--background) / 0.92));
 }
 
 @media (prefers-reduced-motion: reduce) {
