@@ -115,44 +115,19 @@ const Division33Tool: React.FC<ToolProps> = () => {
   const [rootCategory, setRootCategory] = useState<TaskCategory>('Autres');
   const [rootDuration, setRootDuration] = useState(DEFAULT_ROOT_DURATION);
 
-  const importer = useTaskLinker({ mode: 'single', initialScope: 'free' });
   const activeSlot = activeSlotId ? slots[activeSlotId] : null;
   const isRootEditor = activeSlotId === ROOT_SLOT_ID;
 
-  const selectedImportedTask = importer.selectedTasks[0] ?? null;
   const selectedImportedIds = useMemo(() => {
     return ALL_SLOT_IDS.map((slotId) => slots[slotId].sourceTaskId).filter(Boolean) as string[];
   }, [slots]);
 
-  const selectableTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      if (task.isCompleted) return false;
-      if (importer.filters.scope === 'free' && task.projectId) return false;
-      if (importer.filters.scope === 'project' && !task.projectId) return false;
-      if (selectedImportedIds.includes(task.id) && task.id !== activeSlot?.sourceTaskId) return false;
-      if (importer.filters.context !== 'all' && task.context !== importer.filters.context) return false;
-      if (importer.filters.category !== 'all' && task.category !== importer.filters.category) return false;
-      if (importer.filters.priority === 'none' && task.subCategory) return false;
-      if (importer.filters.priority !== 'all' && importer.filters.priority !== 'none' && task.subCategory !== importer.filters.priority) return false;
-      if (importer.filters.search.trim() && !task.name.toLowerCase().includes(importer.filters.search.toLowerCase())) return false;
-      return true;
-    }).slice(0, 50);
-  }, [tasks, selectedImportedIds, activeSlot, importer.filters]);
+  const importerExcludeIds = useMemo(() => {
+    return selectedImportedIds.filter((id) => id !== activeSlot?.sourceTaskId);
+  }, [selectedImportedIds, activeSlot?.sourceTaskId]);
 
-  const totalSelectableTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      if (task.isCompleted) return false;
-      if (importer.filters.scope === 'free' && task.projectId) return false;
-      if (importer.filters.scope === 'project' && !task.projectId) return false;
-      if (selectedImportedIds.includes(task.id) && task.id !== activeSlot?.sourceTaskId) return false;
-      if (importer.filters.context !== 'all' && task.context !== importer.filters.context) return false;
-      if (importer.filters.category !== 'all' && task.category !== importer.filters.category) return false;
-      if (importer.filters.priority === 'none' && task.subCategory) return false;
-      if (importer.filters.priority !== 'all' && importer.filters.priority !== 'none' && task.subCategory !== importer.filters.priority) return false;
-      if (importer.filters.search.trim() && !task.name.toLowerCase().includes(importer.filters.search.toLowerCase())) return false;
-      return true;
-    }).length;
-  }, [tasks, selectedImportedIds, activeSlot, importer.filters]);
+  const importer = useTaskLinker({ mode: 'single', initialScope: 'free', excludeIds: importerExcludeIds });
+  const selectedImportedTask = importer.selectedTasks[0] ?? null;
 
   const rootImportedTask = useMemo(() => {
     const rootId = slots.root.sourceTaskId;
@@ -562,14 +537,16 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 mode="single"
                 max={1}
                 selectedTasks={importer.selectedTasks}
-                filteredAvailableTasks={selectableTasks}
-                filteredCount={selectableTasks.length}
-                totalCount={totalSelectableTasks}
+                filteredAvailableTasks={importer.filteredAvailableTasks}
+                groupedAvailableTasks={importer.groupedAvailableTasks}
+                filteredCount={importer.filteredCount}
+                totalCount={importer.totalCount}
                 search={importer.filters.search}
                 scopeFilter={importer.filters.scope}
                 contextFilter={importer.filters.context}
                 categoryFilter={importer.filters.category}
                 priorityFilter={importer.filters.priority}
+                sortOption={importer.sort}
                 canSelectMore={importer.canSelectMore}
                 onSelect={importer.select}
                 onDeselect={importer.deselect}
@@ -578,6 +555,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
                 onContextFilterChange={importer.setContextFilter}
                 onCategoryFilterChange={importer.setCategoryFilter}
                 onPriorityFilterChange={importer.setPriorityFilter}
+                onSortChange={importer.setSort}
                 placeholder="Choisir une tâche..."
                 variant="inline"
                 showScopeFilter={false}
