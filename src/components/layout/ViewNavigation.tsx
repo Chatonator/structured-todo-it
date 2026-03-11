@@ -101,7 +101,7 @@ const ViewNavigation: React.FC<ViewNavigationProps> = ({
   };
 
   return (
-    <nav className="px-4 md:px-6 pb-3">
+    <nav className="pb-3">
       <div 
         ref={scrollRef}
         className="flex items-center gap-1 overflow-hidden rounded-xl border border-border/60 bg-background/52 p-1.5 shadow-sm backdrop-blur"

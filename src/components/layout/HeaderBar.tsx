@@ -49,9 +49,9 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
   const [isBugHubOpen, setIsBugHubOpen] = useState(false);
 
   return (
-    <header className="bg-background">
+    <header className="app-header-chroma bg-background">
       {/* Niveau 1 - Barre principale */}
-      <div className="app-header-chroma px-4 md:px-6 py-3">
+      <div className="px-4 md:px-6 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logo et titre */}
           <div className="flex items-center gap-2 md:gap-3">
@@ -132,7 +132,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
 
       {/* Niveau 2 - Navigation des vues (desktop seulement) */}
       {!isMobile && (
-        <div className="app-header-chroma px-4 md:px-6 pb-2">
+        <div className="px-4 md:px-6 pb-2">
           <ViewNavigation
             currentView={currentView}
             onViewChange={onViewChange}
