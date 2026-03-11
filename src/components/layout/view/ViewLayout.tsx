@@ -7,6 +7,7 @@ import { ViewErrorState, ViewErrorStateProps } from './ViewErrorState';
 import { ViewEmptyState, ViewEmptyStateProps } from './ViewEmptyState';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { useViewport } from '@/contexts/ViewportContext';
 
 export type ViewState = 'idle' | 'loading' | 'error' | 'empty' | 'success';
 
@@ -21,28 +22,28 @@ export interface BreadcrumbItem {
 export interface ViewLayoutProps {
   // Header configuration
   header?: ViewHeaderProps;
-  
+
   // Content configuration
   contentProps?: Omit<ViewContentProps, 'children'>;
-  
+
   // State management
   state?: ViewState;
   loadingProps?: ViewLoadingStateProps;
   errorProps?: ViewErrorStateProps;
   emptyProps?: ViewEmptyStateProps;
-  
+
   // Layout variant
   variant?: ViewVariant;
-  
+
   // Breadcrumb / Back navigation
   breadcrumb?: BreadcrumbItem[];
   showBackButton?: boolean;
   backButtonLabel?: string;
   onBack?: () => void;
-  
+
   // Children
   children: React.ReactNode;
-  
+
   // Styling
   className?: string;
   containerClassName?: string;
@@ -56,22 +57,6 @@ const variantClasses: Record<ViewVariant, string> = {
   grid: '',
 };
 
-/**
- * ViewLayout - Conteneur principal pour toutes les vues
- * 
- * Supporte différentes variantes de layout, breadcrumb/navigation retour,
- * et gestion centralisée des états (loading, error, empty).
- * 
- * @example
- * <ViewLayout
- *   header={{ title: "Mes tâches", icon: <CheckSquare /> }}
- *   variant="list"
- *   showBackButton
- *   onBack={() => navigate(-1)}
- * >
- *   <TaskList tasks={tasks} />
- * </ViewLayout>
- */
 export const ViewLayout: React.FC<ViewLayoutProps> = ({
   header,
   contentProps,
@@ -82,12 +67,14 @@ export const ViewLayout: React.FC<ViewLayoutProps> = ({
   variant = 'dashboard',
   breadcrumb,
   showBackButton = false,
-  backButtonLabel = "Retour",
+  backButtonLabel = 'Retour',
   onBack,
   children,
   className,
   containerClassName,
 }) => {
+  const { isPhone, isTabletCompact } = useViewport();
+
   const renderContent = () => {
     switch (state) {
       case 'loading':
@@ -107,44 +94,40 @@ export const ViewLayout: React.FC<ViewLayoutProps> = ({
   const hasBackNavigation = showBackButton && onBack;
 
   return (
-    <div className={cn(
-      "flex flex-col h-full min-h-0 overflow-hidden",
-      containerClassName
-    )}>
-      <div className={cn(
-        "flex-1 flex flex-col min-h-0 p-4 md:p-6",
-        variantClasses[variant],
-        className
-      )}>
-        {/* Breadcrumb / Back navigation */}
+    <div className={cn('flex flex-col h-full min-h-0 overflow-hidden', containerClassName)}>
+      <div
+        className={cn(
+          'flex-1 flex flex-col min-h-0',
+          isPhone ? 'p-4' : isTabletCompact ? 'p-5' : 'p-4 md:p-6',
+          variantClasses[variant],
+          className
+        )}
+      >
         {(hasBreadcrumb || hasBackNavigation) && (
-          <nav className="flex items-center gap-2 mb-4 text-sm">
+          <nav className="mb-4 flex items-center gap-2 text-sm">
             {hasBackNavigation && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onBack}
-                className="gap-1 text-muted-foreground hover:text-foreground -ml-2"
+                className="-ml-2 gap-1 text-muted-foreground hover:text-foreground"
               >
                 <ArrowLeft className="w-4 h-4" />
                 {backButtonLabel}
               </Button>
             )}
-            
+
             {hasBreadcrumb && (
               <div className="flex items-center gap-1 text-muted-foreground">
                 {breadcrumb.map((item, index) => (
                   <React.Fragment key={index}>
                     {index > 0 && <span className="mx-1">/</span>}
                     {item.onClick ? (
-                      <button
-                        onClick={item.onClick}
-                        className="hover:text-foreground transition-colors"
-                      >
+                      <button onClick={item.onClick} className="transition-colors hover:text-foreground">
                         {item.label}
                       </button>
                     ) : (
-                      <span className={index === breadcrumb.length - 1 ? "text-foreground font-medium" : ""}>
+                      <span className={index === breadcrumb.length - 1 ? 'font-medium text-foreground' : ''}>
                         {item.label}
                       </span>
                     )}
@@ -155,14 +138,10 @@ export const ViewLayout: React.FC<ViewLayoutProps> = ({
           </nav>
         )}
 
-        {header && (
-          <ViewHeader {...header} />
-        )}
-        
+        {header && <ViewHeader {...header} />}
+
         <ViewContent {...contentProps}>
-          <div className="pb-20 md:pb-6">
-            {renderContent()}
-          </div>
+          <div className={cn(isPhone ? 'pb-6' : 'pb-20 md:pb-6')}>{renderContent()}</div>
         </ViewContent>
       </div>
     </div>

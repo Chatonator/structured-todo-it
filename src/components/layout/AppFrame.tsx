@@ -1,15 +1,14 @@
 import React from 'react';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
 import AppSidebar from '@/components/sidebar/AppSidebar';
 import TaskModal from '@/components/task/TaskModal';
 import HeaderBar from '@/components/layout/HeaderBar';
-import BottomNavigation from '@/components/layout/BottomNavigation';
 import MainContent from '@/components/layout/MainContent';
+import MobileShell from '@/components/layout/mobile/MobileShell';
 import type { Task, TaskContext } from '@/types/task';
+import { useViewport } from '@/contexts/ViewportContext';
 
 interface AppFrameProps {
-  isMobile: boolean;
   isTaskListOpen: boolean;
   setIsTaskListOpen: (open: boolean) => void;
   isModalOpen: boolean;
@@ -24,7 +23,6 @@ interface AppFrameProps {
 }
 
 const AppFrame: React.FC<AppFrameProps> = ({
-  isMobile,
   isTaskListOpen,
   setIsTaskListOpen,
   isModalOpen,
@@ -37,54 +35,51 @@ const AppFrame: React.FC<AppFrameProps> = ({
   currentTeam,
   onAddTask,
 }) => {
+  const { isDesktop } = useViewport();
+
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className={`min-h-screen flex w-full bg-background ${isMobile ? 'pb-16' : ''}`}>
-        {!isMobile && <AppSidebar />}
+    <>
+      {isDesktop ? (
+        <SidebarProvider defaultOpen={true}>
+          <div className="min-h-screen flex w-full bg-background">
+            <AppSidebar />
 
-        {isMobile && (
-          <Sheet open={isTaskListOpen} onOpenChange={setIsTaskListOpen}>
-            <SheetContent side="left" className="w-full sm:w-[400px] p-0">
-              <div className="h-full min-h-0">
-                <AppSidebar />
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
+            <SidebarInset className="flex flex-col">
+              <HeaderBar
+                onOpenModal={() => setIsModalOpen(true)}
+                onOpenTaskList={() => setIsTaskListOpen(true)}
+                isMobile={false}
+                contextFilter={contextFilter}
+                onContextFilterChange={setContextFilter}
+                currentView={currentView}
+                onViewChange={setCurrentView}
+                navigationItems={navigationItems}
+                currentTeam={currentTeam}
+              />
 
-        <SidebarInset className="flex flex-col">
-          <HeaderBar
-            onOpenModal={() => setIsModalOpen(true)}
-            onOpenTaskList={() => setIsTaskListOpen(true)}
-            isMobile={isMobile}
-            contextFilter={contextFilter}
-            onContextFilterChange={setContextFilter}
-            currentView={currentView}
-            onViewChange={setCurrentView}
-            navigationItems={navigationItems}
-            currentTeam={currentTeam}
-          />
-
-          <MainContent />
-        </SidebarInset>
-
-        {isMobile && (
-          <BottomNavigation
-            currentView={currentView}
-            onViewChange={setCurrentView}
-            navigationItems={navigationItems}
-          />
-        )}
-
-        <TaskModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onAddTask={onAddTask}
-          taskType={currentTeam ? 'team' : 'personal'}
-          defaultContext={contextFilter !== 'all' ? contextFilter : undefined}
+              <MainContent />
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      ) : (
+        <MobileShell
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          contextFilter={contextFilter}
+          onContextFilterChange={setContextFilter}
+          currentTeam={currentTeam}
+          onOpenTaskModal={() => setIsModalOpen(true)}
         />
-      </div>
-    </SidebarProvider>
+      )}
+
+      <TaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddTask={onAddTask}
+        taskType={currentTeam ? 'team' : 'personal'}
+        defaultContext={contextFilter !== 'all' ? contextFilter : undefined}
+      />
+    </>
   );
 };
 

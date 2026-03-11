@@ -5,7 +5,6 @@ import { ViewDataProvider, useViewDataContext } from '@/contexts/ViewDataContext
 import { SidebarProvider as AppSidebarProvider } from '@/contexts/SidebarContext';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useTheme } from '@/hooks/useTheme';
-import { useIsMobile } from '@/hooks/shared/use-mobile';
 import { useAppUpdates } from '@/hooks/useAppUpdates';
 import type { Task } from '@/types/task';
 
@@ -15,9 +14,8 @@ import type { Task } from '@/types/task';
  */
 const IndexContent: React.FC = () => {
   const { theme } = useTheme();
-  const isMobile = useIsMobile();
   useAppUpdates();
-  
+
   const {
     currentView,
     setCurrentView,
@@ -29,9 +27,9 @@ const IndexContent: React.FC = () => {
     contextFilter,
     setContextFilter
   } = useApp();
-  
+
   const viewData = useViewDataContext();
-  
+
   // Team context integration
   const { currentTeam } = useTeamContext();
 
@@ -40,7 +38,6 @@ const IndexContent: React.FC = () => {
     await viewData.addTask(task);
   }, [viewData]);
 
-
   // Application du thème
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme || 'light');
@@ -48,7 +45,6 @@ const IndexContent: React.FC = () => {
 
   return (
     <AppFrame
-      isMobile={isMobile}
       isTaskListOpen={isTaskListOpen}
       setIsTaskListOpen={setIsTaskListOpen}
       isModalOpen={isModalOpen}

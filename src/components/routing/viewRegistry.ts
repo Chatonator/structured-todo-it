@@ -1,24 +1,15 @@
 import { lazy, ComponentType } from 'react';
-import { 
-  Home, 
-  Telescope, 
-  Calendar, 
-  FolderKanban, 
-  Target, 
-  Award,
-  Wrench,
-  Users,
-} from 'lucide-react';
+import { Home, Telescope, Calendar, FolderKanban, Target, Award, Wrench, Users, CheckSquare } from 'lucide-react';
+import { MobileSupportLevel, MobilePlacement, MobileViewConfig, mobileViewConfig } from './mobileViewConfig';
 
-// Base view props that all views should accept
+export type { MobileSupportLevel, MobilePlacement, MobileViewConfig } from './mobileViewConfig';
+
 export interface BaseViewProps {
   className?: string;
 }
 
-// Loading variant for skeleton states
 export type LoadingVariant = 'cards' | 'list' | 'grid' | 'kanban' | 'timeline';
 
-// View configuration interface
 export interface ViewConfig {
   id: string;
   title: string;
@@ -29,10 +20,11 @@ export interface ViewConfig {
   group: 'main' | 'productivity' | 'tracking' | 'other' | 'team';
   requiresAuth?: boolean;
   loadingVariant?: LoadingVariant;
+  mobile: MobileViewConfig;
 }
 
-// Lazy load all views - using new organized structure
 const HomeView = lazy(() => import('@/components/views/home/HomeView'));
+const TasksView = lazy(() => import('@/components/views/tasks/TasksView'));
 const ObservatoryView = lazy(() => import('@/components/views/observatory/ObservatoryView'));
 const TimelineView = lazy(() => import('@/components/views/timeline/TimelineView'));
 const ProjectsView = lazy(() => import('@/components/views/projects/ProjectsView'));
@@ -41,7 +33,6 @@ const RewardsView = lazy(() => import('@/components/views/rewards/RewardsView'))
 const ToolboxView = lazy(() => import('@/components/views/toolbox/ToolboxView'));
 const TeamTasksView = lazy(() => import('@/components/views/teams/TeamTasksView'));
 
-// View Registry - Single source of truth for all views
 export const viewRegistry: Record<string, ViewConfig> = {
   home: {
     id: 'home',
@@ -52,6 +43,18 @@ export const viewRegistry: Record<string, ViewConfig> = {
     order: 1,
     group: 'main',
     loadingVariant: 'cards',
+    mobile: mobileViewConfig.home,
+  },
+  tasks: {
+    id: 'tasks',
+    title: 'Tâches',
+    subtitle: 'Pilotez votre backlog quotidien',
+    icon: CheckSquare,
+    component: TasksView,
+    order: 2,
+    group: 'productivity',
+    loadingVariant: 'list',
+    mobile: mobileViewConfig.tasks,
   },
   observatory: {
     id: 'observatory',
@@ -59,9 +62,10 @@ export const viewRegistry: Record<string, ViewConfig> = {
     subtitle: 'Analysez vos patterns de productivité',
     icon: Telescope,
     component: ObservatoryView,
-    order: 2,
+    order: 3,
     group: 'main',
     loadingVariant: 'cards',
+    mobile: mobileViewConfig.observatory,
   },
   timeline: {
     id: 'timeline',
@@ -69,9 +73,10 @@ export const viewRegistry: Record<string, ViewConfig> = {
     subtitle: 'Visualiser votre planning',
     icon: Calendar,
     component: TimelineView,
-    order: 3,
+    order: 4,
     group: 'productivity',
     loadingVariant: 'timeline',
+    mobile: mobileViewConfig.timeline,
   },
   projects: {
     id: 'projects',
@@ -79,9 +84,10 @@ export const viewRegistry: Record<string, ViewConfig> = {
     subtitle: 'Gérer vos projets',
     icon: FolderKanban,
     component: ProjectsView,
-    order: 4,
+    order: 5,
     group: 'productivity',
     loadingVariant: 'kanban',
+    mobile: mobileViewConfig.projects,
   },
   habits: {
     id: 'habits',
@@ -89,9 +95,10 @@ export const viewRegistry: Record<string, ViewConfig> = {
     subtitle: 'Suivre vos habitudes',
     icon: Target,
     component: HabitsView,
-    order: 5,
+    order: 6,
     group: 'tracking',
     loadingVariant: 'cards',
+    mobile: mobileViewConfig.habits,
   },
   rewards: {
     id: 'rewards',
@@ -99,9 +106,10 @@ export const viewRegistry: Record<string, ViewConfig> = {
     subtitle: 'Vos accomplissements',
     icon: Award,
     component: RewardsView,
-    order: 6,
+    order: 7,
     group: 'tracking',
     loadingVariant: 'cards',
+    mobile: mobileViewConfig.rewards,
   },
   toolbox: {
     id: 'toolbox',
@@ -109,9 +117,10 @@ export const viewRegistry: Record<string, ViewConfig> = {
     subtitle: 'Méthodes de productivité',
     icon: Wrench,
     component: ToolboxView,
-    order: 7,
+    order: 8,
     group: 'productivity',
     loadingVariant: 'grid',
+    mobile: mobileViewConfig.toolbox,
   },
   team: {
     id: 'team',
@@ -119,25 +128,43 @@ export const viewRegistry: Record<string, ViewConfig> = {
     subtitle: 'Tâches partagées avec votre équipe',
     icon: Users,
     component: TeamTasksView,
-    order: 8,
+    order: 9,
     group: 'team',
     loadingVariant: 'list',
+    mobile: mobileViewConfig.team,
   },
 };
 
-// Helper functions
 export const getViewConfig = (viewId: string): ViewConfig | undefined => {
   return viewRegistry[viewId];
 };
 
 export const getViewsByGroup = (group: ViewConfig['group']): ViewConfig[] => {
   return Object.values(viewRegistry)
-    .filter(view => view.group === group)
+    .filter((view) => view.group === group)
     .sort((a, b) => a.order - b.order);
 };
 
 export const getAllViews = (): ViewConfig[] => {
   return Object.values(viewRegistry).sort((a, b) => a.order - b.order);
+};
+
+export const getMobileViewsByPlacement = (placement: MobilePlacement): ViewConfig[] => {
+  return Object.values(viewRegistry)
+    .filter((view) => view.mobile.placement === placement)
+    .sort((a, b) => a.mobile.priority - b.mobile.priority);
+};
+
+export const getMobilePrimaryViews = (): ViewConfig[] => {
+  return getMobileViewsByPlacement('primary');
+};
+
+export const getMobileMoreViews = (): ViewConfig[] => {
+  return getMobileViewsByPlacement('more');
+};
+
+export const isPrimaryMobileView = (viewId: string): boolean => {
+  return getViewConfig(viewId)?.mobile.placement === 'primary';
 };
 
 export const getDefaultView = (): string => 'home';

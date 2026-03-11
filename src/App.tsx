@@ -16,6 +16,7 @@ import { TeamProvider } from "@/contexts/TeamContext";
 import { TimeTrackerProvider } from "@/contexts/TimeTrackerContext";
 import { UserPreferencesProvider } from "@/hooks/useUserPreferences";
 import { logger } from "@/lib/logger";
+import { ViewportProvider } from "@/contexts/ViewportContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,7 +39,6 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   return <>{children}</>;
 };
-
 
 // ⚠️ DEV MODE: Bypass authentication for visual development
 const DEV_BYPASS_AUTH = true;
@@ -125,62 +125,59 @@ const App = () => (
     }}
   >
     <QueryClientProvider client={queryClient}>
-      <UserPreferencesProvider>
-        <ThemeProvider>
-          <TeamProvider>
-            <TimeTrackerProvider>
-            <TooltipProvider>
-              <Toaster />
-              <HashRouter>
-                <Routes>
-                  <Route 
-                    path="/" 
-                    element={
-                      <ProtectedRoute>
-                        <Index />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/teams" 
-                    element={
-                      <ProtectedRoute>
-                        <TeamManagement />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                   path="/admin/bugs" 
-                    element={
-                      <AdminRoute>
-                        <BugReportsAdmin />
-                      </AdminRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/auth" 
-                    element={
-                      <PublicRoute>
-                        <Auth />
-                      </PublicRoute>
-                    } 
-                  />
-                  <Route path="/join/:code" element={<JoinTeam />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </HashRouter>
-            </TooltipProvider>
-            </TimeTrackerProvider>
-          </TeamProvider>
-        </ThemeProvider>
-      </UserPreferencesProvider>
+      <ViewportProvider>
+        <UserPreferencesProvider>
+          <ThemeProvider>
+            <TeamProvider>
+              <TimeTrackerProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <HashRouter>
+                    <Routes>
+                      <Route
+                        path="/"
+                        element={
+                          <ProtectedRoute>
+                            <Index />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/teams"
+                        element={
+                          <ProtectedRoute>
+                            <TeamManagement />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/bugs"
+                        element={
+                          <AdminRoute>
+                            <BugReportsAdmin />
+                          </AdminRoute>
+                        }
+                      />
+                      <Route
+                        path="/auth"
+                        element={
+                          <PublicRoute>
+                            <Auth />
+                          </PublicRoute>
+                        }
+                      />
+                      <Route path="/join/:code" element={<JoinTeam />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </HashRouter>
+                </TooltipProvider>
+              </TimeTrackerProvider>
+            </TeamProvider>
+          </ThemeProvider>
+        </UserPreferencesProvider>
+      </ViewportProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );
 
 export default App;
-
-
-    
-
-    
