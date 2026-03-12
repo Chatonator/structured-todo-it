@@ -1,78 +1,104 @@
-import { useState, useCallback, useEffect } from 'react';
-import { DashboardLayout, WidgetConfig, WidgetId, DEFAULT_DASHBOARD_LAYOUT } from '@/types/widget';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { DashboardLayout, WidgetConfig, WidgetId, DEFAULT_DASHBOARD_LAYOUT, WIDGET_REGISTRY } from '@/types/widget';
 import { arrayMove } from '@dnd-kit/sortable';
 
 const STORAGE_KEY = 'todoIt_dashboardLayout';
 
-/**
- * Hook pour gérer le layout du dashboard (ordre, visibilité des widgets)
- * Persiste dans localStorage
- */
+function normalizeLayout(storedLayout?: DashboardLayout | null): DashboardLayout {
+  const storedWidgets = Array.isArray(storedLayout?.widgets) ? storedLayout.widgets : [];
+  const mappedStored = storedWidgets
+    .map((widget, index) => {
+      const definition = WIDGET_REGISTRY[widget.id as WidgetId];
+      if (!definition) return null;
+
+      return {
+        ...definition,
+        visible: typeof widget.visible === 'boolean' ? widget.visible : true,
+        order: typeof widget.order === 'number' ? widget.order : index,
+      } satisfies WidgetConfig;
+    })
+    .filter((widget): widget is WidgetConfig => !!widget)
+    .sort((left, right) => left.order - right.order);
+
+  const knownIds = new Set(mappedStored.map((widget) => widget.id));
+  const missingWidgets = DEFAULT_DASHBOARD_LAYOUT.widgets
+    .filter((widget) => !knownIds.has(widget.id))
+    .map((widget, index) => ({
+      ...widget,
+      order: mappedStored.length + index,
+    }));
+
+  return {
+    widgets: [...mappedStored, ...missingWidgets].map((widget, index) => ({
+      ...widget,
+      order: index,
+    })),
+  };
+}
+
 export const useWidgetLayout = () => {
   const [layout, setLayout] = useState<DashboardLayout>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as DashboardLayout;
-        // Merge with defaults to handle new widgets
-        const storedIds = new Set(parsed.widgets.map(w => w.id));
-        const newWidgets = DEFAULT_DASHBOARD_LAYOUT.widgets
-          .filter(w => !storedIds.has(w.id))
-          .map((w, i) => ({ ...w, order: parsed.widgets.length + i }));
-        return { widgets: [...parsed.widgets, ...newWidgets] };
+        return normalizeLayout(JSON.parse(stored) as DashboardLayout);
       }
-    } catch (e) {
-      console.error('Error loading dashboard layout:', e);
+    } catch (error) {
+      console.error('Error loading dashboard layout:', error);
     }
-    return DEFAULT_DASHBOARD_LAYOUT;
+
+    return normalizeLayout(DEFAULT_DASHBOARD_LAYOUT);
   });
 
   const [isEditing, setIsEditing] = useState(false);
 
-  // Persist
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
-    } catch (e) {
-      console.error('Error saving dashboard layout:', e);
+    } catch (error) {
+      console.error('Error saving dashboard layout:', error);
     }
   }, [layout]);
 
-  /** Widgets visibles triés par ordre */
-  const visibleWidgets = layout.widgets
-    .filter(w => w.visible)
-    .sort((a, b) => a.order - b.order);
+  const visibleWidgets = useMemo(
+    () => layout.widgets.filter((widget) => widget.visible).sort((left, right) => left.order - right.order),
+    [layout.widgets],
+  );
 
-  /** Tous les widgets triés par ordre */
-  const allWidgets = [...layout.widgets].sort((a, b) => a.order - b.order);
+  const allWidgets = useMemo(
+    () => [...layout.widgets].sort((left, right) => left.order - right.order),
+    [layout.widgets],
+  );
 
-  /** Réordonner après un drag & drop */
   const reorderWidgets = useCallback((activeId: string, overId: string) => {
-    setLayout(prev => {
-      const sorted = [...prev.widgets].sort((a, b) => a.order - b.order);
-      const oldIndex = sorted.findIndex(w => w.id === activeId);
-      const newIndex = sorted.findIndex(w => w.id === overId);
-      if (oldIndex === -1 || newIndex === -1) return prev;
-      
-      const reordered = arrayMove(sorted, oldIndex, newIndex)
-        .map((w, i) => ({ ...w, order: i }));
-      
-      return { widgets: reordered };
+    setLayout((previous) => {
+      const sorted = [...previous.widgets].sort((left, right) => left.order - right.order);
+      const oldIndex = sorted.findIndex((widget) => widget.id === activeId);
+      const newIndex = sorted.findIndex((widget) => widget.id === overId);
+
+      if (oldIndex === -1 || newIndex === -1) {
+        return previous;
+      }
+
+      return {
+        widgets: arrayMove(sorted, oldIndex, newIndex).map((widget, index) => ({
+          ...widget,
+          order: index,
+        })),
+      };
     });
   }, []);
 
-  /** Toggle la visibilité d'un widget */
   const toggleWidget = useCallback((widgetId: WidgetId) => {
-    setLayout(prev => ({
-      widgets: prev.widgets.map(w =>
-        w.id === widgetId ? { ...w, visible: !w.visible } : w
-      ),
+    setLayout((previous) => ({
+      widgets: previous.widgets.map((widget) => (
+        widget.id === widgetId ? { ...widget, visible: !widget.visible } : widget
+      )),
     }));
   }, []);
 
-  /** Réinitialiser le layout */
   const resetLayout = useCallback(() => {
-    setLayout(DEFAULT_DASHBOARD_LAYOUT);
+    setLayout(normalizeLayout(DEFAULT_DASHBOARD_LAYOUT));
   }, []);
 
   return {

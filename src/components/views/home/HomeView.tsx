@@ -5,27 +5,28 @@ import { useHomeViewData } from '@/hooks/view-data';
 import { useWidgetLayout } from '@/hooks/useWidgetLayout';
 import { Button } from '@/components/ui/button';
 import WidgetGrid from './WidgetGrid';
+import DashboardControls from './DashboardControls';
 
 const HomeView: React.FC<{ className?: string }> = ({ className }) => {
   const { state } = useHomeViewData();
   const {
-    visibleWidgets,
     allWidgets,
     isEditing,
     setIsEditing,
     reorderWidgets,
     toggleWidget,
+    resetLayout,
   } = useWidgetLayout();
 
   return (
     <ViewLayout
       header={{
-        title: "Tableau de bord",
-        subtitle: "Vue d'ensemble de votre journée",
+        title: 'Dashboard personnel',
+        subtitle: 'Composez une home utile, modulaire et vraiment a votre main',
         icon: <Home className="w-5 h-5" />,
         actions: (
           <Button
-            variant={isEditing ? "default" : "ghost"}
+            variant={isEditing ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setIsEditing(!isEditing)}
             className="gap-1.5"
@@ -48,6 +49,10 @@ const HomeView: React.FC<{ className?: string }> = ({ className }) => {
       className={className}
     >
       <div>
+        {isEditing && (
+          <DashboardControls widgets={allWidgets} onToggle={toggleWidget} onReset={resetLayout} />
+        )}
+
         <WidgetGrid
           widgets={allWidgets}
           isEditing={isEditing}

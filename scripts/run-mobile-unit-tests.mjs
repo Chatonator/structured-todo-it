@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { PHONE_MAX_WIDTH, TABLET_MAX_WIDTH, getLayoutMode, isCompactLayout } from '../src/lib/layout/layoutMode.ts';
 import { getMobileViewIdsByPlacement, isPrimaryMobileViewId, mobileViewConfig } from '../src/components/routing/mobileViewConfig.ts';
 import { buildTaskLinkerGroups, compareTaskLinkerTasks, inferTaskLinkerGroupBy } from '../src/components/views/toolbox/shared/taskLinker.helpers.ts';
+import { DEFAULT_DASHBOARD_LAYOUT, WIDGET_REGISTRY } from '../src/types/widget.ts';
 
 const cases = [
   ['task linker grouping resolves project names and free tasks', () => {
@@ -24,6 +25,16 @@ const cases = [
     ];
     const sorted = [...tasks].sort((left, right) => compareTaskLinkerTasks(left, right, 'priority'));
     assert.deepEqual(sorted.map((task) => task.id), ['c', 'b', 'a']);
+  }],
+  ['dashboard default layout exposes the main widgets', () => {
+    const ids = DEFAULT_DASHBOARD_LAYOUT.widgets.map((widget) => widget.id);
+    assert.equal(ids.includes('daily-overview'), true);
+    assert.equal(ids.includes('quick-links'), true);
+    assert.equal(ids.length >= 8, true);
+  }],
+  ['dashboard widget registry stays aligned with the richer home page', () => {
+    assert.equal(Object.keys(WIDGET_REGISTRY).length, 9);
+    assert.equal(WIDGET_REGISTRY['team-snapshot'].sourceView, 'team');
   }],
   ['getLayoutMode returns phone through the phone breakpoint', () => {
     assert.equal(getLayoutMode(0), 'phone');

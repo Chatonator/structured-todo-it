@@ -1,3 +1,9 @@
+export { default as DailyOverviewWidget } from './DailyOverviewWidget';
 export { default as PriorityTasksWidget } from './PriorityTasksWidget';
+export { default as TodayTimelineWidget } from './TodayTimelineWidget';
 export { default as ActiveProjectWidget } from './ActiveProjectWidget';
 export { default as TodayHabitsWidget } from './TodayHabitsWidget';
+export { default as ObservatorySnapshotWidget } from './ObservatorySnapshotWidget';
+export { default as RewardsSnapshotWidget } from './RewardsSnapshotWidget';
+export { default as TeamSnapshotWidget } from './TeamSnapshotWidget';
+export { default as QuickLinksWidget } from './QuickLinksWidget';

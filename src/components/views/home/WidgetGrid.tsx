@@ -15,17 +15,31 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Eye, EyeOff, Settings, X } from 'lucide-react';
+import { GripVertical, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WidgetConfig, WidgetId } from '@/types/widget';
-import { Button } from '@/components/ui/button';
-import { PriorityTasksWidget, ActiveProjectWidget, TodayHabitsWidget } from './widgets';
+import {
+  DailyOverviewWidget,
+  PriorityTasksWidget,
+  TodayTimelineWidget,
+  ActiveProjectWidget,
+  TodayHabitsWidget,
+  ObservatorySnapshotWidget,
+  RewardsSnapshotWidget,
+  TeamSnapshotWidget,
+  QuickLinksWidget,
+} from './widgets';
 
-/** Registre des composants widget */
 const WIDGET_COMPONENTS: Record<WidgetId, React.FC> = {
+  'daily-overview': DailyOverviewWidget,
   'priority-tasks': PriorityTasksWidget,
+  'today-timeline': TodayTimelineWidget,
   'active-project': ActiveProjectWidget,
   'today-habits': TodayHabitsWidget,
+  'observatory-snapshot': ObservatorySnapshotWidget,
+  'rewards-snapshot': RewardsSnapshotWidget,
+  'team-snapshot': TeamSnapshotWidget,
+  'quick-links': QuickLinksWidget,
 };
 
 interface SortableWidgetProps {
@@ -35,14 +49,10 @@ interface SortableWidgetProps {
 }
 
 const SortableWidget: React.FC<SortableWidgetProps> = ({ widget, isEditing, onToggle }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: widget.id, disabled: !isEditing });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: widget.id,
+    disabled: !isEditing,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -52,41 +62,57 @@ const SortableWidget: React.FC<SortableWidgetProps> = ({ widget, isEditing, onTo
   const Component = WIDGET_COMPONENTS[widget.id];
   if (!Component) return null;
 
+  const containerClassName = cn(
+    'relative group',
+    widget.span === 2 ? 'xl:col-span-12' : 'xl:col-span-6',
+    isDragging && 'z-50 opacity-80',
+    isEditing && 'rounded-2xl ring-2 ring-dashed ring-primary/30',
+  );
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "relative group",
-        widget.span === 2 ? "lg:col-span-2" : "lg:col-span-1",
-        isDragging && "z-50 opacity-80",
-        isEditing && "ring-2 ring-dashed ring-primary/30 rounded-lg",
-      )}
-    >
+    <div ref={setNodeRef} style={style} className={containerClassName}>
       {isEditing && (
-        <div className="absolute -top-2 -right-2 z-10 flex items-center gap-1">
+        <div className="absolute right-3 top-3 z-20 flex items-center gap-2">
           <button
+            type="button"
             onClick={() => onToggle(widget.id)}
-            className="p-1 rounded-full bg-muted hover:bg-accent border border-border shadow-sm"
-            title={widget.visible ? "Masquer" : "Afficher"}
+            className="rounded-full border border-border bg-background/95 p-1.5 shadow-sm transition-colors hover:bg-accent"
+            title={widget.visible ? 'Masquer' : 'Afficher'}
           >
             {widget.visible ? (
-              <EyeOff className="w-3 h-3 text-muted-foreground" />
+              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
             ) : (
-              <Eye className="w-3 h-3 text-muted-foreground" />
+              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
             )}
           </button>
           <button
+            type="button"
             {...attributes}
             {...listeners}
-            className="p-1 rounded-full bg-muted hover:bg-accent border border-border shadow-sm cursor-grab active:cursor-grabbing"
-            title="Déplacer"
+            className="cursor-grab rounded-full border border-border bg-background/95 p-1.5 shadow-sm transition-colors hover:bg-accent active:cursor-grabbing"
+            title="Deplacer"
           >
-            <GripVertical className="w-3 h-3 text-muted-foreground" />
+            <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
         </div>
       )}
-      <Component />
+
+      {isEditing && !widget.visible ? (
+        <div className="h-full min-h-[180px] rounded-2xl border border-dashed border-border/80 bg-muted/20 p-6">
+          <div className="flex h-full flex-col justify-between gap-4">
+            <div>
+              <p className="text-3xl">{widget.icon}</p>
+              <h3 className="mt-4 text-lg font-semibold text-foreground">{widget.label}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{widget.description}</p>
+            </div>
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              Source : {widget.sourceView}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <Component />
+      )}
     </div>
   );
 };
@@ -98,12 +124,7 @@ interface WidgetGridProps {
   onToggle: (id: WidgetId) => void;
 }
 
-const WidgetGrid: React.FC<WidgetGridProps> = ({
-  widgets,
-  isEditing,
-  onReorder,
-  onToggle,
-}) => {
+const WidgetGrid: React.FC<WidgetGridProps> = ({ widgets, isEditing, onReorder, onToggle }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -112,23 +133,18 @@ const WidgetGrid: React.FC<WidgetGridProps> = ({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      onReorder(active.id as string, over.id as string);
+      onReorder(String(active.id), String(over.id));
     }
   };
 
-  const displayedWidgets = isEditing ? widgets : widgets.filter(w => w.visible);
+  const displayedWidgets = isEditing ? widgets : widgets.filter((widget) => widget.visible);
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={displayedWidgets.map(w => w.id)} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {displayedWidgets.map(widget => (
-            <SortableWidget
-              key={widget.id}
-              widget={widget}
-              isEditing={isEditing}
-              onToggle={onToggle}
-            />
+      <SortableContext items={displayedWidgets.map((widget) => widget.id)} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+          {displayedWidgets.map((widget) => (
+            <SortableWidget key={widget.id} widget={widget} isEditing={isEditing} onToggle={onToggle} />
           ))}
         </div>
       </SortableContext>

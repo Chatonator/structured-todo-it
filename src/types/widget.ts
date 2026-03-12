@@ -1,50 +1,117 @@
-import { ReactNode } from 'react';
+export type WidgetId =
+  | 'daily-overview'
+  | 'priority-tasks'
+  | 'today-timeline'
+  | 'active-project'
+  | 'today-habits'
+  | 'observatory-snapshot'
+  | 'rewards-snapshot'
+  | 'team-snapshot'
+  | 'quick-links';
 
-/** Identifiant unique de chaque type de widget */
-export type WidgetId = 'priority-tasks' | 'active-project' | 'today-habits';
-
-/** Configuration d'un widget dans le layout */
-export interface WidgetConfig {
+export interface WidgetDefinition {
   id: WidgetId;
   label: string;
-  icon: string; // emoji
-  visible: boolean;
-  order: number;
-  /** Taille du widget dans la grille (1 = demi-largeur, 2 = pleine largeur) */
+  description: string;
+  icon: string;
+  sourceView: string;
   span?: 1 | 2;
 }
 
-/** Layout complet du dashboard */
+export interface WidgetConfig extends WidgetDefinition {
+  visible: boolean;
+  order: number;
+}
+
 export interface DashboardLayout {
   widgets: WidgetConfig[];
 }
 
-/** Registre des widgets disponibles */
-export const WIDGET_REGISTRY: Record<WidgetId, Omit<WidgetConfig, 'order' | 'visible'>> = {
+export const WIDGET_REGISTRY: Record<WidgetId, WidgetDefinition> = {
+  'daily-overview': {
+    id: 'daily-overview',
+    label: 'Vue du jour',
+    description: 'Le resume utile pour piloter votre journee.',
+    icon: '☀️',
+    sourceView: 'home',
+    span: 2,
+  },
   'priority-tasks': {
     id: 'priority-tasks',
-    label: 'Tâches prioritaires',
+    label: 'Taches prioritaires',
+    description: 'Vos taches a fort impact a traiter en premier.',
     icon: '🎯',
+    sourceView: 'tasks',
     span: 1,
+  },
+  'today-timeline': {
+    id: 'today-timeline',
+    label: 'Planning du jour',
+    description: 'Les creneaux planifies et ce qui arrive ensuite.',
+    icon: '🗓️',
+    sourceView: 'timeline',
+    span: 2,
   },
   'active-project': {
     id: 'active-project',
     label: 'Projet en cours',
+    description: 'Le projet actif a suivre d’un coup d’oeil.',
     icon: '📁',
+    sourceView: 'projects',
     span: 1,
   },
   'today-habits': {
     id: 'today-habits',
     label: 'Habitudes du jour',
+    description: 'Les routines a maintenir aujourd’hui.',
     icon: '💪',
+    sourceView: 'habits',
+    span: 2,
+  },
+  'observatory-snapshot': {
+    id: 'observatory-snapshot',
+    label: 'Sante du backlog',
+    description: 'Un apercu simple de la charge et des signaux faibles.',
+    icon: '🔭',
+    sourceView: 'observatory',
+    span: 1,
+  },
+  'rewards-snapshot': {
+    id: 'rewards-snapshot',
+    label: 'Recompenses',
+    description: 'Niveau, temps disponible et progression.',
+    icon: '🏆',
+    sourceView: 'rewards',
+    span: 1,
+  },
+  'team-snapshot': {
+    id: 'team-snapshot',
+    label: 'Equipe',
+    description: 'L’essentiel de votre espace collaboratif.',
+    icon: '👥',
+    sourceView: 'team',
+    span: 1,
+  },
+  'quick-links': {
+    id: 'quick-links',
+    label: 'Raccourcis',
+    description: 'Acces direct aux vues cles de l’application.',
+    icon: '🧭',
+    sourceView: 'toolbox',
     span: 2,
   },
 };
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = {
   widgets: [
-    { ...WIDGET_REGISTRY['priority-tasks'], order: 0, visible: true },
-    { ...WIDGET_REGISTRY['active-project'], order: 1, visible: true },
-    { ...WIDGET_REGISTRY['today-habits'], order: 2, visible: true },
+    { ...WIDGET_REGISTRY['daily-overview'], order: 0, visible: true },
+    { ...WIDGET_REGISTRY['priority-tasks'], order: 1, visible: true },
+    { ...WIDGET_REGISTRY['active-project'], order: 2, visible: true },
+    { ...WIDGET_REGISTRY['today-timeline'], order: 3, visible: true },
+    { ...WIDGET_REGISTRY['today-habits'], order: 4, visible: true },
+    { ...WIDGET_REGISTRY['observatory-snapshot'], order: 5, visible: true },
+    { ...WIDGET_REGISTRY['rewards-snapshot'], order: 6, visible: true },
+    { ...WIDGET_REGISTRY['team-snapshot'], order: 7, visible: true },
+    { ...WIDGET_REGISTRY['quick-links'], order: 8, visible: true },
   ],
 };
