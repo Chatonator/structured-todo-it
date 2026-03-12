@@ -1,24 +1,27 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  Palette, 
-  Bell, 
-  User, 
-  Layout, 
-  Heart, 
-  Award, 
-  Focus, 
+import {
+  Palette,
+  Bell,
+  User,
+  Layout,
+  Heart,
+  Award,
+  Focus,
   RotateCcw,
-  CalendarDays
+  CalendarDays,
+  TriangleAlert,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-export type SettingsSection = 
-  | 'appearance' 
-  | 'notifications' 
-  | 'account' 
-  | 'interface' 
-  | 'habits' 
-  | 'gamification' 
+export type SettingsSection =
+  | 'appearance'
+  | 'notifications'
+  | 'rules'
+  | 'account'
+  | 'interface'
+  | 'habits'
+  | 'gamification'
   | 'focus'
   | 'timeline'
   | 'reset';
@@ -26,11 +29,13 @@ export type SettingsSection =
 interface SettingsSidebarProps {
   currentSection: SettingsSection;
   onSectionChange: (section: SettingsSection) => void;
+  compact?: boolean;
 }
 
 const sections = [
   { id: 'appearance' as const, label: 'Apparence', icon: Palette },
   { id: 'notifications' as const, label: 'Notifications', icon: Bell },
+  { id: 'rules' as const, label: 'Règles & alertes', icon: TriangleAlert },
   { id: 'account' as const, label: 'Compte & Sécurité', icon: User },
   { id: 'interface' as const, label: 'Interface', icon: Layout },
   { id: 'timeline' as const, label: 'Timeline', icon: CalendarDays },
@@ -40,22 +45,23 @@ const sections = [
   { id: 'reset' as const, label: 'Réinitialisation', icon: RotateCcw },
 ];
 
-export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ 
-  currentSection, 
-  onSectionChange 
+export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
+  currentSection,
+  onSectionChange,
+  compact = false,
 }) => {
   return (
-    <nav className="w-64 border-r border-border pr-4 space-y-1">
+    <nav className={cn(compact ? 'flex gap-2 overflow-x-auto pb-1' : 'w-64 space-y-1 border-r border-border pr-4')}>
       {sections.map((section) => {
         const Icon = section.icon;
         return (
           <Button
             key={section.id}
             variant={currentSection === section.id ? 'secondary' : 'ghost'}
-            className="w-full justify-start"
+            className={cn(compact ? 'shrink-0 rounded-full' : 'w-full justify-start')}
             onClick={() => onSectionChange(section.id)}
           >
-            <Icon className="w-4 h-4 mr-2" />
+            <Icon className="mr-2 h-4 w-4" />
             {section.label}
           </Button>
         );

@@ -1,3 +1,5 @@
+import { DEFAULT_TASK_RULE_PREFERENCES, type TaskRulePreferences } from '@/types/taskRules';
+
 export type Theme = 'light' | 'dark' | 'system';
 export type TextSize = 'small' | 'normal' | 'large' | 'xlarge';
 export type SoundType = 'discrete' | 'normal' | 'fun';
@@ -32,6 +34,7 @@ export interface UserPreferences {
   categoryOrder: CategoryOrder[];
   categoryColors: CategoryColors;
   categoryPaletteVersion: number;
+  taskRules: TaskRulePreferences;
   sidebarShowHabits: boolean;
   sidebarShowProjects: boolean;
   sidebarShowTeamTasks: boolean;
@@ -85,6 +88,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
     Autres: '#3b82f6',
   },
   categoryPaletteVersion: CATEGORY_PALETTE_VERSION,
+  taskRules: DEFAULT_TASK_RULE_PREFERENCES,
   sidebarShowHabits: false,
   sidebarShowProjects: false,
   sidebarShowTeamTasks: false,

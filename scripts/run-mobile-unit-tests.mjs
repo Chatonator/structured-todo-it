@@ -3,8 +3,82 @@ import { PHONE_MAX_WIDTH, TABLET_MAX_WIDTH, getLayoutMode, isCompactLayout } fro
 import { getMobileViewIdsByPlacement, isPrimaryMobileViewId, mobileViewConfig } from '../src/components/routing/mobileViewConfig.ts';
 import { buildTaskLinkerGroups, compareTaskLinkerTasks, inferTaskLinkerGroupBy } from '../src/components/views/toolbox/shared/taskLinker.helpers.ts';
 import { DEFAULT_DASHBOARD_LAYOUT, WIDGET_REGISTRY } from '../src/types/widget.ts';
+import { normalizeTaskRulePreferences } from '../src/types/taskRules.ts';
+import { createNextStaleTaskRuleState, evaluateStaleTaskRule } from '../src/lib/task-rules/engine.ts';
+
+const staleTaskRuleSettings = {
+  enabled: true,
+  firstAlertAfterDays: 7,
+  repeatEveryDays: 7,
+  autoActionAfterAlerts: 3,
+  autoAction: 'pin',
+};
 
 const cases = [
+  ['task rule preferences stay normalized when older partial values are loaded', () => {
+    const normalized = normalizeTaskRulePreferences({ staleTask: { enabled: true, firstAlertAfterDays: 9 } });
+    assert.equal(normalized.staleTask.enabled, true);
+    assert.equal(normalized.staleTask.firstAlertAfterDays, 9);
+    assert.equal(normalized.staleTask.repeatEveryDays, 7);
+    assert.equal(normalized.staleTask.autoAction, 'pin');
+  }],
+  ['stale task rule triggers a second alert and keeps auto action pending', () => {
+    const outcome = evaluateStaleTaskRule(
+      {
+        id: 'task-1',
+        name: 'Préparer le dossier',
+        contextType: 'task',
+        parentId: null,
+        metadata: { ruleAlerts: { staleTask: { alertCount: 1 } } },
+        orderIndex: 0,
+        isCompleted: false,
+        isPinned: false,
+        createdAt: new Date('2026-03-01T10:00:00.000Z'),
+        updatedAt: new Date('2026-03-01T10:00:00.000Z'),
+        userId: 'user-1',
+      },
+      new Date('2026-03-15T10:00:00.000Z'),
+      staleTaskRuleSettings
+    );
+
+    assert.ok(outcome);
+    assert.equal(outcome.shouldCreateAlert, true);
+    assert.equal(outcome.nextAlertCount, 2);
+    assert.equal(outcome.shouldApplyAutoAction, false);
+  }],
+  ['stale task rule applies the automatic action on the threshold alert', () => {
+    const outcome = evaluateStaleTaskRule(
+      {
+        id: 'task-1',
+        name: 'Préparer le dossier',
+        contextType: 'task',
+        parentId: null,
+        metadata: { ruleAlerts: { staleTask: { alertCount: 2 } } },
+        orderIndex: 0,
+        isCompleted: false,
+        isPinned: false,
+        createdAt: new Date('2026-03-01T10:00:00.000Z'),
+        updatedAt: new Date('2026-03-01T10:00:00.000Z'),
+        userId: 'user-1',
+      },
+      new Date('2026-03-22T10:00:00.000Z'),
+      staleTaskRuleSettings
+    );
+
+    assert.ok(outcome);
+
+    const state = createNextStaleTaskRuleState(
+      { alertCount: 2 },
+      outcome,
+      staleTaskRuleSettings,
+      new Date('2026-03-22T10:00:00.000Z')
+    );
+
+    assert.equal(outcome.shouldCreateAlert, true);
+    assert.equal(outcome.shouldApplyAutoAction, true);
+    assert.equal(state.alertCount, 3);
+    assert.equal(typeof state.autoActionAppliedAt, 'string');
+  }],
   ['task linker grouping resolves project names and free tasks', () => {
     const tasks = [
       { id: 'free-1', name: 'Acheter du pain', category: 'Autres', context: 'Perso', estimatedTime: 10, level: 0, isCompleted: false, isExpanded: true, createdAt: new Date() },

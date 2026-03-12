@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { UserPreferences, DEFAULT_PREFERENCES, CategoryColors, CATEGORY_PALETTE_VERSION } from '@/types/preferences';
+import { normalizeTaskRulePreferences } from '@/types/taskRules';
 
 interface UserPreferencesContextType {
   preferences: UserPreferences;
@@ -33,7 +34,7 @@ export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ chi
 
         const mergedCategoryOrder = [
           ...(storedPrefs.categoryOrder || []),
-          ...newCategories
+          ...newCategories,
         ];
 
         const hasPaletteVersion = typeof storedPrefs.categoryPaletteVersion === 'number';
@@ -47,6 +48,7 @@ export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ chi
           categoryOrder: mergedCategoryOrder,
           categoryColors,
           categoryPaletteVersion: CATEGORY_PALETTE_VERSION,
+          taskRules: normalizeTaskRulePreferences(storedPrefs.taskRules),
         };
       }
     } catch (error) {
@@ -64,7 +66,11 @@ export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ chi
   }, [preferences]);
 
   const updatePreferences = (updates: Partial<UserPreferences>) => {
-    setPreferences(prev => ({ ...prev, ...updates }));
+    setPreferences(prev => ({
+      ...prev,
+      ...updates,
+      taskRules: updates.taskRules ? normalizeTaskRulePreferences(updates.taskRules) : prev.taskRules,
+    }));
   };
 
   const resetPreferences = () => {

@@ -16,6 +16,7 @@ import { UserPreferencesProvider } from '@/hooks/useUserPreferences';
 import { logger } from '@/lib/logger';
 import { ViewportProvider } from '@/contexts/ViewportContext';
 import AppearanceProvider from '@/components/providers/AppearanceProvider';
+import TaskRulesProvider from '@/components/providers/TaskRulesProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,9 +41,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
           <p>Loading...</p>
         </div>
       </div>
@@ -61,9 +62,9 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
           <p>Loading...</p>
         </div>
       </div>
@@ -82,8 +83,8 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -109,51 +110,53 @@ const App = () => (
       <ViewportProvider>
         <UserPreferencesProvider>
           <AppearanceProvider>
-            <TeamProvider>
-              <TimeTrackerProvider>
-                <TooltipProvider>
-                  <Toaster />
-                  <HashRouter>
-                    <Routes>
-                      <Route
-                        path="/"
-                        element={
-                          <ProtectedRoute>
-                            <Index />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/teams"
-                        element={
-                          <ProtectedRoute>
-                            <TeamManagement />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admin/bugs"
-                        element={
-                          <AdminRoute>
-                            <BugReportsAdmin />
-                          </AdminRoute>
-                        }
-                      />
-                      <Route
-                        path="/auth"
-                        element={
-                          <PublicRoute>
-                            <Auth />
-                          </PublicRoute>
-                        }
-                      />
-                      <Route path="/join/:code" element={<JoinTeam />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </HashRouter>
-                </TooltipProvider>
-              </TimeTrackerProvider>
-            </TeamProvider>
+            <TaskRulesProvider>
+              <TeamProvider>
+                <TimeTrackerProvider>
+                  <TooltipProvider>
+                    <Toaster />
+                    <HashRouter>
+                      <Routes>
+                        <Route
+                          path="/"
+                          element={
+                            <ProtectedRoute>
+                              <Index />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/teams"
+                          element={
+                            <ProtectedRoute>
+                              <TeamManagement />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/bugs"
+                          element={
+                            <AdminRoute>
+                              <BugReportsAdmin />
+                            </AdminRoute>
+                          }
+                        />
+                        <Route
+                          path="/auth"
+                          element={
+                            <PublicRoute>
+                              <Auth />
+                            </PublicRoute>
+                          }
+                        />
+                        <Route path="/join/:code" element={<JoinTeam />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </HashRouter>
+                  </TooltipProvider>
+                </TimeTrackerProvider>
+              </TeamProvider>
+            </TaskRulesProvider>
           </AppearanceProvider>
         </UserPreferencesProvider>
       </ViewportProvider>
