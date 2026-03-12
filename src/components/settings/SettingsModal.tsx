@@ -10,6 +10,7 @@ import { SettingsSidebar, SettingsSection } from './SettingsSidebar';
 import { AppearanceSettings } from './sections/AppearanceSettings';
 import { NotificationSettings } from './sections/NotificationSettings';
 import { TaskRulesSettings } from './sections/TaskRulesSettings';
+import { ExternalCalendarSettings } from './sections/ExternalCalendarSettings';
 import { AccountSettings } from './sections/AccountSettings';
 import { InterfaceSettings } from './sections/InterfaceSettings';
 import { HabitsSettings } from './sections/HabitsSettings';
@@ -38,6 +39,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         return <NotificationSettings />;
       case 'rules':
         return <TaskRulesSettings />;
+      case 'calendar':
+        return <ExternalCalendarSettings />;
       case 'account':
         return <AccountSettings />;
       case 'interface':

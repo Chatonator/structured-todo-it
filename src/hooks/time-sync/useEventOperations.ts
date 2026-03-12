@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TimeEvent, RecurrenceConfig } from '@/lib/time/types';
 import { logger } from '@/lib/logger';
+import { requestCalendarSyncProcessing } from '@/lib/calendar/requestCalendarSync';
 
 export const useEventOperations = () => {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ export const useEventOperations = () => {
         .eq('user_id', user.id);
       if (error) throw error;
       logger.debug('TimeEvent supprimé', { entityType, entityId });
+      void requestCalendarSyncProcessing('delete-entity-event');
       return true;
     } catch (error: any) {
       logger.error('Erreur suppression time_event', { error: error.message, entityType, entityId });
@@ -53,6 +55,7 @@ export const useEventOperations = () => {
         .eq('user_id', user.id);
       if (error) throw error;
       logger.debug('Statut time_event mis à jour', { entityType, entityId, status });
+      void requestCalendarSyncProcessing('update-event-status');
       return true;
     } catch (error: any) {
       logger.error('Erreur update statut time_event', { error: error.message });

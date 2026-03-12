@@ -7,6 +7,7 @@ import { useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
+import { requestCalendarSyncProcessing } from '@/lib/calendar/requestCalendarSync';
 import { addDays, addWeeks, addMonths, startOfDay, isAfter, isBefore, format } from 'date-fns';
 
 interface RecurrenceConfig {
@@ -131,6 +132,7 @@ export const useRecurringTasks = () => {
             continue;
           }
 
+          void requestCalendarSyncProcessing('recurring-task-reactivate');
           reactivatedCount++;
           logger.info('Tâche récurrente réactivée', { 
             taskId: event.entity_id, 
@@ -179,7 +181,8 @@ export const useRecurringTasks = () => {
           .from('time_events')
           .update({ recurrence: recurrence as any })
           .eq('id', existing[0].id);
-          
+
+        void requestCalendarSyncProcessing('recurring-task-update');
         return true;
       }
 
@@ -216,6 +219,7 @@ export const useRecurringTasks = () => {
       }
 
       logger.info('Time_event créé pour tâche récurrente', { taskId, taskName });
+      void requestCalendarSyncProcessing('recurring-task-create');
       return true;
     } catch (error: any) {
       logger.error('Erreur ensureRecurringTaskHasEvent', { error: error.message });
@@ -267,3 +271,4 @@ export const useRecurringTasks = () => {
     getNextOccurrenceDate
   };
 };
+

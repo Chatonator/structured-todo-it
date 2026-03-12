@@ -9,6 +9,7 @@ import {
   Focus,
   RotateCcw,
   CalendarDays,
+  CalendarSync,
   TriangleAlert,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ export type SettingsSection =
   | 'appearance'
   | 'notifications'
   | 'rules'
+  | 'calendar'
   | 'account'
   | 'interface'
   | 'habits'
@@ -36,6 +38,7 @@ const sections = [
   { id: 'appearance' as const, label: 'Apparence', icon: Palette },
   { id: 'notifications' as const, label: 'Notifications', icon: Bell },
   { id: 'rules' as const, label: 'Règles & alertes', icon: TriangleAlert },
+  { id: 'calendar' as const, label: 'Agendas externes', icon: CalendarSync },
   { id: 'account' as const, label: 'Compte & Sécurité', icon: User },
   { id: 'interface' as const, label: 'Interface', icon: Layout },
   { id: 'timeline' as const, label: 'Timeline', icon: CalendarDays },

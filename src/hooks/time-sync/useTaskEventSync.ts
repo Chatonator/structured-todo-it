@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/task';
 import { Json } from '@/integrations/supabase/types';
 import { logger } from '@/lib/logger';
+import { requestCalendarSyncProcessing } from '@/lib/calendar/requestCalendarSync';
 import {
   ScheduleInfo,
   toLocalDateString,
@@ -45,6 +46,7 @@ export const useTaskEventSync = () => {
             .delete()
             .eq('id', existingEventId);
           logger.debug('TimeEvent supprimé pour tâche sans planification', { taskId: task.id });
+          void requestCalendarSyncProcessing('task-event-delete');
         }
         return true;
       }
@@ -93,6 +95,7 @@ export const useTaskEventSync = () => {
         logger.debug('TimeEvent créé pour tâche', { taskId: task.id });
       }
 
+      void requestCalendarSyncProcessing('task-event-upsert');
       return true;
     } catch (error: any) {
       logger.error('Erreur sync time_event pour tâche', { error: error.message, taskId: task.id });

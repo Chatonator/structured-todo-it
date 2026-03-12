@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { requestCalendarSyncProcessing } from '@/lib/calendar/requestCalendarSync';
 import { getSuggestionForDuration, buildBreakTitle, computeBlockBreaks } from '@/lib/time/RecoveryEngine';
 import { DateRange, TimeBlock, TimeEvent } from '@/lib/time/types';
 import { useAuth } from '@/hooks/useAuth';
@@ -237,6 +238,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
           .eq('entity_id', taskId)
           .eq('user_id', user.id);
 
+        void requestCalendarSyncProcessing('timeline-block-update');
         await recalculateBreaks(date, block);
         await loadEvents();
         logger.debug('Task scheduled to block', { taskId, date: formatTimelineDate(date), block });
@@ -322,6 +324,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
 
       if (error) throw error;
 
+      void requestCalendarSyncProcessing('timeline-reschedule-block');
       await loadEvents();
       logger.debug('Event rescheduled to block', { eventId, date: formatTimelineDate(date), block });
       return true;
@@ -354,6 +357,7 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
 
       if (error) throw error;
 
+      void requestCalendarSyncProcessing('timeline-resize-event');
       await loadEvents();
       logger.debug('Event resized', { eventId, newDuration });
       return true;
@@ -456,3 +460,5 @@ export const useTimelineScheduling = (dateRange: DateRange) => {
 };
 
 export type TimelineSchedulingReturn = ReturnType<typeof useTimelineScheduling>;
+
+

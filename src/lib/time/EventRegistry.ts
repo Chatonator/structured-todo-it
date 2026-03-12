@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TimeEvent, TimeEventRow, DateRange } from './types';
 import { EventNormalizer } from './EventNormalizer';
 import { logger } from '@/lib/logger';
+import { requestCalendarSyncProcessing } from '@/lib/calendar/requestCalendarSync';
 
 export class EventRegistry {
   /**
@@ -75,11 +76,11 @@ export class EventRegistry {
 
       return (data || []).map(row => EventNormalizer.rowToTimeEvent(row as TimeEventRow));
     } catch (error: any) {
-      logger.error('Failed to fetch events by entity', { 
-        error: error.message, 
-        userId, 
-        entityType, 
-        entityId 
+      logger.error('Failed to fetch events by entity', {
+        error: error.message,
+        userId,
+        entityType,
+        entityId
       });
       return [];
     }
@@ -101,6 +102,7 @@ export class EventRegistry {
       if (error) throw error;
 
       logger.info('Time event created', { eventId: data.id });
+      void requestCalendarSyncProcessing('event-registry-create');
       return data ? EventNormalizer.rowToTimeEvent(data as TimeEventRow) : null;
     } catch (error: any) {
       logger.error('Failed to create time event', { error: error.message, event });
@@ -114,7 +116,7 @@ export class EventRegistry {
   static async updateEvent(eventId: string, updates: Partial<TimeEvent>): Promise<boolean> {
     try {
       const updateData: any = {};
-      
+
       if (updates.startsAt) updateData.starts_at = updates.startsAt.toISOString();
       if (updates.endsAt) updateData.ends_at = updates.endsAt.toISOString();
       if (updates.duration !== undefined) updateData.duration = updates.duration;
@@ -136,6 +138,7 @@ export class EventRegistry {
       if (error) throw error;
 
       logger.info('Time event updated', { eventId });
+      void requestCalendarSyncProcessing('event-registry-update');
       return true;
     } catch (error: any) {
       logger.error('Failed to update time event', { error: error.message, eventId, updates });
@@ -156,6 +159,7 @@ export class EventRegistry {
       if (error) throw error;
 
       logger.info('Time event deleted', { eventId });
+      void requestCalendarSyncProcessing('event-registry-delete');
       return true;
     } catch (error: any) {
       logger.error('Failed to delete time event', { error: error.message, eventId });
@@ -182,13 +186,14 @@ export class EventRegistry {
       if (error) throw error;
 
       logger.info('Events deleted for entity', { entityType, entityId });
+      void requestCalendarSyncProcessing('event-registry-delete-entity');
       return true;
     } catch (error: any) {
-      logger.error('Failed to delete events for entity', { 
-        error: error.message, 
-        userId, 
-        entityType, 
-        entityId 
+      logger.error('Failed to delete events for entity', {
+        error: error.message,
+        userId,
+        entityType,
+        entityId
       });
       return false;
     }
@@ -216,6 +221,7 @@ export class EventRegistry {
       if (error) throw error;
 
       logger.info('Event status updated', { eventId, status });
+      void requestCalendarSyncProcessing('event-registry-status');
       return true;
     } catch (error: any) {
       logger.error('Failed to update event status', { error: error.message, eventId, status });

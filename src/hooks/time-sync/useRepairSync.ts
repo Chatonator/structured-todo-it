@@ -8,6 +8,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
+import { requestCalendarSyncProcessing } from '@/lib/calendar/requestCalendarSync';
 import { toLocalDateString, getTimeBlockFromTime } from './helpers';
 
 const REPAIR_DONE_KEY = 'time_sync_repair_v1';
@@ -22,21 +23,18 @@ export const useRepairSync = () => {
   const repairUnsyncedTasks = useCallback(async (): Promise<number> => {
     if (!user) return 0;
 
-    // Only run once
     const repairKey = `${REPAIR_DONE_KEY}_${user.id}`;
     if (localStorage.getItem(repairKey)) return 0;
 
     try {
-      // Fetch all task time_events for this user
       const { data: existingEvents } = await supabase
         .from('time_events')
         .select('entity_id')
         .eq('entity_type', 'task')
         .eq('user_id', user.id);
 
-      const syncedTaskIds = new Set((existingEvents || []).map(e => e.entity_id));
+      const syncedTaskIds = new Set((existingEvents || []).map((event) => event.entity_id));
 
-      // Fetch all items with potential schedule metadata
       const { data: items } = await supabase
         .from('items')
         .select('id, name, metadata, is_completed')
@@ -51,16 +49,13 @@ export const useRepairSync = () => {
       let repairedCount = 0;
 
       for (const item of items) {
-        // Skip already synced
         if (syncedTaskIds.has(item.id)) continue;
 
         const metadata = item.metadata as Record<string, any> | null;
         if (!metadata) continue;
 
-        // Check for schedule data in metadata
         const scheduledDate = metadata.scheduledDate || metadata.scheduled_date;
         const scheduledTime = metadata.scheduledTime || metadata.scheduled_time;
-
         if (!scheduledDate) continue;
 
         try {
@@ -86,24 +81,27 @@ export const useRepairSync = () => {
             is_all_day: false,
             status: item.is_completed ? 'completed' : 'scheduled',
             completed_at: item.is_completed ? new Date().toISOString() : null,
-            time_block: getTimeBlockFromTime(time)
+            time_block: getTimeBlockFromTime(time),
           });
 
           if (!error) {
-            repairedCount++;
+            repairedCount += 1;
             logger.info('Repaired unsynced task', { taskId: item.id, name: item.name });
           }
-        } catch (e: any) {
-          logger.warn('Failed to repair task', { taskId: item.id, error: e.message });
+        } catch (caughtError: any) {
+          logger.warn('Failed to repair task', { taskId: item.id, error: caughtError.message });
         }
       }
 
       localStorage.setItem(repairKey, 'done');
+      if (repairedCount > 0) {
+        void requestCalendarSyncProcessing('repair-sync');
+      }
       logger.info(`Repair sync completed: ${repairedCount} tasks repaired`);
       return repairedCount;
     } catch (error: any) {
       logger.error('Repair sync failed', { error: error.message });
-      localStorage.setItem(repairKey, 'done'); // Don't retry on error
+      localStorage.setItem(repairKey, 'done');
       return 0;
     }
   }, [user]);

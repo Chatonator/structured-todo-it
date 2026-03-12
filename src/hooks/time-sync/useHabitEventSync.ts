@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Habit } from '@/types/habit';
 import { Json } from '@/integrations/supabase/types';
 import { logger } from '@/lib/logger';
+import { requestCalendarSyncProcessing } from '@/lib/calendar/requestCalendarSync';
 import { mapHabitRecurrence } from './helpers';
 
 export const useHabitEventSync = () => {
@@ -31,6 +32,7 @@ export const useHabitEventSync = () => {
         if (existingEventId) {
           await supabase.from('time_events').delete().eq('id', existingEventId);
           logger.debug('TimeEvent supprimé pour habitude inactive', { habitId: habit.id });
+          void requestCalendarSyncProcessing('habit-event-delete');
         }
         return true;
       }
@@ -61,6 +63,7 @@ export const useHabitEventSync = () => {
         if (error) throw error;
       }
 
+      void requestCalendarSyncProcessing('habit-event-upsert');
       return true;
     } catch (error: any) {
       logger.error('Erreur sync time_event pour habitude', { error: error.message, habitId: habit.id });
