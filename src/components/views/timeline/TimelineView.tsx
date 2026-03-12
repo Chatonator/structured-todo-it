@@ -17,6 +17,7 @@ import {
 import { ViewLayout } from '@/components/layout/view';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar as DateCalendar } from '@/components/ui/calendar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   Calendar,
@@ -152,6 +153,8 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isTaskDeckOpen, setIsTaskDeckOpen] = useState(false);
   const [taskToQuickSchedule, setTaskToQuickSchedule] = useState<Task | null>(null);
+  const [quickScheduleDate, setQuickScheduleDate] = useState(selectedDate);
+  const [isQuickScheduleCalendarOpen, setIsQuickScheduleCalendarOpen] = useState(false);
 
   const dateRange = useMemo(() => {
     if (viewMode === 'day') {
@@ -205,6 +208,12 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
       setViewMode('day');
     }
   }, [isPhone, viewMode]);
+
+  useEffect(() => {
+    if (!taskToQuickSchedule) return;
+    setQuickScheduleDate(selectedDate);
+    setIsQuickScheduleCalendarOpen(false);
+  }, [selectedDate, taskToQuickSchedule]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -330,13 +339,14 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
     if (!taskToQuickSchedule) return;
     await scheduleTaskToBlock({
       taskId: taskToQuickSchedule.id,
-      date: selectedDate,
+      date: quickScheduleDate,
       block,
       duration: taskToQuickSchedule.duration || taskToQuickSchedule.estimatedTime || 30,
     });
+    setSelectedDate(quickScheduleDate);
     setTaskToQuickSchedule(null);
     setIsTaskDeckOpen(false);
-  }, [scheduleTaskToBlock, selectedDate, taskToQuickSchedule]);
+  }, [quickScheduleDate, scheduleTaskToBlock, taskToQuickSchedule]);
 
   const eventsByDay = useMemo(() => {
     const grouped = new Map<string, TimeEvent[]>();
@@ -363,6 +373,10 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
   const selectedDayQuota = getQuotaForDate(selectedDate);
   const selectedDayScheduledDuration = selectedDayEvents.reduce((sum, event) => sum + event.duration, 0);
   const selectedDayCompletedCount = selectedDayEvents.filter((event) => event.status === 'completed').length;
+  const quickScheduleDays = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => addDays(quickScheduleDate, index)),
+    [quickScheduleDate]
+  );
 
   return (
     <ViewLayout
@@ -569,7 +583,10 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
             tasks={unscheduledTasks.filter(t => !pendingTaskIds.has(t.id))}
             scheduledEvents={scheduledEvents}
             projects={projects}
-            onTaskClick={(task) => setTaskToQuickSchedule(task)}
+            onTaskClick={(task) => {
+              setQuickScheduleDate(selectedDate);
+              setTaskToQuickSchedule(task);
+            }}
             onEventClick={handleEventClick}
             onUnscheduleEvent={handleUnscheduleEvent}
             onCompleteEvent={handleCompleteEvent}
@@ -577,29 +594,106 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
         </SheetContent>
       </Sheet>
 
-      <Sheet open={!!taskToQuickSchedule} onOpenChange={(open) => !open && setTaskToQuickSchedule(null)}>
-        <SheetContent side="bottom" className="rounded-t-[28px] px-5 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] pt-5">
+      <Sheet
+        open={!!taskToQuickSchedule}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTaskToQuickSchedule(null);
+            setIsQuickScheduleCalendarOpen(false);
+          }
+        }}
+      >
+        <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-[28px] px-5 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] pt-5">
           <SheetHeader className="mb-4 text-left">
             <SheetTitle>{taskToQuickSchedule?.name}</SheetTitle>
           </SheetHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Planifier le {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
-            </p>
-            {quickScheduleOptions.map((option) => {
-              const Icon = option.icon;
-              return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Choisir le jour
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Planifier le {format(quickScheduleDate, 'EEEE d MMMM', { locale: fr })}
+                </p>
+              </div>
+
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                {quickScheduleDays.map((day) => {
+                  const isSelected = isSameDay(day, quickScheduleDate);
+                  return (
+                    <button
+                      key={day.toISOString()}
+                      type="button"
+                      onClick={() => setQuickScheduleDate(day)}
+                      className={cn(
+                        'min-w-[78px] rounded-2xl border px-3 py-2 text-left transition-colors',
+                        isSelected
+                          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                          : 'border-border bg-card text-foreground'
+                      )}
+                    >
+                      <div className="text-[11px] uppercase tracking-[0.14em] opacity-80">
+                        {format(day, 'EEE', { locale: fr })}
+                      </div>
+                      <div className="mt-1 text-sm font-semibold">
+                        {format(day, 'd MMM', { locale: fr })}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-2">
                 <Button
-                  key={option.block}
+                  type="button"
                   variant="outline"
-                  className="h-12 w-full justify-start rounded-2xl"
-                  onClick={() => handleQuickSchedule(option.block)}
+                  className="rounded-2xl"
+                  onClick={() => setQuickScheduleDate(new Date())}
                 >
-                  <Icon className="mr-2 h-4 w-4" />
-                  {option.label}
+                  Aujourd’hui
                 </Button>
-              );
-            })}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-2xl"
+                  onClick={() => setIsQuickScheduleCalendarOpen((open) => !open)}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {isQuickScheduleCalendarOpen ? 'Masquer le calendrier' : 'Choisir une autre date'}
+                </Button>
+              </div>
+            </div>
+
+            {isQuickScheduleCalendarOpen && (
+              <div className="rounded-3xl border border-border/70 bg-card/70 p-2">
+                <DateCalendar
+                  mode="single"
+                  selected={quickScheduleDate}
+                  onSelect={(date) => date && setQuickScheduleDate(date)}
+                  locale={fr}
+                  className="mx-auto w-fit"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Choisir le créneau</p>
+              {quickScheduleOptions.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <Button
+                    key={option.block}
+                    variant="outline"
+                    className="h-12 w-full justify-start rounded-2xl"
+                    onClick={() => handleQuickSchedule(option.block)}
+                  >
+                    <Icon className="mr-2 h-4 w-4" />
+                    {option.label}
+                  </Button>
+                );
+              })}
+            </div>
           </div>
         </SheetContent>
       </Sheet>

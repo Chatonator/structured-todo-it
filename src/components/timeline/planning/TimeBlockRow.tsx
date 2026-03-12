@@ -5,6 +5,7 @@ import { TimeEvent, TimeBlock, TIME_BLOCKS } from '@/lib/time/types';
 import { ScheduledEventCard } from '../ScheduledEventCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TaskCategory } from '@/types/task';
+import { useViewport } from '@/contexts/ViewportContext';
 
 interface TimeBlockRowProps {
   date: Date;
@@ -16,10 +17,6 @@ interface TimeBlockRowProps {
   taskCategoryMap?: Map<string, TaskCategory>;
 }
 
-/**
- * Blocs temporels en disposition horizontale pour la vue jour
- * Layout en 3 colonnes : Matin | Après-midi | Soir
- */
 export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
   date,
   events,
@@ -29,7 +26,7 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
   disabled = false,
   taskCategoryMap
 }) => {
-  // Group events by time block
+  const { isPhone } = useViewport();
   const eventsByBlock = React.useMemo(() => {
     const grouped: Record<TimeBlock, TimeEvent[]> = {
       morning: [],
@@ -39,7 +36,7 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
 
     events.forEach(event => {
       let block: TimeBlock = 'morning';
-      
+
       if (event.timeBlock) {
         block = event.timeBlock;
       } else {
@@ -50,20 +47,16 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
           block = 'afternoon';
         }
       }
-      
+
       grouped[block].push(event);
     });
 
-    // Sort events: tasks by startsAt, then insert recovery breaks right after their parent task
     Object.values(grouped).forEach(blockEvents => {
-      // First sort all by startsAt
       blockEvents.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
-      
-      // Then reorder: for each recovery event, place it right after its parent task
+
       const reordered: TimeEvent[] = [];
       const recoveryMap = new Map<string, TimeEvent[]>();
-      
-      // Group recovery events by their parent task (entity_id)
+
       for (const evt of blockEvents) {
         if (evt.entityType === 'recovery') {
           const existing = recoveryMap.get(evt.entityId) || [];
@@ -71,10 +64,9 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
           recoveryMap.set(evt.entityId, existing);
         }
       }
-      
-      // Build final order: task followed by its recovery breaks
+
       for (const evt of blockEvents) {
-        if (evt.entityType === 'recovery') continue; // will be inserted after parent
+        if (evt.entityType === 'recovery') continue;
         reordered.push(evt);
         const breaks = recoveryMap.get(evt.entityId);
         if (breaks) {
@@ -82,12 +74,11 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
           recoveryMap.delete(evt.entityId);
         }
       }
-      
-      // Add any orphaned recovery events at the end
+
       for (const breaks of recoveryMap.values()) {
         reordered.push(...breaks);
       }
-      
+
       blockEvents.length = 0;
       blockEvents.push(...reordered);
     });
@@ -96,7 +87,7 @@ export const TimeBlockRow: React.FC<TimeBlockRowProps> = ({
   }, [events]);
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className={cn('grid gap-4', isPhone ? 'grid-cols-1' : 'grid-cols-3')}>
       {(['morning', 'afternoon', 'evening'] as TimeBlock[]).map(block => (
         <TimeBlockColumn
           key={block}
@@ -135,6 +126,7 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
   disabled,
   taskCategoryMap
 }) => {
+  const { isPhone } = useViewport();
   const blockConfig = TIME_BLOCKS[block];
   const droppableId = `block-${date.toISOString().split('T')[0]}-${block}`;
 
@@ -155,12 +147,11 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col rounded-xl border-2 transition-colors duration-150 min-h-[200px]",
-        isOver && !disabled && "border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.01]",
-        disabled ? "bg-muted/20 border-muted border-dashed" : isOver ? "border-primary" : "border-dashed border-border hover:border-muted-foreground/40"
+        'flex flex-col rounded-xl border-2 transition-colors duration-150 min-h-[200px]',
+        isOver && !disabled && 'border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.01]',
+        disabled ? 'bg-muted/20 border-muted border-dashed' : isOver ? 'border-primary' : 'border-dashed border-border hover:border-muted-foreground/40'
       )}
     >
-      {/* Block header */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30 rounded-t-lg flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-xl">{blockConfig.icon}</span>
@@ -178,13 +169,12 @@ const TimeBlockColumn: React.FC<TimeBlockColumnProps> = ({
         )}
       </div>
 
-      {/* Events list with scroll */}
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-3 space-y-2">
           {events.length === 0 ? (
             <div className="h-[120px] flex items-center justify-center">
               <p className="text-sm text-muted-foreground/50 text-center">
-                {disabled ? '—' : 'Glissez une tâche ici'}
+                {disabled ? '—' : isPhone ? 'Planifiez depuis le backlog' : 'Glissez une tâche ici'}
               </p>
             </div>
           ) : (
