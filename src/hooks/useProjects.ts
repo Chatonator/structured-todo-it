@@ -46,7 +46,7 @@ function projectToItemMetadata(
 ): Partial<ItemMetadata> {
   const metadata: Partial<ItemMetadata> = {
     // Required harmonized fields
-    category: 'Autres' as any,
+    category: 'low_priority' as any,
     context: (context as any) || 'Perso',
     estimatedTime: 60,
     isImportant: isImportant ?? false,

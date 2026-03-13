@@ -1,4 +1,4 @@
-import { Task, TaskCategory } from '@/types/task';
+import { Task, TaskCategory, getCategoryDisplayName } from '@/types/task';
 import { 
   differenceInDays, startOfWeek, endOfWeek, subWeeks, 
   isWithinInterval, format, subDays, startOfDay 
@@ -108,7 +108,7 @@ export function calculateCharts(enrichedTasks: EnrichedTask[]): ChartsData {
   }
 
   const activeTasks = enrichedTasks.filter(t => !t.isCompleted);
-  const categories: TaskCategory[] = ['Obligation', 'Quotidien', 'Envie', 'Autres'];
+  const categories: TaskCategory[] = ['critical', 'urgent', 'important', 'low_priority'];
   const categoryBreakdown: CategoryStat[] = categories.map(category => {
     const count = activeTasks.filter(t => t.category === category).length;
     return {
@@ -126,7 +126,7 @@ export function groupTasks(
   projectLookup: Map<string, string>
 ): TaskGroup[] {
   const projectGroups = new Map<string, EnrichedTask[]>();
-  const categories: TaskCategory[] = ['Obligation', 'Quotidien', 'Envie', 'Autres'];
+  const categories: TaskCategory[] = ['critical', 'urgent', 'important', 'low_priority'];
   
   sortedTasks.forEach(task => {
     const key = task.projectId || 'no-project';
@@ -152,7 +152,7 @@ export function groupTasks(
         if (categoryTasks.length === 0) return null;
         return {
           id: `${projectKey}-${category}`,
-          name: category as string,
+          name: getCategoryDisplayName(category),
           tasks: categoryTasks,
           totalTime: categoryTasks.reduce((sum, t) => sum + t.estimatedTime, 0),
           completedCount: categoryTasks.filter(t => t.isCompleted).length,

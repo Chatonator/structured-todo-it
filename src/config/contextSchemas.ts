@@ -36,7 +36,7 @@ export const CONTEXT_SCHEMAS: Record<ItemContextType, ContextSchema> = {
     requiredFields: ['category', 'context', 'estimatedTime'],
     optionalFields: ['subCategory', 'duration', 'level', 'isExpanded', 'projectId', 'projectStatus'],
     defaultValues: {
-      category: 'Autres',
+      category: 'low_priority',
       context: 'Perso',
       estimatedTime: 30,
       level: 0,
@@ -53,7 +53,7 @@ export const CONTEXT_SCHEMAS: Record<ItemContextType, ContextSchema> = {
     requiredFields: ['category', 'context', 'estimatedTime'],
     optionalFields: ['subCategory', 'duration', 'level', 'isExpanded'],
     defaultValues: {
-      category: 'Autres',
+      category: 'low_priority',
       context: 'Perso',
       estimatedTime: 15,
       level: 1,
@@ -85,7 +85,7 @@ export const CONTEXT_SCHEMAS: Record<ItemContextType, ContextSchema> = {
     requiredFields: ['category', 'context', 'estimatedTime', 'projectStatus'],
     optionalFields: ['subCategory', 'duration'],
     defaultValues: {
-      category: 'Autres',
+      category: 'low_priority',
       context: 'Perso',
       estimatedTime: 30,
       projectStatus: 'todo'
@@ -137,7 +137,7 @@ export const CONTEXT_SCHEMAS: Record<ItemContextType, ContextSchema> = {
     requiredFields: ['category', 'context', 'estimatedTime', 'teamId'],
     optionalFields: ['subCategory', 'duration', 'assignedTo', 'level', 'isExpanded'],
     defaultValues: {
-      category: 'Autres',
+      category: 'low_priority',
       context: 'Pro',
       estimatedTime: 30,
       level: 0,

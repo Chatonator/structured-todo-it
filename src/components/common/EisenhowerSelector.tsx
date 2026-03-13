@@ -19,8 +19,8 @@ export const EisenhowerSelector: React.FC<EisenhowerSelectorProps> = ({
   required = true,
   label = 'Catégorie'
 }) => {
-  const flags = eisenhowerFromCategory((value || 'Autres') as ItemCategory);
-  const resultCategory = (value || 'Autres') as ItemCategory;
+  const flags = eisenhowerFromCategory((value || 'low_priority') as ItemCategory);
+  const resultCategory = (value || 'low_priority') as ItemCategory;
 
   const handleToggle = (flag: 'isImportant' | 'isUrgent') => {
     const newFlags = { ...flags, [flag]: !flags[flag] };
@@ -42,7 +42,7 @@ export const EisenhowerSelector: React.FC<EisenhowerSelectorProps> = ({
             emoji="⭐"
             checked={flags.isImportant}
             onToggle={() => handleToggle('isImportant')}
-            activeClass="bg-category-envie/15 text-category-envie border-category-envie/30"
+            activeClass="bg-category-important/15 text-category-important border-category-important/30"
           />
           <div className="w-px bg-border" />
           <ToggleButton
@@ -50,7 +50,7 @@ export const EisenhowerSelector: React.FC<EisenhowerSelectorProps> = ({
             emoji="⚡"
             checked={flags.isUrgent}
             onToggle={() => handleToggle('isUrgent')}
-            activeClass="bg-category-quotidien/15 text-category-quotidien border-category-quotidien/30"
+            activeClass="bg-category-urgent/15 text-category-urgent border-category-urgent/30"
           />
         </div>
         <div className={cn(

@@ -172,23 +172,33 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .task-pinned {
-  @apply bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 shadow-sm;
+  @apply shadow-sm;
+  background-color: hsl(var(--pin-surface));
+  border-color: hsl(var(--pin) / 0.28);
+}
+
+.surface-pin {
+  background-color: hsl(var(--pin-surface));
+}
+
+.sidebar-recurring-glow {
+  background: linear-gradient(to left, hsl(var(--recurring-surface) / 0.88), transparent);
 }
 
 /* Category shadows on hover */
-.task-item[data-category="Obligation"]:hover {
+.task-item[data-category="critical"]:hover {
   @apply shadow-lg shadow-red-500/15;
 }
 
-.task-item[data-category="Quotidien"]:hover {
+.task-item[data-category="urgent"]:hover {
   @apply shadow-lg shadow-amber-500/15;
 }
 
-.task-item[data-category="Envie"]:hover {
+.task-item[data-category="important"]:hover {
   @apply shadow-lg shadow-green-500/15;
 }
 
-.task-item[data-category="Autres"]:hover {
+.task-item[data-category="low_priority"]:hover {
   @apply shadow-lg shadow-violet-500/15;
 }
 

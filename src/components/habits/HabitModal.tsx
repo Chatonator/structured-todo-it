@@ -105,7 +105,7 @@ const HabitModal: React.FC<HabitModalProps> = ({
     onSave({
       userId: '',
       name,
-      category: 'Quotidien',
+      category: 'low_priority',
       context: defaultContext || 'Perso',
       estimatedTime: 15,
       description: description || undefined,

@@ -21,7 +21,7 @@ const sizeClasses = {
 
 /**
  * Badge de catégorie de tâche réutilisable
- * Affiche Obligation, Quotidien, Envie ou Autres avec les couleurs appropriées
+ * Affiche Critique, Urgent, Important ou Faible priorité avec les couleurs appropriées
  */
 export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
   category,

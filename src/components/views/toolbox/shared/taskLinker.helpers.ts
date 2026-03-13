@@ -9,10 +9,10 @@ const PRIORITY_ORDER: Record<SubTaskCategory, number> = {
 };
 
 const CATEGORY_GROUP_LABELS: Record<TaskCategory, string> = {
-  Obligation: 'Cruciales',
-  Quotidien: 'Regulieres',
-  Envie: 'Envies',
-  Autres: 'Optionnelles',
+  critical: 'Critique',
+  urgent: 'Urgent',
+  important: 'Important',
+  low_priority: 'Faible priorité',
 };
 
 const CONTEXT_GROUP_LABELS: Record<TaskContext, string> = {

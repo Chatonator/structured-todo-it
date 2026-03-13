@@ -5,7 +5,7 @@ export type TaskType = 'personal' | 'project' | 'team';
 export interface TaskTypeConfig {
   // Champs à afficher
   showContextSelector: boolean;      // Pro/Perso
-  showCategorySelector: boolean;     // Cruciale, Envie, etc.
+  showCategorySelector: boolean;     // Critique, Urgent, etc.
   showPrioritySelector: boolean;     // Le plus important, Important...
   showScheduling: boolean;           // Date/heure
   showRecurrence: boolean;           // Récurrence
@@ -65,7 +65,7 @@ export const TASK_TYPE_CONFIGS: Record<TaskType, TaskTypeConfig> = {
     },
     defaults: {
       context: 'Pro',           // Défaut Pro pour les projets
-      category: 'Autres'        // Catégorie neutre par défaut
+      category: 'low_priority'  // Catégorie neutre par défaut
     },
     requiredFields: ['name', 'estimatedTime', 'subCategory']  // Priorité requise
   },
@@ -85,7 +85,7 @@ export const TASK_TYPE_CONFIGS: Record<TaskType, TaskTypeConfig> = {
     },
     defaults: {
       context: 'Pro',
-      category: 'Autres'
+      category: 'low_priority'
     },
     requiredFields: ['name', 'estimatedTime']
   }

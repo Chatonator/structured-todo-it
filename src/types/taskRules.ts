@@ -3,7 +3,7 @@ export type TaskRuleAutoAction =
   | 'pin'
   | 'mark-important'
   | 'mark-urgent'
-  | 'make-obligation';
+  | 'make-critical';
 
 export interface StaleTaskRuleSettings {
   enabled: boolean;
@@ -44,7 +44,7 @@ const TASK_RULE_AUTO_ACTIONS: TaskRuleAutoAction[] = [
   'pin',
   'mark-important',
   'mark-urgent',
-  'make-obligation',
+  'make-critical',
 ];
 
 function isTaskRuleAutoAction(value: unknown): value is TaskRuleAutoAction {
@@ -62,6 +62,7 @@ function clampPositiveInteger(value: unknown, fallback: number, max: number): nu
 export function normalizeTaskRulePreferences(stored?: Partial<TaskRulePreferences> | null): TaskRulePreferences {
   const staleTask: Partial<StaleTaskRuleSettings> = stored?.staleTask ?? {};
   const defaults = DEFAULT_TASK_RULE_PREFERENCES.staleTask;
+  const rawAutoAction = (stored?.staleTask as unknown as Record<string, unknown> | undefined)?.autoAction;
 
   return {
     staleTask: {
@@ -69,7 +70,11 @@ export function normalizeTaskRulePreferences(stored?: Partial<TaskRulePreference
       firstAlertAfterDays: clampPositiveInteger(staleTask.firstAlertAfterDays, defaults.firstAlertAfterDays, 365),
       repeatEveryDays: clampPositiveInteger(staleTask.repeatEveryDays, defaults.repeatEveryDays, 365),
       autoActionAfterAlerts: clampPositiveInteger(staleTask.autoActionAfterAlerts, defaults.autoActionAfterAlerts, 20),
-      autoAction: isTaskRuleAutoAction(staleTask.autoAction) ? staleTask.autoAction : defaults.autoAction,
+      autoAction: rawAutoAction === 'make-obligation'
+        ? 'make-critical'
+        : isTaskRuleAutoAction(staleTask.autoAction)
+          ? staleTask.autoAction
+          : defaults.autoAction,
     },
   };
 }

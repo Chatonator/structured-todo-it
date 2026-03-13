@@ -1,6 +1,6 @@
 import type { Json } from '@/integrations/supabase/types';
 import { Item, ItemContextType, ItemMetadata, categoryFromEisenhower, eisenhowerFromCategory } from '@/types/item';
-import { TaskCategory } from '@/types/task';
+import { normalizeTaskCategory, TaskCategory } from '@/types/task';
 
 export interface ItemRow {
   id: string;
@@ -39,7 +39,7 @@ export function rowToItem(row: ItemRow): Item {
     parentId: row.parent_id,
     metadata: {
       ...row.metadata,
-      category: derivedCategory,
+      category: normalizeTaskCategory((row.metadata as Record<string, unknown>)?.category as string ?? row.category ?? derivedCategory),
       context: row.context,
       estimatedTime: row.estimatedTime,
       isImportant: row.is_important,
@@ -65,7 +65,7 @@ interface CreateInsertDataParams {
 export function createInsertData({ userId, name, contextType, parentId, orderIndex, metadata }: CreateInsertDataParams) {
   const eisenhower = (metadata.isImportant !== undefined && metadata.isUrgent !== undefined)
     ? { isImportant: !!metadata.isImportant, isUrgent: !!metadata.isUrgent }
-    : eisenhowerFromCategory((metadata.category as TaskCategory) || 'Autres');
+    : eisenhowerFromCategory((metadata.category as TaskCategory) || 'low_priority');
 
   return {
     user_id: userId,
@@ -100,7 +100,7 @@ export function mergeMetadataUpdate(currentItem: ItemRow, metadataUpdates: Parti
     const eisenhower = eisenhowerFromCategory(metadataUpdates.category as TaskCategory);
     dbUpdates.is_important = eisenhower.isImportant;
     dbUpdates.is_urgent = eisenhower.isUrgent;
-    dbUpdates.category = metadataUpdates.category;
+    dbUpdates.category = normalizeTaskCategory(metadataUpdates.category as TaskCategory);
   }
 
   if (metadataUpdates.context) {

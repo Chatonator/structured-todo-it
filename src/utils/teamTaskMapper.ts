@@ -3,9 +3,12 @@
  * and the TeamTask / Task camelCase interface.
  */
 
+import { normalizeTaskCategory } from '@/types/task';
+
 /** DB row → camelCase TeamTask fields */
 export const mapDbRowToTeamTask = (row: Record<string, any>) => ({
   ...row,
+  category: normalizeTaskCategory(row.category),
   estimatedTime: row.estimatedtime,
   isCompleted: row.iscompleted,
   isExpanded: row.isexpanded,
@@ -61,7 +64,7 @@ export const mapCamelToSnake = (updates: Record<string, any>): Record<string, an
     } else if (dateFields[key]) {
       mapped[dateSnakeMap[key]] = dateFields[key](value);
     } else if (passthrough.includes(key)) {
-      mapped[key] = value;
+      mapped[key] = key === 'category' ? normalizeTaskCategory(value) : value;
     }
   }
 

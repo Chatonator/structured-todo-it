@@ -71,7 +71,7 @@ const SidebarSearchFilter: React.FC<SidebarSearchFilterProps> = ({
     onFiltersChange(defaultFilters);
   };
 
-  const categories: TaskCategory[] = ['Obligation', 'Quotidien', 'Envie', 'Autres'];
+  const categories: TaskCategory[] = ['critical', 'urgent', 'important', 'low_priority'];
   const contexts: TaskContext[] = ['Pro', 'Perso'];
 
   return (

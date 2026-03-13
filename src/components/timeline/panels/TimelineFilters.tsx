@@ -22,7 +22,7 @@ interface TimelineFiltersProps {
   className?: string;
 }
 
-const CATEGORIES: TaskCategory[] = ['Obligation', 'Quotidien', 'Envie', 'Autres'];
+const CATEGORIES: TaskCategory[] = ['critical', 'urgent', 'important', 'low_priority'];
 const CONTEXTS: TaskContext[] = ['Pro', 'Perso'];
 const PRIORITIES: SubTaskCategory[] = ['Le plus important', 'Important', 'Peut attendre', "Si j'ai le temps"];
 

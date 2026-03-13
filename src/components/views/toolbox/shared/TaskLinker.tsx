@@ -60,10 +60,10 @@ const CONTEXT_OPTIONS: { value: TaskContext | 'all'; label: string }[] = [
 
 const CATEGORY_OPTIONS: { value: TaskCategory | 'all'; label: string; category?: TaskCategory }[] = [
   { value: 'all', label: 'Toutes' },
-  { value: 'Obligation', label: 'Cruciales', category: 'Obligation' },
-  { value: 'Quotidien', label: 'Regulieres', category: 'Quotidien' },
-  { value: 'Envie', label: 'Envies', category: 'Envie' },
-  { value: 'Autres', label: 'Optionnelles', category: 'Autres' },
+  { value: 'critical', label: 'Critique', category: 'critical' },
+  { value: 'urgent', label: 'Urgent', category: 'urgent' },
+  { value: 'important', label: 'Important', category: 'important' },
+  { value: 'low_priority', label: 'Faible priorité', category: 'low_priority' },
 ];
 
 const PRIORITY_OPTIONS: { value: SubTaskCategory | 'all' | 'none'; label: string }[] = [

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart as PieIcon } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CategoryStat } from '@/hooks/view-data/useObservatoryViewData';
-import { TaskCategory, CATEGORY_DISPLAY_NAMES } from '@/types/task';
+import { TaskCategory, CATEGORY_CSS_NAMES, CATEGORY_DISPLAY_NAMES } from '@/types/task';
 
 interface CategoryDonutProps {
   data: CategoryStat[];
@@ -11,10 +11,10 @@ interface CategoryDonutProps {
 }
 
 const FALLBACK_COLORS: Record<TaskCategory, string> = {
-  Obligation: '#ef4444',
-  Quotidien: '#eab308',
-  Envie: '#22c55e',
-  Autres: '#3b82f6',
+  critical: '#ef4444',
+  urgent: '#eab308',
+  important: '#22c55e',
+  low_priority: '#3b82f6',
 };
 
 export const CategoryDonut: React.FC<CategoryDonutProps> = ({ data, totalActive }) => {
@@ -28,7 +28,7 @@ export const CategoryDonut: React.FC<CategoryDonutProps> = ({ data, totalActive 
   const getColor = (category: TaskCategory): string => {
     try {
       const root = document.documentElement;
-      const cssVarName = `--category-${category.toLowerCase()}`;
+      const cssVarName = `--category-${CATEGORY_CSS_NAMES[category]}`;
       const cssVar = getComputedStyle(root).getPropertyValue(cssVarName).trim();
       if (cssVar) return `hsl(${cssVar})`;
     } catch {}

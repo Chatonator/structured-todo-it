@@ -55,7 +55,7 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
   const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [context, setContext] = useState<TaskContext>('Perso');
-  const [category, setCategory] = useState<TaskCategory>('Autres');
+  const [category, setCategory] = useState<TaskCategory>('low_priority');
 
   useEffect(() => {
     if (project) {
@@ -68,7 +68,7 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       setSelectedTeamId(null);
       const meta = (project as any).metadata || {};
       setContext((meta.context as TaskContext) || 'Perso');
-      setCategory((meta.category as TaskCategory) || 'Autres');
+      setCategory((meta.category as TaskCategory) || 'low_priority');
     } else {
       setName(initialName || '');
       setDescription('');
@@ -78,7 +78,7 @@ export const ProjectModal = ({ open, onClose, onSave, project, initialName, team
       setTargetDate(undefined);
       setSelectedTeamId(teamId || currentTeam?.id || null);
       setContext(defaultContext || 'Perso');
-      setCategory('Autres');
+      setCategory('low_priority');
     }
   }, [project, initialName, open, teamId, currentTeam?.id]);
 

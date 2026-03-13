@@ -40,7 +40,7 @@ function buildItemUpdates(
     case 'mark-urgent':
       metadataUpdates.isUrgent = true;
       break;
-    case 'make-obligation':
+    case 'make-critical':
       metadataUpdates.isImportant = true;
       metadataUpdates.isUrgent = true;
       break;

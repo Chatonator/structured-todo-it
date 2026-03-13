@@ -7,7 +7,7 @@ const baseTasks: Task[] = [
   {
     id: 'free-1',
     name: 'Acheter du pain',
-    category: 'Autres',
+    category: 'low_priority',
     context: 'Perso',
     estimatedTime: 10,
     level: 0,
@@ -18,7 +18,7 @@ const baseTasks: Task[] = [
   {
     id: 'project-1-task',
     name: 'Faire la maquette',
-    category: 'Obligation',
+    category: 'critical',
     context: 'Pro',
     estimatedTime: 90,
     level: 0,
@@ -31,7 +31,7 @@ const baseTasks: Task[] = [
   {
     id: 'project-2-task',
     name: 'Appeler le client',
-    category: 'Quotidien',
+    category: 'urgent',
     context: 'Pro',
     estimatedTime: 30,
     level: 0,

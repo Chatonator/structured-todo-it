@@ -14,9 +14,14 @@ const UserPreferencesContext = createContext<UserPreferencesContextType | undefi
 const STORAGE_KEY = 'todoIt_userPreferences';
 
 function normalizeCategoryColors(storedColors?: Partial<CategoryColors>): CategoryColors {
+  const legacy = storedColors as Record<string, string> | undefined;
+
   return {
     ...DEFAULT_PREFERENCES.categoryColors,
-    ...storedColors,
+    critical: legacy?.critical ?? legacy?.Obligation ?? DEFAULT_PREFERENCES.categoryColors.critical,
+    urgent: legacy?.urgent ?? legacy?.Quotidien ?? DEFAULT_PREFERENCES.categoryColors.urgent,
+    important: legacy?.important ?? legacy?.Envie ?? DEFAULT_PREFERENCES.categoryColors.important,
+    low_priority: legacy?.low_priority ?? legacy?.Autres ?? DEFAULT_PREFERENCES.categoryColors.low_priority,
   };
 }
 
@@ -37,10 +42,7 @@ export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ chi
           ...newCategories,
         ];
 
-        const hasPaletteVersion = typeof storedPrefs.categoryPaletteVersion === 'number';
-        const categoryColors = hasPaletteVersion
-          ? normalizeCategoryColors(storedPrefs.categoryColors)
-          : { ...DEFAULT_PREFERENCES.categoryColors };
+        const categoryColors = normalizeCategoryColors(storedPrefs.categoryColors);
 
         return {
           ...DEFAULT_PREFERENCES,

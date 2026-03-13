@@ -29,7 +29,7 @@ interface TaskBacklogSurfaceProps {
 
 type MobileBacklogSectionId = 'free' | 'scheduled' | 'projects' | 'team';
 
-const categories: TaskCategory[] = ['Obligation', 'Quotidien', 'Envie', 'Autres'];
+const categories: TaskCategory[] = ['critical', 'urgent', 'important', 'low_priority'];
 const contexts: TaskContext[] = ['Pro', 'Perso'];
 
 const BacklogSection: React.FC<{

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { mapDbRowToTeamTask } from '@/utils/teamTaskMapper';
+import { normalizeTaskCategory } from '@/types/task';
 import type { Task } from '@/types/task';
 
 export interface TeamTask extends Omit<Task, 'user_id' | 'projectStatus'> {
@@ -84,7 +85,7 @@ export const useTeamTasks = (teamId: string | null, options: UseTeamTasksOptions
         team_id: teamId,
         created_by: user.id,
         name: taskData.name || '',
-        category: taskData.category || '',
+        category: normalizeTaskCategory(taskData.category || 'low_priority'),
         subcategory: taskData.subCategory || null,
         context: taskData.context || '',
         estimatedtime: taskData.estimatedTime ?? 0,

@@ -10,6 +10,7 @@ import { useGamification } from './useGamification';
 import { useTimeEventSync } from './useTimeEventSync';
 import { Habit, HabitStreak } from '@/types/habit';
 import { Item, ItemMetadata } from '@/types/item';
+import { normalizeTaskCategory } from '@/types/task';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,7 +21,7 @@ function itemToHabit(item: Item): Habit {
     id: item.id,
     userId: item.userId,
     name: item.name,
-    category: (meta.category as Habit['category']) || 'Quotidien',
+    category: normalizeTaskCategory((meta.category as Habit['category']) || 'low_priority'),
     context: (meta.context as Habit['context']) || 'Perso',
     estimatedTime: (meta.estimatedTime as number) || 15,
     description: meta.description as string | undefined,
@@ -48,7 +49,7 @@ function itemToHabit(item: Item): Habit {
 // Convert Habit to Item metadata
 function habitToItemMetadata(habit: Partial<Habit>): Partial<ItemMetadata> {
   return {
-    category: habit.category || 'Quotidien',
+    category: normalizeTaskCategory(habit.category || 'low_priority'),
     context: habit.context || 'Perso',
     estimatedTime: habit.estimatedTime || 15,
     description: habit.description,

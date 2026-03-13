@@ -118,7 +118,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
     const level = parentTask ? Math.min((parentTask.level + 1), 2) as 0 | 1 | 2 : 0;
     const taskData: Omit<Task, 'id' | 'createdAt'> & { assigned_to?: string | null } = {
       name: d.name.trim(),
-      category: parentTask ? parentTask.category : (d.category || config.defaults.category || 'Autres') as TaskCategory,
+      category: parentTask ? parentTask.category : (d.category || config.defaults.category || 'low_priority') as TaskCategory,
       subCategory: d.subCategory ? d.subCategory as SubTaskCategory : undefined,
       context: parentTask ? parentTask.context as TaskContext : (d.context || config.defaults.context || 'Pro') as TaskContext,
       estimatedTime: Number(d.estimatedTime), parentId: parentTask?.id, level,
@@ -150,7 +150,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
       const isSubTask = !!parentTask;
       if (isTaskDraftValid(draft, taskType, isSubTask)) {
         const updates: Partial<Task> & { _scheduleInfo?: ScheduleInfo; assigned_to?: string | null } = {
-          name: draft.name.trim(), category: (draft.category || config.defaults.category || 'Autres') as TaskCategory,
+          name: draft.name.trim(), category: (draft.category || config.defaults.category || 'low_priority') as TaskCategory,
           subCategory: draft.subCategory as SubTaskCategory || undefined,
           context: parentTask ? parentTask.context as TaskContext : (draft.context || config.defaults.context || 'Pro') as TaskContext,
           estimatedTime: Number(draft.estimatedTime),

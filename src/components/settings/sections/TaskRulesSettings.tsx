@@ -20,7 +20,7 @@ const AUTO_ACTION_OPTIONS: Array<{ value: TaskRuleAutoAction; label: string }> =
   { value: 'pin', label: 'Épingler la tâche' },
   { value: 'mark-important', label: 'La marquer importante' },
   { value: 'mark-urgent', label: 'La marquer urgente' },
-  { value: 'make-obligation', label: 'La faire passer en obligation' },
+  { value: 'make-critical', label: 'La faire passer en critique' },
 ];
 
 const clampNumber = (value: number, fallback: number, max: number) => {

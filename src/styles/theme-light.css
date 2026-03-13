@@ -59,14 +59,14 @@
     --system-error: 0 72% 51%;
     --system-info: 217 91% 60%;
 
-    --category-obligation: 0 84% 60%;
-    --category-obligation-light: 0 100% 97%;
-    --category-quotidien: 48 96% 53%;
-    --category-quotidien-light: 55 100% 96%;
-    --category-envie: 142 71% 45%;
-    --category-envie-light: 138 76% 97%;
-    --category-autres: 217 91% 60%;
-    --category-autres-light: 214 100% 97%;
+    --category-critical: 0 84% 60%;
+    --category-critical-light: 0 100% 97%;
+    --category-urgent: 48 96% 53%;
+    --category-urgent-light: 55 100% 96%;
+    --category-important: 142 71% 45%;
+    --category-important-light: 138 76% 97%;
+    --category-low-priority: 217 91% 60%;
+    --category-low-priority-light: 214 100% 97%;
 
     --priority-highest: 0 84% 60%;
     --priority-highest-light: 0 100% 97%;

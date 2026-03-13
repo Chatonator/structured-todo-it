@@ -199,35 +199,35 @@ export const InterfaceSettings: React.FC = () => {
         description="Personnalisez les couleurs de vos catégories de tâches"
       >
         <SettingsColorPicker
-          id="colorObligation"
-          label="Obligation"
-          value={preferences.categoryColors.Obligation}
+          id="colorCritical"
+          label="Critique"
+          value={preferences.categoryColors.critical}
           onChange={(color) => updatePreferences({
-            categoryColors: { ...preferences.categoryColors, Obligation: color }
+            categoryColors: { ...preferences.categoryColors, critical: color }
           })}
         />
         <SettingsColorPicker
-          id="colorQuotidien"
-          label="Quotidien"
-          value={preferences.categoryColors.Quotidien}
+          id="colorUrgent"
+          label="Urgent"
+          value={preferences.categoryColors.urgent}
           onChange={(color) => updatePreferences({
-            categoryColors: { ...preferences.categoryColors, Quotidien: color }
+            categoryColors: { ...preferences.categoryColors, urgent: color }
           })}
         />
         <SettingsColorPicker
-          id="colorEnvie"
-          label="Envie"
-          value={preferences.categoryColors.Envie}
+          id="colorImportant"
+          label="Important"
+          value={preferences.categoryColors.important}
           onChange={(color) => updatePreferences({
-            categoryColors: { ...preferences.categoryColors, Envie: color }
+            categoryColors: { ...preferences.categoryColors, important: color }
           })}
         />
         <SettingsColorPicker
-          id="colorAutres"
-          label="Autres"
-          value={preferences.categoryColors.Autres}
+          id="colorLowPriority"
+          label="Faible priorité"
+          value={preferences.categoryColors.low_priority}
           onChange={(color) => updatePreferences({
-            categoryColors: { ...preferences.categoryColors, Autres: color }
+            categoryColors: { ...preferences.categoryColors, low_priority: color }
           })}
         />
       </SettingsSection>

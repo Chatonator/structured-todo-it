@@ -39,12 +39,11 @@ export const QUADRANT_CONFIGS: Record<EisenhowerQuadrant, QuadrantConfig> = {
   }
 };
 
-// Corrected mapping: Quotidien=Urgent only, Envie=Important only
 const CATEGORY_TO_QUADRANT: Record<TaskCategory, EisenhowerQuadrant> = {
-  'Obligation': 'urgent-important',
-  'Quotidien': 'urgent-not-important',
-  'Envie': 'important-not-urgent',
-  'Autres': 'not-urgent-not-important'
+  critical: 'urgent-important',
+  urgent: 'urgent-not-important',
+  important: 'important-not-urgent',
+  low_priority: 'not-urgent-not-important'
 };
 
 /**

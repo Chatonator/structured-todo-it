@@ -122,8 +122,8 @@ export function getTaskRuleAutoActionLabel(action: TaskRuleAutoAction): string {
       return 'la marquer importante';
     case 'mark-urgent':
       return 'la marquer urgente';
-    case 'make-obligation':
-      return 'la faire passer en obligation';
+    case 'make-critical':
+      return 'la faire passer en critique';
     case 'none':
     default:
       return 'ne rien faire automatiquement';

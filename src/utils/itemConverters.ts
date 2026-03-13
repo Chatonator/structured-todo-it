@@ -3,7 +3,7 @@
 // SINGLE SOURCE OF TRUTH for Item -> Task conversion
 
 import { Item } from '@/types/item';
-import { Task } from '@/types/task';
+import { normalizeTaskCategory, Task } from '@/types/task';
 
 /**
  * Convert Item to Task for backward compatibility
@@ -33,7 +33,7 @@ export function itemToTask(item: Item): Task {
   return {
     id: item.id,
     name: item.name,
-    category: (meta.category as Task['category']) || 'Autres',
+    category: normalizeTaskCategory(meta.category as Task['category']),
     subCategory: meta.subCategory as Task['subCategory'],
     context: (meta.context as Task['context']) || 'Perso',
     estimatedTime: (meta.estimatedTime as number) || 30,

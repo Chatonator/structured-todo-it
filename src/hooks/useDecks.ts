@@ -7,6 +7,7 @@ import { useItems } from './useItems';
 import { useToast } from './use-toast';
 import { Deck } from '@/types/habit';
 import { Item, ItemMetadata } from '@/types/item';
+import { normalizeTaskCategory } from '@/types/task';
 
 // Convert Item to Deck for backward compatibility
 function itemToDeck(item: Item): Deck {
@@ -15,7 +16,7 @@ function itemToDeck(item: Item): Deck {
     id: item.id,
     userId: item.userId,
     name: item.name,
-    category: (meta.category as Deck['category']) || 'Quotidien',
+    category: normalizeTaskCategory((meta.category as Deck['category']) || 'low_priority'),
     context: (meta.context as Deck['context']) || 'Perso',
     estimatedTime: (meta.estimatedTime as number) || 30,
     description: meta.description as string | undefined,
@@ -32,7 +33,7 @@ function itemToDeck(item: Item): Deck {
 function deckToItemMetadata(deck: Partial<Deck>): Partial<ItemMetadata> {
   const metadata: Partial<ItemMetadata> = {
     // Required harmonized fields - always with defaults
-    category: deck.category || 'Quotidien',
+    category: normalizeTaskCategory(deck.category || 'low_priority'),
     context: deck.context || 'Perso',
     estimatedTime: deck.estimatedTime || 30,
   };

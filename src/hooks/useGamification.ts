@@ -128,8 +128,8 @@ export const useGamification = () => {
 
       // 1. Extract task data
       const durationMinutes = task.estimatedTime || 30;
-      const isImportant = task.isImportant ?? (task.category === 'Obligation' || task.category === 'Envie');
-      const isUrgent = task.isUrgent ?? (task.category === 'Obligation' || task.category === 'Quotidien');
+      const isImportant = task.isImportant ?? (task.category === 'critical' || task.category === 'important');
+      const isUrgent = task.isUrgent ?? (task.category === 'critical' || task.category === 'urgent');
 
       // 2. Get item data from DB (postpone_count + created_at for anti-spam & resilience)
       const { data: itemData } = await supabase
@@ -513,7 +513,7 @@ export const useGamification = () => {
         transactionId: t.id,
         sourceId: t.source_id || '',
         taskName: item?.name || (t.metadata as any)?.description || 'Tâche',
-        category: item?.category || 'Autres',
+        category: item?.category || 'low_priority',
         minutesOriginal: t.points_gained ?? 0,
         createdAt,
         weeksElapsed,

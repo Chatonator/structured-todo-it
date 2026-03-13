@@ -61,7 +61,7 @@ export const COMMAND_RULES = [
 ];
 
 export const COMMAND_SYNTAX = [
-  'task "Nom" [--context pro|perso] [--time 30] [--category obligation|quotidien|envie|autres] [--priority critical|important|later|optional]',
+  'task "Nom" [--context pro|perso] [--time 30] [--category critical|urgent|important|low_priority] [--priority critical|important|later|optional]',
   'project "Nom" [--context pro|perso] [--description "..."] [--color #hex] [--icon 🚀]',
   'habit "Nom" [--context pro|perso] [--time 15] [--frequency daily|weekly|monthly|custom|x-week|x-month] [--days 0,2,4] [--count 3] [--deck default]',
   'update task|project|habit "Nom existant" [options de création ou --name "Nouveau nom"]',

@@ -182,10 +182,10 @@ export function getCategoryCssVariables(
   resolveCssVar?: (variableName: string) => string | null
 ): Record<string, string> {
   const mapping: Record<keyof CategoryColors, string> = {
-    Obligation: 'obligation',
-    Quotidien: 'quotidien',
-    Envie: 'envie',
-    Autres: 'autres',
+    critical: 'critical',
+    urgent: 'urgent',
+    important: 'important',
+    low_priority: 'low-priority',
   };
 
   const entries = Object.entries(mapping).flatMap(([label, suffix]) => {

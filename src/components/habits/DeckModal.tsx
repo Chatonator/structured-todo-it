@@ -42,7 +42,7 @@ const DeckModal: React.FC<DeckModalProps> = ({ isOpen, onClose, onSave, deck }) 
     
     onSave({
       name,
-      category: 'Quotidien',
+      category: 'low_priority',
       context: 'Perso',
       estimatedTime: 30,
       description: description || undefined,

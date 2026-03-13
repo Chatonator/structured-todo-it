@@ -13,10 +13,10 @@ export interface CategoryOrder {
 }
 
 export interface CategoryColors {
-  Obligation: string;
-  Quotidien: string;
-  Envie: string;
-  Autres: string;
+  critical: string;
+  urgent: string;
+  important: string;
+  low_priority: string;
 }
 
 export interface UserPreferences {
@@ -57,7 +57,7 @@ export interface UserPreferences {
   allFilterTeamIds: string[];
 }
 
-export const CATEGORY_PALETTE_VERSION = 2;
+export const CATEGORY_PALETTE_VERSION = 3;
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'system',
@@ -82,10 +82,10 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
     { id: 'completed', label: 'Terminées', order: 7, visible: true },
   ],
   categoryColors: {
-    Obligation: '#ef4444',
-    Quotidien: '#eab308',
-    Envie: '#22c55e',
-    Autres: '#3b82f6',
+    critical: '#ef4444',
+    urgent: '#eab308',
+    important: '#22c55e',
+    low_priority: '#3b82f6',
   },
   categoryPaletteVersion: CATEGORY_PALETTE_VERSION,
   taskRules: DEFAULT_TASK_RULE_PREFERENCES,

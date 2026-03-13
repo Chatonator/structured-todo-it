@@ -104,11 +104,15 @@ const PRIORITY_MAP: Record<string, SubTaskCategory> = {
 };
 
 const CATEGORY_MAP: Record<string, TaskCategory> = {
-  obligation: 'Obligation',
-  quotidien: 'Quotidien',
-  envie: 'Envie',
-  autres: 'Autres',
-  optional: 'Autres',
+  critical: 'critical',
+  critique: 'critical',
+  urgent: 'urgent',
+  important: 'important',
+  'low-priority': 'low_priority',
+  low_priority: 'low_priority',
+  faible: 'low_priority',
+  autres: 'low_priority',
+  optional: 'low_priority',
 };
 
 const CONTEXT_MAP: Record<string, TaskContext> = {
@@ -654,7 +658,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       return {
         lineNumber: command.lineNumber,
         level: 'info',
-        message: 'Schema task: requis=name,time; options=context,category,priority,important,urgent,date,time,project; defauts=context Perso, category Autres seulement si coherent.',
+        message: 'Schema task: requis=name,time; options=context,category,priority,important,urgent,date,time,project; defauts=context Perso, category Faible priorité seulement si cohérent.',
       };
     }
 
@@ -839,7 +843,7 @@ const CommandTerminalTool: React.FC<ToolProps> = () => {
       const created = await habits.createHabit({
         userId: '',
         name: command.label!,
-        category: CATEGORY_MAP[command.flags.category?.toLowerCase() || 'quotidien'] || 'Quotidien',
+        category: CATEGORY_MAP[command.flags.category?.toLowerCase() || 'low_priority'] || 'low_priority',
         context: normalizeContext(command.flags.context),
         estimatedTime: parseMinutes(command.flags.time, 15),
         description: command.flags.description,

@@ -32,10 +32,10 @@ const sortOptions: { value: SortField; label: string }[] = [
 
 // Category priority order for sorting
 export const CATEGORY_SORT_ORDER: Record<string, number> = {
-  'Obligation': 1, // Crucial
-  'Envie': 2,      // Envies
-  'Quotidien': 3,  // Régulier
-  'Autres': 4,     // Optionnel
+  critical: 1,
+  important: 2,
+  urgent: 3,
+  low_priority: 4,
 };
 
 interface SidebarSortSelectorProps {
