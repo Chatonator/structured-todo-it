@@ -13,6 +13,11 @@ export interface Notification {
   created_at: string;
 }
 
+export interface NotificationBuckets {
+  general: Notification[];
+  updates: Notification[];
+}
+
 export const useNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -52,6 +57,10 @@ export const useNotifications = () => {
   }, [user, fetchNotifications]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
+  const generalNotifications = notifications.filter((notification) => notification.type !== 'update');
+  const updateNotifications = notifications.filter((notification) => notification.type === 'update');
+  const unreadGeneralCount = generalNotifications.filter((notification) => !notification.is_read).length;
+  const unreadUpdatesCount = updateNotifications.filter((notification) => !notification.is_read).length;
 
   const markAsRead = useCallback(async (id: string) => {
     await supabase.from('notifications').update({ is_read: true }).eq('id', id);
@@ -69,5 +78,17 @@ export const useNotifications = () => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
-  return { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification, refetch: fetchNotifications };
+  return {
+    notifications,
+    generalNotifications,
+    updateNotifications,
+    unreadCount,
+    unreadGeneralCount,
+    unreadUpdatesCount,
+    loading,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refetch: fetchNotifications,
+  };
 };

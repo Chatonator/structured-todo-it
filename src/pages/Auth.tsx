@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, Eye, EyeOff, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { getAuthRedirectUrl, getPostAuthUrl } from '@/lib/auth/redirect';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -26,20 +27,6 @@ const Auth = () => {
   const { toast } = useToast();
 
   const redirectTo = searchParams.get('redirect') || '/';
-
-  const getPostAuthUrl = () => {
-    const base = import.meta.env.BASE_URL || '/';
-    if (redirectTo && redirectTo !== '/') {
-      return `${window.location.origin}${base}#${redirectTo}`;
-    }
-    return `${window.location.origin}${base}`;
-  };
-
-  const getRedirectUrl = (path: string = '') => {
-    const publicUrl = import.meta.env.VITE_PUBLIC_URL;
-    if (publicUrl) return `${publicUrl}#/${path}`;
-    return `${window.location.origin}${import.meta.env.BASE_URL}#/${path}`;
-  };
 
   useEffect(() => {
     // Check if user is already logged in
@@ -59,7 +46,7 @@ const Auth = () => {
           title: "Email confirmé !",
           description: "Votre compte a été activé avec succès.",
         });
-        window.location.href = getPostAuthUrl();
+        window.location.href = getPostAuthUrl(redirectTo);
       }
     });
 
@@ -121,7 +108,7 @@ const Auth = () => {
         });
         
         // Force page reload for clean state
-        window.location.href = getPostAuthUrl();
+        window.location.href = getPostAuthUrl(redirectTo);
       }
     } catch (error: any) {
       setError('An unexpected error occurred. Please try again.');
@@ -153,7 +140,7 @@ const Auth = () => {
         // Continue even if this fails
       }
 
-      const redirectUrl = getRedirectUrl();
+      const redirectUrl = getAuthRedirectUrl();
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -183,7 +170,7 @@ const Auth = () => {
             title: "Compte créé !",
             description: "Bienvenue sur To-Do-iT !",
           });
-          window.location.href = getPostAuthUrl();
+          window.location.href = getPostAuthUrl(redirectTo);
         } else {
           // Email confirmation required
           setConfirmationEmail(email);
@@ -206,6 +193,9 @@ const Auth = () => {
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: confirmationEmail,
+        options: {
+          emailRedirectTo: getAuthRedirectUrl(),
+        },
       });
 
       if (error) {
@@ -231,7 +221,7 @@ const Auth = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getRedirectUrl('auth'),
+        redirectTo: getAuthRedirectUrl('auth'),
       });
 
       if (error) {
@@ -544,6 +534,10 @@ const Auth = () => {
                 <Button type="submit" className="w-full h-12" disabled={loading}>
                   {loading ? 'Création du compte...' : 'Créer un compte'}
                 </Button>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Les données de compte servent uniquement à fournir le service. Après connexion, vous pourrez exporter
+                  ou supprimer vos données depuis les paramètres du compte.
+                </p>
               </form>
             </TabsContent>
           </Tabs>

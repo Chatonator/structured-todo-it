@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client'
 import { logger } from '@/lib/logger';
+import { getAuthRedirectUrl } from '@/lib/auth/redirect';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -21,7 +22,6 @@ export const useAuth = () => {
         if (event === 'SIGNED_IN') {
           logger.info('User signed in successfully', { 
             userId: session?.user?.id,
-            email: session?.user?.email,
             emailConfirmed: !!session?.user?.email_confirmed_at
           });
         } else if (event === 'SIGNED_OUT') {
@@ -74,11 +74,11 @@ export const useAuth = () => {
       }
 
       // Force page reload for clean state - use hash routing
-      window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}#/auth`;
+      window.location.href = getAuthRedirectUrl();
     } catch (error) {
       logger.error('Error during sign out', { error });
       // Force redirect even if sign out fails
-      window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}#/auth`;
+      window.location.href = getAuthRedirectUrl();
     }
   };
 

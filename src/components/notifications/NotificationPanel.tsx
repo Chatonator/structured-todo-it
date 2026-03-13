@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bell, Check, CheckCheck, Trash2, Info, Users, Sparkles, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -102,7 +103,17 @@ const NotificationItem: React.FC<{
 };
 
 export const NotificationPanel: React.FC = () => {
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+  const {
+    generalNotifications,
+    updateNotifications,
+    unreadCount,
+    unreadGeneralCount,
+    unreadUpdatesCount,
+    loading,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+  } = useNotifications();
   const { respondToInvitation } = useTeamContext();
 
   return (
@@ -127,39 +138,80 @@ export const NotificationPanel: React.FC = () => {
         <TooltipContent>Notifications</TooltipContent>
       </Tooltip>
 
-      <PopoverContent className="w-80 p-0" align="end" sideOffset={8}>
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="type-section-title text-sm">Notifications</h3>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={markAllAsRead}>
-              <CheckCheck className="h-3.5 w-3.5" />
-              Tout lire
-            </Button>
-          )}
-        </div>
+      <PopoverContent className="flex h-[min(80vh,34rem)] w-[22rem] flex-col overflow-hidden p-0" align="end" sideOffset={8}>
+        <Tabs defaultValue="notifications" className="flex min-h-0 flex-1 flex-col">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <h3 className="type-section-title text-sm">Centre d’alertes</h3>
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={markAllAsRead}>
+                <CheckCheck className="h-3.5 w-3.5" />
+                Tout lire
+              </Button>
+            )}
+          </div>
 
-        <ScrollArea className="max-h-[400px]">
-          {loading ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">Chargement…</div>
-          ) : notifications.length === 0 ? (
-            <div className="p-6 text-center">
-              <Bell className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">Aucune notification</p>
-            </div>
-          ) : (
-            <div className="space-y-1 p-2">
-              {notifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onMarkRead={markAsRead}
-                  onDelete={deleteNotification}
-                  onRespondInvitation={respondToInvitation}
-                />
-              ))}
-            </div>
-          )}
-        </ScrollArea>
+          <div className="border-b border-border px-3 py-2">
+            <TabsList className="grid h-9 w-full grid-cols-2">
+              <TabsTrigger value="notifications" className="text-xs">
+                Notifications
+                {unreadGeneralCount > 0 && <span className="ml-1.5 text-[11px] text-primary">({unreadGeneralCount})</span>}
+              </TabsTrigger>
+              <TabsTrigger value="updates" className="text-xs">
+                Mises à jour
+                {unreadUpdatesCount > 0 && <span className="ml-1.5 text-[11px] text-primary">({unreadUpdatesCount})</span>}
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="notifications" className="mt-0 flex min-h-0 flex-1 flex-col">
+            <ScrollArea className="min-h-0 flex-1">
+              {loading ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">Chargement…</div>
+              ) : generalNotifications.length === 0 ? (
+                <div className="p-6 text-center">
+                  <Bell className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">Aucune notification</p>
+                </div>
+              ) : (
+                <div className="space-y-1 p-2">
+                  {generalNotifications.map((notification) => (
+                    <NotificationItem
+                      key={notification.id}
+                      notification={notification}
+                      onMarkRead={markAsRead}
+                      onDelete={deleteNotification}
+                      onRespondInvitation={respondToInvitation}
+                    />
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="updates" className="mt-0 flex min-h-0 flex-1 flex-col">
+            <ScrollArea className="min-h-0 flex-1">
+              {loading ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">Chargement…</div>
+              ) : updateNotifications.length === 0 ? (
+                <div className="p-6 text-center">
+                  <Sparkles className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">Aucune mise à jour récente</p>
+                </div>
+              ) : (
+                <div className="space-y-1 p-2">
+                  {updateNotifications.map((notification) => (
+                    <NotificationItem
+                      key={notification.id}
+                      notification={notification}
+                      onMarkRead={markAsRead}
+                      onDelete={deleteNotification}
+                    />
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </PopoverContent>
     </Popover>
   );

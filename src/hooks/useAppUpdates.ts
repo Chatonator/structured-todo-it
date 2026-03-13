@@ -34,14 +34,34 @@ export const useAppUpdates = () => {
 
         if (!allUpdates || allUpdates.length === 0) return;
 
-        // 3. Filter unseen
-        const unseen = (allUpdates as any[]).filter(u => !seenIds.includes(u.id));
+        const userCreatedAt = user.created_at ? new Date(user.created_at).getTime() : Date.now();
+        const unseen = (allUpdates as any[]).filter((update) => !seenIds.includes(update.id));
         if (unseen.length === 0) return;
 
-        logger.info('New app updates detected', { count: unseen.length });
+        const historicalUpdates = unseen.filter((update) => {
+          const createdAt = update.created_at ? new Date(update.created_at).getTime() : 0;
+          return createdAt <= userCreatedAt;
+        });
 
-        // 4. For each unseen: insert notification + mark seen
-        for (const update of unseen) {
+        const freshUpdates = unseen.filter((update) => {
+          const createdAt = update.created_at ? new Date(update.created_at).getTime() : 0;
+          return createdAt > userCreatedAt;
+        });
+
+        if (historicalUpdates.length > 0) {
+          await supabase.from('user_seen_updates').insert(
+            historicalUpdates.map((update) => ({
+              user_id: user.id,
+              update_id: update.id,
+            })) as any,
+          );
+        }
+
+        if (freshUpdates.length === 0) return;
+
+        logger.info('New app updates detected', { count: freshUpdates.length });
+
+        for (const update of freshUpdates) {
           const typeEmoji = update.update_type === 'fix' ? '🔧' : update.update_type === 'improvement' ? '⚡' : '✨';
 
           await supabase.from('notifications').insert({
