@@ -112,7 +112,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
   const [editorMode, setEditorMode] = useState<EditorMode>('new');
   const [isApplying, setIsApplying] = useState(false);
   const [rootContext, setRootContext] = useState<TaskContext>('Perso');
-  const [rootCategory, setRootCategory] = useState<TaskCategory>('Autres');
+  const [rootCategory, setRootCategory] = useState<TaskCategory>('low_priority');
   const [rootDuration, setRootDuration] = useState(DEFAULT_ROOT_DURATION);
 
   const activeSlot = activeSlotId ? slots[activeSlotId] : null;
