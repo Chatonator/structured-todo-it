@@ -154,7 +154,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
   useEffect(() => {
     if (!rootImportedTask) return;
     setRootContext(rootImportedTask.context || 'Perso');
-    setRootCategory(rootImportedTask.category || 'Autres');
+    setRootCategory(rootImportedTask.category || 'low_priority');
   }, [rootImportedTask?.id]);
 
   const openEditor = useCallback((slotId: DivisionSlotId) => {
