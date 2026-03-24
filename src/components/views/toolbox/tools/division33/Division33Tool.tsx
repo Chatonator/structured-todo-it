@@ -229,7 +229,7 @@ const Division33Tool: React.FC<ToolProps> = () => {
   const resetTool = useCallback(() => {
     setSlots(createEmptySlots());
     setRootContext('Perso');
-    setRootCategory('Autres');
+    setRootCategory('low_priority');
     setRootDuration(DEFAULT_ROOT_DURATION);
     closeEditor();
   }, [closeEditor]);

@@ -579,7 +579,6 @@ const TimelineView: React.FC<TimelineViewProps> = ({ className }) => {
             <SheetTitle>Tâches à planifier</SheetTitle>
           </SheetHeader>
           <TaskDeckPanel
-            compact
             tasks={unscheduledTasks.filter(t => !pendingTaskIds.has(t.id))}
             scheduledEvents={scheduledEvents}
             projects={projects}
