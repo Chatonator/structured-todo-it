@@ -76,9 +76,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </DialogHeader>
 
         <div className={cn('flex', isPhone ? 'h-[calc(100dvh-88px)] flex-col' : 'h-[calc(85vh-80px)]')}>
-          <div className={cn(isPhone ? 'border-b border-border px-4 py-4' : 'p-6')}>
-            <SettingsSidebar currentSection={currentSection} onSectionChange={setCurrentSection} compact={isPhone} />
-          </div>
+          {isPhone ? (
+            <div className="border-b border-border px-4 py-4">
+              <SettingsSidebar currentSection={currentSection} onSectionChange={setCurrentSection} compact />
+            </div>
+          ) : (
+            <ScrollArea className="w-[304px] border-r border-border">
+              <div className="p-6">
+                <SettingsSidebar currentSection={currentSection} onSectionChange={setCurrentSection} />
+              </div>
+            </ScrollArea>
+          )}
 
           <ScrollArea className={cn('flex-1', isPhone ? 'px-4 py-4' : 'px-6 py-6')}>
             {renderSection()}
