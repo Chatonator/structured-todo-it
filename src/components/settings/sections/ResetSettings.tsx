@@ -23,6 +23,13 @@ interface ResetSettingsProps {
   isResetHistoryLoading?: boolean;
 }
 
+interface PostgrestLikeError {
+  message?: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+}
+
 const getLocalToday = (): string => {
   const now = new Date();
   const year = now.getFullYear();
@@ -30,6 +37,44 @@ const getLocalToday = (): string => {
   const day = String(now.getDate()).padStart(2, '0');
 
   return `${year}-${month}-${day}`;
+};
+
+const isPostgrestLikeError = (value: unknown): value is PostgrestLikeError => {
+  return typeof value === 'object' && value !== null;
+};
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (isPostgrestLikeError(error)) {
+    const parts = [error.message, error.details, error.hint]
+      .filter((part): part is string => typeof part === 'string' && part.trim().length > 0);
+
+    if (parts.length > 0) {
+      return parts.join(' ');
+    }
+  }
+
+  return 'Impossible de réinitialiser l’historique.';
+};
+
+const invokeResetAccountHistory = async () => {
+  const withLocalDate = await supabase.rpc('reset_account_history', {
+    p_user_today: getLocalToday(),
+  });
+
+  if (!withLocalDate.error) {
+    return withLocalDate;
+  }
+
+  const fallbackWithoutArgs = await supabase.rpc('reset_account_history');
+  if (!fallbackWithoutArgs.error) {
+    return fallbackWithoutArgs;
+  }
+
+  throw withLocalDate.error;
 };
 
 export const ResetSettings: React.FC<ResetSettingsProps> = ({
@@ -83,13 +128,7 @@ export const ResetSettings: React.FC<ResetSettingsProps> = ({
       if (onResetHistory) {
         await onResetHistory();
       } else {
-        const { data, error } = await supabase.rpc('reset_account_history', {
-          p_user_today: getLocalToday(),
-        });
-
-        if (error) {
-          throw error;
-        }
+        const { data } = await invokeResetAccountHistory();
 
         await supabase.functions.invoke('calendar-resync', {
           body: { provider: 'outlook' },
@@ -111,10 +150,9 @@ export const ResetSettings: React.FC<ResetSettingsProps> = ({
 
       setHistoryDialogOpen(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Impossible de réinitialiser l’historique.';
       toast({
         title: 'Échec de la réinitialisation',
-        description: message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
