@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { getCategoryIndicatorColor } from '@/lib/styling';
+import { getCategoryClasses, getCategoryIndicatorColor } from '@/lib/styling';
 import { formatDuration, formatDurationDelta, formatDurationLong, getEstimationComparison } from '@/lib/formatters';
 import {
   DropdownMenu,
@@ -145,11 +145,12 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
     <SidebarMenuItem
       className={cn(
         'group relative flex items-center rounded-md transition-all duration-200 overflow-hidden',
-        'hover:bg-sidebar-accent/60',
+        !isExpanded && 'hover:bg-sidebar-accent/60',
         'border-b border-sidebar-border/40',
         'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]',
-        // Fond doré pour les tâches épinglées
-        isPinned && 'bg-[#EFBF04]/15 dark:bg-[#EFBF04]/10',
+        isExpanded && getCategoryClasses(task.category, 'background'),
+        // Garder un accent visuel pour les tâches épinglées sans écraser la couleur de catégorie
+        isPinned && 'ring-1 ring-amber-500/25',
         // Pulsing green border when timer is active
         isTimerActive && 'border-l-2 border-l-green-500 animate-pulse'
       )}

@@ -97,7 +97,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </div>
         </div>
         {showPinned && isPinned && (
-          <Pin className="w-3.5 h-3.5 text-pinned flex-shrink-0" />
+          <Pin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
         )}
       </div>
     );
@@ -112,7 +112,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         getCategoryClasses(task.category, 'border'),
         isClickable && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
         task.isCompleted && "opacity-60",
-        isPinned && "ring-1 ring-pinned/30",
+        isPinned && "ring-1 ring-amber-500/25",
         className
       )}
       onClick={() => onClick?.(task)}
@@ -132,7 +132,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             {task.name}
           </p>
           {showPinned && isPinned && (
-            <Pin className="w-4 h-4 text-pinned flex-shrink-0" />
+            <Pin className="w-4 h-4 text-amber-500 flex-shrink-0" />
           )}
         </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">

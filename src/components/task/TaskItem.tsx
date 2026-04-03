@@ -58,7 +58,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
           isSelected
             ? 'bg-accent shadow-md ring-2 ring-primary/20'
             : 'bg-card',
-          isPinned && !isSelected && 'task-pinned shadow-sm ring-1 ring-pinned/30'
+          isPinned && !isSelected && 'shadow-sm ring-1 ring-amber-500/25'
         )}
         data-category={task.category}
       >

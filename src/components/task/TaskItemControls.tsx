@@ -38,7 +38,7 @@ const TaskItemControls: React.FC<TaskItemControlsProps> = ({
           aria-label={isPinned ? "Retirer l'épingle" : "Épingler"}
         >
           {isPinned ? (
-            <PinOff className="w-3 h-3 text-pinned" />
+            <PinOff className="w-3 h-3 text-amber-500" />
           ) : (
             <Pin className="w-3 h-3" />
           )}
