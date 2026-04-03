@@ -185,23 +185,6 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(to left, hsl(var(--recurring-surface) / 0.88), transparent);
 }
 
-/* Category shadows on hover */
-.task-item[data-category="critical"]:hover {
-  @apply shadow-lg shadow-red-500/15;
-}
-
-.task-item[data-category="urgent"]:hover {
-  @apply shadow-lg shadow-amber-500/15;
-}
-
-.task-item[data-category="important"]:hover {
-  @apply shadow-lg shadow-green-500/15;
-}
-
-.task-item[data-category="low_priority"]:hover {
-  @apply shadow-lg shadow-violet-500/15;
-}
-
 /* Calendar time slots */
 .calendar-time-slot {
   position: relative;

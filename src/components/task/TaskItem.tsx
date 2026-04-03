@@ -4,7 +4,7 @@ import TaskItemControls from './TaskItemControls';
 import TaskItemContent from './TaskItemContent';
 import TaskItemActions from './TaskItemActions';
 import { cn } from '@/lib/utils';
-import { getCategoryClasses } from '@/lib/styling';
+import { getCategoryIndicatorColor } from '@/lib/styling';
 
 interface TaskItemProps {
   task: Task;
@@ -54,15 +54,21 @@ const TaskItem: React.FC<TaskItemProps> = ({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          'group relative mb-1 flex min-h-[44px] cursor-default items-start gap-2 rounded-lg border p-3 text-sm text-foreground transition-all duration-300 md:border-l-8 md:p-3 md:text-sm',
-          'task-item border-border border-l-4',
+          'group task-item relative mb-1 flex min-h-[44px] cursor-default items-start gap-2 overflow-hidden rounded-lg border border-border p-3 text-sm text-foreground transition-all duration-300 md:p-3 md:text-sm',
           isSelected
-            ? 'bg-accent border-l-primary shadow-md ring-2 ring-primary/20'
-            : cn('bg-card', getCategoryClasses(task.category, 'border')),
-          isPinned && !isSelected && 'border-l-pinned shadow-sm ring-1 ring-pinned/30'
+            ? 'bg-accent shadow-md ring-2 ring-primary/20'
+            : 'bg-card',
+          isPinned && !isSelected && 'task-pinned shadow-sm ring-1 ring-pinned/30'
         )}
         data-category={task.category}
       >
+        <div
+          className={cn(
+            'absolute inset-y-0 left-0 w-1.5 rounded-l-lg',
+            getCategoryIndicatorColor(task.category)
+          )}
+        />
+
         {/* Contrôles à gauche */}
         <TaskItemControls
           task={task}
