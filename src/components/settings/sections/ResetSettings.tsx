@@ -16,6 +16,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 import { RotateCcw, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 interface ResetSettingsProps {
@@ -28,6 +29,11 @@ interface PostgrestLikeError {
   details?: string;
   hint?: string;
   code?: string;
+}
+
+interface ResetInvocationError extends Error {
+  primaryError?: PostgrestLikeError;
+  fallbackError?: PostgrestLikeError;
 }
 
 const getLocalToday = (): string => {
@@ -43,7 +49,52 @@ const isPostgrestLikeError = (value: unknown): value is PostgrestLikeError => {
   return typeof value === 'object' && value !== null;
 };
 
+const formatPostgrestLikeError = (error: PostgrestLikeError | undefined): string | null => {
+  if (!error) return null;
+
+  const parts = [error.code, error.message, error.details, error.hint]
+    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0);
+
+  return parts.length > 0 ? parts.join(' | ') : null;
+};
+
 const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && 'primaryError' in error) {
+    const resetError = error as ResetInvocationError;
+    const primaryMessage = formatPostgrestLikeError(resetError.primaryError);
+    const fallbackMessage = formatPostgrestLikeError(resetError.fallbackError);
+    const signatureMismatch =
+      resetError.primaryError?.code === 'PGRST202' || resetError.fallbackError?.code === 'PGRST202';
+    const normalizedDetails = [primaryMessage, fallbackMessage]
+      .filter((value): value is string => typeof value === 'string')
+      .join(' | ')
+      .toLowerCase();
+
+    if (signatureMismatch) {
+      return 'La fonction de réinitialisation du compte n’est pas disponible côté Supabase. Vérifiez le déploiement des migrations.';
+    }
+
+    if (
+      normalizedDetails.includes('invalid input syntax for type integer') ||
+      normalizedDetails.includes('time zone') ||
+      normalizedDetails.includes('timezone')
+    ) {
+      return 'Certaines données historiques sont invalides et bloquent la réinitialisation. Vérifiez les durées de challenge et les fuseaux horaires enregistrés.';
+    }
+
+    if (primaryMessage && fallbackMessage && primaryMessage !== fallbackMessage) {
+      return `${primaryMessage} / Fallback: ${fallbackMessage}`;
+    }
+
+    if (primaryMessage) {
+      return primaryMessage;
+    }
+
+    if (fallbackMessage) {
+      return fallbackMessage;
+    }
+  }
+
   if (error instanceof Error) {
     return error.message;
   }
@@ -61,20 +112,36 @@ const getErrorMessage = (error: unknown): string => {
 };
 
 const invokeResetAccountHistory = async () => {
+  const localToday = getLocalToday();
   const withLocalDate = await supabase.rpc('reset_account_history', {
-    p_user_today: getLocalToday(),
+    p_user_today: localToday,
   });
 
   if (!withLocalDate.error) {
-    return withLocalDate;
+    return { ...withLocalDate, invocation: 'with_local_date' as const };
   }
 
   const fallbackWithoutArgs = await supabase.rpc('reset_account_history');
   if (!fallbackWithoutArgs.error) {
-    return fallbackWithoutArgs;
+    logger.warn('Fallback reset_account_history RPC used', {
+      localToday,
+      withDateError: formatPostgrestLikeError(withLocalDate.error),
+    });
+
+    return { ...fallbackWithoutArgs, invocation: 'without_args' as const };
   }
 
-  throw withLocalDate.error;
+  const combinedError = new Error('La réinitialisation a échoué côté Supabase.') as ResetInvocationError;
+  combinedError.primaryError = withLocalDate.error;
+  combinedError.fallbackError = fallbackWithoutArgs.error;
+
+  logger.error('reset_account_history rpc attempts failed', {
+    localToday,
+    withDate: formatPostgrestLikeError(withLocalDate.error),
+    withoutArgs: formatPostgrestLikeError(fallbackWithoutArgs.error),
+  });
+
+  throw combinedError;
 };
 
 export const ResetSettings: React.FC<ResetSettingsProps> = ({
@@ -128,11 +195,17 @@ export const ResetSettings: React.FC<ResetSettingsProps> = ({
       if (onResetHistory) {
         await onResetHistory();
       } else {
-        const { data } = await invokeResetAccountHistory();
+        const { data, invocation } = await invokeResetAccountHistory();
 
         await supabase.functions.invoke('calendar-resync', {
           body: { provider: 'outlook' },
         }).catch(() => undefined);
+
+        if (invocation === 'without_args') {
+          logger.warn('reset_account_history succeeded through fallback RPC', {
+            invocation,
+          });
+        }
 
         const summary = (data ?? {}) as Record<string, unknown>;
         const deletedCompletedItems = Number(summary.deleted_completed_items ?? 0);
@@ -150,6 +223,22 @@ export const ResetSettings: React.FC<ResetSettingsProps> = ({
 
       setHistoryDialogOpen(false);
     } catch (error) {
+      logger.error(
+        'reset_account_history failed',
+        {
+          message: getErrorMessage(error),
+          primaryError:
+            error instanceof Error && 'primaryError' in error
+              ? formatPostgrestLikeError((error as ResetInvocationError).primaryError)
+              : null,
+          fallbackError:
+            error instanceof Error && 'fallbackError' in error
+              ? formatPostgrestLikeError((error as ResetInvocationError).fallbackError)
+              : null,
+        },
+        error instanceof Error ? error : undefined
+      );
+
       toast({
         title: 'Échec de la réinitialisation',
         description: getErrorMessage(error),
