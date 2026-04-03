@@ -1388,6 +1388,7 @@ export type Database = {
         Args: { _task_id: string; _user_id: string }
         Returns: boolean
       }
+      reset_account_history: { Args: { p_user_today: string }; Returns: Json }
       send_admin_notification: {
         Args: {
           _message: string
