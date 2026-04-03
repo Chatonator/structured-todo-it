@@ -1,6 +1,6 @@
 @keyframes header-gradient-loop {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
 }
 
 .app-header-chroma {
@@ -12,26 +12,29 @@
 .app-header-chroma::before {
   content: '';
   position: absolute;
-  inset-block: 0;
-  left: 0;
-  width: 200%;
+  inset: 0;
   background: linear-gradient(
-    52deg,
-    rgb(57 0 153 / 0.97) 0%,
-    rgb(158 0 89 / 0.98) 14%,
-    rgb(255 0 84 / 0.96) 28%,
-    rgb(255 84 0 / 0.95) 40%,
-    rgb(255 189 0 / 0.94) 50%,
-    rgb(57 0 153 / 0.97) 50%,
-    rgb(158 0 89 / 0.98) 64%,
-    rgb(255 0 84 / 0.96) 76%,
-    rgb(255 84 0 / 0.95) 88%,
-    rgb(255 189 0 / 0.94) 100%
+    115deg,
+    rgb(0 48 73 / 0.98) 0%,
+    rgb(57 0 153 / 0.98) 10%,
+    rgb(158 0 89 / 0.98) 20%,
+    rgb(255 0 84 / 0.97) 31%,
+    rgb(214 40 40 / 0.97) 41%,
+    rgb(255 84 0 / 0.96) 50%,
+    rgb(247 127 0 / 0.96) 58%,
+    rgb(255 189 0 / 0.96) 65%,
+    rgb(252 191 73 / 0.96) 72%,
+    rgb(234 226 183 / 0.95) 78%,
+    rgb(252 191 73 / 0.96) 84%,
+    rgb(247 127 0 / 0.96) 89%,
+    rgb(214 40 40 / 0.97) 93%,
+    rgb(158 0 89 / 0.98) 97%,
+    rgb(57 0 153 / 0.98) 100%
   );
-  background-size: 100% 100%;
-  animation: header-gradient-loop var(--motion-gradient-duration) linear infinite;
+  background-size: 220% 220%;
+  animation: header-gradient-loop calc(var(--motion-gradient-duration) * 1.35) ease-in-out infinite alternate;
   opacity: 1;
-  will-change: transform;
+  will-change: background-position;
 }
 
 .app-header-chroma::after {
