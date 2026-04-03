@@ -15,7 +15,7 @@ export const useHabitsFullViewData = () => {
   const {
     habits, loading: habitsLoading, toggleCompletion, createHabit, updateHabit, deleteHabit,
     isCompletedToday, isHabitApplicableToday, getHabitsForToday, getTodayCompletionRate, streaks
-  } = useHabits(undefined as unknown as string | null);
+  } = useHabits(null);
 
   const habitStats = useHabitStats();
 
