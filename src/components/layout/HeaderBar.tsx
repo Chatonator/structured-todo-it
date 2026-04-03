@@ -54,7 +54,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
               </Button>
             )}
 
-            <div className="rounded-xl bg-gradient-to-br from-primary to-primary/80 p-2 shadow-sm">
+            <div className="rounded-xl bg-gradient-to-br from-[#ffc266] via-[#ff8e5e] to-[#d64f7c] p-2 shadow-sm">
               <CheckSquare className="h-5 w-5 text-primary-foreground" />
             </div>
             <h1 className="type-view-title">TO-DO-IT</h1>
