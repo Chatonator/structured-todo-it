@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { getCategoryColorValue, getCategorySurfaceValue } from '@/lib/styling';
+import { getCategoryBorderTintValue, getCategoryColorValue, getCategoryTintValue } from '@/lib/styling';
 import { formatDuration, formatDurationDelta, formatDurationLong, getEstimationComparison } from '@/lib/formatters';
 import {
   DropdownMenu,
@@ -153,7 +153,10 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         // Pulsing green border when timer is active
         isTimerActive && 'border-l-2 border-l-green-500 animate-pulse'
       )}
-      style={isExpanded ? { backgroundColor: getCategorySurfaceValue(task.category) } : undefined}
+      style={isExpanded ? {
+        backgroundColor: getCategoryTintValue(task.category),
+        boxShadow: `inset 0 0 0 1px ${getCategoryBorderTintValue(task.category)}`
+      } : undefined}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

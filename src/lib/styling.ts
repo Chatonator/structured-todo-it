@@ -30,6 +30,34 @@ export function getCategorySurfaceValue(category: TaskCategory): string {
   return CATEGORY_SURFACES[category] ?? CATEGORY_SURFACES.low_priority;
 }
 
+export function getCategoryTintValue(category: TaskCategory, alpha = 0.16): string {
+  switch (category) {
+    case 'critical':
+      return `hsl(var(--category-critical) / ${alpha})`;
+    case 'urgent':
+      return `hsl(var(--category-urgent) / ${alpha})`;
+    case 'important':
+      return `hsl(var(--category-important) / ${alpha})`;
+    case 'low_priority':
+    default:
+      return `hsl(var(--category-low-priority) / ${alpha})`;
+  }
+}
+
+export function getCategoryBorderTintValue(category: TaskCategory, alpha = 0.3): string {
+  switch (category) {
+    case 'critical':
+      return `hsl(var(--category-critical) / ${alpha})`;
+    case 'urgent':
+      return `hsl(var(--category-urgent) / ${alpha})`;
+    case 'important':
+      return `hsl(var(--category-important) / ${alpha})`;
+    case 'low_priority':
+    default:
+      return `hsl(var(--category-low-priority) / ${alpha})`;
+  }
+}
+
 interface CategoryStyles {
   badge: string;
   border: string;
