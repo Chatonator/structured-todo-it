@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Task } from '@/types/task';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -53,33 +53,6 @@ const RECURRENCE_OPTIONS = [
   { value: 'monthly', label: 'Mensuel', frequency: 'monthly', interval: 1 },
 ] as const;
 
-const isSidebarColorDebugEnabled = () => {
-  if (typeof window === 'undefined') return false;
-  return new URLSearchParams(window.location.search).has('debugSidebarColors');
-};
-
-const readCategoryVar = (style: CSSStyleDeclaration, category: Task['category']): string => {
-  switch (category) {
-    case 'critical':
-      return style.getPropertyValue('--category-critical').trim();
-    case 'urgent':
-      return style.getPropertyValue('--category-urgent').trim();
-    case 'important':
-      return style.getPropertyValue('--category-important').trim();
-    case 'low_priority':
-    default:
-      return style.getPropertyValue('--category-low-priority').trim();
-  }
-};
-
-interface SidebarColorDebugSnapshot {
-  cssVariableColor: string;
-  appliedBackgroundColor: string;
-  appliedBorderColor: string;
-  appliedBoxShadow: string;
-  appliedAccentColor: string;
-}
-
 interface SidebarTaskItemProps {
   task: Task;
   subTasks: Task[];
@@ -132,14 +105,11 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
   const { projects } = useProjects();
   const { activeTaskId, elapsedSeconds, startTimer, stopTimer, resetActualTime } = useTimeTrackerContext();
   const hasSubTasks = subTasks.length > 0;
-  const itemRef = useRef<HTMLLIElement | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSchedulePopoverOpen, setIsSchedulePopoverOpen] = useState(false);
   const [tempDate, setTempDate] = useState<Date | undefined>(scheduledDate);
   const [tempTime, setTempTime] = useState(scheduledTime || '09:00');
-  const [debugSnapshot, setDebugSnapshot] = useState<SidebarColorDebugSnapshot | null>(null);
-  const isDebugEnabled = isSidebarColorDebugEnabled();
 
   const isTimerActive = activeTaskId === task.id;
   const estimationComparison = getEstimationComparison(totalTime, task.actualTime);
@@ -156,58 +126,6 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
 
   // La tâche reste dépliée si hover OU si le menu est ouvert OU si popover planification ouvert
   const isExpanded = isHovered || isMenuOpen || isSchedulePopoverOpen;
-
-  useEffect(() => {
-    if (!isDebugEnabled || !isExpanded || !itemRef.current) {
-      setDebugSnapshot(null);
-      return;
-    }
-
-    const rootStyle = getComputedStyle(document.documentElement);
-    const itemStyle = getComputedStyle(itemRef.current);
-
-    const nextSnapshot: SidebarColorDebugSnapshot = {
-      cssVariableColor: readCategoryVar(rootStyle, task.category),
-      appliedBackgroundColor: itemStyle.backgroundColor,
-      appliedBorderColor: itemStyle.borderColor,
-      appliedBoxShadow: itemStyle.boxShadow,
-      appliedAccentColor: expandedStyles.accentColor,
-    };
-
-    setDebugSnapshot((current) => {
-      const unchanged = current
-        && current.cssVariableColor === nextSnapshot.cssVariableColor
-        && current.appliedBackgroundColor === nextSnapshot.appliedBackgroundColor
-        && current.appliedBorderColor === nextSnapshot.appliedBorderColor
-        && current.appliedBoxShadow === nextSnapshot.appliedBoxShadow
-        && current.appliedAccentColor === nextSnapshot.appliedAccentColor;
-
-      return unchanged ? current : nextSnapshot;
-    });
-
-    console.groupCollapsed(`[sidebar-colors][task] ${task.name}`);
-    console.table({
-      id: task.id,
-      category: task.category,
-      isPinned,
-      isRecurring,
-      cssVariableColor: nextSnapshot.cssVariableColor,
-      appliedBackgroundColor: nextSnapshot.appliedBackgroundColor,
-      appliedBorderColor: nextSnapshot.appliedBorderColor,
-      appliedBoxShadow: nextSnapshot.appliedBoxShadow,
-      appliedAccentColor: nextSnapshot.appliedAccentColor,
-    });
-    console.groupEnd();
-  }, [
-    expandedStyles.accentColor,
-    isDebugEnabled,
-    isExpanded,
-    isPinned,
-    isRecurring,
-    task.category,
-    task.id,
-    task.name,
-  ]);
 
   const handleScheduleConfirm = () => {
     if (tempDate && onScheduleTask) {
@@ -226,7 +144,6 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
 
   return (
     <SidebarMenuItem
-      ref={itemRef}
       className={cn(
         'group relative flex items-center rounded-md transition-all duration-200 overflow-hidden',
         !isExpanded && 'hover:bg-sidebar-accent/60',
@@ -238,9 +155,6 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         isTimerActive && 'border-l-2 border-l-green-500 animate-pulse'
       )}
       style={isExpanded ? expandedStyles : undefined}
-      data-sidebar-render-path="SidebarTaskItem"
-      data-task-category={task.category}
-      data-task-expanded={isExpanded ? 'true' : 'false'}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -510,19 +424,6 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
       {isExpanded && estimationComparison && task.isCompleted && (
         <div className="px-2.5 pb-2 text-[11px] text-muted-foreground">
           Durée estimée : {formatDurationLong(estimationComparison.estimated)} | Durée réelle : {formatDurationLong(estimationComparison.actual)} | Écart : {formatDurationDelta(estimationComparison.delta)}
-        </div>
-      )}
-
-      {isExpanded && isDebugEnabled && debugSnapshot && (
-        <div className="border-t border-sidebar-border/50 bg-sidebar/70 px-2.5 py-2 font-mono text-[10px] leading-tight text-muted-foreground">
-          <div>ID {task.id}</div>
-          <div>Catégorie {task.category}</div>
-          <div>Pinned {isPinned ? 'yes' : 'no'} | Recurring {isRecurring ? 'yes' : 'no'}</div>
-          <div>CSS var {debugSnapshot.cssVariableColor || 'missing'}</div>
-          <div>Fond {debugSnapshot.appliedBackgroundColor || 'none'}</div>
-          <div>Bord {debugSnapshot.appliedBorderColor || 'none'}</div>
-          <div>Ombre {debugSnapshot.appliedBoxShadow || 'none'}</div>
-          <div>Accent {debugSnapshot.appliedAccentColor}</div>
         </div>
       )}
 
