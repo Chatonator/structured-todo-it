@@ -58,6 +58,25 @@ export function getCategoryBorderTintValue(category: TaskCategory, alpha = 0.3):
   }
 }
 
+export interface SidebarExpandedTaskStyles {
+  backgroundColor: string;
+  borderColor: string;
+  boxShadow: string;
+  accentColor: string;
+}
+
+export function getSidebarExpandedTaskStyles(category: TaskCategory): SidebarExpandedTaskStyles {
+  const borderColor = getCategoryBorderTintValue(category, 0.34);
+  const accentColor = getCategoryColorValue(category);
+
+  return {
+    backgroundColor: getCategoryTintValue(category, 0.18),
+    borderColor,
+    boxShadow: `inset 0 0 0 1px ${borderColor}`,
+    accentColor,
+  };
+}
+
 interface CategoryStyles {
   badge: string;
   border: string;

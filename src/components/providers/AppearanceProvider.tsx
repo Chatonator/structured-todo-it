@@ -3,6 +3,11 @@ import { useTheme } from '@/hooks/useTheme';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { getAppearanceDataset, getCategoryCssVariables } from '@/lib/appearance/colorUtils';
 
+const isSidebarColorDebugEnabled = () => {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).has('debugSidebarColors');
+};
+
 export const AppearanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { actualTheme } = useTheme();
   const { preferences } = useUserPreferences();
@@ -30,6 +35,23 @@ export const AppearanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     Object.entries(categoryVars).forEach(([variable, value]) => {
       root.style.setProperty(variable, value);
     });
+
+    if (isSidebarColorDebugEnabled()) {
+      console.groupCollapsed('[sidebar-colors][appearance]');
+      console.table({
+        theme: dataset.theme,
+        textSize: dataset.textSize,
+        contrast: dataset.contrast,
+        motion: dataset.motion,
+        categoryCritical: root.style.getPropertyValue('--category-critical').trim() || computed.getPropertyValue('--category-critical').trim(),
+        categoryUrgent: root.style.getPropertyValue('--category-urgent').trim() || computed.getPropertyValue('--category-urgent').trim(),
+        categoryImportant: root.style.getPropertyValue('--category-important').trim() || computed.getPropertyValue('--category-important').trim(),
+        categoryLowPriority: root.style.getPropertyValue('--category-low-priority').trim() || computed.getPropertyValue('--category-low-priority').trim(),
+      });
+      console.log('[sidebar-colors][preferences.categoryColors]', preferences.categoryColors);
+      console.log('[sidebar-colors][appliedVariables]', categoryVars);
+      console.groupEnd();
+    }
   }, [
     actualTheme,
     preferences.categoryColors,

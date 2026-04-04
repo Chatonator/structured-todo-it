@@ -27,8 +27,9 @@ interface SidebarTaskRendererProps {
 }
 
 /**
- * Recursive task renderer for the sidebar.
- * Extracted from AppSidebar for maintainability.
+ * Recursive task renderer for the desktop sidebar.
+ * The actual expanded task color rendering path is:
+ * AppSidebar -> SidebarTaskRenderer -> SidebarTaskItem.
  */
 const SidebarTaskRenderer: React.FC<SidebarTaskRendererProps> = ({
   task,
