@@ -13,16 +13,47 @@ const UserPreferencesContext = createContext<UserPreferencesContextType | undefi
 
 const STORAGE_KEY = 'todoIt_userPreferences';
 
+function isHexCategoryColor(value: unknown): value is string {
+  return typeof value === 'string' && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+}
+
+function resolveStoredCategoryColor(value: unknown, fallback: string): string {
+  return isHexCategoryColor(value) ? value.trim() : fallback;
+}
+
 function normalizeCategoryColors(storedColors?: Partial<CategoryColors>): CategoryColors {
   const legacy = storedColors as Record<string, string> | undefined;
 
   return {
     ...DEFAULT_PREFERENCES.categoryColors,
-    critical: legacy?.critical ?? legacy?.Obligation ?? DEFAULT_PREFERENCES.categoryColors.critical,
-    urgent: legacy?.urgent ?? legacy?.Quotidien ?? DEFAULT_PREFERENCES.categoryColors.urgent,
-    important: legacy?.important ?? legacy?.Envie ?? DEFAULT_PREFERENCES.categoryColors.important,
-    low_priority: legacy?.low_priority ?? legacy?.Autres ?? DEFAULT_PREFERENCES.categoryColors.low_priority,
+    critical: resolveStoredCategoryColor(
+      legacy?.critical ?? legacy?.Obligation,
+      DEFAULT_PREFERENCES.categoryColors.critical
+    ),
+    urgent: resolveStoredCategoryColor(
+      legacy?.urgent ?? legacy?.Quotidien,
+      DEFAULT_PREFERENCES.categoryColors.urgent
+    ),
+    important: resolveStoredCategoryColor(
+      legacy?.important ?? legacy?.Envie,
+      DEFAULT_PREFERENCES.categoryColors.important
+    ),
+    low_priority: resolveStoredCategoryColor(
+      legacy?.low_priority ?? legacy?.Autres,
+      DEFAULT_PREFERENCES.categoryColors.low_priority
+    ),
   };
+}
+
+function resolveCategoryColors(
+  storedColors: Partial<CategoryColors> | undefined,
+  paletteVersion: number | undefined
+): CategoryColors {
+  if (paletteVersion !== CATEGORY_PALETTE_VERSION) {
+    return { ...DEFAULT_PREFERENCES.categoryColors };
+  }
+
+  return normalizeCategoryColors(storedColors);
 }
 
 export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -42,7 +73,10 @@ export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ chi
           ...newCategories,
         ];
 
-        const categoryColors = normalizeCategoryColors(storedPrefs.categoryColors);
+        const categoryColors = resolveCategoryColors(
+          storedPrefs.categoryColors,
+          storedPrefs.categoryPaletteVersion
+        );
 
         return {
           ...DEFAULT_PREFERENCES,
@@ -68,9 +102,14 @@ export const UserPreferencesProvider: React.FC<{ children: ReactNode }> = ({ chi
   }, [preferences]);
 
   const updatePreferences = (updates: Partial<UserPreferences>) => {
+    const nextCategoryColors = updates.categoryColors
+      ? normalizeCategoryColors(updates.categoryColors)
+      : undefined;
+
     setPreferences(prev => ({
       ...prev,
       ...updates,
+      categoryColors: nextCategoryColors ?? prev.categoryColors,
       taskRules: updates.taskRules ? normalizeTaskRulePreferences(updates.taskRules) : prev.taskRules,
     }));
   };
