@@ -15,8 +15,19 @@ const CATEGORY_COLORS: Record<TaskCategory, string> = {
   low_priority: 'hsl(var(--category-low-priority))',
 };
 
+const CATEGORY_SURFACES: Record<TaskCategory, string> = {
+  critical: 'hsl(var(--category-critical-light))',
+  urgent: 'hsl(var(--category-urgent-light))',
+  important: 'hsl(var(--category-important-light))',
+  low_priority: 'hsl(var(--category-low-priority-light))',
+};
+
 export function getCategoryColorValue(category: TaskCategory): string {
   return CATEGORY_COLORS[category] ?? CATEGORY_COLORS.low_priority;
+}
+
+export function getCategorySurfaceValue(category: TaskCategory): string {
+  return CATEGORY_SURFACES[category] ?? CATEGORY_SURFACES.low_priority;
 }
 
 interface CategoryStyles {

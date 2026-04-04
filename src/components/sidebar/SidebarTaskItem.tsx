@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Task } from '@/types/task';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { getCategoryClasses, getCategoryIndicatorColor } from '@/lib/styling';
+import { getCategoryColorValue, getCategorySurfaceValue } from '@/lib/styling';
 import { formatDuration, formatDurationDelta, formatDurationLong, getEstimationComparison } from '@/lib/formatters';
 import {
   DropdownMenu,
@@ -148,12 +148,12 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
         !isExpanded && 'hover:bg-sidebar-accent/60',
         'border-b border-sidebar-border/40',
         'mb-0.5 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)]',
-        isExpanded && getCategoryClasses(task.category, 'background'),
         // Garder un accent visuel pour les tâches épinglées sans écraser la couleur de catégorie
         isPinned && 'ring-1 ring-amber-500/25',
         // Pulsing green border when timer is active
         isTimerActive && 'border-l-2 border-l-green-500 animate-pulse'
       )}
+      style={isExpanded ? { backgroundColor: getCategorySurfaceValue(task.category) } : undefined}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -164,10 +164,8 @@ const SidebarTaskItem: React.FC<SidebarTaskItemProps> = ({
 
       {/* Barre de couleur catégorie - collée au bord gauche */}
       <div
-        className={cn(
-          'w-1.5 self-stretch rounded-l-md shrink-0 z-10',
-          getCategoryIndicatorColor(task.category)
-        )}
+        className="w-1.5 self-stretch rounded-l-md shrink-0 z-10"
+        style={{ backgroundColor: getCategoryColorValue(task.category) }}
       />
 
       {/* Contenu principal - layout vertical au hover */}
