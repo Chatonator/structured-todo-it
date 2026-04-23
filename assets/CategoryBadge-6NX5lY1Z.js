@@ -1,0 +1,1 @@
+import{j as o}from"./vendor-CaW21fQg.js";import{o as p,g as r,c as m,x as l}from"./index-hM-37669.js";const n={sm:"text-[10px] px-1.5 py-0",md:"text-xs px-2 py-0.5",lg:"text-sm px-2.5 py-1"},d=({category:s,displayName:e=!0,size:t="md",className:a})=>{const x=e?p(s):s;return o.jsx(r,{variant:"outline",className:m(l(s,"badge"),n[t],a),children:x})};export{d as C};
